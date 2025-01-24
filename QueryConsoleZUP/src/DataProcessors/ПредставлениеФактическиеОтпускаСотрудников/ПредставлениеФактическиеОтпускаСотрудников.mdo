@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="73d38d63-4e86-45b7-ac72-994ededf6efb">
+  <producedTypes>
+    <objectType typeId="2692940c-c5d1-4126-975b-028812d24ff3" valueTypeId="66f46c9f-649d-46cb-87ef-c7f02942b3a8"/>
+    <managerType typeId="d464eb65-6d63-4d9c-b5e9-d27e03db372c" valueTypeId="6f8638d1-d09a-4b85-94d8-32d11d2e3419"/>
+  </producedTypes>
+  <name>ПредставлениеФактическиеОтпускаСотрудников</name>
+  <synonym>
+    <key>ru</key>
+    <value>Представление фактические отпуска сотрудников</value>
+  </synonym>
+  <useStandardCommands>true</useStandardCommands>
+</mdclass:DataProcessor>

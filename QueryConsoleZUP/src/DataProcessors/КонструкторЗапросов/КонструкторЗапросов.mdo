@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="4b49d966-bdd7-4f45-932c-759e0d2550b9">
+  <producedTypes>
+    <objectType typeId="9c116d22-1a41-4862-832a-89e556b643cc" valueTypeId="02e635f6-2357-4baa-a174-42ddd2650263"/>
+    <managerType typeId="2cd2f855-c29d-4f2a-af43-512cf531b4fc" valueTypeId="711b1cbb-ff64-40ae-8dfb-6c2fb7e8ae7e"/>
+  </producedTypes>
+  <name>КонструкторЗапросов</name>
+  <synonym>
+    <key>ru</key>
+    <value>Конструктор запроса</value>
+  </synonym>
+  <useStandardCommands>true</useStandardCommands>
+  <defaultForm>DataProcessor.КонструкторЗапросов.Form.КонструкторЗапросов</defaultForm>
+  <forms uuid="804dbe31-9081-4be8-9001-37ce8b933755">
+    <name>QueryEditor</name>
+    <synonym>
+      <key>ru</key>
+      <value>Query editor</value>
+    </synonym>
+    <usePurposes>PersonalComputer</usePurposes>
+    <usePurposes>MobileDevice</usePurposes>
+  </forms>
+  <forms uuid="964cc279-3468-4704-b18a-3c1a8c0c8671">
+    <name>AvailableTableParameters</name>
+    <synonym>
+      <key>ru</key>
+      <value>Available table parameters</value>
+    </synonym>
+    <usePurposes>PersonalComputer</usePurposes>
+    <usePurposes>MobileDevice</usePurposes>
+  </forms>
+  <forms uuid="db4d67a5-e791-458e-9b9e-dbc684ae8ecd">
+    <name>TempTable</name>
+    <synonym>
+      <key>ru</key>
+      <value>Temp table</value>
+    </synonym>
+    <help>
+      <pages>
+        <lang>ru</lang>
+      </pages>
+    </help>
+    <usePurposes>PersonalComputer</usePurposes>
+    <usePurposes>MobileDevice</usePurposes>
+  </forms>
+  <forms uuid="fa027227-2945-4ac4-bcf0-cfd68c655dfe">
+    <name>TableSelecting</name>
+    <synonym>
+      <key>ru</key>
+      <value>Table selecting</value>
+    </synonym>
+    <usePurposes>PersonalComputer</usePurposes>
+    <usePurposes>MobileDevice</usePurposes>
+  </forms>
+  <forms uuid="bf5d35f8-3ade-40ec-b45f-bb2c4deba539">
+    <name>DataCompositionAvailableTableParameters</name>
+    <synonym>
+      <key>ru</key>
+      <value>Data composition available table parameters</value>
+    </synonym>
+    <usePurposes>PersonalComputer</usePurposes>
+    <usePurposes>MobileDevice</usePurposes>
+  </forms>
+  <forms uuid="073a59ed-a654-4e77-b146-f7340eda1194">
+    <name>КонструкторЗапросов</name>
+    <synonym>
+      <key>ru</key>
+      <value>Конструктор запросов</value>
+    </synonym>
+    <comment>Конструктор запроса</comment>
+    <help>
+      <pages>
+        <lang>ru</lang>
+      </pages>
+    </help>
+    <usePurposes>PersonalComputer</usePurposes>
+    <usePurposes>MobileDevice</usePurposes>
+  </forms>
+  <forms uuid="1f422cec-ae06-43ad-b5c3-392f03953226">
+    <name>ПараметрыИсполняемогоПредстапвления</name>
+    <synonym>
+      <key>ru</key>
+      <value>Параметры исполняемого предстапвления</value>
+    </synonym>
+    <usePurposes>PersonalComputer</usePurposes>
+    <usePurposes>MobileDevice</usePurposes>
+  </forms>
+  <forms uuid="fc088c59-e21b-4f83-b6be-e1542523bcec">
+    <name>РедакторВыражений</name>
+    <synonym>
+      <key>ru</key>
+      <value>Произвольное выражение</value>
+    </synonym>
+    <help>
+      <pages>
+        <lang>ru</lang>
+      </pages>
+    </help>
+    <usePurposes>PersonalComputer</usePurposes>
+    <usePurposes>MobileDevice</usePurposes>
+  </forms>
+  <templates uuid="9c8adb58-e30e-497f-b43e-834fd177979b">
+    <name>ФункцииЯзыка</name>
+    <synonym>
+      <key>ru</key>
+      <value>Функции языка</value>
+    </synonym>
+  </templates>
+</mdclass:DataProcessor>

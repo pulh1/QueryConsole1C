@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Subsystem xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="03d230db-15da-4e35-a16d-e81d0c972764">
+  <name>Общее</name>
+  <synonym>
+    <key>ru</key>
+    <value>Общее</value>
+  </synonym>
+  <includeHelpInContents>true</includeHelpInContents>
+  <includeInCommandInterface>true</includeInCommandInterface>
+  <content>DataProcessor._ПредставлениеПериоды</content>
+  <parentSubsystem>Subsystem.ИсполняемыеПредставления</parentSubsystem>
+</mdclass:Subsystem>

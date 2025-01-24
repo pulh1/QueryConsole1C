@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="007904b7-9379-423b-87c6-f39596250d35">
+  <producedTypes>
+    <objectType typeId="88987749-cf24-479c-bbf2-f904f34e84b3" valueTypeId="04717910-3f26-4677-bcc6-e3870091dd76"/>
+    <managerType typeId="3f2c9910-125f-4145-8f0f-806e5870d14a" valueTypeId="7342aa4b-1ce2-4518-9018-8eb7e98e5273"/>
+  </producedTypes>
+  <name>_ПредставлениеПериоды</name>
+  <synonym>
+    <key>ru</key>
+    <value>Представление периоды</value>
+  </synonym>
+  <useStandardCommands>true</useStandardCommands>
+</mdclass:DataProcessor>

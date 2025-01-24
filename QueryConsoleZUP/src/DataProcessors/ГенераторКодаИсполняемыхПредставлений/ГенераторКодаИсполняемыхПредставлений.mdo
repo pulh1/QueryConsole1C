@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="0e8488ad-b753-4a89-987f-7791f76fbbbd">
+  <producedTypes>
+    <objectType typeId="c3515ec2-550a-430f-8bc2-fa507b2bb10a" valueTypeId="50798cd4-1b09-483f-b7fc-f9a83274d935"/>
+    <managerType typeId="2713e539-a0a9-44c6-be09-200b10f794c6" valueTypeId="8b01007d-ca94-4043-a08f-20d580166fde"/>
+  </producedTypes>
+  <name>ГенераторКодаИсполняемыхПредставлений</name>
+  <synonym>
+    <key>ru</key>
+    <value>Генератор кода исполняемых представлений</value>
+  </synonym>
+  <useStandardCommands>true</useStandardCommands>
+</mdclass:DataProcessor>

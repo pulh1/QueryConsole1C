@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="0290ab4e-7e9f-4033-b861-28e59f0f024c">
+  <producedTypes>
+    <objectType typeId="53b821c9-630d-469e-ba1e-493f3362a57d" valueTypeId="d8cdf5ab-30fc-4c60-98a0-31ae181dba0c"/>
+    <managerType typeId="38d852b3-6656-425d-a147-ee0193593592" valueTypeId="96b774b8-e715-4fbe-b360-4b1404d9346b"/>
+  </producedTypes>
+  <name>ПредставлениеРегистрСведенийСрезПоследних</name>
+  <synonym>
+    <key>ru</key>
+    <value>Представление регистр сведений срез последних</value>
+  </synonym>
+  <useStandardCommands>true</useStandardCommands>
+</mdclass:DataProcessor>

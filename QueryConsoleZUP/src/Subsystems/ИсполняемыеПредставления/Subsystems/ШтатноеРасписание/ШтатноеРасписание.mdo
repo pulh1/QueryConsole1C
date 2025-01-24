@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Subsystem xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="51f0cbe3-22bf-411c-b92d-b5a19444e4ca">
+  <name>ШтатноеРасписание</name>
+  <synonym>
+    <key>ru</key>
+    <value>Штатное расписание</value>
+  </synonym>
+  <includeHelpInContents>true</includeHelpInContents>
+  <includeInCommandInterface>true</includeInCommandInterface>
+  <content>DataProcessor.ПредставлениеДанныеПозицийШтатногоРасписания</content>
+  <parentSubsystem>Subsystem.ИсполняемыеПредставления</parentSubsystem>
+</mdclass:Subsystem>

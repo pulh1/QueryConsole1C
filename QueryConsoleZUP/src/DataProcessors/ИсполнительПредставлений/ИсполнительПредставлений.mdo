@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="13389f04-cfd1-4f33-99b6-d358f7cb68fa">
+  <producedTypes>
+    <objectType typeId="734c46b2-f72f-40f9-9bf4-29aa58729f0a" valueTypeId="3d7c79b3-5046-4732-b959-d6b28669217b"/>
+    <managerType typeId="a82fc599-3258-43af-94a0-662cbf2ca4b3" valueTypeId="8e0d1598-bc94-4220-9a4b-aa382cf79d15"/>
+  </producedTypes>
+  <name>ИсполнительПредставлений</name>
+  <synonym>
+    <key>ru</key>
+    <value>Исполнитель представлений</value>
+  </synonym>
+  <useStandardCommands>true</useStandardCommands>
+</mdclass:DataProcessor>

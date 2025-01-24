@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="2ac151b5-afeb-4ea5-beea-70916f8b57ab">
+  <producedTypes>
+    <objectType typeId="8599731d-599d-4cf5-b11a-cfb7b0821e53" valueTypeId="103db9f8-adff-4929-96e0-85b4e4035c0c"/>
+    <managerType typeId="e3545731-c859-412e-b7e2-e2338e6a7063" valueTypeId="36658c24-35c8-4670-8a2d-21bd42e88223"/>
+  </producedTypes>
+  <name>Парсер</name>
+  <synonym>
+    <key>ru</key>
+    <value>Парсер</value>
+  </synonym>
+  <useStandardCommands>true</useStandardCommands>
+  <templates uuid="204e31e0-ba3c-426b-b142-d38888daa56f">
+    <name>ТаблицаПервыхСимволовВариантов</name>
+    <synonym>
+      <key>ru</key>
+      <value>Таблица первых символов вариантов</value>
+    </synonym>
+    <templateType>TextDocument</templateType>
+  </templates>
+  <templates uuid="d955f584-c70c-43a3-959f-71e713caa951">
+    <name>ОпределенияИдентификаторов</name>
+    <synonym>
+      <key>ru</key>
+      <value>Определения идентификаторов</value>
+    </synonym>
+    <templateType>TextDocument</templateType>
+  </templates>
+</mdclass:DataProcessor>

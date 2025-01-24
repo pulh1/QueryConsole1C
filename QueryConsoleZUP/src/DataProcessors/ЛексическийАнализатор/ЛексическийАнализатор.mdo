@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="6662c9f0-64ff-49e9-bd86-cf206f52441f">
+  <producedTypes>
+    <objectType typeId="c2357b06-7208-4a4f-ae79-fa3f90266919" valueTypeId="ce785a45-71bc-493b-a500-560e816b829c"/>
+    <managerType typeId="f5386243-1492-485d-a7a0-2c21a5378283" valueTypeId="7167ea97-3367-4bc1-8fab-b2833598feef"/>
+  </producedTypes>
+  <name>ЛексическийАнализатор</name>
+  <synonym>
+    <key>ru</key>
+    <value>Лексический анализатор</value>
+  </synonym>
+  <useStandardCommands>true</useStandardCommands>
+  <defaultForm>DataProcessor.ЛексическийАнализатор.Form.Форма</defaultForm>
+  <forms uuid="b4a463b7-111d-4173-b808-aef624929f08">
+    <name>Форма</name>
+    <synonym>
+      <key>ru</key>
+      <value>Форма</value>
+    </synonym>
+    <usePurposes>PersonalComputer</usePurposes>
+    <usePurposes>MobileDevice</usePurposes>
+  </forms>
+</mdclass:DataProcessor>

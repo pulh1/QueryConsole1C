@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="aa507b23-eede-46bc-967a-3a147b068bc5">
+  <producedTypes>
+    <objectType typeId="d51a1852-4901-4093-b2e2-b64e38bef501" valueTypeId="ff64bd6d-e7e7-4162-b3c7-e575387fb5d1"/>
+    <managerType typeId="01190ad5-d867-4865-b7af-6bdb1d8efebb" valueTypeId="320d568a-e9d5-4794-a824-48e8a868ee30"/>
+  </producedTypes>
+  <name>ГенераторКодаЗапросовДляСКД</name>
+  <synonym>
+    <key>ru</key>
+    <value>Генератор кода запросов для СКД</value>
+  </synonym>
+  <useStandardCommands>true</useStandardCommands>
+</mdclass:DataProcessor>

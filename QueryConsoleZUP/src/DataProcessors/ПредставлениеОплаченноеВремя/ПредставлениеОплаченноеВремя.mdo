@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="a96edfd2-1683-4ca9-b2b6-132d9efcb38c">
+  <producedTypes>
+    <objectType typeId="cf0b66d8-ba06-49a7-a973-809b3865412f" valueTypeId="45120f9e-1ff4-45b1-ab6d-25b28d85fe9d"/>
+    <managerType typeId="20f5263f-4838-42d8-8642-e6380837311b" valueTypeId="a3aa6107-7473-472e-9e9c-b4bab0921d39"/>
+  </producedTypes>
+  <name>ПредставлениеОплаченноеВремя</name>
+  <synonym>
+    <key>ru</key>
+    <value>Представление оплаченное время</value>
+  </synonym>
+  <useStandardCommands>true</useStandardCommands>
+</mdclass:DataProcessor>

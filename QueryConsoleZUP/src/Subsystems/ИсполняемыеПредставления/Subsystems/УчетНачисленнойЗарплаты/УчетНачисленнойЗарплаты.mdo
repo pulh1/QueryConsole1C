@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Subsystem xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="66b6ef65-6e18-412c-8b04-3b0ac8bd4976">
+  <name>УчетНачисленнойЗарплаты</name>
+  <synonym>
+    <key>ru</key>
+    <value>Учет начисленной зарплаты</value>
+  </synonym>
+  <includeHelpInContents>true</includeHelpInContents>
+  <includeInCommandInterface>true</includeInCommandInterface>
+  <content>DataProcessor.ПредставлениеОплаченноеВремя</content>
+  <content>DataProcessor.ПредставлениеНачисленияУдержанияВыплаты</content>
+  <content>DataProcessor.ПредставлениеНачисленияУдержанияВыплатыАвансом</content>
+  <parentSubsystem>Subsystem.ИсполняемыеПредставления</parentSubsystem>
+</mdclass:Subsystem>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:InformationRegister xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="2c680d8e-c69f-4acf-a2b3-38c1bc35ab25" extendedConfigurationObject="77549c2a-a84b-49d6-8f15-86c632de6a12">
+  <producedTypes>
+    <selectionType typeId="4287c953-9605-4909-9770-44782d56d7ec" valueTypeId="2ead4472-eb82-41b7-8616-4956367330f9"/>
+    <listType typeId="ce8cf6a8-6335-40e8-8259-35a2dec9a816" valueTypeId="e4acf885-d4f4-4a03-ae7e-e9e4e039f266"/>
+    <managerType typeId="f5dc5a9d-8203-47ff-8678-d28ae2795504" valueTypeId="92586a37-a43a-46e1-b29a-51f6fadf8952"/>
+    <recordSetType typeId="8efed9c2-86a5-48d3-9c0d-451246608095" valueTypeId="e7970d4e-e328-4e6f-8a30-1f135be288ca"/>
+    <recordKeyType typeId="ce89c9ec-07be-4a64-8f7b-00a08546f8fa" valueTypeId="1a7cf614-6bf0-4e00-8a89-339e9bdf04da"/>
+    <recordType typeId="cf8a7813-1e86-4933-b7b3-ec421a548381" valueTypeId="e2234efa-905c-46db-84c7-0e4089584f2b"/>
+    <recordManagerType typeId="0e35cca9-6310-47dd-8b29-91233737e786" valueTypeId="640416a2-9833-4490-a6e7-00a5d3b8e5b8"/>
+  </producedTypes>
+  <name>КадроваяИсторияСотрудников</name>
+  <objectBelonging>Adopted</objectBelonging>
+  <extension xsi:type="mdclassExtension:InformationRegisterExtension">
+    <extendedConfigurationObject>Checked</extendedConfigurationObject>
+    <informationRegisterPeriodicity>Checked</informationRegisterPeriodicity>
+    <writeMode>Checked</writeMode>
+  </extension>
+  <useStandardCommands>true</useStandardCommands>
+  <informationRegisterPeriodicity>Second</informationRegisterPeriodicity>
+  <writeMode>RecorderSubordinate</writeMode>
+</mdclass:InformationRegister>

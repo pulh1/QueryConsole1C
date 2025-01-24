@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="adb346a1-a05f-4ad8-be08-042fae7c1811">
+  <producedTypes>
+    <objectType typeId="f90d4fee-8c89-46c7-a82d-d1b63e945317" valueTypeId="8e0d5fe6-1999-44a7-8b8f-c7e7bddae593"/>
+    <managerType typeId="4e58c21c-9f4c-42b9-ab49-5a8814a26ea9" valueTypeId="9fea88f6-2406-4712-8dcf-7a5115f45311"/>
+  </producedTypes>
+  <name>ПредставлениеНачисленияУдержанияВыплатыАвансом</name>
+  <synonym>
+    <key>ru</key>
+    <value>Представление начисления удержания выплаты авансом</value>
+  </synonym>
+  <useStandardCommands>true</useStandardCommands>
+</mdclass:DataProcessor>

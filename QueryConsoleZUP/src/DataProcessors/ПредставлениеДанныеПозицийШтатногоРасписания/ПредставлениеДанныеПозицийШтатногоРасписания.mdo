@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="7f149ded-3025-431e-977c-fff7d1e8bcdc">
+  <producedTypes>
+    <objectType typeId="72fcb9e0-4331-412e-ac7c-599276767d2b" valueTypeId="126f8be6-d8a9-4771-86a4-d860fe7661f9"/>
+    <managerType typeId="4cfc4147-936b-4cc9-91c9-2dc458d5029b" valueTypeId="270b4d3d-abfc-43e0-b299-f361228a6c2b"/>
+  </producedTypes>
+  <name>ПредставлениеДанныеПозицийШтатногоРасписания</name>
+  <synonym>
+    <key>ru</key>
+    <value>Представление данные позиций штатного расписания</value>
+  </synonym>
+  <useStandardCommands>true</useStandardCommands>
+</mdclass:DataProcessor>

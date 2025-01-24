@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="5a149d10-6e77-4553-8e41-cb6952f272ea">
+  <producedTypes>
+    <objectType typeId="4f6c1462-2648-4313-bb1f-7e5383c9582f" valueTypeId="79a45fd9-d45a-46f0-864d-e74a48f0480a"/>
+    <managerType typeId="6e64329b-206f-44fc-a611-8dbff5f2a8fe" valueTypeId="9e357209-7409-4948-a274-098160b765a0"/>
+  </producedTypes>
+  <name>Представление_РасчетСтажа</name>
+  <synonym>
+    <key>ru</key>
+    <value>Представление расчет стажа</value>
+  </synonym>
+  <useStandardCommands>true</useStandardCommands>
+</mdclass:DataProcessor>

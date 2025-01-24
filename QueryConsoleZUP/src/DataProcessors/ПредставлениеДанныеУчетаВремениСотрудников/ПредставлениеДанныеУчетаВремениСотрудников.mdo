@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="1999a699-8707-421f-9992-4c552b03c14f">
+  <producedTypes>
+    <objectType typeId="daef6aee-efca-41ba-9018-2c960c4bceac" valueTypeId="e5243999-648a-4cb9-b7d3-6da09f692c6c"/>
+    <managerType typeId="a02fea98-d8a5-4c2b-a982-a2d9108123e6" valueTypeId="78d1b1c2-5e2f-4092-b568-89683de0a46b"/>
+  </producedTypes>
+  <name>ПредставлениеДанныеУчетаВремениСотрудников</name>
+  <synonym>
+    <key>ru</key>
+    <value>Представление данные учета времени сотрудников</value>
+  </synonym>
+  <useStandardCommands>true</useStandardCommands>
+</mdclass:DataProcessor>

@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="f356a993-6dd9-4556-b5dc-84e460f15d82">
+  <name>QueryConsoleZUP</name>
+  <synonym>
+    <key>ru</key>
+    <value>Query console ZUP</value>
+  </synonym>
+  <objectBelonging>Adopted</objectBelonging>
+  <extension xsi:type="mdclassExtension:ConfigurationExtension">
+    <defaultRunMode>Checked</defaultRunMode>
+    <usePurposes>Checked</usePurposes>
+    <defaultLanguage>Checked</defaultLanguage>
+    <interfaceCompatibilityMode>Checked</interfaceCompatibilityMode>
+    <defaultRoles>Extended</defaultRoles>
+  </extension>
+  <containedObjects classId="9cd510cd-abfc-11d4-9434-004095e12fc7" objectId="b47d1f8e-3a20-4bb9-9253-1e322089aa88"/>
+  <containedObjects classId="9fcd25a0-4822-11d4-9414-008048da11f9" objectId="708add05-4b10-4c6f-916b-e11c2da9ae59"/>
+  <containedObjects classId="e3687481-0a87-462c-a166-9f34594f9bba" objectId="3bad515c-7cb4-44b4-af0c-94f4560c12bc"/>
+  <containedObjects classId="9de14907-ec23-4a07-96f0-85521cb6b53b" objectId="ea3810f3-5109-4d1f-b64f-ce32b8b1d45d"/>
+  <containedObjects classId="51f2d5d8-ea4d-4064-8892-82951750031e" objectId="7e0d2c3b-3b65-4be6-9c39-b3652a9c2880"/>
+  <containedObjects classId="e68182ea-4237-4383-967f-90c1e3370bc7" objectId="7aa56d4f-550e-4a5c-837b-f3e9b760cbb2"/>
+  <containedObjects classId="fb282519-d103-4dd3-bc12-cb271d631dfc" objectId="3fade37f-4435-41c0-a580-6da44a59bbbe"/>
+  <keepMappingToExtendedConfigurationObjectsByIDs>true</keepMappingToExtendedConfigurationObjectsByIDs>
+  <namePrefix>КОНС_</namePrefix>
+  <configurationExtensionCompatibilityMode>8.3.21</configurationExtensionCompatibilityMode>
+  <configurationExtensionPurpose>Customization</configurationExtensionPurpose>
+  <defaultRunMode>ManagedApplication</defaultRunMode>
+  <usePurposes>PersonalComputer</usePurposes>
+  <scriptVariant>Russian</scriptVariant>
+  <defaultRoles>Role.КОНС_ОсновнаяРоль</defaultRoles>
+  <defaultLanguage>Language.Русский</defaultLanguage>
+  <interfaceCompatibilityMode>TaxiEnableVersion8_2</interfaceCompatibilityMode>
+  <languages uuid="88faf847-7cf9-42cb-9ccf-1d76b7609be8" extendedConfigurationObject="6ec41672-ca59-40aa-a4cf-3fef74cdc3c6">
+    <name>Русский</name>
+    <objectBelonging>Adopted</objectBelonging>
+    <extension xsi:type="mdclassExtension:LanguageExtension">
+      <extendedConfigurationObject>Checked</extendedConfigurationObject>
+      <languageCode>Checked</languageCode>
+    </extension>
+    <languageCode>ru</languageCode>
+  </languages>
+  <subsystems>Subsystem.МеханизмИсполняемыхПредставлений</subsystems>
+  <subsystems>Subsystem.ИсполняемыеПредставления</subsystems>
+  <commonPictures>CommonPicture.ДлительнаяОперация48</commonPictures>
+  <commonPictures>CommonPicture.ФорматMXL</commonPictures>
+  <roles>Role.КОНС_ОсновнаяРоль</roles>
+  <commonModules>CommonModule.ЭлементыМоделиЗапроса</commonModules>
+  <commonModules>CommonModule.ГенерацияТекстовЗапросов</commonModules>
+  <commonModules>CommonModule.ОбработкаМоделиЗапроса</commonModules>
+  <commonModules>CommonModule.ПредставленияРегистровСведений</commonModules>
+  <commonModules>CommonModule.ОбработкаПредставлениеЗапрсов</commonModules>
+  <commonModules>CommonModule.ПоставщикИсполняемыхПредставлений</commonModules>
+  <commonModules>CommonModule.ПоставщикИсполняемыхПредставленийПовтИсп</commonModules>
+  <commonModules>CommonModule.КонструкторЗапросовФормы</commonModules>
+  <commonModules>CommonModule.КонструкторЗапросовФормыПовтИсп</commonModules>
+  <commonModules>CommonModule.КонструкторЗапросовКлиентСерверФормы</commonModules>
+  <commonModules>CommonModule.КонструкторЗапросовПовтИсп</commonModules>
+  <commonModules>CommonModule.КонструкторЗапросовКлиент</commonModules>
+  <commonModules>CommonModule.ЭлементыМоделиОписанияПредставлений</commonModules>
+  <commonModules>CommonModule.ПредставленияРегистровСведенийУтилиты</commonModules>
+  <commonModules>CommonModule.ОписаниеИсполняемыхПредставленийУтилиты</commonModules>
+  <commonModules>CommonModule.ПредставленияКадровогоУчетаУтилиты</commonModules>
+  <commonModules>CommonModule.ИсполнительПредставлений</commonModules>
+  <commonModules>CommonModule.ЭлементыМоделиИсполненияПредставлений</commonModules>
+  <commonModules>CommonModule.ГенерацияИсполняемогоКодаПредставленийУтилиты</commonModules>
+  <commonModules>CommonModule.ИсполнительПредставленийУтилиты</commonModules>
+  <commonModules>CommonModule.МодельЗапросаУтилиты</commonModules>
+  <commonModules>CommonModule.МодельЗапросаТипы</commonModules>
+  <commonModules>CommonModule.ИсполнительПредставленийЗУПУтилиты</commonModules>
+  <commonModules>CommonModule.ГенерацияИсполняемогоКодаПредставленийЗУПУтилиты</commonModules>
+  <dataProcessors>DataProcessor.ЛексическийАнализатор</dataProcessors>
+  <dataProcessors>DataProcessor.Парсер</dataProcessors>
+  <dataProcessors>DataProcessor.КонструкторЗапросов</dataProcessors>
+  <dataProcessors>DataProcessor.КонсольЗапросов</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеДанныеУчетаВремениСотрудников</dataProcessors>
+  <dataProcessors>DataProcessor._ПредставлениеПериоды</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеРегистрСведенийСрезПоследних</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеРегистрСведенийЗаписи</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеРегистрСведенийИнтервалы</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеСотрудникиОрганизации</dataProcessors>
+  <dataProcessors>DataProcessor.ЛексическийАнализаторRegExp</dataProcessors>
+  <dataProcessors>DataProcessor.ИсполнительПредставлений</dataProcessors>
+  <dataProcessors>DataProcessor.ГенераторКодаИсполняемыхПредставлений</dataProcessors>
+  <dataProcessors>DataProcessor.Шаблон_Представление_ИмяПредставления</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеДанныеСотрудников</dataProcessors>
+  <dataProcessors>DataProcessor.ПостроительМоделиЗапроса</dataProcessors>
+  <dataProcessors>DataProcessor.ГенераторТекстовЗапрсов</dataProcessors>
+  <dataProcessors>DataProcessor.ГенераторТекстовВыражений</dataProcessors>
+  <dataProcessors>DataProcessor.ГенераторКодаЗапросовДляСКД</dataProcessors>
+  <dataProcessors>DataProcessor.Представление_РасчетСтажа</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеПлановоеВремяСотрудников</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеДанныеПозицийШтатногоРасписания</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеДанныеФизическихЛиц</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеРабочиеМестаСотрудников</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеОплаченноеВремя</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеНачисленияУдержанияВыплаты</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеНачисленияУдержанияВыплатыАвансом</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеФактическиеОтпускаСотрудников</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеРегистрРасчетаБаза</dataProcessors>
+  <informationRegisters>InformationRegister.КадроваяИсторияСотрудников</informationRegisters>
+</mdclass:Configuration>

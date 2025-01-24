@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:CommonModule xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="cbf48601-4804-4e15-a9e6-ee5714a3883d">
+  <name>ГенерацияИсполняемогоКодаПредставленийУтилиты</name>
+  <synonym>
+    <key>ru</key>
+    <value>Генерация исполняемого кода представлений утилиты</value>
+  </synonym>
+  <server>true</server>
+  <externalConnection>true</externalConnection>
+  <clientOrdinaryApplication>true</clientOrdinaryApplication>
+</mdclass:CommonModule>

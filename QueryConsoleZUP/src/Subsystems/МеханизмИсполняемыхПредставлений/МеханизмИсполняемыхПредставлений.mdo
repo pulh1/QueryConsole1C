@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Subsystem xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="7efff22a-8ec2-4fa7-88b5-c1f382f645c3">
+  <name>МеханизмИсполняемыхПредставлений</name>
+  <synonym>
+    <key>ru</key>
+    <value>Механизм исполняемых представлений</value>
+  </synonym>
+  <includeHelpInContents>true</includeHelpInContents>
+  <includeInCommandInterface>true</includeInCommandInterface>
+  <content>CommonModule.КонструкторЗапросовПовтИсп</content>
+  <content>CommonModule.КонструкторЗапросовКлиентСерверФормы</content>
+  <content>CommonModule.КонструкторЗапросовФормыПовтИсп</content>
+  <content>CommonModule.КонструкторЗапросовФормы</content>
+  <content>CommonModule.ПоставщикИсполняемыхПредставленийПовтИсп</content>
+  <content>CommonModule.ПоставщикИсполняемыхПредставлений</content>
+  <content>CommonModule.ОбработкаПредставлениеЗапрсов</content>
+  <content>CommonModule.ОбработкаМоделиЗапроса</content>
+  <content>CommonModule.ГенерацияТекстовЗапросов</content>
+  <content>CommonModule.ЭлементыМоделиЗапроса</content>
+  <content>DataProcessor.Парсер</content>
+  <content>CommonModule.ПредставленияРегистровСведений</content>
+  <content>DataProcessor.ЛексическийАнализатор</content>
+  <content>CommonModule.КонструкторЗапросовКлиент</content>
+  <content>DataProcessor.КонсольЗапросов</content>
+  <content>DataProcessor.КонструкторЗапросов</content>
+  <content>DataProcessor.ИсполнительПредставлений</content>
+</mdclass:Subsystem>
