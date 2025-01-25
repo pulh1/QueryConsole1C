@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:InformationRegister xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="1ea90796-1b9f-4c37-beee-b512998100b4" extendedConfigurationObject="01cc3bfd-1a26-48ed-852c-ba342e95decf">
+  <producedTypes>
+    <selectionType typeId="b13089f5-af9b-4ac6-b42a-92a1f7d47d27" valueTypeId="b1378ea1-bd43-45d4-a856-8703ab9911e8"/>
+    <listType typeId="8b7438e1-b649-4fa4-a149-c075807ba15d" valueTypeId="452d2f72-aac6-4477-8e23-ea0b226d1900"/>
+    <managerType typeId="3c302604-f882-4831-8ef7-554a070166f3" valueTypeId="615b1839-e293-43ec-85b1-7dd4440929df"/>
+    <recordSetType typeId="fa56c08e-1476-4781-9f62-7717e7a3dbe9" valueTypeId="2a36d184-002a-4448-b69a-79682ee9c350"/>
+    <recordKeyType typeId="1d7b6a96-2634-457d-9a81-4c4e532036d3" valueTypeId="715c4311-2480-4528-b6b3-614a74eb2720"/>
+    <recordType typeId="90566c6c-deb5-4fb0-a43e-1d18e436a640" valueTypeId="ae16baf0-002d-4a29-9f2c-68b55a975fab"/>
+    <recordManagerType typeId="a073eabe-c5dc-4af1-bdc1-d615fac07cb4" valueTypeId="8191c123-dbf0-4f3a-882f-6cbfb6cad44e"/>
+  </producedTypes>
+  <name>ПлановыйФОТИтоги</name>
+  <objectBelonging>Adopted</objectBelonging>
+  <extension xsi:type="mdclassExtension:InformationRegisterExtension">
+    <extendedConfigurationObject>Checked</extendedConfigurationObject>
+    <informationRegisterPeriodicity>Checked</informationRegisterPeriodicity>
+    <writeMode>Checked</writeMode>
+  </extension>
+  <informationRegisterPeriodicity>Second</informationRegisterPeriodicity>
+  <attributes uuid="3e4f746d-8a4e-4551-8d07-ad6e5267f3b3" extendedConfigurationObject="07b3a4da-89ec-4125-9d3f-704025ef8e66">
+    <name>РегистраторСобытия</name>
+    <objectBelonging>Adopted</objectBelonging>
+    <extension xsi:type="mdclassExtension:BasicFeatureExtension">
+      <extendedConfigurationObject>Checked</extendedConfigurationObject>
+      <typeExtension>
+        <types>
+          <state>Checked</state>
+          <type>DefinedType.ОснованиеИзмененияПлановогоФОТ</type>
+        </types>
+      </typeExtension>
+    </extension>
+  </attributes>
+</mdclass:InformationRegister>

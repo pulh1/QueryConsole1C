@@ -6,7 +6,6 @@
     <value>Механизм исполняемых представлений</value>
   </synonym>
   <includeHelpInContents>true</includeHelpInContents>
-  <includeInCommandInterface>true</includeInCommandInterface>
   <content>CommonModule.КонструкторЗапросовПовтИсп</content>
   <content>CommonModule.КонструкторЗапросовКлиентСерверФормы</content>
   <content>CommonModule.КонструкторЗапросовФормыПовтИсп</content>
@@ -18,7 +17,6 @@
   <content>CommonModule.ГенерацияТекстовЗапросов</content>
   <content>CommonModule.ЭлементыМоделиЗапроса</content>
   <content>DataProcessor.Парсер</content>
-  <content>CommonModule.ПредставленияРегистровСведений</content>
   <content>DataProcessor.ЛексическийАнализатор</content>
   <content>CommonModule.КонструкторЗапросовКлиент</content>
   <content>DataProcessor.КонсольЗапросов</content>

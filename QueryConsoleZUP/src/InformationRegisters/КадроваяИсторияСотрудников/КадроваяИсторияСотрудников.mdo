@@ -16,7 +16,6 @@
     <informationRegisterPeriodicity>Checked</informationRegisterPeriodicity>
     <writeMode>Checked</writeMode>
   </extension>
-  <useStandardCommands>true</useStandardCommands>
   <informationRegisterPeriodicity>Second</informationRegisterPeriodicity>
   <writeMode>RecorderSubordinate</writeMode>
 </mdclass:InformationRegister>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:InformationRegister xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="43db187f-faa3-4a2e-90fc-6dc31be43e17" extendedConfigurationObject="3b0fa460-996a-4666-a22f-79c66adc566f">
+  <producedTypes>
+    <selectionType typeId="9b741c97-ff98-4f8c-bdd9-b37452114ec0" valueTypeId="38096016-4a63-4d9b-a91e-d49fe21da754"/>
+    <listType typeId="55a827bb-e213-408b-824e-606fe67d1ff8" valueTypeId="d8b29cf2-2316-4e0d-9431-f4b741923a32"/>
+    <managerType typeId="e354b069-3b8a-46f7-b50c-03e9b3f75b4d" valueTypeId="64b9a3fb-964d-4c85-8573-f79b0114558e"/>
+    <recordSetType typeId="9abcf4e3-3603-48a7-b51c-1d225068890d" valueTypeId="2c819adf-49f5-4558-bf0e-c52bd2dc9716"/>
+    <recordKeyType typeId="64cda09f-3655-42bb-9726-a185c0f77ff9" valueTypeId="f1e59001-4ba2-48d7-b7de-7a5bad210f19"/>
+    <recordType typeId="94d8fa6a-81fa-4aa5-8fb0-f6b07dfe63b0" valueTypeId="7454e80c-e226-4cc8-9d77-5451e3407f11"/>
+    <recordManagerType typeId="e3087a92-e27e-4dba-aaaf-afcf5e920584" valueTypeId="ec4a5b83-f54e-4efe-9f2f-bb98b14a9839"/>
+  </producedTypes>
+  <name>ПорядокРасчетаСтоимостиЕдиницыВремениСотрудников</name>
+  <objectBelonging>Adopted</objectBelonging>
+  <extension xsi:type="mdclassExtension:InformationRegisterExtension">
+    <extendedConfigurationObject>Checked</extendedConfigurationObject>
+    <informationRegisterPeriodicity>Checked</informationRegisterPeriodicity>
+    <writeMode>Checked</writeMode>
+  </extension>
+  <informationRegisterPeriodicity>Second</informationRegisterPeriodicity>
+  <writeMode>RecorderSubordinate</writeMode>
+</mdclass:InformationRegister>

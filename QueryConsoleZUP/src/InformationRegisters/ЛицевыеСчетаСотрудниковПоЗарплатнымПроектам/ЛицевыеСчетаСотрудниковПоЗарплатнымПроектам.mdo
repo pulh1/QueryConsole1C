@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:InformationRegister xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="ce873400-d2d9-4591-9b49-cd4b069fb83f" extendedConfigurationObject="2d2bc347-0284-4f32-81e1-1e20f808c858">
+  <producedTypes>
+    <selectionType typeId="0ea86056-07de-4090-bd28-cd2cb6103081" valueTypeId="8aff2ac6-1c09-46bb-9808-943811fd6dd8"/>
+    <listType typeId="c43eb9ff-89cc-4dc7-afc3-c366b14a48d0" valueTypeId="3c5c0d43-8368-4ed8-a5ce-cec5f0a8c178"/>
+    <managerType typeId="ab972b4a-48f0-419e-9a59-a8a904bb7862" valueTypeId="677c1f9a-25ff-488b-bc3e-1072c14a91e3"/>
+    <recordSetType typeId="cd6d46a4-25e8-4457-823f-1f90d50e303b" valueTypeId="1494d920-3e5d-44bb-9bc5-ebdea46b0494"/>
+    <recordKeyType typeId="304b52c9-2657-4fc1-a616-41fa64e71607" valueTypeId="571bdc01-000c-4e6f-bb93-306281891e54"/>
+    <recordType typeId="4d916ee7-475b-48ac-81f4-0cb9372b6751" valueTypeId="4605e004-7624-475b-a946-2f435595afca"/>
+    <recordManagerType typeId="336bbe7c-3eeb-4f62-ad3c-e1f5e349400d" valueTypeId="2de63788-076e-46cc-aff1-d1f10f3f0711"/>
+  </producedTypes>
+  <name>ЛицевыеСчетаСотрудниковПоЗарплатнымПроектам</name>
+  <objectBelonging>Adopted</objectBelonging>
+  <extension xsi:type="mdclassExtension:InformationRegisterExtension">
+    <extendedConfigurationObject>Checked</extendedConfigurationObject>
+    <informationRegisterPeriodicity>Checked</informationRegisterPeriodicity>
+    <writeMode>Checked</writeMode>
+  </extension>
+  <attributes uuid="dbf96d6f-3150-4549-8d32-577e06aa5b5a" extendedConfigurationObject="87227cef-ee5b-4117-bd5a-cdaec56cad9a">
+    <name>ДокументОснование</name>
+    <objectBelonging>Adopted</objectBelonging>
+    <extension xsi:type="mdclassExtension:BasicFeatureExtension">
+      <extendedConfigurationObject>Checked</extendedConfigurationObject>
+      <typeExtension>
+        <types>
+          <state>Checked</state>
+          <type>AnyRef</type>
+        </types>
+      </typeExtension>
+    </extension>
+  </attributes>
+</mdclass:InformationRegister>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:AccumulationRegister xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="d080a727-d193-43ec-a554-49d67ea1d25d" extendedConfigurationObject="3255479a-7a6e-4c99-98b5-70a9215f9a24">
+  <producedTypes>
+    <selectionType typeId="713fd3ed-6f99-4b94-b6db-8d6778328e13" valueTypeId="b976d195-a15e-44b1-ac46-db8d3c685934"/>
+    <listType typeId="140450bf-3102-42c5-b005-17f31687ad17" valueTypeId="07d8b7ea-84f0-4f61-9c3f-b538432de438"/>
+    <managerType typeId="fceaba66-5072-4a28-9ff4-1a21c5bf997a" valueTypeId="9b7b1970-3650-4a5a-92fa-cb3834e46cbb"/>
+    <recordSetType typeId="9a2e44ba-2866-4c71-9927-73bf152ee795" valueTypeId="415a99a0-3447-4859-9401-1dd9c2809a05"/>
+    <recordKeyType typeId="0bb17135-299a-46b1-bdca-c899c0cab01e" valueTypeId="2c61854f-012b-4545-a0e9-42ce80b277a6"/>
+    <recordType typeId="6e5ea868-d6ce-44d1-884e-418c7edd1b94" valueTypeId="220d2c10-7126-4af2-86d8-1101852a4866"/>
+  </producedTypes>
+  <name>НачисленияУдержанияПоСотрудникам</name>
+  <objectBelonging>Adopted</objectBelonging>
+  <extension xsi:type="mdclassExtension:AccumulationRegisterExtension">
+    <extendedConfigurationObject>Checked</extendedConfigurationObject>
+    <registerType>Checked</registerType>
+  </extension>
+  <registerType>Turnovers</registerType>
+  <attributes uuid="1a600ee0-3b00-4c5f-899f-6ddb3093e066" extendedConfigurationObject="c8d17d7b-f7c6-4db7-a285-d2478cee2fbd">
+    <name>ДокументОснование</name>
+    <objectBelonging>Adopted</objectBelonging>
+    <extension xsi:type="mdclassExtension:BasicFeatureExtension">
+      <extendedConfigurationObject>Checked</extendedConfigurationObject>
+      <typeExtension>
+        <types>
+          <state>Checked</state>
+          <type>DefinedType.ОснованиеНачисленияУдержания</type>
+        </types>
+      </typeExtension>
+    </extension>
+  </attributes>
+</mdclass:AccumulationRegister>

@@ -39,63 +39,91 @@
     </extension>
     <languageCode>ru</languageCode>
   </languages>
-  <subsystems>Subsystem.МеханизмИсполняемыхПредставлений</subsystems>
   <subsystems>Subsystem.ИсполняемыеПредставления</subsystems>
+  <subsystems>Subsystem.МеханизмИсполняемыхПредставлений</subsystems>
   <commonPictures>CommonPicture.ДлительнаяОперация48</commonPictures>
   <commonPictures>CommonPicture.ФорматMXL</commonPictures>
   <roles>Role.КОНС_ОсновнаяРоль</roles>
-  <commonModules>CommonModule.ЭлементыМоделиЗапроса</commonModules>
+  <commonModules>CommonModule.ГенерацияИсполняемогоКодаПредставленийЗУПУтилиты</commonModules>
+  <commonModules>CommonModule.ГенерацияИсполняемогоКодаПредставленийУтилиты</commonModules>
   <commonModules>CommonModule.ГенерацияТекстовЗапросов</commonModules>
-  <commonModules>CommonModule.ОбработкаМоделиЗапроса</commonModules>
-  <commonModules>CommonModule.ПредставленияРегистровСведений</commonModules>
-  <commonModules>CommonModule.ОбработкаПредставлениеЗапрсов</commonModules>
-  <commonModules>CommonModule.ПоставщикИсполняемыхПредставлений</commonModules>
-  <commonModules>CommonModule.ПоставщикИсполняемыхПредставленийПовтИсп</commonModules>
-  <commonModules>CommonModule.КонструкторЗапросовФормы</commonModules>
-  <commonModules>CommonModule.КонструкторЗапросовФормыПовтИсп</commonModules>
+  <commonModules>CommonModule.ИсполнительПредставлений</commonModules>
+  <commonModules>CommonModule.ИсполнительПредставленийЗУПУтилиты</commonModules>
+  <commonModules>CommonModule.ИсполнительПредставленийУтилиты</commonModules>
+  <commonModules>CommonModule.КонструкторЗапросовКлиент</commonModules>
   <commonModules>CommonModule.КонструкторЗапросовКлиентСерверФормы</commonModules>
   <commonModules>CommonModule.КонструкторЗапросовПовтИсп</commonModules>
-  <commonModules>CommonModule.КонструкторЗапросовКлиент</commonModules>
-  <commonModules>CommonModule.ЭлементыМоделиОписанияПредставлений</commonModules>
-  <commonModules>CommonModule.ПредставленияРегистровСведенийУтилиты</commonModules>
-  <commonModules>CommonModule.ОписаниеИсполняемыхПредставленийУтилиты</commonModules>
-  <commonModules>CommonModule.ПредставленияКадровогоУчетаУтилиты</commonModules>
-  <commonModules>CommonModule.ИсполнительПредставлений</commonModules>
-  <commonModules>CommonModule.ЭлементыМоделиИсполненияПредставлений</commonModules>
-  <commonModules>CommonModule.ГенерацияИсполняемогоКодаПредставленийУтилиты</commonModules>
-  <commonModules>CommonModule.ИсполнительПредставленийУтилиты</commonModules>
-  <commonModules>CommonModule.МодельЗапросаУтилиты</commonModules>
+  <commonModules>CommonModule.КонструкторЗапросовФормы</commonModules>
+  <commonModules>CommonModule.КонструкторЗапросовФормыПовтИсп</commonModules>
   <commonModules>CommonModule.МодельЗапросаТипы</commonModules>
-  <commonModules>CommonModule.ИсполнительПредставленийЗУПУтилиты</commonModules>
-  <commonModules>CommonModule.ГенерацияИсполняемогоКодаПредставленийЗУПУтилиты</commonModules>
+  <commonModules>CommonModule.МодельЗапросаУтилиты</commonModules>
+  <commonModules>CommonModule.ОбработкаМоделиЗапроса</commonModules>
+  <commonModules>CommonModule.ОбработкаПредставлениеЗапрсов</commonModules>
+  <commonModules>CommonModule.ОписаниеИсполняемыхПредставленийУтилиты</commonModules>
+  <commonModules>CommonModule.ПоставщикИсполняемыхПредставлений</commonModules>
+  <commonModules>CommonModule.ПоставщикИсполняемыхПредставленийПовтИсп</commonModules>
+  <commonModules>CommonModule.ПредставленияКадровогоУчетаУтилиты</commonModules>
+  <commonModules>CommonModule.ПредставленияРегистровСведенийУтилиты</commonModules>
+  <commonModules>CommonModule.ЭлементыМоделиЗапроса</commonModules>
+  <commonModules>CommonModule.ЭлементыМоделиИсполненияПредставлений</commonModules>
+  <commonModules>CommonModule.ЭлементыМоделиОписанияПредставлений</commonModules>
+  <functionalOptions>FunctionalOption.ИспользоватьИсториюИзмененияШтатногоРасписания</functionalOptions>
+  <definedTypes>DefinedType.МестоВыплатыЗарплатыСотрудников</definedTypes>
+  <definedTypes>DefinedType.ОснованиеИзмененияПлановогоФОТ</definedTypes>
+  <definedTypes>DefinedType.ОснованиеНачисленияУдержания</definedTypes>
+  <definedTypes>DefinedType.ТерриторияВыполненияРаботВОрганизации</definedTypes>
+  <catalogs>Catalog.Организации</catalogs>
+  <catalogs>Catalog.ПодразделенияОрганизаций</catalogs>
+  <catalogs>Catalog.Сотрудники</catalogs>
+  <dataProcessors>DataProcessor._ПредставлениеПериоды</dataProcessors>
+  <dataProcessors>DataProcessor.ГенераторКодаЗапросовДляСКД</dataProcessors>
+  <dataProcessors>DataProcessor.ГенераторКодаИсполняемыхПредставлений</dataProcessors>
+  <dataProcessors>DataProcessor.ГенераторТекстовВыражений</dataProcessors>
+  <dataProcessors>DataProcessor.ГенераторТекстовЗапрсов</dataProcessors>
+  <dataProcessors>DataProcessor.ИсполнительПредставлений</dataProcessors>
+  <dataProcessors>DataProcessor.КонсольЗапросов</dataProcessors>
+  <dataProcessors>DataProcessor.КонструкторЗапросов</dataProcessors>
   <dataProcessors>DataProcessor.ЛексическийАнализатор</dataProcessors>
   <dataProcessors>DataProcessor.Парсер</dataProcessors>
-  <dataProcessors>DataProcessor.КонструкторЗапросов</dataProcessors>
-  <dataProcessors>DataProcessor.КонсольЗапросов</dataProcessors>
-  <dataProcessors>DataProcessor.ПредставлениеДанныеУчетаВремениСотрудников</dataProcessors>
-  <dataProcessors>DataProcessor._ПредставлениеПериоды</dataProcessors>
-  <dataProcessors>DataProcessor.ПредставлениеРегистрСведенийСрезПоследних</dataProcessors>
-  <dataProcessors>DataProcessor.ПредставлениеРегистрСведенийЗаписи</dataProcessors>
-  <dataProcessors>DataProcessor.ПредставлениеРегистрСведенийИнтервалы</dataProcessors>
-  <dataProcessors>DataProcessor.ПредставлениеСотрудникиОрганизации</dataProcessors>
-  <dataProcessors>DataProcessor.ЛексическийАнализаторRegExp</dataProcessors>
-  <dataProcessors>DataProcessor.ИсполнительПредставлений</dataProcessors>
-  <dataProcessors>DataProcessor.ГенераторКодаИсполняемыхПредставлений</dataProcessors>
-  <dataProcessors>DataProcessor.Шаблон_Представление_ИмяПредставления</dataProcessors>
-  <dataProcessors>DataProcessor.ПредставлениеДанныеСотрудников</dataProcessors>
   <dataProcessors>DataProcessor.ПостроительМоделиЗапроса</dataProcessors>
-  <dataProcessors>DataProcessor.ГенераторТекстовЗапрсов</dataProcessors>
-  <dataProcessors>DataProcessor.ГенераторТекстовВыражений</dataProcessors>
-  <dataProcessors>DataProcessor.ГенераторКодаЗапросовДляСКД</dataProcessors>
   <dataProcessors>DataProcessor.Представление_РасчетСтажа</dataProcessors>
-  <dataProcessors>DataProcessor.ПредставлениеПлановоеВремяСотрудников</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеДанныеПозицийШтатногоРасписания</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеДанныеСотрудников</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеДанныеУчетаВремениСотрудников</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеДанныеФизическихЛиц</dataProcessors>
-  <dataProcessors>DataProcessor.ПредставлениеРабочиеМестаСотрудников</dataProcessors>
-  <dataProcessors>DataProcessor.ПредставлениеОплаченноеВремя</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеНачисленияУдержанияВыплаты</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеНачисленияУдержанияВыплатыАвансом</dataProcessors>
-  <dataProcessors>DataProcessor.ПредставлениеФактическиеОтпускаСотрудников</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеОплаченноеВремя</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеПлановоеВремяСотрудников</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеРабочиеМестаСотрудников</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеРегистрРасчетаБаза</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеРегистрСведенийЗаписи</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеРегистрСведенийИнтервалы</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеРегистрСведенийСрезПоследних</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеСотрудникиОрганизации</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеФактическиеОтпускаСотрудников</dataProcessors>
+  <dataProcessors>DataProcessor.РасчетБазыНачисленийУдержаний</dataProcessors>
+  <dataProcessors>DataProcessor.Шаблон_Представление_ИмяПредставления</dataProcessors>
+  <informationRegisters>InformationRegister.БухучетЗарплатыСотрудников</informationRegisters>
+  <informationRegisters>InformationRegister.ВидыЗанятостиСотрудников</informationRegisters>
+  <informationRegisters>InformationRegister.ГрафикРаботыСотрудников</informationRegisters>
+  <informationRegisters>InformationRegister.ДистанционнаяРаботаСотрудников</informationRegisters>
+  <informationRegisters>InformationRegister.ИсторияИспользованияШтатногоРасписания</informationRegisters>
   <informationRegisters>InformationRegister.КадроваяИсторияСотрудников</informationRegisters>
+  <informationRegisters>InformationRegister.ЛицевыеСчетаСотрудниковПоЗарплатнымПроектам</informationRegisters>
+  <informationRegisters>InformationRegister.НастройкиШтатногоРасписания</informationRegisters>
+  <informationRegisters>InformationRegister.ПериодыДействияДоговоровГражданскоПравовогоХарактера</informationRegisters>
+  <informationRegisters>InformationRegister.ПКУСотрудников</informationRegisters>
+  <informationRegisters>InformationRegister.ПлановыеАвансы</informationRegisters>
+  <informationRegisters>InformationRegister.ПлановыеНачисления</informationRegisters>
+  <informationRegisters>InformationRegister.ПлановыйФОТИтоги</informationRegisters>
+  <informationRegisters>InformationRegister.ПорядокРасчетаСтоимостиЕдиницыВремениСотрудников</informationRegisters>
+  <informationRegisters>InformationRegister.ПриостановленияТрудовыхДоговоровКонтрактов</informationRegisters>
+  <informationRegisters>InformationRegister.РабочиеМестаСотрудников</informationRegisters>
+  <informationRegisters>InformationRegister.РазрядыКатегорииСотрудников</informationRegisters>
+  <informationRegisters>InformationRegister.ТерриторииСотрудников</informationRegisters>
+  <accumulationRegisters>AccumulationRegister.НачисленияУдержанияПоСотрудникам</accumulationRegisters>
+  <accumulationRegisters>AccumulationRegister.ОтработанноеВремяПоСотрудникам</accumulationRegisters>
+  <accumulationRegisters>AccumulationRegister.ФактическиеОтпуска</accumulationRegisters>
+  <calculationRegisters>CalculationRegister.Начисления</calculationRegisters>
 </mdclass:Configuration>

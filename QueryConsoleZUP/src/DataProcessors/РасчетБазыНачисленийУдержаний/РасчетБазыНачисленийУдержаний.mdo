@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="a960df69-2be0-4c52-b30d-ce195b11330a" extendedConfigurationObject="980678fe-a6ad-4aa0-bca6-d4b298208f13">
+  <producedTypes>
+    <objectType typeId="fd3334a6-33bc-4ce0-8627-a86b58ab95c0" valueTypeId="cceeb624-b62b-462f-81cf-dea2836bcb9f"/>
+    <managerType typeId="fbd86952-0fa2-479b-8b4b-9f380e19fe9d" valueTypeId="5eba9281-e8f9-45fc-9ca0-1f1a280fc2d4"/>
+  </producedTypes>
+  <name>РасчетБазыНачисленийУдержаний</name>
+  <objectBelonging>Adopted</objectBelonging>
+  <extension xsi:type="mdclassExtension:DataProcessorExtension">
+    <extendedConfigurationObject>Checked</extendedConfigurationObject>
+  </extension>
+</mdclass:DataProcessor>
