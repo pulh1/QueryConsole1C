@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:AccumulationRegister xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="a83ee2ca-322f-4bca-adad-758b9c5a5a16" extendedConfigurationObject="c93cd2e5-db44-4e5e-92b9-1c23b6911b82">
+  <producedTypes>
+    <selectionType typeId="c88aef5f-24aa-4205-b6bd-f92df4fcfa64" valueTypeId="770af481-76d9-42d5-8858-d450994ae09a"/>
+    <listType typeId="44d27dfe-bbd6-4f5f-b494-68616e805b6d" valueTypeId="ed5a3c21-d90d-4b18-b74b-15a4bf0f4851"/>
+    <managerType typeId="17e0e35d-c8a2-4059-ac4b-0fb9760765c6" valueTypeId="132b4d59-1a86-457e-b393-4162f6bafdec"/>
+    <recordSetType typeId="caed33b4-198b-4862-809e-bcb50fb33c0a" valueTypeId="7b9ebc4c-5e21-4ff4-877d-567a49dfd796"/>
+    <recordKeyType typeId="1067c5eb-912a-4568-ac26-3aa611371a67" valueTypeId="0a07897b-2e36-4baa-ac5d-acb3b260ab82"/>
+    <recordType typeId="aa4b39a1-3ec6-431e-9ce7-dd5160855e85" valueTypeId="0a8acb74-2065-4c51-ae40-e7424e404b91"/>
+  </producedTypes>
+  <name>ОтработанноеВремяПоСотрудникам</name>
+  <objectBelonging>Adopted</objectBelonging>
+  <extension xsi:type="mdclassExtension:AccumulationRegisterExtension">
+    <extendedConfigurationObject>Checked</extendedConfigurationObject>
+    <registerType>Checked</registerType>
+  </extension>
+  <registerType>Turnovers</registerType>
+  <attributes uuid="7715bac7-1a34-43e3-992d-6472910695b9" extendedConfigurationObject="13538451-da54-43e8-b9f3-9d3485b550c9">
+    <name>ДокументОснование</name>
+    <objectBelonging>Adopted</objectBelonging>
+    <extension xsi:type="mdclassExtension:BasicFeatureExtension">
+      <extendedConfigurationObject>Checked</extendedConfigurationObject>
+      <typeExtension>
+        <types>
+          <state>Checked</state>
+          <type>DefinedType.ОснованиеНачисленияУдержания</type>
+        </types>
+      </typeExtension>
+    </extension>
+  </attributes>
+</mdclass:AccumulationRegister>

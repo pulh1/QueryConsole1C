@@ -6,7 +6,6 @@
     <value>Кадровый учет</value>
   </synonym>
   <includeHelpInContents>true</includeHelpInContents>
-  <includeInCommandInterface>true</includeInCommandInterface>
   <content>DataProcessor.ПредставлениеСотрудникиОрганизации</content>
   <content>DataProcessor.ПредставлениеДанныеСотрудников</content>
   <content>DataProcessor.ПредставлениеДанныеФизическихЛиц</content>

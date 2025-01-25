@@ -125,7 +125,7 @@ Procedure FillDataCompositionTableParameters(Val Index, Val QueryAddress, Val Cu
 			EndDo;
 		ElsIf (ParameterType = QuerySchemaAvailableTableParameterType.Condition)
 			OR (ParameterType = QuerySchemaAvailableTableParameterType.Order)
-			OR (ParameterType = QuerySchemaAvailableTableParameterType.FieldsList) Then
+			OR (ParameterType = QuerySchemaAvailableTableParameterType.FieldList) Then
 
 			NewFormElement.ChoiceButton = True;
 			NewFormElement.MultiLine = True;

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:InformationRegister xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="494d917d-480e-44b7-a3a1-335528df787f" extendedConfigurationObject="3cd54d51-5710-4664-8d78-c729242ca323">
+  <producedTypes>
+    <selectionType typeId="8d68724d-07a2-4c74-afe1-7bd8d030a62a" valueTypeId="6dbbc494-d274-4b6a-b7d9-f9112cca56fb"/>
+    <listType typeId="d0d628b7-2706-45fb-ad20-26f09903bfd6" valueTypeId="b9043873-91b2-4790-99be-5eccdd568779"/>
+    <managerType typeId="4e6bf3ed-4951-4b9f-982d-a5f69021306c" valueTypeId="489bf079-ed9f-4555-99fd-32c2838e852a"/>
+    <recordSetType typeId="7db4e3ce-07b2-4c5b-a8db-ddbace3e93c2" valueTypeId="836fbbe7-9840-4f6d-ba10-eff58eab9142"/>
+    <recordKeyType typeId="e9fd7628-b8a6-475a-93f3-ae449c98cd1b" valueTypeId="bc9110d9-f704-46df-92b3-5226694c80dd"/>
+    <recordType typeId="2bf198f6-bdb4-4780-b04b-8643f0c31f4e" valueTypeId="e869bf4c-8c5a-459a-9e9c-351d55087f2e"/>
+    <recordManagerType typeId="da3bcc08-72a5-4cf4-a51c-35d307bfb1c7" valueTypeId="402b759d-bcf8-469f-a08f-734ca1843e5d"/>
+  </producedTypes>
+  <name>ПриостановленияТрудовыхДоговоровКонтрактов</name>
+  <objectBelonging>Adopted</objectBelonging>
+  <extension xsi:type="mdclassExtension:InformationRegisterExtension">
+    <extendedConfigurationObject>Checked</extendedConfigurationObject>
+    <informationRegisterPeriodicity>Checked</informationRegisterPeriodicity>
+    <writeMode>Checked</writeMode>
+  </extension>
+  <informationRegisterPeriodicity>Second</informationRegisterPeriodicity>
+  <writeMode>RecorderSubordinate</writeMode>
+</mdclass:InformationRegister>

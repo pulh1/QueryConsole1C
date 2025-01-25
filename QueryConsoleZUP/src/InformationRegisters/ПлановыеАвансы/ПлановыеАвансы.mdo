@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:InformationRegister xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="92c1f0e8-d036-4f5e-808d-cb4151fff367" extendedConfigurationObject="6c739e69-443d-4a50-99d3-3c668fbf48a5">
+  <producedTypes>
+    <selectionType typeId="aff32be5-509f-4460-9b1a-7917e63bf2e6" valueTypeId="0a9e0593-a694-4ac8-8660-3a77594d6969"/>
+    <listType typeId="37985643-61cd-41e3-aada-8c0855f13b66" valueTypeId="d09f1771-7ec9-4917-bd1c-4e43cc5bee44"/>
+    <managerType typeId="8983d96c-22df-4cc6-afd3-17c82835a10d" valueTypeId="5a4de806-e408-411e-8807-617a990e0b71"/>
+    <recordSetType typeId="135f9e9d-4c15-42a1-b4ea-af5006ddc21c" valueTypeId="bcea0f13-af7d-4628-a8d5-ccfcf75b4dc7"/>
+    <recordKeyType typeId="1f7f423f-69d6-43d3-9bc6-ec493cabca17" valueTypeId="239932e7-5274-4c3f-9c1e-fbb919c47a6f"/>
+    <recordType typeId="e164d9d3-589a-4907-b3f1-cff0a93c6be4" valueTypeId="9b0d7df3-b4cc-41b8-8c4b-a3a15025080c"/>
+    <recordManagerType typeId="ead9b319-f722-4e45-bf88-222ed7eb5d2a" valueTypeId="2fb04fa4-3d13-4717-ab32-3eed8d24fa24"/>
+  </producedTypes>
+  <name>ПлановыеАвансы</name>
+  <objectBelonging>Adopted</objectBelonging>
+  <extension xsi:type="mdclassExtension:InformationRegisterExtension">
+    <extendedConfigurationObject>Checked</extendedConfigurationObject>
+    <informationRegisterPeriodicity>Checked</informationRegisterPeriodicity>
+    <writeMode>Checked</writeMode>
+  </extension>
+  <informationRegisterPeriodicity>Second</informationRegisterPeriodicity>
+  <writeMode>RecorderSubordinate</writeMode>
+</mdclass:InformationRegister>

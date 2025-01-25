@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:InformationRegister xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="0fa00e96-e340-47c1-9b45-d6735fc82495" extendedConfigurationObject="c9549abf-423f-486e-8661-6838d7f87db8">
+  <producedTypes>
+    <selectionType typeId="49e7361f-c3c2-4657-a950-15772741bd65" valueTypeId="8e957389-59c0-44e1-97b2-6627660607b6"/>
+    <listType typeId="99e50a64-a667-41ab-878b-9f089a2aa64a" valueTypeId="4a7a766e-93eb-4a01-be64-ea4392ff1f1b"/>
+    <managerType typeId="c50862b8-8d31-4838-8583-3b6d9250cf71" valueTypeId="f80ca6c7-c6d3-4daa-8c31-225a9ef40213"/>
+    <recordSetType typeId="ee4cc86a-d584-4010-8f3a-f5762516422e" valueTypeId="f2fcd642-13b0-48cb-9818-560a3ae6a1c5"/>
+    <recordKeyType typeId="7f441e31-0005-4d77-b82d-98a5a8d559b5" valueTypeId="6a9bee00-4ac1-4c5c-889b-bde0bbac188d"/>
+    <recordType typeId="2bbc97ba-306e-4037-86da-7c473377522e" valueTypeId="2e27e612-f900-4951-ace7-de230d122514"/>
+    <recordManagerType typeId="9b12abe2-2130-4fa3-a4a4-77345d7b4baf" valueTypeId="95eeca5a-ea33-471c-b221-79067cd47f50"/>
+  </producedTypes>
+  <name>БухучетЗарплатыСотрудников</name>
+  <objectBelonging>Adopted</objectBelonging>
+  <extension xsi:type="mdclassExtension:InformationRegisterExtension">
+    <extendedConfigurationObject>Checked</extendedConfigurationObject>
+    <informationRegisterPeriodicity>Checked</informationRegisterPeriodicity>
+    <writeMode>Checked</writeMode>
+  </extension>
+  <informationRegisterPeriodicity>Second</informationRegisterPeriodicity>
+  <writeMode>RecorderSubordinate</writeMode>
+</mdclass:InformationRegister>

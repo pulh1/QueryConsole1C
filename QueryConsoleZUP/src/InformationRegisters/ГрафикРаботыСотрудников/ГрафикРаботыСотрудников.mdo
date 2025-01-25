@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:InformationRegister xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="9517b4f5-87b6-4611-ab4c-2883fda9fa3b" extendedConfigurationObject="4d99a042-b913-4e82-a535-83b4b6716894">
+  <producedTypes>
+    <selectionType typeId="3063704c-093b-4e86-9116-06c90bdb83f3" valueTypeId="902fd066-4321-46fd-acf7-dae9a700b64f"/>
+    <listType typeId="e32f33e7-2b15-4adf-ab9c-96c99d4e666e" valueTypeId="2bfb6929-e2b4-4ea4-83dd-d3f9c0f57e20"/>
+    <managerType typeId="ebcda977-bb34-4bc6-9490-be897ac6509a" valueTypeId="c2d76209-8e4d-42f2-b304-75d024a0287e"/>
+    <recordSetType typeId="931b0981-7587-4e2d-85af-fa61dd394ec4" valueTypeId="7da1b7da-50a5-467b-9a08-47a36683157b"/>
+    <recordKeyType typeId="f1373024-31f4-4485-9c75-b92288c5107c" valueTypeId="911dfe5f-170a-46e6-9690-d7c2d568d517"/>
+    <recordType typeId="698399e7-8d62-4c40-bef6-6b0b0f9d0d5f" valueTypeId="ca9f6eb0-d287-4ac6-8dc7-a2b655d99274"/>
+    <recordManagerType typeId="960eb11d-b30b-429f-955a-4fb51a688054" valueTypeId="601fc3f3-64a8-445e-98ea-3870046a0b74"/>
+  </producedTypes>
+  <name>ГрафикРаботыСотрудников</name>
+  <objectBelonging>Adopted</objectBelonging>
+  <extension xsi:type="mdclassExtension:InformationRegisterExtension">
+    <extendedConfigurationObject>Checked</extendedConfigurationObject>
+    <informationRegisterPeriodicity>Checked</informationRegisterPeriodicity>
+    <writeMode>Checked</writeMode>
+  </extension>
+  <informationRegisterPeriodicity>Second</informationRegisterPeriodicity>
+  <writeMode>RecorderSubordinate</writeMode>
+</mdclass:InformationRegister>

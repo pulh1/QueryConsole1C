@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:InformationRegister xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="96ec89fe-e36f-4ba9-a14b-0a8f9f11fe1d" extendedConfigurationObject="4574bbed-2702-4b11-a38d-b570b9aa991e">
+  <producedTypes>
+    <selectionType typeId="823d376d-92af-40c9-9518-e9b43545d33e" valueTypeId="9fc1431f-fb94-4c60-9ece-9f59c350ddcf"/>
+    <listType typeId="7d8c71bb-8009-4aba-b980-5657eb10d269" valueTypeId="604b9890-382f-4af8-9a85-c1413e537a90"/>
+    <managerType typeId="88b5794b-fadf-4aa2-9876-cabd934e7a52" valueTypeId="58d6517f-f8e2-4b15-819f-57b43a911fa0"/>
+    <recordSetType typeId="f26f752a-21c0-4899-a667-31d000c27063" valueTypeId="dc2ccb07-1aac-4e8f-861f-71f506db7058"/>
+    <recordKeyType typeId="357ab5af-3644-45d4-abfd-f098eb0b1408" valueTypeId="cd781812-a5a4-446c-baf5-5c7ae52ebd14"/>
+    <recordType typeId="59355bc5-7f76-4dfa-9609-734a66d63b28" valueTypeId="08446a81-ce9e-43c1-8424-61b3d9e65f8a"/>
+    <recordManagerType typeId="584ff290-71d1-49ce-bf38-9d1e9e84287c" valueTypeId="f251a15d-5990-4a49-9752-cb3869323682"/>
+  </producedTypes>
+  <name>ПКУСотрудников</name>
+  <objectBelonging>Adopted</objectBelonging>
+  <extension xsi:type="mdclassExtension:InformationRegisterExtension">
+    <extendedConfigurationObject>Checked</extendedConfigurationObject>
+    <informationRegisterPeriodicity>Checked</informationRegisterPeriodicity>
+    <writeMode>Checked</writeMode>
+  </extension>
+  <informationRegisterPeriodicity>Second</informationRegisterPeriodicity>
+  <writeMode>RecorderSubordinate</writeMode>
+</mdclass:InformationRegister>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:InformationRegister xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="749b6bb4-990f-41d3-8f61-7ff9d2e1d745" extendedConfigurationObject="e57eb5e4-ec49-43b3-904f-fd3d4cf400d3">
+  <producedTypes>
+    <selectionType typeId="c010a386-01fa-4cf1-9671-c0d48cb62674" valueTypeId="c647c516-6ae4-41b3-b39e-a38e45d5e931"/>
+    <listType typeId="80688b4f-35fd-45b3-bc9c-1ae166734c74" valueTypeId="f2165b0e-509a-4c33-b0e9-718844be6930"/>
+    <managerType typeId="76fc1d58-3ca2-458a-9fbb-9317bc94fbe0" valueTypeId="a9a82319-b6c1-4477-95a1-83e6db056594"/>
+    <recordSetType typeId="25ec0ee2-9383-478d-ba7e-a9f7639b5c17" valueTypeId="4476dbb6-cd7a-49b3-b200-6718373e471a"/>
+    <recordKeyType typeId="813468be-de4c-4490-8fa9-34e698fd47dc" valueTypeId="2766fe91-acc0-4aaf-8457-08f329327cdd"/>
+    <recordType typeId="e6a42701-7ed5-4d05-9ddf-5b56b6670007" valueTypeId="2f3ffbb4-b72e-49c1-a009-da68b50c5021"/>
+    <recordManagerType typeId="9e516502-9c6b-4aa4-9afb-afc0375ca123" valueTypeId="635334ed-0e8c-4e57-a2a2-e39e65baccc5"/>
+  </producedTypes>
+  <name>ПлановыеНачисления</name>
+  <objectBelonging>Adopted</objectBelonging>
+  <extension xsi:type="mdclassExtension:InformationRegisterExtension">
+    <extendedConfigurationObject>Checked</extendedConfigurationObject>
+    <informationRegisterPeriodicity>Checked</informationRegisterPeriodicity>
+    <writeMode>Checked</writeMode>
+  </extension>
+  <informationRegisterPeriodicity>Second</informationRegisterPeriodicity>
+  <writeMode>RecorderSubordinate</writeMode>
+</mdclass:InformationRegister>

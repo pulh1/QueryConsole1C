@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:InformationRegister xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="a5447e7f-1b10-48b1-a117-a05f2ce7c01a" extendedConfigurationObject="c8b478da-5bfa-4455-94a3-8e3cb78c55bf">
+  <producedTypes>
+    <selectionType typeId="006a97d1-e83a-4a0b-9634-6c99086c3975" valueTypeId="b9516278-a17a-4b10-b4af-59cb677e19b4"/>
+    <listType typeId="ccf3a78d-8b0a-4fd9-be0c-b0d395d54650" valueTypeId="4f8a518d-65c3-4169-8484-2597c874cc9a"/>
+    <managerType typeId="8d8f2b34-c81d-4edd-abb1-02f00e8623e4" valueTypeId="0e16dd32-0ba0-40d7-b0f3-3e87fd867e7a"/>
+    <recordSetType typeId="32fe2126-325e-4fb0-bacb-147c6aa90bb1" valueTypeId="a9474ffa-2c01-423f-8532-5b1a8664ede2"/>
+    <recordKeyType typeId="cf937038-4bae-41fd-a797-e8e36e8c5ed5" valueTypeId="c0298c97-c4a4-4c8f-822c-79a2d294c092"/>
+    <recordType typeId="9b574a04-d2d3-4012-83be-e907887c4702" valueTypeId="06c1fd97-b7fe-415d-96dd-4e91cd0f5933"/>
+    <recordManagerType typeId="10721e43-a2f0-44e3-9b84-2ffbbc7637dc" valueTypeId="406ac886-38c4-4d1e-bae4-edf1473cc180"/>
+  </producedTypes>
+  <name>ДистанционнаяРаботаСотрудников</name>
+  <objectBelonging>Adopted</objectBelonging>
+  <extension xsi:type="mdclassExtension:InformationRegisterExtension">
+    <extendedConfigurationObject>Checked</extendedConfigurationObject>
+    <informationRegisterPeriodicity>Checked</informationRegisterPeriodicity>
+    <writeMode>Checked</writeMode>
+  </extension>
+  <informationRegisterPeriodicity>Second</informationRegisterPeriodicity>
+  <writeMode>RecorderSubordinate</writeMode>
+</mdclass:InformationRegister>

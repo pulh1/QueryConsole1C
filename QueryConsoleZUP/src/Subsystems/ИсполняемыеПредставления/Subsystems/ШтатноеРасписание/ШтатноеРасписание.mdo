@@ -6,7 +6,6 @@
     <value>Штатное расписание</value>
   </synonym>
   <includeHelpInContents>true</includeHelpInContents>
-  <includeInCommandInterface>true</includeInCommandInterface>
   <content>DataProcessor.ПредставлениеДанныеПозицийШтатногоРасписания</content>
   <parentSubsystem>Subsystem.ИсполняемыеПредставления</parentSubsystem>
 </mdclass:Subsystem>

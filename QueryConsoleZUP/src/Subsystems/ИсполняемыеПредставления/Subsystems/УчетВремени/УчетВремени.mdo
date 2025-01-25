@@ -6,7 +6,6 @@
     <value>Учет времени</value>
   </synonym>
   <includeHelpInContents>true</includeHelpInContents>
-  <includeInCommandInterface>true</includeInCommandInterface>
   <content>DataProcessor.ПредставлениеДанныеУчетаВремениСотрудников</content>
   <content>DataProcessor.ПредставлениеПлановоеВремяСотрудников</content>
   <parentSubsystem>Subsystem.ИсполняемыеПредставления</parentSubsystem>
