@@ -6,7 +6,6 @@
     <value>Регистры сведений</value>
   </synonym>
   <includeHelpInContents>true</includeHelpInContents>
-  <includeInCommandInterface>true</includeInCommandInterface>
   <content>DataProcessor.ПредставлениеРегистрСведенийСрезПоследних</content>
   <content>DataProcessor.ПредставлениеРегистрСведенийЗаписи</content>
   <content>DataProcessor.ПредставлениеРегистрСведенийИнтервалы</content>

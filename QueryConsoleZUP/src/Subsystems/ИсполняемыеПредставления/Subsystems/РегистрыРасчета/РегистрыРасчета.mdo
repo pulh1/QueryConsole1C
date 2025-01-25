@@ -6,7 +6,6 @@
     <value>Регистры расчета</value>
   </synonym>
   <includeHelpInContents>true</includeHelpInContents>
-  <includeInCommandInterface>true</includeInCommandInterface>
   <content>DataProcessor.ПредставлениеРегистрРасчетаБаза</content>
   <parentSubsystem>Subsystem.ИсполняемыеПредставления</parentSubsystem>
 </mdclass:Subsystem>

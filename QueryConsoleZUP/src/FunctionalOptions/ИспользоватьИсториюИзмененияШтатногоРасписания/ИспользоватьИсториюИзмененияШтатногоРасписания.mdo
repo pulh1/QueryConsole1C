@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:FunctionalOption xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="fec06d77-d3b4-44b3-8413-e8f2c72eb9d5" extendedConfigurationObject="4805d62b-6e31-4650-851f-a915827dcd05">
+  <name>ИспользоватьИсториюИзмененияШтатногоРасписания</name>
+  <objectBelonging>Adopted</objectBelonging>
+  <extension xsi:type="mdclassExtension:FunctionalOptionExtension">
+    <extendedConfigurationObject>Checked</extendedConfigurationObject>
+    <location>Checked</location>
+  </extension>
+  <location>InformationRegister.НастройкиШтатногоРасписания.Resource.ИспользоватьИсториюИзмененияШтатногоРасписания</location>
+</mdclass:FunctionalOption>

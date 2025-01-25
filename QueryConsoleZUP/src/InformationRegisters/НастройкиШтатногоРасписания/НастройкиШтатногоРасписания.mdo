@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:InformationRegister xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="f14409c3-fbb5-4620-b03e-764dbb3834ae" extendedConfigurationObject="1afc3d29-a5e3-433f-a42e-79051a2cfc67">
+  <producedTypes>
+    <selectionType typeId="5cd065cd-06f5-41a9-ab0d-3fbecc12cddc" valueTypeId="0d23a202-328a-4120-a0ae-872b24d8b375"/>
+    <listType typeId="1e71369a-064d-43b7-aba2-d710603f12b8" valueTypeId="fe70475e-9a81-4561-9b77-84b4ec632abe"/>
+    <managerType typeId="89e728f2-ab2e-4061-9376-74f7f9a9a8f3" valueTypeId="ee8a5929-f87e-450f-9064-2c5997a8a457"/>
+    <recordSetType typeId="43197876-0de2-4f29-b8a7-0435cc78c7c5" valueTypeId="d0200ef1-10f1-49e9-8652-3e40280ff0b1"/>
+    <recordKeyType typeId="90b8e56b-5fb7-4bc9-98fa-26b4236f68e2" valueTypeId="d5afb3ba-1288-4483-8b4e-a0a7daa181e1"/>
+    <recordType typeId="9b67287f-4d9b-4574-9700-d2e55e56ae72" valueTypeId="1de9c3d0-67e4-4954-8e25-3f3872b699d2"/>
+    <recordManagerType typeId="e0f50c24-b6c2-45ba-b1dc-030d76df8e96" valueTypeId="039f0a82-f928-4663-8519-28f7cc3ed9eb"/>
+  </producedTypes>
+  <name>НастройкиШтатногоРасписания</name>
+  <objectBelonging>Adopted</objectBelonging>
+  <extension xsi:type="mdclassExtension:InformationRegisterExtension">
+    <extendedConfigurationObject>Checked</extendedConfigurationObject>
+    <informationRegisterPeriodicity>Checked</informationRegisterPeriodicity>
+    <writeMode>Checked</writeMode>
+  </extension>
+  <resources uuid="82bb3ceb-22fb-43fa-a16c-1e89bd4d962c" extendedConfigurationObject="e25744c9-16e0-4e00-ac7d-706ab111ce32">
+    <name>ИспользоватьИсториюИзмененияШтатногоРасписания</name>
+    <objectBelonging>Adopted</objectBelonging>
+    <extension xsi:type="mdclassExtension:BasicFeatureExtension">
+      <extendedConfigurationObject>Checked</extendedConfigurationObject>
+      <typeExtension>
+        <types>
+          <state>Checked</state>
+          <type>Boolean</type>
+        </types>
+      </typeExtension>
+    </extension>
+  </resources>
+</mdclass:InformationRegister>

@@ -6,7 +6,6 @@
     <value>Учет начисленной зарплаты</value>
   </synonym>
   <includeHelpInContents>true</includeHelpInContents>
-  <includeInCommandInterface>true</includeInCommandInterface>
   <content>DataProcessor.ПредставлениеОплаченноеВремя</content>
   <content>DataProcessor.ПредставлениеНачисленияУдержанияВыплаты</content>
   <content>DataProcessor.ПредставлениеНачисленияУдержанияВыплатыАвансом</content>

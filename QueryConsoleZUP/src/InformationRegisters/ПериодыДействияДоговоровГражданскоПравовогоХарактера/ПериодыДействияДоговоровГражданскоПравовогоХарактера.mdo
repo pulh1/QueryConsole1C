@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:InformationRegister xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="ca143db5-7bd1-4e8a-a42b-e712559105c5" extendedConfigurationObject="a5009a3d-f3e2-4167-bd32-166da4cb0514">
+  <producedTypes>
+    <selectionType typeId="4b051eba-2838-4490-a96e-c793859bef58" valueTypeId="05590641-53f5-489d-acb6-5f45e000f6b1"/>
+    <listType typeId="614c9ee8-cacd-4b40-840f-79e469268340" valueTypeId="f8ef997f-56a2-4c60-b14d-1993ae566664"/>
+    <managerType typeId="a0c4eb11-a361-49bd-b15e-01c8b141fb11" valueTypeId="d197788d-c7b3-4737-a7bc-c5093df3b150"/>
+    <recordSetType typeId="05a135af-0bd4-41ff-9076-7d56edf3ca4f" valueTypeId="99e202f9-ea3a-4ade-b59e-9ba3658ca1e5"/>
+    <recordKeyType typeId="2d51da70-485e-4984-a9bc-77a8d5a301ed" valueTypeId="fee865d0-ac5d-44a5-aa5b-4ec6d4db6b9d"/>
+    <recordType typeId="e71eb8f1-7a05-4a5f-8482-40d6e6805b8e" valueTypeId="b0eaafa6-5307-448a-bc2c-0702c786794d"/>
+    <recordManagerType typeId="6e79142c-7bfe-4431-9f9c-78d26058727c" valueTypeId="40f1ebb3-befe-4923-ae40-1c3994e544dd"/>
+  </producedTypes>
+  <name>ПериодыДействияДоговоровГражданскоПравовогоХарактера</name>
+  <objectBelonging>Adopted</objectBelonging>
+  <extension xsi:type="mdclassExtension:InformationRegisterExtension">
+    <extendedConfigurationObject>Checked</extendedConfigurationObject>
+    <informationRegisterPeriodicity>Checked</informationRegisterPeriodicity>
+    <writeMode>Checked</writeMode>
+  </extension>
+  <writeMode>RecorderSubordinate</writeMode>
+  <dimensions uuid="4e058c39-cc17-460d-8a2d-48208ec21be3" extendedConfigurationObject="4410ad8d-0d29-4333-9093-aefcba86842e">
+    <name>ДокументОснование</name>
+    <objectBelonging>Adopted</objectBelonging>
+    <extension xsi:type="mdclassExtension:BasicFeatureExtension">
+      <extendedConfigurationObject>Checked</extendedConfigurationObject>
+      <typeExtension>
+        <types>
+          <state>Checked</state>
+          <type>AnyRef</type>
+        </types>
+      </typeExtension>
+    </extension>
+  </dimensions>
+</mdclass:InformationRegister>

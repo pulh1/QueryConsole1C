@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:AccumulationRegister xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="06c40ac6-c53c-41ee-91d0-423ccd14b80f" extendedConfigurationObject="7fa1932c-8848-43e3-921f-94f7c605d11d">
+  <producedTypes>
+    <selectionType typeId="6e92e228-8256-4ad2-bbb1-3646bafbed8c" valueTypeId="d5a4030c-bc65-42c1-9ff4-19f4d3668131"/>
+    <listType typeId="b95286f8-33fc-4b0f-a7b4-50cfc23233b8" valueTypeId="508e2a98-60b2-4e98-9a9c-2fc5a1cf8916"/>
+    <managerType typeId="c11d2dbd-93c5-4162-ba69-6ff587be79a7" valueTypeId="5668e6df-539e-4bde-9923-74fa794293e0"/>
+    <recordSetType typeId="239d1883-9557-42af-b947-c73d542fddcd" valueTypeId="2a939483-859f-4c27-9db2-ac9f67745992"/>
+    <recordKeyType typeId="29ea4fe3-70ee-4483-b23f-7122d657442b" valueTypeId="45d1de87-a040-4810-a2b9-a858c69c8738"/>
+    <recordType typeId="8ed122fe-e13c-4dbd-b4a9-4256a4abdc5e" valueTypeId="b72f4394-982d-4eba-bccd-bc972a36f53c"/>
+  </producedTypes>
+  <name>ФактическиеОтпуска</name>
+  <objectBelonging>Adopted</objectBelonging>
+  <extension xsi:type="mdclassExtension:AccumulationRegisterExtension">
+    <extendedConfigurationObject>Checked</extendedConfigurationObject>
+    <registerType>Checked</registerType>
+  </extension>
+  <registerType>Turnovers</registerType>
+</mdclass:AccumulationRegister>

@@ -107,7 +107,7 @@ Procedure FillTableParameters(Val Index, Val QueryAddress, Val CurrentQuery, Val
 			EndDo;
 		ElsIf (ParameterType = QuerySchemaAvailableTableParameterType.Condition)
 			OR (ParameterType = QuerySchemaAvailableTableParameterType.Order)
-			OR (ParameterType = QuerySchemaAvailableTableParameterType.FieldsList) Then
+			OR (ParameterType = QuerySchemaAvailableTableParameterType.FieldList) Then
 
 			NewFormElement.ChoiceButton = True;
 			NewFormElement.MultiLine = True;

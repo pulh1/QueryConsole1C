@@ -77,10 +77,10 @@
     <usePurposes>MobileDevice</usePurposes>
   </forms>
   <forms uuid="1f422cec-ae06-43ad-b5c3-392f03953226">
-    <name>ПараметрыИсполняемогоПредстапвления</name>
+    <name>ПараметрыИсполняемогоПредставления</name>
     <synonym>
       <key>ru</key>
-      <value>Параметры исполняемого предстапвления</value>
+      <value>Параметры исполняемого представления</value>
     </synonym>
     <usePurposes>PersonalComputer</usePurposes>
     <usePurposes>MobileDevice</usePurposes>

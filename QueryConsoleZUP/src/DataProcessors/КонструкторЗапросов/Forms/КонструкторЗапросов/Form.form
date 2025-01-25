@@ -877,20 +877,20 @@
           <name>ИсточникиВыбор</name>
         </handlers>
         <handlers>
-          <event>BeforeExpand</event>
-          <name>ИсточникиПередРазворачиванием</name>
-        </handlers>
-        <handlers>
           <event>BeforeDeleteRow</event>
           <name>ИсточникиПередУдалением</name>
         </handlers>
         <handlers>
-          <event>OnStartEdit</event>
-          <name>ИсточникиПриНачалеРедактирования</name>
-        </handlers>
-        <handlers>
           <event>BeforeEditEnd</event>
           <name>ИсточникиПередОкончаниемРедактирования</name>
+        </handlers>
+        <handlers>
+          <event>BeforeExpand</event>
+          <name>ИсточникиПередРазворачиванием</name>
+        </handlers>
+        <handlers>
+          <event>OnStartEdit</event>
+          <name>ИсточникиПриНачалеРедактирования</name>
         </handlers>
         <searchStringAddition>
           <visible>true</visible>
@@ -1960,7 +1960,7 @@
             </extInfo>
           </extendedTooltip>
           <type>UsualButton</type>
-          <commandName>Form.Item.Соединения.StandardCommand.Delete</commandName>
+          <commandName>0</commandName>
           <representation>Picture</representation>
           <autoMaxWidth>true</autoMaxWidth>
           <autoMaxHeight>true</autoMaxHeight>
@@ -2661,7 +2661,7 @@
                 <horizontalAlign>Left</horizontalAlign>
               </extInfo>
             </extendedTooltip>
-            <commandName>Form.Item.Соединения.StandardCommand.Find</commandName>
+            <commandName>0</commandName>
             <representation>Auto</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
@@ -2691,7 +2691,7 @@
                 <horizontalAlign>Left</horizontalAlign>
               </extInfo>
             </extendedTooltip>
-            <commandName>Form.Item.Соединения.StandardCommand.CancelSearch</commandName>
+            <commandName>0</commandName>
             <representation>Auto</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
@@ -3092,7 +3092,7 @@
                 <horizontalAlign>Left</horizontalAlign>
               </extInfo>
             </extendedTooltip>
-            <commandName>Form.Item.ПоляДляГруппировки.StandardCommand.Find</commandName>
+            <commandName>0</commandName>
             <representation>Auto</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
@@ -3122,7 +3122,7 @@
                 <horizontalAlign>Left</horizontalAlign>
               </extInfo>
             </extendedTooltip>
-            <commandName>Form.Item.ПоляДляГруппировки.StandardCommand.CancelSearch</commandName>
+            <commandName>0</commandName>
             <representation>Auto</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
@@ -3702,7 +3702,7 @@
                       <horizontalAlign>Left</horizontalAlign>
                     </extInfo>
                   </extendedTooltip>
-                  <commandName>Form.Item.ГруппируемыеПоля.StandardCommand.Find</commandName>
+                  <commandName>0</commandName>
                   <representation>Auto</representation>
                   <autoMaxWidth>true</autoMaxWidth>
                   <autoMaxHeight>true</autoMaxHeight>
@@ -3732,7 +3732,7 @@
                       <horizontalAlign>Left</horizontalAlign>
                     </extInfo>
                   </extendedTooltip>
-                  <commandName>Form.Item.ГруппируемыеПоля.StandardCommand.CancelSearch</commandName>
+                  <commandName>0</commandName>
                   <representation>Auto</representation>
                   <autoMaxWidth>true</autoMaxWidth>
                   <autoMaxHeight>true</autoMaxHeight>
@@ -3765,6 +3765,7 @@
               <searchStringLocation>None</searchStringLocation>
               <viewStatusLocation>None</viewStatusLocation>
               <searchControlLocation>None</searchControlLocation>
+              <rowFilter xsi:type="core:UndefinedValue"/>
             </items>
             <visible>true</visible>
             <enabled>true</enabled>
@@ -4392,7 +4393,7 @@
                     <horizontalAlign>Left</horizontalAlign>
                   </extInfo>
                 </extendedTooltip>
-                <commandName>Form.Item.АгрегируемыеПоля.StandardCommand.Find</commandName>
+                <commandName>0</commandName>
                 <representation>Auto</representation>
                 <autoMaxWidth>true</autoMaxWidth>
                 <autoMaxHeight>true</autoMaxHeight>
@@ -4422,7 +4423,7 @@
                     <horizontalAlign>Left</horizontalAlign>
                   </extInfo>
                 </extendedTooltip>
-                <commandName>Form.Item.АгрегируемыеПоля.StandardCommand.CancelSearch</commandName>
+                <commandName>0</commandName>
                 <representation>Auto</representation>
                 <autoMaxWidth>true</autoMaxWidth>
                 <autoMaxHeight>true</autoMaxHeight>
@@ -4455,6 +4456,7 @@
             <searchStringLocation>None</searchStringLocation>
             <viewStatusLocation>None</viewStatusLocation>
             <searchControlLocation>None</searchControlLocation>
+            <rowFilter xsi:type="core:UndefinedValue"/>
           </items>
           <visible>true</visible>
           <enabled>true</enabled>
@@ -4896,7 +4898,7 @@
                 <horizontalAlign>Left</horizontalAlign>
               </extInfo>
             </extendedTooltip>
-            <commandName>Form.Item.ПоляДоступныеДляОтбора.StandardCommand.Find</commandName>
+            <commandName>0</commandName>
             <representation>Auto</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
@@ -4926,7 +4928,7 @@
                 <horizontalAlign>Left</horizontalAlign>
               </extInfo>
             </extendedTooltip>
-            <commandName>Form.Item.ПоляДоступныеДляОтбора.StandardCommand.CancelSearch</commandName>
+            <commandName>0</commandName>
             <representation>Auto</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
@@ -6567,12 +6569,12 @@
           <horizontalAlign>Left</horizontalAlign>
         </autoCommandBar>
         <handlers>
-          <event>BeforeAddRow</event>
-          <name>ОбъединенияПередНачаломДобавления</name>
-        </handlers>
-        <handlers>
           <event>Selection</event>
           <name>ОбъединенияВыбор</name>
+        </handlers>
+        <handlers>
+          <event>BeforeAddRow</event>
+          <name>ОбъединенияПередНачаломДобавления</name>
         </handlers>
         <searchStringAddition>
           <visible>true</visible>
@@ -7918,6 +7920,7 @@
         <searchStringLocation>None</searchStringLocation>
         <viewStatusLocation>None</viewStatusLocation>
         <searchControlLocation>None</searchControlLocation>
+        <rowFilter xsi:type="core:UndefinedValue"/>
       </items>
       <items xsi:type="form:FormGroup">
         <name>ИндексыОсновнаяГруппа</name>
@@ -8252,6 +8255,7 @@
           <searchStringLocation>None</searchStringLocation>
           <viewStatusLocation>None</viewStatusLocation>
           <searchControlLocation>None</searchControlLocation>
+          <rowFilter xsi:type="core:UndefinedValue"/>
         </items>
         <items xsi:type="form:FormGroup">
           <name>IndexMoveCommands</name>
@@ -14028,8 +14032,8 @@
       </title>
       <id>145</id>
       <valueType>
-        <types>TypeDescription</types>
         <types>String</types>
+        <types>TypeDescription</types>
         <stringQualifiers>
           <length>10</length>
         </stringQualifiers>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:InformationRegister xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="2ef8590b-6e86-4999-b769-d57321c86d48" extendedConfigurationObject="bc6a4832-1cbb-4c47-b569-939c6916a0e9">
+  <producedTypes>
+    <selectionType typeId="951b633b-4f15-438a-80c9-8a1e979590f0" valueTypeId="2eb72e87-0f24-46a0-b70a-857c323300bc"/>
+    <listType typeId="9f08ce58-c4fe-4a71-b657-8d68f9a20029" valueTypeId="011aac6f-ed94-4c10-b42a-9bab519c9455"/>
+    <managerType typeId="8d962ebc-15b7-485b-9a9d-7458091ddbfc" valueTypeId="e117ddfb-453f-40f5-9369-395a42846225"/>
+    <recordSetType typeId="3138a798-0e8a-43a5-bfcb-0a8682cf7d5a" valueTypeId="fe322c2c-5480-4e56-8a9f-369c82885af1"/>
+    <recordKeyType typeId="ac5e16bc-848d-4d29-82c4-2882fa695d60" valueTypeId="2403bb62-4a08-4eb5-b299-c1a4002190f6"/>
+    <recordType typeId="5607f0fd-4c3c-4960-a5df-fcbd6cb03250" valueTypeId="c4bee5bb-8455-495d-a690-f478a9e63e70"/>
+    <recordManagerType typeId="54cb9add-9627-4e71-afcc-7adefb23e277" valueTypeId="e608b485-5fe3-4c5c-b969-751a9f7224df"/>
+  </producedTypes>
+  <name>РазрядыКатегорииСотрудников</name>
+  <objectBelonging>Adopted</objectBelonging>
+  <extension xsi:type="mdclassExtension:InformationRegisterExtension">
+    <extendedConfigurationObject>Checked</extendedConfigurationObject>
+    <informationRegisterPeriodicity>Checked</informationRegisterPeriodicity>
+    <writeMode>Checked</writeMode>
+  </extension>
+  <informationRegisterPeriodicity>Second</informationRegisterPeriodicity>
+  <writeMode>RecorderSubordinate</writeMode>
+</mdclass:InformationRegister>
