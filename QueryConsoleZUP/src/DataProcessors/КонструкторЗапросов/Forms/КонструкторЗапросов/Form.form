@@ -689,7 +689,7 @@
                 <horizontalAlign>Left</horizontalAlign>
               </extInfo>
             </extendedTooltip>
-            <commandName>Form.Command.SourcesCreateDescriptionOfTheTemporaryTable</commandName>
+            <commandName>Form.Command.СоздатьОписаниеВременнойТаблицы</commandName>
             <representation>Auto</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
@@ -17691,10 +17691,10 @@
     <currentRowUse>DontUse</currentRowUse>
   </formCommands>
   <formCommands>
-    <name>SourcesCreateDescriptionOfTheTemporaryTable</name>
+    <name>СоздатьОписаниеВременнойТаблицы</name>
     <title>
       <key>ru</key>
-      <value>SourcesCreateDescriptionOfTheTemporaryTable</value>
+      <value>СоздатьОписаниеВременнойТаблицы</value>
     </title>
     <id>55</id>
     <toolTip>
@@ -17706,7 +17706,7 @@
     </use>
     <action xsi:type="form:FormCommandHandlerContainer">
       <handler>
-        <name>SourcesCreateDescriptionOfTheTemporaryTable</name>
+        <name>СоздатьОписаниеВременнойТаблицы</name>
       </handler>
     </action>
     <currentRowUse>DontUse</currentRowUse>
