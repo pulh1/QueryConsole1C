@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mdclass:CommonModule xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="c57d1b09-ffdb-44ce-b7b1-e13e3a0d228b">
-  <name>ОбработкаПредставлениеЗапрсов</name>
+  <name>ОбработкаПредставлениеЗапросов</name>
   <synonym>
     <key>ru</key>
-    <value>Обработка представление запрсов</value>
+    <value>Обработка представление запросов</value>
   </synonym>
   <server>true</server>
   <externalConnection>true</externalConnection>

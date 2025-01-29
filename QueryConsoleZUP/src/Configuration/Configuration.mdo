@@ -58,7 +58,7 @@
   <commonModules>CommonModule.МодельЗапросаТипы</commonModules>
   <commonModules>CommonModule.МодельЗапросаУтилиты</commonModules>
   <commonModules>CommonModule.ОбработкаМоделиЗапроса</commonModules>
-  <commonModules>CommonModule.ОбработкаПредставлениеЗапрсов</commonModules>
+  <commonModules>CommonModule.ОбработкаПредставлениеЗапросов</commonModules>
   <commonModules>CommonModule.ОписаниеИсполняемыхПредставленийУтилиты</commonModules>
   <commonModules>CommonModule.ПоставщикИсполняемыхПредставлений</commonModules>
   <commonModules>CommonModule.ПоставщикИсполняемыхПредставленийПовтИсп</commonModules>
@@ -79,7 +79,7 @@
   <dataProcessors>DataProcessor.ГенераторКодаЗапросовДляСКД</dataProcessors>
   <dataProcessors>DataProcessor.ГенераторКодаИсполняемыхПредставлений</dataProcessors>
   <dataProcessors>DataProcessor.ГенераторТекстовВыражений</dataProcessors>
-  <dataProcessors>DataProcessor.ГенераторТекстовЗапрсов</dataProcessors>
+  <dataProcessors>DataProcessor.ГенераторТекстовЗапросов</dataProcessors>
   <dataProcessors>DataProcessor.ИсполнительПредставлений</dataProcessors>
   <dataProcessors>DataProcessor.КонсольЗапросов</dataProcessors>
   <dataProcessors>DataProcessor.КонструкторЗапросов</dataProcessors>

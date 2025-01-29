@@ -1,3 +1,6 @@
+
+// BSLLS-off
+
 &AtServer
 Procedure OnCreateAtServer(Cancel, StandardProcessing)
 	Changed = False; 	
