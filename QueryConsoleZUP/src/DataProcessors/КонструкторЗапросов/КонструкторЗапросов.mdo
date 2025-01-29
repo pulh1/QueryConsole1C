@@ -30,10 +30,10 @@
     <usePurposes>MobileDevice</usePurposes>
   </forms>
   <forms uuid="db4d67a5-e791-458e-9b9e-dbc684ae8ecd">
-    <name>РедакторОписанияВТ</name>
+    <name>TempTable</name>
     <synonym>
       <key>ru</key>
-      <value>Редактор описания ВТ</value>
+      <value>Temp table</value>
     </synonym>
     <help>
       <pages>

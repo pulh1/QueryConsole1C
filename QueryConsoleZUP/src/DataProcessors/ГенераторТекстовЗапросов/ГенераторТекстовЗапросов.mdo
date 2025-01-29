@@ -4,10 +4,10 @@
     <objectType typeId="621d8c49-8ed8-4c8b-9a68-2a63240d3e40" valueTypeId="f91f1207-56f3-48fb-904c-afefbb9a1f62"/>
     <managerType typeId="4320e794-88d5-4388-9cb9-54de79e64364" valueTypeId="70b01231-0fd5-4332-b828-94cc847a075e"/>
   </producedTypes>
-  <name>ГенераторТекстовЗапрсов</name>
+  <name>ГенераторТекстовЗапросов</name>
   <synonym>
     <key>ru</key>
-    <value>Генератор текстов запрсов</value>
+    <value>Генератор текстов запросов</value>
   </synonym>
   <useStandardCommands>true</useStandardCommands>
 </mdclass:DataProcessor>
