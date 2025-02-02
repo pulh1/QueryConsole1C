@@ -689,7 +689,7 @@
                 <horizontalAlign>Left</horizontalAlign>
               </extInfo>
             </extendedTooltip>
-            <commandName>Form.Command.SourcesCreateDescriptionOfTheTemporaryTable</commandName>
+            <commandName>Form.Command.СоздатьОписаниеВременнойТаблицы</commandName>
             <representation>Auto</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
@@ -13362,21 +13362,6 @@
   <showTitle>true</showTitle>
   <showCloseButton>true</showCloseButton>
   <attributes>
-    <name>Object</name>
-    <id>1</id>
-    <valueType>
-      <types>DataProcessorObject.КонструкторЗапросов</types>
-    </valueType>
-    <view>
-      <common>true</common>
-    </view>
-    <edit>
-      <common>true</common>
-    </edit>
-    <main>true</main>
-    <savedData>true</savedData>
-  </attributes>
-  <attributes>
     <name>ПакетЗапросов</name>
     <title>
       <key>ru</key>
@@ -13437,26 +13422,6 @@
       <valueType>
         <types>String</types>
         <stringQualifiers/>
-      </valueType>
-      <view>
-        <common>true</common>
-      </view>
-      <edit>
-        <common>true</common>
-      </edit>
-    </columns>
-    <columns>
-      <name>Индекс</name>
-      <title>
-        <key>ru</key>
-        <value>Индекс</value>
-      </title>
-      <id>2</id>
-      <valueType>
-        <types>Number</types>
-        <numberQualifiers>
-          <precision>10</precision>
-        </numberQualifiers>
       </valueType>
       <view>
         <common>true</common>
@@ -13709,10 +13674,10 @@
       </edit>
     </columns>
     <columns>
-      <name>Индекс</name>
+      <name>ИндексИсточника</name>
       <title>
         <key>ru</key>
-        <value>Индекс</value>
+        <value>Индекс источника</value>
       </title>
       <id>100</id>
       <valueType>
@@ -14490,6 +14455,26 @@
         <common>true</common>
       </edit>
     </columns>
+    <columns>
+      <name>ИндексИсточника</name>
+      <title>
+        <key>ru</key>
+        <value>Индекс источника</value>
+      </title>
+      <id>148</id>
+      <valueType>
+        <types>Number</types>
+        <numberQualifiers>
+          <precision>10</precision>
+        </numberQualifiers>
+      </valueType>
+      <view>
+        <common>true</common>
+      </view>
+      <edit>
+        <common>true</common>
+      </edit>
+    </columns>
   </attributes>
   <attributes>
     <name>Порядок</name>
@@ -15015,6 +15000,26 @@
       <id>16</id>
       <valueType>
         <types>TypeDescription</types>
+      </valueType>
+      <view>
+        <common>true</common>
+      </view>
+      <edit>
+        <common>true</common>
+      </edit>
+    </columns>
+    <columns>
+      <name>ИндексИсточника</name>
+      <title>
+        <key>ru</key>
+        <value>Индекс источника</value>
+      </title>
+      <id>147</id>
+      <valueType>
+        <types>Number</types>
+        <numberQualifiers>
+          <precision>10</precision>
+        </numberQualifiers>
       </valueType>
       <view>
         <common>true</common>
@@ -15633,6 +15638,26 @@
         <common>true</common>
       </edit>
     </columns>
+    <columns>
+      <name>ИндексИсточника</name>
+      <title>
+        <key>ru</key>
+        <value>Индекс источника</value>
+      </title>
+      <id>149</id>
+      <valueType>
+        <types>Number</types>
+        <numberQualifiers>
+          <precision>10</precision>
+        </numberQualifiers>
+      </valueType>
+      <view>
+        <common>true</common>
+      </view>
+      <edit>
+        <common>true</common>
+      </edit>
+    </columns>
   </attributes>
   <attributes>
     <name>КонтрольныеТочкиИтогов</name>
@@ -16082,10 +16107,10 @@
       </edit>
     </columns>
     <columns>
-      <name>Индекс</name>
+      <name>ИндексИсточника</name>
       <title>
         <key>ru</key>
-        <value>Индекс</value>
+        <value>Индекс источника</value>
       </title>
       <id>5</id>
       <valueType/>
@@ -17691,10 +17716,10 @@
     <currentRowUse>DontUse</currentRowUse>
   </formCommands>
   <formCommands>
-    <name>SourcesCreateDescriptionOfTheTemporaryTable</name>
+    <name>СоздатьОписаниеВременнойТаблицы</name>
     <title>
       <key>ru</key>
-      <value>SourcesCreateDescriptionOfTheTemporaryTable</value>
+      <value>СоздатьОписаниеВременнойТаблицы</value>
     </title>
     <id>55</id>
     <toolTip>
@@ -17706,7 +17731,7 @@
     </use>
     <action xsi:type="form:FormCommandHandlerContainer">
       <handler>
-        <name>SourcesCreateDescriptionOfTheTemporaryTable</name>
+        <name>СоздатьОписаниеВременнойТаблицы</name>
       </handler>
     </action>
     <currentRowUse>DontUse</currentRowUse>

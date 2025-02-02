@@ -1239,6 +1239,26 @@
         <common>true</common>
       </edit>
     </columns>
+    <columns>
+      <name>ИндексИсточника</name>
+      <title>
+        <key>ru</key>
+        <value>Индекс источника</value>
+      </title>
+      <id>20</id>
+      <valueType>
+        <types>Number</types>
+        <numberQualifiers>
+          <precision>10</precision>
+        </numberQualifiers>
+      </valueType>
+      <view>
+        <common>true</common>
+      </view>
+      <edit>
+        <common>true</common>
+      </edit>
+    </columns>
   </attributes>
   <attributes>
     <name>ТекстВыражения</name>
@@ -1351,187 +1371,6 @@
         <common>true</common>
       </edit>
     </columns>
-  </attributes>
-  <attributes>
-    <name>OldExpression</name>
-    <title>
-      <key>ru</key>
-      <value>Old expression</value>
-    </title>
-    <id>3</id>
-    <valueType>
-      <types>String</types>
-      <stringQualifiers/>
-    </valueType>
-    <view>
-      <common>true</common>
-    </view>
-    <edit>
-      <common>true</common>
-    </edit>
-  </attributes>
-  <attributes>
-    <name>Changed</name>
-    <title>
-      <key>ru</key>
-      <value>Changed</value>
-    </title>
-    <id>6</id>
-    <valueType>
-      <types>Boolean</types>
-    </valueType>
-    <view>
-      <common>true</common>
-    </view>
-    <edit>
-      <common>true</common>
-    </edit>
-  </attributes>
-  <attributes>
-    <name>Closing</name>
-    <title>
-      <key>ru</key>
-      <value>Closing</value>
-    </title>
-    <id>8</id>
-    <valueType>
-      <types>Boolean</types>
-    </valueType>
-    <view>
-      <common>true</common>
-    </view>
-    <edit>
-      <common>true</common>
-    </edit>
-  </attributes>
-  <attributes>
-    <name>CurrentQuerySchemaOperator</name>
-    <title>
-      <key>ru</key>
-      <value>Current query schema operator</value>
-    </title>
-    <id>9</id>
-    <valueType>
-      <types>Number</types>
-      <numberQualifiers>
-        <precision>10</precision>
-      </numberQualifiers>
-    </valueType>
-    <view>
-      <common>true</common>
-    </view>
-    <edit>
-      <common>true</common>
-    </edit>
-  </attributes>
-  <attributes>
-    <name>CurrentQuerySchemaSelectQuery</name>
-    <title>
-      <key>ru</key>
-      <value>Current query schema select query</value>
-    </title>
-    <id>10</id>
-    <valueType>
-      <types>Number</types>
-      <numberQualifiers>
-        <precision>10</precision>
-      </numberQualifiers>
-    </valueType>
-    <view>
-      <common>true</common>
-    </view>
-    <edit>
-      <common>true</common>
-    </edit>
-  </attributes>
-  <attributes>
-    <name>QueryWizardAddress</name>
-    <title>
-      <key>ru</key>
-      <value>Query wizard address</value>
-    </title>
-    <id>11</id>
-    <valueType>
-      <types>String</types>
-      <stringQualifiers/>
-    </valueType>
-    <view>
-      <common>true</common>
-    </view>
-    <edit>
-      <common>true</common>
-    </edit>
-  </attributes>
-  <attributes>
-    <name>PropertyName</name>
-    <title>
-      <key>ru</key>
-      <value>Property name</value>
-    </title>
-    <id>12</id>
-    <valueType>
-      <types>String</types>
-      <stringQualifiers/>
-    </valueType>
-    <view>
-      <common>true</common>
-    </view>
-    <edit>
-      <common>true</common>
-    </edit>
-  </attributes>
-  <attributes>
-    <name>TableIndex</name>
-    <title>
-      <key>ru</key>
-      <value>Table index</value>
-    </title>
-    <id>13</id>
-    <valueType>
-      <types>Number</types>
-      <numberQualifiers>
-        <precision>10</precision>
-      </numberQualifiers>
-    </valueType>
-    <view>
-      <common>true</common>
-    </view>
-    <edit>
-      <common>true</common>
-    </edit>
-  </attributes>
-  <attributes>
-    <name>NestedQueryPositionAddress</name>
-    <title>
-      <key>ru</key>
-      <value>Nested query position address</value>
-    </title>
-    <id>7</id>
-    <valueType/>
-    <view>
-      <common>true</common>
-    </view>
-    <edit>
-      <common>true</common>
-    </edit>
-  </attributes>
-  <attributes>
-    <name>EditedRow</name>
-    <title>
-      <key>ru</key>
-      <value>Edited row</value>
-    </title>
-    <id>14</id>
-    <valueType>
-      <types>Number</types>
-      <numberQualifiers/>
-    </valueType>
-    <view>
-      <common>true</common>
-    </view>
-    <edit>
-      <common>true</common>
-    </edit>
   </attributes>
   <attributes>
     <name>АдресМоделиЗапроса</name>
