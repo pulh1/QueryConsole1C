@@ -544,20 +544,6 @@
   <showTitle>true</showTitle>
   <showCloseButton>true</showCloseButton>
   <attributes>
-    <name>Object</name>
-    <id>1</id>
-    <valueType>
-      <types>DataProcessorObject.КонструкторЗапросов</types>
-    </valueType>
-    <view>
-      <common>true</common>
-    </view>
-    <edit>
-      <common>true</common>
-    </edit>
-    <main>true</main>
-  </attributes>
-  <attributes>
     <name>ИмяТаблицы</name>
     <title>
       <key>ru</key>
@@ -575,6 +561,7 @@
       <common>true</common>
     </edit>
     <fillChecking>ShowError</fillChecking>
+    <savedData>true</savedData>
   </attributes>
   <attributes>
     <name>Поля</name>
@@ -592,6 +579,7 @@
     <edit>
       <common>true</common>
     </edit>
+    <savedData>true</savedData>
     <columns>
       <name>Имя</name>
       <title>
@@ -628,149 +616,6 @@
         <common>true</common>
       </edit>
     </columns>
-  </attributes>
-  <attributes>
-    <name>Index</name>
-    <title>
-      <key>ru</key>
-      <value>Index</value>
-    </title>
-    <id>4</id>
-    <valueType>
-      <types>Number</types>
-      <numberQualifiers>
-        <precision>10</precision>
-      </numberQualifiers>
-    </valueType>
-    <view>
-      <common>true</common>
-    </view>
-    <edit>
-      <common>true</common>
-    </edit>
-  </attributes>
-  <attributes>
-    <name>QueryWizardAddress</name>
-    <title>
-      <key>ru</key>
-      <value>Query wizard address</value>
-    </title>
-    <id>5</id>
-    <valueType>
-      <types>String</types>
-      <stringQualifiers/>
-    </valueType>
-    <view>
-      <common>true</common>
-    </view>
-    <edit>
-      <common>true</common>
-    </edit>
-  </attributes>
-  <attributes>
-    <name>CurrentQuerySchemaSelectQuery</name>
-    <title>
-      <key>ru</key>
-      <value>Current query schema select query</value>
-    </title>
-    <id>6</id>
-    <valueType>
-      <types>Number</types>
-      <numberQualifiers>
-        <precision>10</precision>
-      </numberQualifiers>
-    </valueType>
-    <view>
-      <common>true</common>
-    </view>
-    <edit>
-      <common>true</common>
-    </edit>
-  </attributes>
-  <attributes>
-    <name>CurrentQuerySchemaOperator</name>
-    <title>
-      <key>ru</key>
-      <value>Current query schema operator</value>
-    </title>
-    <id>7</id>
-    <valueType>
-      <types>Number</types>
-      <numberQualifiers>
-        <precision>10</precision>
-      </numberQualifiers>
-    </valueType>
-    <view>
-      <common>true</common>
-    </view>
-    <edit>
-      <common>true</common>
-    </edit>
-  </attributes>
-  <attributes>
-    <name>QueryWizardForm</name>
-    <title>
-      <key>ru</key>
-      <value>Query wizard form</value>
-    </title>
-    <id>8</id>
-    <valueType/>
-    <view>
-      <common>true</common>
-    </view>
-    <edit>
-      <common>true</common>
-    </edit>
-  </attributes>
-  <attributes>
-    <name>Name</name>
-    <title>
-      <key>ru</key>
-      <value>Name</value>
-    </title>
-    <id>9</id>
-    <valueType>
-      <types>String</types>
-      <stringQualifiers/>
-    </valueType>
-    <view>
-      <common>true</common>
-    </view>
-    <edit>
-      <common>true</common>
-    </edit>
-  </attributes>
-  <attributes>
-    <name>Changed</name>
-    <title>
-      <key>ru</key>
-      <value>Changed</value>
-    </title>
-    <id>10</id>
-    <valueType>
-      <types>Boolean</types>
-    </valueType>
-    <view>
-      <common>true</common>
-    </view>
-    <edit>
-      <common>true</common>
-    </edit>
-  </attributes>
-  <attributes>
-    <name>NestedQueryPositionAddress</name>
-    <title>
-      <key>ru</key>
-      <value>Nested query position address</value>
-    </title>
-    <id>11</id>
-    <valueType/>
-    <view>
-      <common>true</common>
-    </view>
-    <edit>
-      <common>true</common>
-    </edit>
   </attributes>
   <formCommands>
     <name>OK</name>
