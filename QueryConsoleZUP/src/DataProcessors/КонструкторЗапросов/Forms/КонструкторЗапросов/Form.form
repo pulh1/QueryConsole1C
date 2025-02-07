@@ -892,6 +892,10 @@
           <event>OnStartEdit</event>
           <name>ИсточникиПриНачалеРедактирования</name>
         </handlers>
+        <handlers>
+          <event>OnActivateRow</event>
+          <name>ИсточникиПриАктивизацииСтроки</name>
+        </handlers>
         <searchStringAddition>
           <visible>true</visible>
           <enabled>true</enabled>
