@@ -98,7 +98,7 @@
   <dataProcessors>DataProcessor.ПредставлениеРабочиеМестаСотрудников</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеРегистрРасчетаБаза</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеРегистрСведенийЗаписи</dataProcessors>
-  <dataProcessors>DataProcessor.ПредставлениеРегистрСведенийИнтервалы</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеРегистрСведенийПериоды</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеРегистрСведенийСрезПоследних</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеСотрудникиОрганизации</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеФактическиеОтпускаСотрудников</dataProcessors>

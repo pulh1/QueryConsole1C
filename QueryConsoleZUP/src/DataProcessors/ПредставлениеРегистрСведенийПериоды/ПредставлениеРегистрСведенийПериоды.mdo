@@ -4,10 +4,10 @@
     <objectType typeId="3a577c00-04fc-42fc-8e50-fd4e137dbffb" valueTypeId="3141c3a3-126e-4c51-ac69-c5f2c9f05bf3"/>
     <managerType typeId="9d342157-4645-46b7-8610-b3e294bd1ece" valueTypeId="ba42190c-db42-4ecf-94d1-b1639440fb74"/>
   </producedTypes>
-  <name>ПредставлениеРегистрСведенийИнтервалы</name>
+  <name>ПредставлениеРегистрСведенийПериоды</name>
   <synonym>
     <key>ru</key>
-    <value>Представление регистр сведений интервалы</value>
+    <value>Представление регистр сведений периоды</value>
   </synonym>
   <useStandardCommands>true</useStandardCommands>
 </mdclass:DataProcessor>
