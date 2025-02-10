@@ -10,5 +10,6 @@
   <content>DataProcessor.ПредставлениеДанныеСотрудников</content>
   <content>DataProcessor.ПредставлениеДанныеФизическихЛиц</content>
   <content>DataProcessor.ПредставлениеРабочиеМестаСотрудников</content>
+  <content>DataProcessor.ПредставлениеСтажиФизическихЛиц</content>
   <parentSubsystem>Subsystem.ИсполняемыеПредставления</parentSubsystem>
 </mdclass:Subsystem>

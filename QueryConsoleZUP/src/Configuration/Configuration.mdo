@@ -104,6 +104,7 @@
   <dataProcessors>DataProcessor.ПредставлениеФактическиеОтпускаСотрудников</dataProcessors>
   <dataProcessors>DataProcessor.РасчетБазыНачисленийУдержаний</dataProcessors>
   <dataProcessors>DataProcessor.Шаблон_Представление_ИмяПредставления</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеСтажиФизическихЛиц</dataProcessors>
   <informationRegisters>InformationRegister.БухучетЗарплатыСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ВидыЗанятостиСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ГрафикРаботыСотрудников</informationRegisters>
