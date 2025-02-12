@@ -75,7 +75,8 @@
   <catalogs>Catalog.Организации</catalogs>
   <catalogs>Catalog.ПодразделенияОрганизаций</catalogs>
   <catalogs>Catalog.Сотрудники</catalogs>
-  <dataProcessors>DataProcessor._ПредставлениеПериоды</dataProcessors>
+  <reports>Report.СправкаПоИсполняемымПредставлениям</reports>
+  <dataProcessors>DataProcessor.ПредставлениеПериоды</dataProcessors>
   <dataProcessors>DataProcessor.ГенераторКодаЗапросовДляСКД</dataProcessors>
   <dataProcessors>DataProcessor.ГенераторКодаИсполняемыхПредставлений</dataProcessors>
   <dataProcessors>DataProcessor.ГенераторТекстовВыражений</dataProcessors>

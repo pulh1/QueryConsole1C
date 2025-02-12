@@ -6,6 +6,6 @@
     <value>Общее</value>
   </synonym>
   <includeHelpInContents>true</includeHelpInContents>
-  <content>DataProcessor._ПредставлениеПериоды</content>
+  <content>DataProcessor.ПредставлениеПериоды</content>
   <parentSubsystem>Subsystem.ИсполняемыеПредставления</parentSubsystem>
 </mdclass:Subsystem>
