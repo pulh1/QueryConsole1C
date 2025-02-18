@@ -986,7 +986,7 @@
                 <horizontalAlign>Left</horizontalAlign>
               </extInfo>
             </extendedTooltip>
-            <commandName>Form.Command.ОткрытьРасширеннйКонструкторЗапросов</commandName>
+            <commandName>Form.Command.ОткрытьКонструкторЗапроса</commandName>
             <representation>Auto</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
