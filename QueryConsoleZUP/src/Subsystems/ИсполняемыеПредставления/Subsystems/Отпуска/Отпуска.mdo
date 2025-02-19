@@ -7,5 +7,6 @@
   </synonym>
   <includeHelpInContents>true</includeHelpInContents>
   <content>DataProcessor.ПредставлениеФактическиеОтпускаСотрудников</content>
+  <content>DataProcessor.ПредставлениеОстаткиОтпусков</content>
   <parentSubsystem>Subsystem.ИсполняемыеПредставления</parentSubsystem>
 </mdclass:Subsystem>

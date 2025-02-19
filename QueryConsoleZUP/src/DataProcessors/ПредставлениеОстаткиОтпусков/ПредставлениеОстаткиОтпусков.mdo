@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="2451d6dd-5460-4627-9a4e-91bae0423c49">
+  <producedTypes>
+    <objectType typeId="a0694a16-3cab-46e4-940e-2ddde51dcad0" valueTypeId="af6c3377-2adf-4244-aae0-32782d8b8c68"/>
+    <managerType typeId="f0bc45ed-47e9-4609-b27c-644d18a90f07" valueTypeId="ec101bf7-342d-48f4-9680-fc01a6e8b695"/>
+  </producedTypes>
+  <name>ПредставлениеОстаткиОтпусков</name>
+  <synonym>
+    <key>ru</key>
+    <value>Представление остатки отпусков</value>
+  </synonym>
+  <useStandardCommands>true</useStandardCommands>
+</mdclass:DataProcessor>

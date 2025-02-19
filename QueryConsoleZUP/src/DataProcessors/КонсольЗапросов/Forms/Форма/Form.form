@@ -949,7 +949,7 @@
                 <horizontalAlign>Left</horizontalAlign>
               </extInfo>
             </extendedTooltip>
-            <commandName>Form.Command.ОткрытьКонструкторЗапроса</commandName>
+            <commandName>Form.Command.ОткрытьРасширеннйКонструкторЗапросов</commandName>
             <representation>PictureAndText</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
@@ -962,6 +962,10 @@
           <items xsi:type="form:Button">
             <name>ТекстЗапросаКонтекстноеМенюОткрытьРасширеннйКонструкторЗапросов</name>
             <id>215</id>
+            <title>
+              <key>ru</key>
+              <value>Типовой конструктор запрсов</value>
+            </title>
             <visible>true</visible>
             <enabled>true</enabled>
             <userVisible>
@@ -982,7 +986,7 @@
                 <horizontalAlign>Left</horizontalAlign>
               </extInfo>
             </extendedTooltip>
-            <commandName>Form.Command.ОткрытьРасширеннйКонструкторЗапросов</commandName>
+            <commandName>Form.Command.ОткрытьКонструкторЗапроса</commandName>
             <representation>Auto</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
@@ -2579,7 +2583,7 @@
     <name>ОткрытьКонструкторЗапроса</name>
     <title>
       <key>ru</key>
-      <value>Открыть конструктор запроса</value>
+      <value>Открыть типовой конструктор запроса</value>
     </title>
     <id>2</id>
     <toolTip>
@@ -3035,7 +3039,7 @@
     <name>ОткрытьРасширеннйКонструкторЗапросов</name>
     <title>
       <key>ru</key>
-      <value>Открыть расширеннй конструктор запросов</value>
+      <value>Открыть конструктор запроса</value>
     </title>
     <id>21</id>
     <toolTip>
