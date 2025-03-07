@@ -1941,6 +1941,37 @@
         <name>СоединенияКомандыГруппа</name>
         <id>848</id>
         <items xsi:type="form:Button">
+          <name>СоединитьТаблицы</name>
+          <id>1528</id>
+          <visible>true</visible>
+          <enabled>true</enabled>
+          <userVisible>
+            <common>true</common>
+          </userVisible>
+          <extendedTooltip>
+            <name>СоединитьТаблицыРасширеннаяПодсказка</name>
+            <id>1529</id>
+            <visible>true</visible>
+            <enabled>true</enabled>
+            <userVisible>
+              <common>true</common>
+            </userVisible>
+            <type>Label</type>
+            <autoMaxWidth>true</autoMaxWidth>
+            <autoMaxHeight>true</autoMaxHeight>
+            <extInfo xsi:type="form:LabelDecorationExtInfo">
+              <horizontalAlign>Left</horizontalAlign>
+            </extInfo>
+          </extendedTooltip>
+          <type>UsualButton</type>
+          <commandName>Form.Command.СоединитьТаблицы</commandName>
+          <representation>Picture</representation>
+          <autoMaxWidth>true</autoMaxWidth>
+          <autoMaxHeight>true</autoMaxHeight>
+          <placementArea>UserCmds</placementArea>
+          <representationInContextMenu>Auto</representationInContextMenu>
+        </items>
+        <items xsi:type="form:Button">
           <name>DeleteJoin</name>
           <id>885</id>
           <visible>true</visible>
@@ -1972,7 +2003,7 @@
           <representationInContextMenu>Auto</representationInContextMenu>
         </items>
         <items xsi:type="form:FormField">
-          <name>MoveJoinText</name>
+          <name>СоединениеТаблицТекст</name>
           <id>850</id>
           <visible>true</visible>
           <enabled>true</enabled>
@@ -1980,11 +2011,11 @@
             <common>true</common>
           </userVisible>
           <dataPath xsi:type="form:DataPath">
-            <segments>MoveJoinText</segments>
+            <segments>СоединениеТаблицТекст</segments>
           </dataPath>
           <titleLocation>None</titleLocation>
           <extendedTooltip>
-            <name>MoveJoinTextExtendedTooltip</name>
+            <name>СоединениеТаблицТекстРасширеннаяПодсказка</name>
             <id>852</id>
             <visible>true</visible>
             <enabled>true</enabled>
@@ -1999,7 +2030,7 @@
             </extInfo>
           </extendedTooltip>
           <contextMenu>
-            <name>MoveJoinTextContextMenu</name>
+            <name>СоединениеТаблицТекстКонтекстноеМеню</name>
             <id>851</id>
             <visible>true</visible>
             <enabled>true</enabled>
@@ -2507,6 +2538,10 @@
         <handlers>
           <event>Drag</event>
           <name>СоединенияПеретаскивание</name>
+        </handlers>
+        <handlers>
+          <event>OnActivateRow</event>
+          <name>СоединенияПриАктивизацииСтроки</name>
         </handlers>
         <searchStringAddition>
           <visible>true</visible>
@@ -5050,7 +5085,7 @@
               <name>УсловияКоманднаяПанель</name>
               <id>61</id>
               <items xsi:type="form:Button">
-                <name>ConditionAdd</name>
+                <name>УсловияДобавить</name>
                 <id>865</id>
                 <visible>true</visible>
                 <enabled>true</enabled>
@@ -5058,7 +5093,7 @@
                   <common>true</common>
                 </userVisible>
                 <extendedTooltip>
-                  <name>ConditionAddExtendedTooltip</name>
+                  <name>УсловияДобавитьРасширеннаяПодсказка</name>
                   <id>866</id>
                   <visible>true</visible>
                   <enabled>true</enabled>
@@ -5081,7 +5116,7 @@
                 <locationInCommandBar>InCommandBarAndInAdditionalSubmenu</locationInCommandBar>
               </items>
               <items xsi:type="form:Button">
-                <name>ConditionDelete</name>
+                <name>УсловияУдалить</name>
                 <id>867</id>
                 <visible>true</visible>
                 <enabled>true</enabled>
@@ -5089,7 +5124,7 @@
                   <common>true</common>
                 </userVisible>
                 <extendedTooltip>
-                  <name>ConditionDeleteExtendedTooltip</name>
+                  <name>УсловияУдалитьРасширеннаяПодсказка</name>
                   <id>868</id>
                   <visible>true</visible>
                   <enabled>true</enabled>
@@ -6337,7 +6372,7 @@
           <name>ОбъединенияКоманднаяПанель</name>
           <id>209</id>
           <items xsi:type="form:Button">
-            <name>UnionsAdd</name>
+            <name>ОбъединенияДобавить</name>
             <id>871</id>
             <visible>true</visible>
             <enabled>true</enabled>
@@ -6345,7 +6380,7 @@
               <common>true</common>
             </userVisible>
             <extendedTooltip>
-              <name>UnionsAddExtendedTooltip</name>
+              <name>ОбъединенияДобавитьРасширеннаяПодсказка</name>
               <id>872</id>
               <visible>true</visible>
               <enabled>true</enabled>
@@ -7032,7 +7067,6 @@
               <autoMaxWidth>true</autoMaxWidth>
               <autoMaxHeight>true</autoMaxHeight>
               <wrap>true</wrap>
-              <chooseType>true</chooseType>
               <typeDomainEnabled>true</typeDomainEnabled>
               <textEdit>true</textEdit>
             </extInfo>
@@ -7248,34 +7282,6 @@
           </userVisible>
           <horizontalAlign>Left</horizontalAlign>
         </autoCommandBar>
-        <handlers>
-          <event>DragCheck</event>
-          <name>AliasesDragCheck</name>
-        </handlers>
-        <handlers>
-          <event>BeforeAddRow</event>
-          <name>AliasesBeforeAddRow</name>
-        </handlers>
-        <handlers>
-          <event>BeforeDeleteRow</event>
-          <name>AliasesBeforeDeleteRow</name>
-        </handlers>
-        <handlers>
-          <event>BeforeEditEnd</event>
-          <name>AliasesBeforeEditEnd</name>
-        </handlers>
-        <handlers>
-          <event>DragStart</event>
-          <name>AliasesDragStart</name>
-        </handlers>
-        <handlers>
-          <event>Drag</event>
-          <name>AliasesDrag</name>
-        </handlers>
-        <handlers>
-          <event>OnStartEdit</event>
-          <name>AliasesOnStartEdit</name>
-        </handlers>
         <searchStringAddition>
           <visible>true</visible>
           <enabled>true</enabled>
@@ -11457,7 +11463,7 @@
             <name>ПоляИтоговКоманды</name>
             <id>458</id>
             <items xsi:type="form:Button">
-              <name>TotalsExpressionsAdd</name>
+              <name>ДобавитьВыражениеИтогов</name>
               <id>492</id>
               <title>
                 <key>ru</key>
@@ -11469,7 +11475,7 @@
                 <common>true</common>
               </userVisible>
               <extendedTooltip>
-                <name>TotalsExpressionsAddExtendedTooltip</name>
+                <name>ДобавитьВыражениеИтоговРасширеннаяПодсказка</name>
                 <id>493</id>
                 <visible>true</visible>
                 <enabled>true</enabled>
@@ -16567,10 +16573,10 @@
     </edit>
   </attributes>
   <attributes>
-    <name>MoveJoinText</name>
+    <name>СоединениеТаблицТекст</name>
     <title>
       <key>ru</key>
-      <value>Move join text</value>
+      <value>Соединение таблиц текст</value>
     </title>
     <id>63</id>
     <valueType>
@@ -16690,6 +16696,21 @@
     <valueType>
       <types>Boolean</types>
     </valueType>
+    <view>
+      <common>true</common>
+    </view>
+    <edit>
+      <common>true</common>
+    </edit>
+  </attributes>
+  <attributes>
+    <name>ИдентифкаторСтрокиПрисоединяемойТаблицы</name>
+    <title>
+      <key>ru</key>
+      <value>Идентифкатор строки присоединяемой таблицы</value>
+    </title>
+    <id>150</id>
+    <valueType/>
     <view>
       <common>true</common>
     </view>
@@ -18169,10 +18190,10 @@
     <currentRowUse>DontUse</currentRowUse>
   </formCommands>
   <formCommands>
-    <name>MoveJoin</name>
+    <name>СоединитьТаблицы</name>
     <title>
       <key>ru</key>
-      <value>Move join</value>
+      <value>Соединить таблицы</value>
     </title>
     <id>79</id>
     <toolTip>
@@ -18183,9 +18204,12 @@
       <common>true</common>
     </use>
     <shortcut>Ctrl+M</shortcut>
+    <picture xsi:type="core:PictureRef">
+      <picture>StdPicture.MoveItem</picture>
+    </picture>
     <action xsi:type="form:FormCommandHandlerContainer">
       <handler>
-        <name>MoveJoin</name>
+        <name>СоединитьТаблицы</name>
       </handler>
     </action>
     <currentRowUse>DontUse</currentRowUse>
