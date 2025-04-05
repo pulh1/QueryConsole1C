@@ -2047,6 +2047,7 @@
           <extInfo xsi:type="form:LabelFieldExtInfo">
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
+            <horizontalStretch>true</horizontalStretch>
             <textColor xsi:type="core:ColorRef">
               <color>Style.SpecialTextColor</color>
             </textColor>
@@ -2538,10 +2539,6 @@
         <handlers>
           <event>Drag</event>
           <name>СоединенияПеретаскивание</name>
-        </handlers>
-        <handlers>
-          <event>OnActivateRow</event>
-          <name>СоединенияПриАктивизацииСтроки</name>
         </handlers>
         <searchStringAddition>
           <visible>true</visible>
