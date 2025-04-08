@@ -2066,6 +2066,7 @@
           <key>ru</key>
           <value>Соединения команды группа</value>
         </toolTip>
+        <horizontalStretch>true</horizontalStretch>
         <extendedTooltip>
           <name>СоединенияКомандыГруппаРасширеннаяПодсказка</name>
           <id>849</id>

@@ -41,6 +41,7 @@
   </languages>
   <subsystems>Subsystem.ИсполняемыеПредставления</subsystems>
   <subsystems>Subsystem.МеханизмИсполняемыхПредставлений</subsystems>
+  <subsystems>Subsystem.ИнструментыТестирования</subsystems>
   <commonPictures>CommonPicture.ДлительнаяОперация48</commonPictures>
   <commonPictures>CommonPicture.ФорматMXL</commonPictures>
   <roles>Role.КОНС_ОсновнаяРоль</roles>
@@ -107,6 +108,7 @@
   <dataProcessors>DataProcessor.Шаблон_Представление_ИмяПредставления</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеСтажиФизическихЛиц</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеОстаткиОтпусков</dataProcessors>
+  <dataProcessors>DataProcessor.ГенераторFeatureФайлов</dataProcessors>
   <informationRegisters>InformationRegister.БухучетЗарплатыСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ВидыЗанятостиСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ГрафикРаботыСотрудников</informationRegisters>
