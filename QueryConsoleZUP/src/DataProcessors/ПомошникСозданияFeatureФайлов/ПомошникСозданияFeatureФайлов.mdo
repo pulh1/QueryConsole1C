@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="08b409cb-0eae-4b19-9b30-94b354fc09ce">
+  <producedTypes>
+    <objectType typeId="a0c612c8-25a1-42da-b1dc-5a25dd816e47" valueTypeId="bc6c3378-9afb-4e76-9cca-daaf47449ceb"/>
+    <managerType typeId="7100f363-cb6b-4472-971b-52b6c1830fae" valueTypeId="e14e65c2-d3fe-400e-9c12-6130fefce291"/>
+  </producedTypes>
+  <name>ПомошникСозданияFeatureФайлов</name>
+  <synonym>
+    <key>ru</key>
+    <value>Помошник создания feature файлов</value>
+  </synonym>
+  <useStandardCommands>true</useStandardCommands>
+</mdclass:DataProcessor>
