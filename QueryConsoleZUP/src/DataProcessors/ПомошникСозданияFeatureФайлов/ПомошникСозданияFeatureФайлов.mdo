@@ -10,4 +10,14 @@
     <value>Помошник создания feature файлов</value>
   </synonym>
   <useStandardCommands>true</useStandardCommands>
+  <defaultForm>DataProcessor.ПомошникСозданияFeatureФайлов.Form.Форма</defaultForm>
+  <forms uuid="5005a22d-e69e-481a-b97c-2cfc7ff8499e">
+    <name>Форма</name>
+    <synonym>
+      <key>ru</key>
+      <value>Форма</value>
+    </synonym>
+    <usePurposes>PersonalComputer</usePurposes>
+    <usePurposes>MobileDevice</usePurposes>
+  </forms>
 </mdclass:DataProcessor>
