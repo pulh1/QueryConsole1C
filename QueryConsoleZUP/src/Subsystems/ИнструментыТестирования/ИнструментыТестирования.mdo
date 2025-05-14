@@ -6,6 +6,5 @@
     <value>Инструменты тестирования</value>
   </synonym>
   <includeHelpInContents>true</includeHelpInContents>
-  <includeInCommandInterface>true</includeInCommandInterface>
   <content>DataProcessor.ПомошникСозданияFeatureФайлов</content>
 </mdclass:Subsystem>

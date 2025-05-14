@@ -28,6 +28,7 @@
   <usePurposes>PersonalComputer</usePurposes>
   <scriptVariant>Russian</scriptVariant>
   <defaultRoles>Role.КОНС_ОсновнаяРоль</defaultRoles>
+  <version>0.5.0.1</version>
   <defaultLanguage>Language.Русский</defaultLanguage>
   <interfaceCompatibilityMode>TaxiEnableVersion8_2</interfaceCompatibilityMode>
   <languages uuid="88faf847-7cf9-42cb-9ccf-1d76b7609be8" extendedConfigurationObject="6ec41672-ca59-40aa-a4cf-3fef74cdc3c6">

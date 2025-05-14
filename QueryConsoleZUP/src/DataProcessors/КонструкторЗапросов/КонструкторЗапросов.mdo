@@ -11,24 +11,6 @@
   </synonym>
   <useStandardCommands>true</useStandardCommands>
   <defaultForm>DataProcessor.КонструкторЗапросов.Form.КонструкторЗапросов</defaultForm>
-  <forms uuid="804dbe31-9081-4be8-9001-37ce8b933755">
-    <name>QueryEditor</name>
-    <synonym>
-      <key>ru</key>
-      <value>Query editor</value>
-    </synonym>
-    <usePurposes>PersonalComputer</usePurposes>
-    <usePurposes>MobileDevice</usePurposes>
-  </forms>
-  <forms uuid="964cc279-3468-4704-b18a-3c1a8c0c8671">
-    <name>AvailableTableParameters</name>
-    <synonym>
-      <key>ru</key>
-      <value>Available table parameters</value>
-    </synonym>
-    <usePurposes>PersonalComputer</usePurposes>
-    <usePurposes>MobileDevice</usePurposes>
-  </forms>
   <forms uuid="db4d67a5-e791-458e-9b9e-dbc684ae8ecd">
     <name>РедакторОписанияВТ</name>
     <synonym>
@@ -40,24 +22,6 @@
         <lang>ru</lang>
       </pages>
     </help>
-    <usePurposes>PersonalComputer</usePurposes>
-    <usePurposes>MobileDevice</usePurposes>
-  </forms>
-  <forms uuid="fa027227-2945-4ac4-bcf0-cfd68c655dfe">
-    <name>TableSelecting</name>
-    <synonym>
-      <key>ru</key>
-      <value>Table selecting</value>
-    </synonym>
-    <usePurposes>PersonalComputer</usePurposes>
-    <usePurposes>MobileDevice</usePurposes>
-  </forms>
-  <forms uuid="bf5d35f8-3ade-40ec-b45f-bb2c4deba539">
-    <name>DataCompositionAvailableTableParameters</name>
-    <synonym>
-      <key>ru</key>
-      <value>Data composition available table parameters</value>
-    </synonym>
     <usePurposes>PersonalComputer</usePurposes>
     <usePurposes>MobileDevice</usePurposes>
   </forms>
