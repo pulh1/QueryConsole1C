@@ -2047,6 +2047,7 @@
           <extInfo xsi:type="form:LabelFieldExtInfo">
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
+            <horizontalStretch>true</horizontalStretch>
             <textColor xsi:type="core:ColorRef">
               <color>Style.SpecialTextColor</color>
             </textColor>
@@ -2065,6 +2066,7 @@
           <key>ru</key>
           <value>Соединения команды группа</value>
         </toolTip>
+        <horizontalStretch>true</horizontalStretch>
         <extendedTooltip>
           <name>СоединенияКомандыГруппаРасширеннаяПодсказка</name>
           <id>849</id>
@@ -2538,10 +2540,6 @@
         <handlers>
           <event>Drag</event>
           <name>СоединенияПеретаскивание</name>
-        </handlers>
-        <handlers>
-          <event>OnActivateRow</event>
-          <name>СоединенияПриАктивизацииСтроки</name>
         </handlers>
         <searchStringAddition>
           <visible>true</visible>
@@ -3207,7 +3205,7 @@
             <name>ГруппируемыеПоляКомандыГруппа</name>
             <id>288</id>
             <items xsi:type="form:Button">
-              <name>GroupAdd</name>
+              <name>ДобавитьГруппировку</name>
               <id>292</id>
               <title>
                 <key>ru</key>
@@ -3219,7 +3217,7 @@
                 <common>true</common>
               </userVisible>
               <extendedTooltip>
-                <name>GroupAddExtendedTooltip</name>
+                <name>ДобавитьГруппировкуРасширеннаяПодсказка</name>
                 <id>293</id>
                 <visible>true</visible>
                 <enabled>true</enabled>
@@ -3234,7 +3232,7 @@
                 </extInfo>
               </extendedTooltip>
               <type>UsualButton</type>
-              <commandName>Form.Command.GroupAdd</commandName>
+              <commandName>Form.Command.ДобавитьГруппировку</commandName>
               <representation>Auto</representation>
               <autoMaxWidth>true</autoMaxWidth>
               <autoMaxHeight>true</autoMaxHeight>
@@ -3248,7 +3246,6 @@
                 <key>ru</key>
                 <value>>></value>
               </title>
-              <visible>true</visible>
               <enabled>true</enabled>
               <userVisible>
                 <common>true</common>
@@ -3318,7 +3315,6 @@
                 <key>ru</key>
                 <value>&lt;&lt;</value>
               </title>
-              <visible>true</visible>
               <enabled>true</enabled>
               <userVisible>
                 <common>true</common>
@@ -3495,6 +3491,7 @@
                     <autoFill>true</autoFill>
                   </contextMenu>
                   <type>InputField</type>
+                  <readOnly>true</readOnly>
                   <editMode>EnterOnInput</editMode>
                   <showInHeader>true</showInHeader>
                   <headerHorizontalAlign>Left</headerHorizontalAlign>
@@ -3999,7 +3996,6 @@
                 <key>ru</key>
                 <value>&lt;&lt;</value>
               </title>
-              <visible>true</visible>
               <enabled>true</enabled>
               <userVisible>
                 <common>true</common>
@@ -6014,7 +6010,6 @@
           <items xsi:type="form:FormField">
             <name>ТипЗапроса</name>
             <id>677</id>
-            <visible>true</visible>
             <enabled>true</enabled>
             <userVisible>
               <common>true</common>
@@ -6143,10 +6138,6 @@
           <userVisible>
             <common>true</common>
           </userVisible>
-          <title>
-            <key>ru</key>
-            <value>Тип запроса</value>
-          </title>
           <toolTip>
             <key>ru</key>
             <value>Тип запроса группа</value>
@@ -6405,7 +6396,6 @@
           <items xsi:type="form:Button">
             <name>UnionsCopy</name>
             <id>873</id>
-            <visible>true</visible>
             <enabled>true</enabled>
             <userVisible>
               <common>true</common>
@@ -6508,7 +6498,6 @@
               <key>ru</key>
               <value>Переместить вверх</value>
             </title>
-            <visible>true</visible>
             <enabled>true</enabled>
             <userVisible>
               <common>true</common>
@@ -8307,7 +8296,6 @@
           <items xsi:type="form:Button">
             <name>IndexMoveDown</name>
             <id>134</id>
-            <visible>true</visible>
             <enabled>true</enabled>
             <userVisible>
               <common>true</common>
@@ -9496,7 +9484,6 @@
           <items xsi:type="form:Button">
             <name>OrderMoveDown</name>
             <id>187</id>
-            <visible>true</visible>
             <enabled>true</enabled>
             <userVisible>
               <common>true</common>
@@ -12331,7 +12318,6 @@
             <items xsi:type="form:Button">
               <name>QueryBatchCopy</name>
               <id>881</id>
-              <visible>true</visible>
               <enabled>true</enabled>
               <userVisible>
                 <common>true</common>
@@ -13146,7 +13132,6 @@
           <key>ru</key>
           <value>Запрос</value>
         </title>
-        <visible>true</visible>
         <enabled>true</enabled>
         <userVisible>
           <common>true</common>
@@ -13230,7 +13215,7 @@
             <horizontalAlign>Left</horizontalAlign>
           </extInfo>
         </extendedTooltip>
-        <commandName>Form.Command.Cancel</commandName>
+        <commandName>Form.Command.Отмена</commandName>
         <representation>Auto</representation>
         <autoMaxWidth>true</autoMaxWidth>
         <autoMaxHeight>true</autoMaxHeight>
@@ -16867,7 +16852,7 @@
     <currentRowUse>DontUse</currentRowUse>
   </formCommands>
   <formCommands>
-    <name>Cancel</name>
+    <name>Отмена</name>
     <title>
       <key>ru</key>
       <value>Отмена</value>
@@ -16882,7 +16867,7 @@
     </use>
     <action xsi:type="form:FormCommandHandlerContainer">
       <handler>
-        <name>Cancel</name>
+        <name>Отмена</name>
       </handler>
     </action>
     <currentRowUse>DontUse</currentRowUse>
@@ -17372,18 +17357,14 @@
     <currentRowUse>DontUse</currentRowUse>
   </formCommands>
   <formCommands>
-    <name>GroupAdd</name>
-    <title>
-      <key>ru</key>
-      <value>GroupAdd</value>
-    </title>
+    <name>ДобавитьГруппировку</name>
     <id>7</id>
     <use>
       <common>true</common>
     </use>
     <action xsi:type="form:FormCommandHandlerContainer">
       <handler>
-        <name>GroupAdd</name>
+        <name>ДобавитьГруппировку</name>
       </handler>
     </action>
     <currentRowUse>DontUse</currentRowUse>

@@ -28,6 +28,7 @@
   <usePurposes>PersonalComputer</usePurposes>
   <scriptVariant>Russian</scriptVariant>
   <defaultRoles>Role.КОНС_ОсновнаяРоль</defaultRoles>
+  <version>0.5.0.1</version>
   <defaultLanguage>Language.Русский</defaultLanguage>
   <interfaceCompatibilityMode>TaxiEnableVersion8_2</interfaceCompatibilityMode>
   <languages uuid="88faf847-7cf9-42cb-9ccf-1d76b7609be8" extendedConfigurationObject="6ec41672-ca59-40aa-a4cf-3fef74cdc3c6">
@@ -41,6 +42,7 @@
   </languages>
   <subsystems>Subsystem.ИсполняемыеПредставления</subsystems>
   <subsystems>Subsystem.МеханизмИсполняемыхПредставлений</subsystems>
+  <subsystems>Subsystem.ИнструментыТестирования</subsystems>
   <commonPictures>CommonPicture.ДлительнаяОперация48</commonPictures>
   <commonPictures>CommonPicture.ФорматMXL</commonPictures>
   <roles>Role.КОНС_ОсновнаяРоль</roles>
@@ -107,6 +109,8 @@
   <dataProcessors>DataProcessor.Шаблон_Представление_ИмяПредставления</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеСтажиФизическихЛиц</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеОстаткиОтпусков</dataProcessors>
+  <dataProcessors>DataProcessor.ГенераторFeatureФайлов</dataProcessors>
+  <dataProcessors>DataProcessor.ПомошникСозданияFeatureФайлов</dataProcessors>
   <informationRegisters>InformationRegister.БухучетЗарплатыСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ВидыЗанятостиСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ГрафикРаботыСотрудников</informationRegisters>
