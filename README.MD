@@ -1,5 +1,5 @@
 - [Ссылка на файл расширения](#ссылка-на-файл-расширения)
-- [статья](#статья-на-infostart)
+- [Статья](#статья)
 - [Структура репозитория](#структура-репозитория)
 - [Описание проекта](#описание-проекта)
 - [Исполняемые представления](#исполняемые-представления)
@@ -13,7 +13,7 @@
 
 https://github.com/pulh1/QueryConsole1C/releases/download/beta/QueryConsoleZUP-0.5.0.1.cfe
 
-## Статья на infostart ![лого инфостарт](https://infostart.ru/bitrix/templates/sandbox_empty/assets/tpl/abo/img/logo.svg)
+## Статья ![лого инфостарт](https://infostart.ru/bitrix/templates/sandbox_empty/assets/tpl/abo/img/logo.svg)
 
 https://infostart.ru/public/2388804/
 
