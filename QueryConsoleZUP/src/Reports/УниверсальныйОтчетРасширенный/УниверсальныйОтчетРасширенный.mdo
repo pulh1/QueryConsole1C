@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Report xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="6357e9db-e0bc-4e0d-96ed-5de8fdb531ca">
+  <producedTypes>
+    <objectType typeId="5b8037eb-6836-465c-879d-9412ff7618b3" valueTypeId="6545e2fb-fddb-44a1-925b-715dc3dd0743"/>
+    <managerType typeId="028a3f93-5358-4348-9240-7fde5c0582e4" valueTypeId="0997b9ec-2550-45c4-8986-3b0b46ec9b68"/>
+  </producedTypes>
+  <name>УниверсальныйОтчетРасширенный</name>
+  <synonym>
+    <key>ru</key>
+    <value>Универсальный отчет расширенный</value>
+  </synonym>
+  <useStandardCommands>true</useStandardCommands>
+  <defaultForm>CommonForm.ФормаОтчета</defaultForm>
+  <mainDataCompositionSchema>Report.УниверсальныйОтчетРасширенный.Template.ОсновнаяСхемаКомпоновкиДанных</mainDataCompositionSchema>
+  <defaultSettingsForm>CommonForm.ФормаНастроекОтчета</defaultSettingsForm>
+  <defaultVariantForm>CommonForm.ФормаВариантаОтчета</defaultVariantForm>
+  <variantsStorage>SettingsStorage.ХранилищеВариантовОтчетов</variantsStorage>
+  <help>
+    <pages>
+      <lang>ru</lang>
+    </pages>
+  </help>
+  <forms uuid="b8e257b6-ef96-4ae5-a2f0-6a5ec6a05099">
+    <name>РедакторЗапроса</name>
+    <synonym>
+      <key>ru</key>
+      <value>Редактор запроса</value>
+    </synonym>
+    <usePurposes>PersonalComputer</usePurposes>
+    <usePurposes>MobileDevice</usePurposes>
+  </forms>
+  <templates uuid="21b5629d-b42f-479c-b7b5-a6b63c6b3b0b">
+    <name>ОсновнаяСхемаКомпоновкиДанных</name>
+    <synonym>
+      <key>ru</key>
+      <value>Основная схема компоновки данных</value>
+    </synonym>
+    <templateType>DataCompositionSchema</templateType>
+  </templates>
+</mdclass:Report>
