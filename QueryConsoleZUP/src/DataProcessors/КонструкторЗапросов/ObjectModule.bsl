@@ -898,7 +898,7 @@ Procedure qSort(Collection, Field, low = Undefined, high = Undefined) Export
 		EndIf;
 	EndDo;
 
-	if low < j then
+	If low < j then
 		qSort(Collection, Field, low, j);
 	EndIf;
 
