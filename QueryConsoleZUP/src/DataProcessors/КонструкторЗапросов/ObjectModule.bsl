@@ -209,7 +209,7 @@ Procedure FillPropertyFieldsExpand(Val QueryWizardAddress,
 			FillSourcesByIndex(CurrentItems.GetItems(), ParameterFields, 
 							   SourcesImagesCacheAddress, ExpressionsImagesCacheAddress, ItemIndexes);
 
-			For Pos1 = 0 To CurrentItems.GetItems().Count() -1 Do
+			For Pos1 = 0 To CurrentItems.GetItems().Count() - 1 Do
 				Item = CurrentItems.GetItems().Get(Pos1);
 			EndDo;
 			Break;
@@ -655,8 +655,8 @@ Function GetPictureForSource(Val TableName,
 		Pos1 = Find(TableName, ".Changes");
 		Pos2 = Find(TableName, ".Изменения");
 		If (Pos1 > 0) OR (Pos2 > 0) Then
-			If (Pos1 = StrLen(TableName) - StrLen(".Changes") +1)
-				OR (Pos2 = StrLen(TableName) - StrLen(".Изменения") +1) Then
+			If (Pos1 = StrLen(TableName) - StrLen(".Changes") + 1)
+				OR (Pos2 = StrLen(TableName) - StrLen(".Изменения") + 1) Then
 				Image = 33;
 			EndIf;
 		EndIf;
