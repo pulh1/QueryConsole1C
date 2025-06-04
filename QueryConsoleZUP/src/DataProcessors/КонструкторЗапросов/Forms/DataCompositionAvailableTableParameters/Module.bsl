@@ -291,7 +291,7 @@ Procedure ConditionChangeInDialog(Val Expression, Val Name)
 	Params.Insert("NestedQueryPositionAddress", NestedQueryPositionAddress);
 		
 	Notification = New NotifyDescription("ConditionChanged", ThisForm, Params);
-    OpenForm("ExternalDataProcessor.QueryWizard.Form.ArbitraryExpression", Params, ThisForm,,,,Notification, 
+    OpenForm("ExternalDataProcessor.QueryWizard.Form.ArbitraryExpression", Params, ThisForm, , , , Notification, 
              FormWindowOpeningMode.LockOwnerWindow);
 EndProcedure
 

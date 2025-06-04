@@ -36,7 +36,7 @@ Procedure AvailableTablesBeforeExpandAtServer(Val QueryWizardAddress,
 	EndDo;
 
 	FillSourcesByIndex(CurrentItems.GetItems(), Query.AvailableTables, SourcesImagesCacheAddress, ExpressionsImagesCacheAddress, 
-					   ItemIndexes,,,DisplayChangesTables);
+					   ItemIndexes, , ,DisplayChangesTables);
 	If Lavel > 1 Then
 		For Each Item In CurrentItems.GetItems() Do
 			If (Item.GetItems().Count() = 1)
@@ -350,7 +350,7 @@ Procedure AddSourceItem(Val ItemsTree,
 		Prop = 0;
 		NewElement.Property("Picture", Prop);
 		If (Prop <> Undefined) Then
-			NewElement["Picture"] = GetPictureForSource(NewElement["Name"], SourcesImagesCacheAddress,,, True);
+			NewElement["Picture"] = GetPictureForSource(NewElement["Name"], SourcesImagesCacheAddress, , , True);
 		EndIf;
 
 		FillSourcesItems(NewElement.GetItems(), Source.Content, SourcesImagesCacheAddress, ExpressionsImagesCacheAddress, 
