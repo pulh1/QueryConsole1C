@@ -36,7 +36,7 @@ Procedure AvailableTablesBeforeExpandAtServer(Val QueryWizardAddress,
 	EndDo;
 
 	FillSourcesByIndex(CurrentItems.GetItems(), Query.AvailableTables, SourcesImagesCacheAddress, ExpressionsImagesCacheAddress, 
-					   ItemIndexes,,,DisplayChangesTables);
+					   ItemIndexes, , ,DisplayChangesTables);
 	If Lavel > 1 Then
 		For Each Item In CurrentItems.GetItems() Do
 			If (Item.GetItems().Count() = 1)
@@ -209,7 +209,7 @@ Procedure FillPropertyFieldsExpand(Val QueryWizardAddress,
 			FillSourcesByIndex(CurrentItems.GetItems(), ParameterFields, 
 							   SourcesImagesCacheAddress, ExpressionsImagesCacheAddress, ItemIndexes);
 
-			For Pos1 = 0 To CurrentItems.GetItems().Count() -1 Do
+			For Pos1 = 0 To CurrentItems.GetItems().Count() - 1 Do
 				Item = CurrentItems.GetItems().Get(Pos1);
 			EndDo;
 			Break;
@@ -350,7 +350,7 @@ Procedure AddSourceItem(Val ItemsTree,
 		Prop = 0;
 		NewElement.Property("Picture", Prop);
 		If (Prop <> Undefined) Then
-			NewElement["Picture"] = GetPictureForSource(NewElement["Name"], SourcesImagesCacheAddress,,, True);
+			NewElement["Picture"] = GetPictureForSource(NewElement["Name"], SourcesImagesCacheAddress, , , True);
 		EndIf;
 
 		FillSourcesItems(NewElement.GetItems(), Source.Content, SourcesImagesCacheAddress, ExpressionsImagesCacheAddress, 
@@ -655,8 +655,8 @@ Function GetPictureForSource(Val TableName,
 		Pos1 = Find(TableName, ".Changes");
 		Pos2 = Find(TableName, ".Изменения");
 		If (Pos1 > 0) OR (Pos2 > 0) Then
-			If (Pos1 = StrLen(TableName) - StrLen(".Changes") +1)
-				OR (Pos2 = StrLen(TableName) - StrLen(".Изменения") +1) Then
+			If (Pos1 = StrLen(TableName) - StrLen(".Changes") + 1)
+				OR (Pos2 = StrLen(TableName) - StrLen(".Изменения") + 1) Then
 				Image = 33;
 			EndIf;
 		EndIf;
@@ -898,7 +898,7 @@ Procedure qSort(Collection, Field, low = Undefined, high = Undefined) Export
 		EndIf;
 	EndDo;
 
-	if low < j then
+	If low < j Then
 		qSort(Collection, Field, low, j);
 	EndIf;
 
