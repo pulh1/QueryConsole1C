@@ -46,14 +46,15 @@
 
 		</typeSQL>
 		<parameters>
-			<parameter name="Подразделение" type="CatalogRef.ПодразделенияОрганизаций" value="e09df250-7bf4-11e2-9362-001b11b25590"/>
 			<parameter name="СписокСотрудников" type="СписокЗначений">
+				<item type="CatalogRef.Сотрудники" value="d4653aaa-36b8-11e6-b8b5-5404a6b49dba"/>
+				<item type="CatalogRef.Сотрудники" value="87433448-7cc0-11e2-9368-001b11b25590"/>
+				<item type="CatalogRef.Сотрудники" value="d4653aaa-36b8-11e6-b8b5-5404a6b49dba"/>
 				<item type="CatalogRef.Сотрудники" value="e09df265-7bf4-11e2-9362-001b11b25590"/>
-				<item type="CatalogRef.Сотрудники" value="333da084-7bff-11e2-9362-001b11b25590"/>
-				<item type="CatalogRef.Сотрудники" value="333da0ac-7bff-11e2-9362-001b11b25590"/>
 			</parameter>
-			<parameter name="ДатаОкончания" type="Дата" value="2021-01-31T00:00:00"/>
-			<parameter name="ДатаНачала" type="Дата" value="2021-01-01T00:00:00"/>
+			<parameter name="ДатаНачала" type="Дата" value="2016-01-01T00:00:00"/>
+			<parameter name="ДатаОкончания" type="Дата" value="2016-01-30T00:00:00"/>
+			<parameter name="Подразделение" type="CatalogRef.ПодразделенияОрганизаций" value="e09df250-7bf4-11e2-9362-001b11b25590"/>
 		</parameters>
 	</query>
 </querylist>
