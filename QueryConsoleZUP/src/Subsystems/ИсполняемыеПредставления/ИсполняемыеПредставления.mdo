@@ -9,9 +9,11 @@
   <subsystems>КадровыйУчет</subsystems>
   <subsystems>Общее</subsystems>
   <subsystems>Отпуска</subsystems>
-  <subsystems>РегистрыРасчета</subsystems>
-  <subsystems>РегистрыСведений</subsystems>
   <subsystems>УчетВремени</subsystems>
   <subsystems>УчетНачисленнойЗарплаты</subsystems>
   <subsystems>ШтатноеРасписание</subsystems>
+  <subsystems>РегистрыСведений</subsystems>
+  <subsystems>РегистрыНакопления</subsystems>
+  <subsystems>РегистрыРасчета</subsystems>
+  <subsystems>РегистрыБухгалтерии</subsystems>
 </mdclass:Subsystem>
