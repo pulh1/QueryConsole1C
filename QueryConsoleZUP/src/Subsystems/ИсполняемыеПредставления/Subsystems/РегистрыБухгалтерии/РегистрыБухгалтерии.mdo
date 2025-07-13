@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Subsystem xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="456bad03-5ea8-481a-bb73-29f6b25bc462">
+  <name>РегистрыБухгалтерии</name>
+  <synonym>
+    <key>ru</key>
+    <value>Регистры бухгалтерии</value>
+  </synonym>
+  <parentSubsystem>Subsystem.ИсполняемыеПредставления</parentSubsystem>
+</mdclass:Subsystem>

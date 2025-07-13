@@ -102,10 +102,10 @@
     </edit>
   </attributes>
   <attributes>
-    <name>ИмяПредставления</name>
+    <name>ИмяТаблицыПредставления</name>
     <title>
       <key>ru</key>
-      <value>Имя представления</value>
+      <value>Имя таблицы представления</value>
     </title>
     <id>3</id>
     <valueType>
@@ -291,7 +291,7 @@
     </valueType>
   </parameters>
   <parameters>
-    <name>ИмяПредставления</name>
+    <name>ИмяТаблицыПредставления</name>
     <valueType>
       <types>String</types>
       <stringQualifiers/>

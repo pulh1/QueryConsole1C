@@ -106,7 +106,7 @@
   <dataProcessors>DataProcessor.ПредставлениеСотрудникиОрганизации</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеФактическиеОтпускаСотрудников</dataProcessors>
   <dataProcessors>DataProcessor.РасчетБазыНачисленийУдержаний</dataProcessors>
-  <dataProcessors>DataProcessor.Шаблон_Представление_ИмяПредставления</dataProcessors>
+  <dataProcessors>DataProcessor.Шаблон_Представление_ДляРегистра</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеСтажиФизическихЛиц</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеОстаткиОтпусков</dataProcessors>
   <dataProcessors>DataProcessor.ГенераторFeatureФайлов</dataProcessors>
