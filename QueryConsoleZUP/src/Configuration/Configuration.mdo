@@ -43,6 +43,8 @@
   <subsystems>Subsystem.ИсполняемыеПредставления</subsystems>
   <subsystems>Subsystem.МеханизмИсполняемыхПредставлений</subsystems>
   <subsystems>Subsystem.ИнструментыТестирования</subsystems>
+  <subsystems>Subsystem.КонсольЗапросов</subsystems>
+  <subsystems>Subsystem.УтилитыЗУП</subsystems>
   <commonPictures>CommonPicture.ДлительнаяОперация48</commonPictures>
   <commonPictures>CommonPicture.ФорматMXL</commonPictures>
   <roles>Role.КОНС_ОсновнаяРоль</roles>

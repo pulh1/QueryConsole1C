@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Subsystem xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="4164d842-b8ec-46ec-b5ef-35a7b4762798">
+  <name>КонсольЗапросов</name>
+  <synonym>
+    <key>ru</key>
+    <value>Консоль запросов</value>
+  </synonym>
+  <content>DataProcessor.КонсольЗапросов</content>
+  <content>DataProcessor.КонструкторЗапросов</content>
+  <content>CommonModule.КонструкторЗапросовКлиент</content>
+  <content>CommonModule.КонструкторЗапросовКлиентСерверФормы</content>
+  <content>CommonModule.КонструкторЗапросовПовтИсп</content>
+  <content>CommonModule.КонструкторЗапросовФормы</content>
+  <content>CommonModule.КонструкторЗапросовФормыПовтИсп</content>
+</mdclass:Subsystem>

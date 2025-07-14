@@ -7,4 +7,5 @@
   </synonym>
   <includeHelpInContents>true</includeHelpInContents>
   <content>DataProcessor.ПомошникСозданияFeatureФайлов</content>
+  <content>DataProcessor.ГенераторFeatureФайлов</content>
 </mdclass:Subsystem>

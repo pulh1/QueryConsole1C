@@ -6,10 +6,6 @@
     <value>Механизм исполняемых представлений</value>
   </synonym>
   <includeHelpInContents>true</includeHelpInContents>
-  <content>CommonModule.КонструкторЗапросовПовтИсп</content>
-  <content>CommonModule.КонструкторЗапросовКлиентСерверФормы</content>
-  <content>CommonModule.КонструкторЗапросовФормыПовтИсп</content>
-  <content>CommonModule.КонструкторЗапросовФормы</content>
   <content>CommonModule.ПоставщикИсполняемыхПредставленийПовтИсп</content>
   <content>CommonModule.ПоставщикИсполняемыхПредставлений</content>
   <content>CommonModule.ОбработкаПредставлениеЗапросов</content>
@@ -18,8 +14,20 @@
   <content>CommonModule.ЭлементыМоделиЗапроса</content>
   <content>DataProcessor.Парсер</content>
   <content>DataProcessor.ЛексическийАнализатор</content>
-  <content>CommonModule.КонструкторЗапросовКлиент</content>
-  <content>DataProcessor.КонсольЗапросов</content>
-  <content>DataProcessor.КонструкторЗапросов</content>
   <content>DataProcessor.ИсполнительПредставлений</content>
+  <content>CommonModule.ГенерацияИсполняемогоКодаПредставленийУтилиты</content>
+  <content>CommonModule.ИсполнительПредставлений</content>
+  <content>CommonModule.ИсполнительПредставленийУтилиты</content>
+  <content>CommonModule.МодельЗапросаТипы</content>
+  <content>CommonModule.МодельЗапросаУтилиты</content>
+  <content>CommonModule.ОписаниеИсполняемыхПредставленийУтилиты</content>
+  <content>CommonModule.ПредставленияРегистровСведенийУтилиты</content>
+  <content>CommonModule.ЭлементыМоделиИсполненияПредставлений</content>
+  <content>CommonModule.ЭлементыМоделиОписанияПредставлений</content>
+  <content>Report.СправкаПоИсполняемымПредставлениям</content>
+  <content>DataProcessor.ГенераторКодаЗапросовДляСКД</content>
+  <content>DataProcessor.ГенераторКодаИсполняемыхПредставлений</content>
+  <content>DataProcessor.ГенераторТекстовВыражений</content>
+  <content>DataProcessor.ГенераторТекстовЗапросов</content>
+  <content>DataProcessor.ПостроительМоделиЗапроса</content>
 </mdclass:Subsystem>
