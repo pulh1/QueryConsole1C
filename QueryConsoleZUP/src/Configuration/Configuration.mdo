@@ -111,6 +111,7 @@
   <dataProcessors>DataProcessor.ПредставлениеОстаткиОтпусков</dataProcessors>
   <dataProcessors>DataProcessor.ГенераторFeatureФайлов</dataProcessors>
   <dataProcessors>DataProcessor.ПомошникСозданияFeatureФайлов</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеРегистрНакопленияНарастающийИтог</dataProcessors>
   <informationRegisters>InformationRegister.БухучетЗарплатыСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ВидыЗанятостиСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ГрафикРаботыСотрудников</informationRegisters>
