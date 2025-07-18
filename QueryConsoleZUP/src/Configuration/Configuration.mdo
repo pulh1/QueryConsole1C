@@ -69,6 +69,7 @@
   <commonModules>CommonModule.ЭлементыМоделиЗапроса</commonModules>
   <commonModules>CommonModule.ЭлементыМоделиИсполненияПредставлений</commonModules>
   <commonModules>CommonModule.ЭлементыМоделиОписанияПредставлений</commonModules>
+  <commonModules>CommonModule.ОбходМоделиЯзыкаВыражений</commonModules>
   <functionalOptions>FunctionalOption.ИспользоватьИсториюИзмененияШтатногоРасписания</functionalOptions>
   <definedTypes>DefinedType.МестоВыплатыЗарплатыСотрудников</definedTypes>
   <definedTypes>DefinedType.ОснованиеИзмененияПлановогоФОТ</definedTypes>
@@ -112,6 +113,9 @@
   <dataProcessors>DataProcessor.ГенераторFeatureФайлов</dataProcessors>
   <dataProcessors>DataProcessor.ПомошникСозданияFeatureФайлов</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеРегистрНакопленияНарастающийИтог</dataProcessors>
+  <dataProcessors>DataProcessor.ОбходМоделиВыражений</dataProcessors>
+  <dataProcessors>DataProcessor.Шаблон_ПосетительМоделиВыражений</dataProcessors>
+  <dataProcessors>DataProcessor.СемантическийАанализВыраженийПосетитель</dataProcessors>
   <informationRegisters>InformationRegister.БухучетЗарплатыСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ВидыЗанятостиСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ГрафикРаботыСотрудников</informationRegisters>
