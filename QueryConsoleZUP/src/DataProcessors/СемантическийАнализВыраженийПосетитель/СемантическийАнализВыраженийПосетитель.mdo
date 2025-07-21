@@ -4,10 +4,10 @@
     <objectType typeId="f4205d90-d7e7-4b45-a242-c9a08ad56764" valueTypeId="77ea6ae2-9c4d-403c-a2a2-16f14e2b1a65"/>
     <managerType typeId="109147a7-af5d-4a98-9bae-4ce3f6663315" valueTypeId="4009b6d5-d323-4d07-9f37-67fa0d041a22"/>
   </producedTypes>
-  <name>СемантическийАанализВыраженийПосетитель</name>
+  <name>СемантическийАнализВыраженийПосетитель</name>
   <synonym>
     <key>ru</key>
-    <value>Семантический аанализ выражений посетитель</value>
+    <value>Семантический анализ выражений посетитель</value>
   </synonym>
   <useStandardCommands>true</useStandardCommands>
 </mdclass:DataProcessor>
