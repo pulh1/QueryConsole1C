@@ -115,7 +115,6 @@
   <dataProcessors>DataProcessor.ГенераторFeatureФайлов</dataProcessors>
   <dataProcessors>DataProcessor.ПомошникСозданияFeatureФайлов</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеРегистрНакопленияНарастающийИтог</dataProcessors>
-  <dataProcessors>DataProcessor.ОбходМоделиВыражений</dataProcessors>
   <dataProcessors>DataProcessor.Шаблон_ПосетительМоделиВыражений</dataProcessors>
   <dataProcessors>DataProcessor.СемантическийАнализВыраженийПосетитель</dataProcessors>
   <dataProcessors>DataProcessor.ПроверкаПрименимостиОтбораПосетитель</dataProcessors>
