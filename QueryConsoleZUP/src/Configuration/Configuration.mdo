@@ -60,18 +60,19 @@
   <commonModules>CommonModule.МодельЗапросаТипы</commonModules>
   <commonModules>CommonModule.МодельЗапросаУтилиты</commonModules>
   <commonModules>CommonModule.ОбработкаМоделиЗапроса</commonModules>
+  <commonModules>CommonModule.ОбработкаМоделиЗапросаАрхив</commonModules>
   <commonModules>CommonModule.ОбработкаПредставлениеЗапросов</commonModules>
+  <commonModules>CommonModule.ОбходМоделиЯзыкаВыражений</commonModules>
   <commonModules>CommonModule.ОписаниеИсполняемыхПредставленийУтилиты</commonModules>
   <commonModules>CommonModule.ПоставщикИсполняемыхПредставлений</commonModules>
   <commonModules>CommonModule.ПоставщикИсполняемыхПредставленийПовтИсп</commonModules>
   <commonModules>CommonModule.ПредставленияКадровогоУчетаУтилиты</commonModules>
+  <commonModules>CommonModule.ПредставленияРегистровСведенийЗУПУтилиты</commonModules>
   <commonModules>CommonModule.ПредставленияРегистровСведенийУтилиты</commonModules>
+  <commonModules>CommonModule.СемантическийАнализВыраженийУтилиты</commonModules>
   <commonModules>CommonModule.ЭлементыМоделиЗапроса</commonModules>
   <commonModules>CommonModule.ЭлементыМоделиИсполненияПредставлений</commonModules>
   <commonModules>CommonModule.ЭлементыМоделиОписанияПредставлений</commonModules>
-  <commonModules>CommonModule.ОбходМоделиЯзыкаВыражений</commonModules>
-  <commonModules>CommonModule.ОбработкаМоделиЗапросаАрхив</commonModules>
-  <commonModules>CommonModule.СемантическийАнализВыраженийУтилиты</commonModules>
   <functionalOptions>FunctionalOption.ИспользоватьИсториюИзмененияШтатногоРасписания</functionalOptions>
   <definedTypes>DefinedType.МестоВыплатыЗарплатыСотрудников</definedTypes>
   <definedTypes>DefinedType.ОснованиеИзмененияПлановогоФОТ</definedTypes>
