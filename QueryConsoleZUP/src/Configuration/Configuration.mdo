@@ -73,6 +73,7 @@
   <commonModules>CommonModule.ЭлементыМоделиЗапроса</commonModules>
   <commonModules>CommonModule.ЭлементыМоделиИсполненияПредставлений</commonModules>
   <commonModules>CommonModule.ЭлементыМоделиОписанияПредставлений</commonModules>
+  <commonModules>CommonModule.ОписаниеИсполняемыхПредставленийШаблоны</commonModules>
   <functionalOptions>FunctionalOption.ИспользоватьИсториюИзмененияШтатногоРасписания</functionalOptions>
   <definedTypes>DefinedType.МестоВыплатыЗарплатыСотрудников</definedTypes>
   <definedTypes>DefinedType.ОснованиеИзмененияПлановогоФОТ</definedTypes>
