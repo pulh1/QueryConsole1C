@@ -40,9 +40,11 @@
     </extension>
     <languageCode>ru</languageCode>
   </languages>
-  <subsystems>Subsystem.ИсполняемыеПредставления</subsystems>
+  <subsystems>Subsystem.ЗУП_ИсполняемыеПредставления</subsystems>
   <subsystems>Subsystem.МеханизмИсполняемыхПредставлений</subsystems>
   <subsystems>Subsystem.ИнструментыТестирования</subsystems>
+  <subsystems>Subsystem.ИсполняемыеПредставленияЗУПУтилиты</subsystems>
+  <subsystems>Subsystem.ИсполняемыеПредставления</subsystems>
   <commonPictures>CommonPicture.ДлительнаяОперация48</commonPictures>
   <commonPictures>CommonPicture.ФорматMXL</commonPictures>
   <roles>Role.КОНС_ОсновнаяРоль</roles>
@@ -93,7 +95,6 @@
   <dataProcessors>DataProcessor.ЛексическийАнализатор</dataProcessors>
   <dataProcessors>DataProcessor.Парсер</dataProcessors>
   <dataProcessors>DataProcessor.ПостроительМоделиЗапроса</dataProcessors>
-  <dataProcessors>DataProcessor.Представление_РасчетСтажа</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеДанныеПозицийШтатногоРасписания</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеДанныеСотрудников</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеДанныеУчетаВремениСотрудников</dataProcessors>
@@ -110,7 +111,6 @@
   <dataProcessors>DataProcessor.ПредставлениеСотрудникиОрганизации</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеФактическиеОтпускаСотрудников</dataProcessors>
   <dataProcessors>DataProcessor.РасчетБазыНачисленийУдержаний</dataProcessors>
-  <dataProcessors>DataProcessor.Шаблон_Представление_ДляРегистра</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеСтажиФизическихЛиц</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеОстаткиОтпусков</dataProcessors>
   <dataProcessors>DataProcessor.ГенераторFeatureФайлов</dataProcessors>

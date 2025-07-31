@@ -9,5 +9,5 @@
   <content>DataProcessor.ПредставлениеОплаченноеВремя</content>
   <content>DataProcessor.ПредставлениеНачисленияУдержанияВыплаты</content>
   <content>DataProcessor.ПредставлениеНачисленияУдержанияВыплатыАвансом</content>
-  <parentSubsystem>Subsystem.ИсполняемыеПредставления</parentSubsystem>
+  <parentSubsystem>Subsystem.ЗУП_ИсполняемыеПредставления</parentSubsystem>
 </mdclass:Subsystem>

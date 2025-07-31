@@ -7,5 +7,5 @@
   </synonym>
   <includeHelpInContents>true</includeHelpInContents>
   <content>DataProcessor.ПредставлениеПериоды</content>
-  <parentSubsystem>Subsystem.ИсполняемыеПредставления</parentSubsystem>
+  <parentSubsystem>Subsystem.ЗУП_ИсполняемыеПредставления</parentSubsystem>
 </mdclass:Subsystem>

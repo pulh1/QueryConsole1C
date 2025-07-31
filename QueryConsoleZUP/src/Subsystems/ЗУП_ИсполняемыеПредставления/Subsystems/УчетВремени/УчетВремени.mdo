@@ -8,5 +8,5 @@
   <includeHelpInContents>true</includeHelpInContents>
   <content>DataProcessor.ПредставлениеДанныеУчетаВремениСотрудников</content>
   <content>DataProcessor.ПредставлениеПлановоеВремяСотрудников</content>
-  <parentSubsystem>Subsystem.ИсполняемыеПредставления</parentSubsystem>
+  <parentSubsystem>Subsystem.ЗУП_ИсполняемыеПредставления</parentSubsystem>
 </mdclass:Subsystem>
