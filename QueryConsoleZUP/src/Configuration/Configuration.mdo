@@ -60,7 +60,6 @@
   <commonModules>CommonModule.МодельЗапросаТипы</commonModules>
   <commonModules>CommonModule.МодельЗапросаУтилиты</commonModules>
   <commonModules>CommonModule.ОбработкаМоделиЗапроса</commonModules>
-  <commonModules>CommonModule.ОбработкаМоделиЗапросаАрхив</commonModules>
   <commonModules>CommonModule.ОбработкаПредставлениеЗапросов</commonModules>
   <commonModules>CommonModule.ОбходМоделиЯзыкаВыражений</commonModules>
   <commonModules>CommonModule.ОписаниеИсполняемыхПредставленийУтилиты</commonModules>
