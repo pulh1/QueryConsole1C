@@ -9104,32 +9104,12 @@
               <horizontalAlign>Left</horizontalAlign>
             </autoCommandBar>
             <handlers>
-              <event>DragCheck</event>
-              <name>OrderDragCheck</name>
-            </handlers>
-            <handlers>
               <event>Selection</event>
               <name>OrderSelection</name>
             </handlers>
             <handlers>
-              <event>BeforeAddRow</event>
-              <name>OrderBeforeAddRow</name>
-            </handlers>
-            <handlers>
               <event>BeforeDeleteRow</event>
-              <name>OrderBeforeDeleteRow</name>
-            </handlers>
-            <handlers>
-              <event>DragStart</event>
-              <name>OrderDragStart</name>
-            </handlers>
-            <handlers>
-              <event>Drag</event>
-              <name>OrderDrag</name>
-            </handlers>
-            <handlers>
-              <event>BeforeRowChange</event>
-              <name>OrderBeforeRowChange</name>
+              <name>ПорядокПередУдалением</name>
             </handlers>
             <searchStringAddition>
               <visible>true</visible>

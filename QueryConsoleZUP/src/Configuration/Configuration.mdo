@@ -9,7 +9,6 @@
   <extension xsi:type="mdclassExtension:ConfigurationExtension">
     <defaultRunMode>Checked</defaultRunMode>
     <usePurposes>Checked</usePurposes>
-    <defaultLanguage>Checked</defaultLanguage>
     <interfaceCompatibilityMode>Checked</interfaceCompatibilityMode>
     <defaultRoles>Extended</defaultRoles>
   </extension>
@@ -29,17 +28,7 @@
   <scriptVariant>Russian</scriptVariant>
   <defaultRoles>Role.КОНС_ОсновнаяРоль</defaultRoles>
   <version>0.5.0.1</version>
-  <defaultLanguage>Language.Русский</defaultLanguage>
   <interfaceCompatibilityMode>TaxiEnableVersion8_2</interfaceCompatibilityMode>
-  <languages uuid="88faf847-7cf9-42cb-9ccf-1d76b7609be8" extendedConfigurationObject="6ec41672-ca59-40aa-a4cf-3fef74cdc3c6">
-    <name>Русский</name>
-    <objectBelonging>Adopted</objectBelonging>
-    <extension xsi:type="mdclassExtension:LanguageExtension">
-      <extendedConfigurationObject>Checked</extendedConfigurationObject>
-      <languageCode>Checked</languageCode>
-    </extension>
-    <languageCode>ru</languageCode>
-  </languages>
   <subsystems>Subsystem.ЗУП_ИсполняемыеПредставления</subsystems>
   <subsystems>Subsystem.МеханизмИсполняемыхПредставлений</subsystems>
   <subsystems>Subsystem.ИнструментыТестирования</subsystems>
