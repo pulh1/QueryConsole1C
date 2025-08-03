@@ -22,4 +22,27 @@
   <content>DataProcessor.КонсольЗапросов</content>
   <content>DataProcessor.КонструкторЗапросов</content>
   <content>DataProcessor.ИсполнительПредставлений</content>
+  <content>CommonModule.ГенерацияИсполняемогоКодаПредставленийУтилиты</content>
+  <content>CommonModule.ИсполнительПредставлений</content>
+  <content>CommonModule.ИсполнительПредставленийУтилиты</content>
+  <content>CommonModule.МодельЗапросаТипы</content>
+  <content>CommonModule.МодельЗапросаУтилиты</content>
+  <content>CommonModule.ОбходМоделиЯзыкаВыражений</content>
+  <content>CommonModule.ОписаниеИсполняемыхПредставленийУтилиты</content>
+  <content>CommonModule.ПредставленияРегистровСведенийУтилиты</content>
+  <content>CommonModule.СемантическийАнализВыраженийУтилиты</content>
+  <content>CommonModule.ЭлементыМоделиИсполненияПредставлений</content>
+  <content>CommonModule.ЭлементыМоделиОписанияПредставлений</content>
+  <content>CommonModule.ОписаниеИсполняемыхПредставленийШаблоны</content>
+  <content>Role.КОНС_ОсновнаяРоль</content>
+  <content>CommonPicture.ДлительнаяОперация48</content>
+  <content>CommonPicture.ФорматMXL</content>
+  <content>Report.СправкаПоИсполняемымПредставлениям</content>
+  <content>DataProcessor.ГенераторКодаИсполняемыхПредставлений</content>
+  <content>DataProcessor.ГенераторТекстовВыражений</content>
+  <content>DataProcessor.ГенераторТекстовЗапросов</content>
+  <content>DataProcessor.ПостроительМоделиЗапроса</content>
+  <content>DataProcessor.Шаблон_ПосетительМоделиВыражений</content>
+  <content>DataProcessor.СемантическийАнализВыраженийПосетитель</content>
+  <content>DataProcessor.ПроверкаПрименимостиОтбораПосетитель</content>
 </mdclass:Subsystem>

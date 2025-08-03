@@ -1465,6 +1465,40 @@
       <common>true</common>
     </edit>
   </attributes>
+  <attributes>
+    <name>ДоступныПоляВсехИсточников</name>
+    <title>
+      <key>ru</key>
+      <value>Доступны поля всех источников</value>
+    </title>
+    <id>21</id>
+    <valueType>
+      <types>Boolean</types>
+    </valueType>
+    <view>
+      <common>true</common>
+    </view>
+    <edit>
+      <common>true</common>
+    </edit>
+  </attributes>
+  <attributes>
+    <name>ИспользоватьПсевдонимИсточника</name>
+    <title>
+      <key>ru</key>
+      <value>Использовать псевдоним источника</value>
+    </title>
+    <id>22</id>
+    <valueType>
+      <types>Boolean</types>
+    </valueType>
+    <view>
+      <common>true</common>
+    </view>
+    <edit>
+      <common>true</common>
+    </edit>
+  </attributes>
   <formCommands>
     <name>Ок</name>
     <title>

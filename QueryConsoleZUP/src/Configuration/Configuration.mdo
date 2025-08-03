@@ -1,15 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mdclass:Configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="f356a993-6dd9-4556-b5dc-84e460f15d82">
-  <name>QueryConsoleZUP</name>
+  <name>QueryConsole1C</name>
   <synonym>
     <key>ru</key>
-    <value>Query console ZUP</value>
+    <value>Query console1 C</value>
   </synonym>
   <objectBelonging>Adopted</objectBelonging>
   <extension xsi:type="mdclassExtension:ConfigurationExtension">
     <defaultRunMode>Checked</defaultRunMode>
     <usePurposes>Checked</usePurposes>
-    <defaultLanguage>Checked</defaultLanguage>
     <interfaceCompatibilityMode>Checked</interfaceCompatibilityMode>
     <defaultRoles>Extended</defaultRoles>
   </extension>
@@ -28,21 +27,13 @@
   <usePurposes>PersonalComputer</usePurposes>
   <scriptVariant>Russian</scriptVariant>
   <defaultRoles>Role.КОНС_ОсновнаяРоль</defaultRoles>
-  <version>0.5.0.1</version>
-  <defaultLanguage>Language.Русский</defaultLanguage>
+  <version>0.5.1.1</version>
   <interfaceCompatibilityMode>TaxiEnableVersion8_2</interfaceCompatibilityMode>
-  <languages uuid="88faf847-7cf9-42cb-9ccf-1d76b7609be8" extendedConfigurationObject="6ec41672-ca59-40aa-a4cf-3fef74cdc3c6">
-    <name>Русский</name>
-    <objectBelonging>Adopted</objectBelonging>
-    <extension xsi:type="mdclassExtension:LanguageExtension">
-      <extendedConfigurationObject>Checked</extendedConfigurationObject>
-      <languageCode>Checked</languageCode>
-    </extension>
-    <languageCode>ru</languageCode>
-  </languages>
-  <subsystems>Subsystem.ИсполняемыеПредставления</subsystems>
+  <subsystems>Subsystem.ЗУП_ИсполняемыеПредставления</subsystems>
   <subsystems>Subsystem.МеханизмИсполняемыхПредставлений</subsystems>
   <subsystems>Subsystem.ИнструментыТестирования</subsystems>
+  <subsystems>Subsystem.ИсполняемыеПредставленияЗУПУтилиты</subsystems>
+  <subsystems>Subsystem.ИсполняемыеПредставления</subsystems>
   <commonPictures>CommonPicture.ДлительнаяОперация48</commonPictures>
   <commonPictures>CommonPicture.ФорматMXL</commonPictures>
   <roles>Role.КОНС_ОсновнаяРоль</roles>
@@ -61,14 +52,18 @@
   <commonModules>CommonModule.МодельЗапросаУтилиты</commonModules>
   <commonModules>CommonModule.ОбработкаМоделиЗапроса</commonModules>
   <commonModules>CommonModule.ОбработкаПредставлениеЗапросов</commonModules>
+  <commonModules>CommonModule.ОбходМоделиЯзыкаВыражений</commonModules>
   <commonModules>CommonModule.ОписаниеИсполняемыхПредставленийУтилиты</commonModules>
   <commonModules>CommonModule.ПоставщикИсполняемыхПредставлений</commonModules>
   <commonModules>CommonModule.ПоставщикИсполняемыхПредставленийПовтИсп</commonModules>
   <commonModules>CommonModule.ПредставленияКадровогоУчетаУтилиты</commonModules>
+  <commonModules>CommonModule.ПредставленияРегистровСведенийЗУПУтилиты</commonModules>
   <commonModules>CommonModule.ПредставленияРегистровСведенийУтилиты</commonModules>
+  <commonModules>CommonModule.СемантическийАнализВыраженийУтилиты</commonModules>
   <commonModules>CommonModule.ЭлементыМоделиЗапроса</commonModules>
   <commonModules>CommonModule.ЭлементыМоделиИсполненияПредставлений</commonModules>
   <commonModules>CommonModule.ЭлементыМоделиОписанияПредставлений</commonModules>
+  <commonModules>CommonModule.ОписаниеИсполняемыхПредставленийШаблоны</commonModules>
   <functionalOptions>FunctionalOption.ИспользоватьИсториюИзмененияШтатногоРасписания</functionalOptions>
   <definedTypes>DefinedType.МестоВыплатыЗарплатыСотрудников</definedTypes>
   <definedTypes>DefinedType.ОснованиеИзмененияПлановогоФОТ</definedTypes>
@@ -89,7 +84,6 @@
   <dataProcessors>DataProcessor.ЛексическийАнализатор</dataProcessors>
   <dataProcessors>DataProcessor.Парсер</dataProcessors>
   <dataProcessors>DataProcessor.ПостроительМоделиЗапроса</dataProcessors>
-  <dataProcessors>DataProcessor.Представление_РасчетСтажа</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеДанныеПозицийШтатногоРасписания</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеДанныеСотрудников</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеДанныеУчетаВремениСотрудников</dataProcessors>
@@ -106,11 +100,14 @@
   <dataProcessors>DataProcessor.ПредставлениеСотрудникиОрганизации</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеФактическиеОтпускаСотрудников</dataProcessors>
   <dataProcessors>DataProcessor.РасчетБазыНачисленийУдержаний</dataProcessors>
-  <dataProcessors>DataProcessor.Шаблон_Представление_ДляРегистра</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеСтажиФизическихЛиц</dataProcessors>
   <dataProcessors>DataProcessor.ПредставлениеОстаткиОтпусков</dataProcessors>
   <dataProcessors>DataProcessor.ГенераторFeatureФайлов</dataProcessors>
   <dataProcessors>DataProcessor.ПомошникСозданияFeatureФайлов</dataProcessors>
+  <dataProcessors>DataProcessor.ПредставлениеРегистрНакопленияНарастающийИтог</dataProcessors>
+  <dataProcessors>DataProcessor.Шаблон_ПосетительМоделиВыражений</dataProcessors>
+  <dataProcessors>DataProcessor.СемантическийАнализВыраженийПосетитель</dataProcessors>
+  <dataProcessors>DataProcessor.ПроверкаПрименимостиОтбораПосетитель</dataProcessors>
   <informationRegisters>InformationRegister.БухучетЗарплатыСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ВидыЗанятостиСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ГрафикРаботыСотрудников</informationRegisters>

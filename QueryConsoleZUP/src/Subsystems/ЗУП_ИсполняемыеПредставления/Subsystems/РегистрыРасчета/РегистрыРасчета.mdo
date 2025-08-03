@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Subsystem xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="f299034e-9ce9-4cec-8a03-6bcab34578c1">
+  <name>РегистрыРасчета</name>
+  <synonym>
+    <key>ru</key>
+    <value>Регистры расчета</value>
+  </synonym>
+  <includeHelpInContents>true</includeHelpInContents>
+  <content>DataProcessor.ПредставлениеРегистрРасчетаБаза</content>
+  <parentSubsystem>Subsystem.ЗУП_ИсполняемыеПредставления</parentSubsystem>
+</mdclass:Subsystem>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="abb75b3d-f93e-4ce1-9e20-a4f2398293cd">
+  <producedTypes>
+    <objectType typeId="1afa6211-0c70-4315-aa24-7e2ce64d46be" valueTypeId="d28301ea-3b1d-4c0d-996e-d54dbe1ce3b6"/>
+    <managerType typeId="05a053d9-481e-4355-ad93-a169add9a825" valueTypeId="58aef5e3-4347-4589-8af9-8daeca2e22ab"/>
+  </producedTypes>
+  <name>ПредставлениеРегистрНакопленияНарастающийИтог</name>
+  <synonym>
+    <key>ru</key>
+    <value>Представление регистр накопления нарастающий итог</value>
+  </synonym>
+  <useStandardCommands>true</useStandardCommands>
+</mdclass:DataProcessor>
