@@ -211,6 +211,81 @@
         <placementArea>UserCmds</placementArea>
         <representationInContextMenu>Auto</representationInContextMenu>
       </items>
+      <items xsi:type="form:Button">
+        <name>ФормаСгенерироватьFeatureФайлПроверкиГенерациияКода</name>
+        <id>17</id>
+        <visible>true</visible>
+        <enabled>true</enabled>
+        <userVisible>
+          <common>true</common>
+        </userVisible>
+        <extendedTooltip>
+          <name>ФормаСгенерироватьFeatureФайлПроверкиГенерациияКодаРасширеннаяПодсказка</name>
+          <id>18</id>
+          <type>Label</type>
+          <autoMaxWidth>true</autoMaxWidth>
+          <autoMaxHeight>true</autoMaxHeight>
+          <extInfo xsi:type="form:LabelDecorationExtInfo">
+            <horizontalAlign>Left</horizontalAlign>
+          </extInfo>
+        </extendedTooltip>
+        <commandName>Form.Command.СгенерироватьFeatureФайлПроверкиГенерациияКода</commandName>
+        <representation>Auto</representation>
+        <autoMaxWidth>true</autoMaxWidth>
+        <autoMaxHeight>true</autoMaxHeight>
+        <placementArea>UserCmds</placementArea>
+        <representationInContextMenu>Auto</representationInContextMenu>
+      </items>
+      <items xsi:type="form:Button">
+        <name>ФормаСгенерироватьFeatureФайлПроверкиГенерациияКода1</name>
+        <id>19</id>
+        <visible>true</visible>
+        <enabled>true</enabled>
+        <userVisible>
+          <common>true</common>
+        </userVisible>
+        <extendedTooltip>
+          <name>ФормаСгенерироватьFeatureФайлПроверкиГенерациияКода1РасширеннаяПодсказка</name>
+          <id>20</id>
+          <type>Label</type>
+          <autoMaxWidth>true</autoMaxWidth>
+          <autoMaxHeight>true</autoMaxHeight>
+          <extInfo xsi:type="form:LabelDecorationExtInfo">
+            <horizontalAlign>Left</horizontalAlign>
+          </extInfo>
+        </extendedTooltip>
+        <commandName>Form.Command.СгенерироватьFeatureФайлПроверкиГенерациияКода</commandName>
+        <representation>Auto</representation>
+        <autoMaxWidth>true</autoMaxWidth>
+        <autoMaxHeight>true</autoMaxHeight>
+        <placementArea>UserCmds</placementArea>
+        <representationInContextMenu>Auto</representationInContextMenu>
+      </items>
+      <items xsi:type="form:Button">
+        <name>ФормаСгенерироватьFeatureФайлыПроверкиГенерациияКода</name>
+        <id>23</id>
+        <visible>true</visible>
+        <enabled>true</enabled>
+        <userVisible>
+          <common>true</common>
+        </userVisible>
+        <extendedTooltip>
+          <name>ФормаСгенерироватьFeatureФайлыПроверкиГенерациияКодаРасширеннаяПодсказка</name>
+          <id>24</id>
+          <type>Label</type>
+          <autoMaxWidth>true</autoMaxWidth>
+          <autoMaxHeight>true</autoMaxHeight>
+          <extInfo xsi:type="form:LabelDecorationExtInfo">
+            <horizontalAlign>Left</horizontalAlign>
+          </extInfo>
+        </extendedTooltip>
+        <commandName>Form.Command.СгенерироватьFeatureФайлыПроверкиГенерациияКода</commandName>
+        <representation>Auto</representation>
+        <autoMaxWidth>true</autoMaxWidth>
+        <autoMaxHeight>true</autoMaxHeight>
+        <placementArea>UserCmds</placementArea>
+        <representationInContextMenu>Auto</representationInContextMenu>
+      </items>
       <visible>true</visible>
       <enabled>true</enabled>
       <userVisible>
@@ -354,6 +429,40 @@
     <action xsi:type="form:FormCommandHandlerContainer">
       <handler>
         <name>СгенерироватьFeatureФайлыПроверкиРезультатовЗапросов</name>
+      </handler>
+    </action>
+    <currentRowUse>Auto</currentRowUse>
+  </formCommands>
+  <formCommands>
+    <name>СгенерироватьFeatureФайлПроверкиГенерациияКода</name>
+    <title>
+      <key>ru</key>
+      <value>Сгенерировать feature файл проверки генерациия кода</value>
+    </title>
+    <id>5</id>
+    <use>
+      <common>true</common>
+    </use>
+    <action xsi:type="form:FormCommandHandlerContainer">
+      <handler>
+        <name>СгенерироватьFeatureФайлПроверкиГенерациияКода</name>
+      </handler>
+    </action>
+    <currentRowUse>Auto</currentRowUse>
+  </formCommands>
+  <formCommands>
+    <name>СгенерироватьFeatureФайлыПроверкиГенерациияКода</name>
+    <title>
+      <key>ru</key>
+      <value>Сгенерировать feature файлы проверки генерациия кода</value>
+    </title>
+    <id>6</id>
+    <use>
+      <common>true</common>
+    </use>
+    <action xsi:type="form:FormCommandHandlerContainer">
+      <handler>
+        <name>СгенерироватьFeatureФайлыПроверкиГенерациияКода</name>
       </handler>
     </action>
     <currentRowUse>Auto</currentRowUse>
