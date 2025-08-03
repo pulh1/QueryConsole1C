@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mdclass:Configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="f356a993-6dd9-4556-b5dc-84e460f15d82">
-  <name>QueryConsoleZUP</name>
+  <name>QueryConsole1C</name>
   <synonym>
     <key>ru</key>
-    <value>Query console ZUP</value>
+    <value>Query console1 C</value>
   </synonym>
   <objectBelonging>Adopted</objectBelonging>
   <extension xsi:type="mdclassExtension:ConfigurationExtension">
@@ -27,7 +27,7 @@
   <usePurposes>PersonalComputer</usePurposes>
   <scriptVariant>Russian</scriptVariant>
   <defaultRoles>Role.КОНС_ОсновнаяРоль</defaultRoles>
-  <version>0.5.0.1</version>
+  <version>0.5.1.1</version>
   <interfaceCompatibilityMode>TaxiEnableVersion8_2</interfaceCompatibilityMode>
   <subsystems>Subsystem.ЗУП_ИсполняемыеПредставления</subsystems>
   <subsystems>Subsystem.МеханизмИсполняемыхПредставлений</subsystems>

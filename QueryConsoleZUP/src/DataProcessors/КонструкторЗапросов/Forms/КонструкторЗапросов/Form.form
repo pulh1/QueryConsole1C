@@ -7129,7 +7129,7 @@
             <locationInCommandBar>InCommandBarAndInAdditionalSubmenu</locationInCommandBar>
           </items>
           <items xsi:type="form:Button">
-            <name>AliasesAliasMoveUp</name>
+            <name>СдвинутьКолонкуЗапросаВВерх</name>
             <id>238</id>
             <title>
               <key>ru</key>
@@ -7141,7 +7141,7 @@
               <common>true</common>
             </userVisible>
             <extendedTooltip>
-              <name>AliasesAliasMoveUpExtendedTooltip</name>
+              <name>СдвинутьКолонкуЗапросаВВерхРасширеннаяПодсказка</name>
               <id>239</id>
               <visible>true</visible>
               <enabled>true</enabled>
@@ -7155,7 +7155,7 @@
                 <horizontalAlign>Left</horizontalAlign>
               </extInfo>
             </extendedTooltip>
-            <commandName>Form.Command.AliasMoveUp</commandName>
+            <commandName>Form.Command.СдвинутьКолонкуЗапросаВВерх</commandName>
             <representation>Auto</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
@@ -7166,7 +7166,7 @@
             <representationInContextMenu>Auto</representationInContextMenu>
           </items>
           <items xsi:type="form:Button">
-            <name>AliasesAliasMoveDown</name>
+            <name>СдвинутьКолонкуЗапросаВНиз</name>
             <id>236</id>
             <title>
               <key>ru</key>
@@ -7178,7 +7178,7 @@
               <common>true</common>
             </userVisible>
             <extendedTooltip>
-              <name>AliasesAliasMoveDownExtendedTooltip</name>
+              <name>СдвинутьКолонкуЗапросаВНизРасширеннаяПодсказка</name>
               <id>237</id>
               <visible>true</visible>
               <enabled>true</enabled>
@@ -7192,7 +7192,7 @@
                 <horizontalAlign>Left</horizontalAlign>
               </extInfo>
             </extendedTooltip>
-            <commandName>Form.Command.AliasMoveDown</commandName>
+            <commandName>Form.Command.СдвинутьКолонкуЗапросаВНиз</commandName>
             <representation>Auto</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
@@ -7271,6 +7271,10 @@
           </userVisible>
           <horizontalAlign>Left</horizontalAlign>
         </autoCommandBar>
+        <handlers>
+          <event>BeforeDeleteRow</event>
+          <name>ПсевдонимыПередУдалением</name>
+        </handlers>
         <searchStringAddition>
           <visible>true</visible>
           <enabled>true</enabled>
@@ -8260,7 +8264,7 @@
           <name>IndexMoveCommands</name>
           <id>122</id>
           <items xsi:type="form:Button">
-            <name>IndexMoveUp</name>
+            <name>СдивнутьИндексВВерх</name>
             <id>132</id>
             <visible>true</visible>
             <enabled>true</enabled>
@@ -8268,7 +8272,7 @@
               <common>true</common>
             </userVisible>
             <extendedTooltip>
-              <name>IndexMoveUpExtendedTooltip</name>
+              <name>СдивнутьИндексВВерхРасширеннаяПодсказка</name>
               <id>133</id>
               <visible>true</visible>
               <enabled>true</enabled>
@@ -8283,7 +8287,7 @@
               </extInfo>
             </extendedTooltip>
             <type>UsualButton</type>
-            <commandName>Form.Command.IndexMoveUp</commandName>
+            <commandName>Form.Command.СдивнутьИндексВВерх</commandName>
             <representation>Picture</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
@@ -8294,14 +8298,15 @@
             <representationInContextMenu>Auto</representationInContextMenu>
           </items>
           <items xsi:type="form:Button">
-            <name>IndexMoveDown</name>
+            <name>СдвинутьИндексВНиз</name>
             <id>134</id>
+            <visible>true</visible>
             <enabled>true</enabled>
             <userVisible>
               <common>true</common>
             </userVisible>
             <extendedTooltip>
-              <name>IndexMoveDownExtendedTooltip</name>
+              <name>СдвинутьИндексВНизРасширеннаяПодсказка</name>
               <id>135</id>
               <visible>true</visible>
               <enabled>true</enabled>
@@ -8316,7 +8321,7 @@
               </extInfo>
             </extendedTooltip>
             <type>UsualButton</type>
-            <commandName>Form.Command.IndexMoveDown</commandName>
+            <commandName>Form.Command.СдвинутьИндексВНиз</commandName>
             <representation>Picture</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
@@ -9104,10 +9109,6 @@
               <horizontalAlign>Left</horizontalAlign>
             </autoCommandBar>
             <handlers>
-              <event>Selection</event>
-              <name>OrderSelection</name>
-            </handlers>
-            <handlers>
               <event>BeforeDeleteRow</event>
               <name>ПорядокПередУдалением</name>
             </handlers>
@@ -9428,7 +9429,7 @@
           <name>ПорядокКомандыГруппа</name>
           <id>183</id>
           <items xsi:type="form:Button">
-            <name>OrderMoveUp</name>
+            <name>СдвинутьЭлементПорядкаВВерх</name>
             <id>185</id>
             <visible>true</visible>
             <enabled>true</enabled>
@@ -9436,7 +9437,7 @@
               <common>true</common>
             </userVisible>
             <extendedTooltip>
-              <name>OrderMoveUpExtendedTooltip</name>
+              <name>СдвинутьЭлементПорядкаВВерхРасширеннаяПодсказка</name>
               <id>186</id>
               <visible>true</visible>
               <enabled>true</enabled>
@@ -9451,7 +9452,7 @@
               </extInfo>
             </extendedTooltip>
             <type>UsualButton</type>
-            <commandName>Form.Command.OrderMoveUp</commandName>
+            <commandName>Form.Command.СдвинутьЭлементПорядкаВВерх</commandName>
             <representation>Picture</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
@@ -9462,14 +9463,15 @@
             <representationInContextMenu>Auto</representationInContextMenu>
           </items>
           <items xsi:type="form:Button">
-            <name>OrderMoveDown</name>
+            <name>СдвинутьЭлементПорядкаВВНиз</name>
             <id>187</id>
+            <visible>true</visible>
             <enabled>true</enabled>
             <userVisible>
               <common>true</common>
             </userVisible>
             <extendedTooltip>
-              <name>OrderMoveDownExtendedTooltip</name>
+              <name>СдвинутьЭлементПорядкаВВНизРасширеннаяПодсказка</name>
               <id>188</id>
               <visible>true</visible>
               <enabled>true</enabled>
@@ -9484,7 +9486,7 @@
               </extInfo>
             </extendedTooltip>
             <type>UsualButton</type>
-            <commandName>Form.Command.OrderMoveDown</commandName>
+            <commandName>Form.Command.СдвинутьЭлементПорядкаВВНиз</commandName>
             <representation>Picture</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
@@ -17021,10 +17023,10 @@
     <currentRowUse>DontUse</currentRowUse>
   </formCommands>
   <formCommands>
-    <name>IndexMoveUp</name>
+    <name>СдивнутьИндексВВерх</name>
     <title>
       <key>ru</key>
-      <value>Index move up</value>
+      <value>Сдивнуть индекс в верх</value>
     </title>
     <id>20</id>
     <toolTip>
@@ -17036,16 +17038,16 @@
     </use>
     <action xsi:type="form:FormCommandHandlerContainer">
       <handler>
-        <name>IndexMoveUp</name>
+        <name>СдивнутьИндексВВерх</name>
       </handler>
     </action>
     <currentRowUse>DontUse</currentRowUse>
   </formCommands>
   <formCommands>
-    <name>IndexMoveDown</name>
+    <name>СдвинутьИндексВНиз</name>
     <title>
       <key>ru</key>
-      <value>Index move down</value>
+      <value>Сдвинуть индекс в низ</value>
     </title>
     <id>21</id>
     <toolTip>
@@ -17057,7 +17059,7 @@
     </use>
     <action xsi:type="form:FormCommandHandlerContainer">
       <handler>
-        <name>IndexMoveDown</name>
+        <name>СдвинутьИндексВНиз</name>
       </handler>
     </action>
     <currentRowUse>DontUse</currentRowUse>
@@ -17131,7 +17133,7 @@
     <currentRowUse>DontUse</currentRowUse>
   </formCommands>
   <formCommands>
-    <name>OrderMoveDown</name>
+    <name>СдвинутьЭлементПорядкаВВНиз</name>
     <title>
       <key>ru</key>
       <value>OrderMoveDown</value>
@@ -17152,11 +17154,7 @@
     <currentRowUse>DontUse</currentRowUse>
   </formCommands>
   <formCommands>
-    <name>OrderMoveUp</name>
-    <title>
-      <key>ru</key>
-      <value>OrderMoveUp</value>
-    </title>
+    <name>СдвинутьЭлементПорядкаВВерх</name>
     <id>27</id>
     <toolTip>
       <key>ru</key>
@@ -17167,7 +17165,7 @@
     </use>
     <action xsi:type="form:FormCommandHandlerContainer">
       <handler>
-        <name>OrderMoveUp</name>
+        <name>СдвинутьЭлементПорядкаВВерх</name>
       </handler>
     </action>
     <currentRowUse>DontUse</currentRowUse>
@@ -17278,10 +17276,10 @@
     <currentRowUse>DontUse</currentRowUse>
   </formCommands>
   <formCommands>
-    <name>AliasMoveDown</name>
+    <name>СдвинутьКолонкуЗапросаВНиз</name>
     <title>
       <key>ru</key>
-      <value>AliasMoveDown</value>
+      <value>СдвинутьКолонкуЗапросаВНиз</value>
     </title>
     <id>34</id>
     <toolTip>
@@ -17293,13 +17291,13 @@
     </use>
     <action xsi:type="form:FormCommandHandlerContainer">
       <handler>
-        <name>AliasMoveDown</name>
+        <name>СдвинутьКолонкуЗапросаВНиз</name>
       </handler>
     </action>
     <currentRowUse>DontUse</currentRowUse>
   </formCommands>
   <formCommands>
-    <name>AliasMoveUp</name>
+    <name>СдвинутьКолонкуЗапросаВВерх</name>
     <title>
       <key>ru</key>
       <value>AliasMoveUp</value>
@@ -17314,7 +17312,7 @@
     </use>
     <action xsi:type="form:FormCommandHandlerContainer">
       <handler>
-        <name>AliasMoveUp</name>
+        <name>СдвинутьКолонкуЗапросаВВерх</name>
       </handler>
     </action>
     <currentRowUse>DontUse</currentRowUse>
@@ -18638,6 +18636,22 @@
       </handler>
     </action>
     <currentRowUse>Auto</currentRowUse>
+  </formCommands>
+  <formCommands>
+    <name>AliasMoveDown1</name>
+    <title>
+      <key>ru</key>
+      <value>AliasMoveDown</value>
+    </title>
+    <id>103</id>
+    <toolTip>
+      <key>ru</key>
+      <value>Переместить вниз</value>
+    </toolTip>
+    <use>
+      <common>true</common>
+    </use>
+    <currentRowUse>DontUse</currentRowUse>
   </formCommands>
   <parameters>
     <name>АдресМоделиЗапроса</name>
