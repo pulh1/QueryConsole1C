@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="16040176-643a-45f1-88f3-db662bc9f2af">
+  <producedTypes>
+    <objectType typeId="bd7073e0-f9c7-456f-a209-adb81c2b7085" valueTypeId="b24e55a4-7300-4dc8-a090-2edffcdbd4d7"/>
+    <managerType typeId="f79f8f50-891a-43ad-910f-d1010a9c3be7" valueTypeId="7212e7a0-477d-4f9e-9598-0ae5351b9037"/>
+  </producedTypes>
+  <name>ПроверкаПрименимостиОтбораПосетитель</name>
+  <synonym>
+    <key>ru</key>
+    <value>Проверка применимости отбора посетитель</value>
+  </synonym>
+  <useStandardCommands>true</useStandardCommands>
+</mdclass:DataProcessor>

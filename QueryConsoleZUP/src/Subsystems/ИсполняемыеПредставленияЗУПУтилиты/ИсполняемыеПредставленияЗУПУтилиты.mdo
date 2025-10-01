@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Subsystem xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="dff35d20-b7aa-4cef-b1df-ed563af9f25d">
+  <name>ИсполняемыеПредставленияЗУПУтилиты</name>
+  <synonym>
+    <key>ru</key>
+    <value>Исполняемые представления ЗУПУтилиты</value>
+  </synonym>
+  <includeHelpInContents>true</includeHelpInContents>
+  <content>CommonModule.ГенерацияИсполняемогоКодаПредставленийЗУПУтилиты</content>
+  <content>CommonModule.ИсполнительПредставленийЗУПУтилиты</content>
+  <content>CommonModule.ПредставленияКадровогоУчетаУтилиты</content>
+  <content>CommonModule.ПредставленияРегистровСведенийЗУПУтилиты</content>
+  <content>FunctionalOption.ИспользоватьИсториюИзмененияШтатногоРасписания</content>
+  <content>DefinedType.МестоВыплатыЗарплатыСотрудников</content>
+  <content>DefinedType.ОснованиеИзмененияПлановогоФОТ</content>
+  <content>DefinedType.ОснованиеНачисленияУдержания</content>
+  <content>DefinedType.ТерриторияВыполненияРаботВОрганизации</content>
+  <content>Catalog.Организации</content>
+  <content>Catalog.ПодразделенияОрганизаций</content>
+  <content>Catalog.Сотрудники</content>
+  <content>DataProcessor.ГенераторКодаЗапросовДляСКД</content>
+  <content>AccumulationRegister.НачисленияУдержанияПоСотрудникам</content>
+  <content>AccumulationRegister.ОтработанноеВремяПоСотрудникам</content>
+  <content>AccumulationRegister.ФактическиеОтпуска</content>
+  <content>CalculationRegister.Начисления</content>
+  <content>InformationRegister.БухучетЗарплатыСотрудников</content>
+  <content>InformationRegister.ВидыЗанятостиСотрудников</content>
+  <content>InformationRegister.ГрафикРаботыСотрудников</content>
+  <content>InformationRegister.ДистанционнаяРаботаСотрудников</content>
+  <content>InformationRegister.ИсторияИспользованияШтатногоРасписания</content>
+  <content>InformationRegister.КадроваяИсторияСотрудников</content>
+  <content>InformationRegister.ЛицевыеСчетаСотрудниковПоЗарплатнымПроектам</content>
+  <content>InformationRegister.НастройкиШтатногоРасписания</content>
+  <content>InformationRegister.ПериодыДействияДоговоровГражданскоПравовогоХарактера</content>
+  <content>InformationRegister.ПКУСотрудников</content>
+  <content>InformationRegister.ПлановыеАвансы</content>
+  <content>InformationRegister.ПлановыеНачисления</content>
+  <content>InformationRegister.ПлановыйФОТИтоги</content>
+  <content>InformationRegister.ПорядокРасчетаСтоимостиЕдиницыВремениСотрудников</content>
+  <content>InformationRegister.ПриостановленияТрудовыхДоговоровКонтрактов</content>
+  <content>InformationRegister.РабочиеМестаСотрудников</content>
+  <content>InformationRegister.РазрядыКатегорииСотрудников</content>
+  <content>InformationRegister.ТерриторииСотрудников</content>
+  <content>DataProcessor.РасчетБазыНачисленийУдержаний</content>
+</mdclass:Subsystem>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Subsystem xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="dbe0f0c6-38e9-402d-b8e4-366039a22204">
+  <name>РегистрыСведений</name>
+  <synonym>
+    <key>ru</key>
+    <value>Регистры сведений</value>
+  </synonym>
+  <includeHelpInContents>true</includeHelpInContents>
+  <content>DataProcessor.ПредставлениеРегистрСведенийСрезПоследних</content>
+  <content>DataProcessor.ПредставлениеРегистрСведенийЗаписи</content>
+  <content>DataProcessor.ПредставлениеРегистрСведенийПериоды</content>
+  <parentSubsystem>Subsystem.ЗУП_ИсполняемыеПредставления</parentSubsystem>
+</mdclass:Subsystem>

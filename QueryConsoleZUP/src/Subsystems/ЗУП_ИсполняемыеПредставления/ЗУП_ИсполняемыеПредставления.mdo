@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Subsystem xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="7f721ca8-543b-4123-bc28-96943bae5654">
+  <name>ЗУП_ИсполняемыеПредставления</name>
+  <synonym>
+    <key>ru</key>
+    <value>ЗУП исполняемые представления</value>
+  </synonym>
+  <includeHelpInContents>true</includeHelpInContents>
+  <subsystems>КадровыйУчет</subsystems>
+  <subsystems>Общее</subsystems>
+  <subsystems>Отпуска</subsystems>
+  <subsystems>УчетВремени</subsystems>
+  <subsystems>УчетНачисленнойЗарплаты</subsystems>
+  <subsystems>ШтатноеРасписание</subsystems>
+  <subsystems>РегистрыСведений</subsystems>
+  <subsystems>РегистрыРасчета</subsystems>
+</mdclass:Subsystem>
