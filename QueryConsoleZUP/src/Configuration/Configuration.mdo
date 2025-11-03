@@ -84,6 +84,7 @@
   <commonModules>CommonModule.ОтчетыПереопределяемый</commonModules>
   <commonModules>CommonModule.ВариантыОтчетовПереопределяемый</commonModules>
   <commonModules>CommonModule.ОписаниеИсполняемыхПредставленийШаблоны</commonModules>
+  <commonModules>CommonModule.УниверсальныйОтчетРасширенный</commonModules>
   <settingsStorages>SettingsStorage.ХранилищеВариантовОтчетов</settingsStorages>
   <functionalOptions>FunctionalOption.ИспользоватьИсториюИзмененияШтатногоРасписания</functionalOptions>
   <definedTypes>DefinedType.МестоВыплатыЗарплатыСотрудников</definedTypes>
