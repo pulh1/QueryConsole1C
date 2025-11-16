@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="5f9fc1dc-90ad-4458-bcc3-1db1ad49c35c">
+  <producedTypes>
+    <objectType typeId="993869ba-aa7b-446f-8851-2a24eac004d4" valueTypeId="5ef4ce87-1087-4241-bec9-09826120ecf5"/>
+    <managerType typeId="64fb0b7c-7baf-4875-98fa-862a3cc53566" valueTypeId="158e9d46-af42-4212-9539-e877751294cc"/>
+  </producedTypes>
+  <name>ИсполнительУниверсальногоОтчета</name>
+  <synonym>
+    <key>ru</key>
+    <value>Исполнитель универсального отчета</value>
+  </synonym>
+  <useStandardCommands>true</useStandardCommands>
+</mdclass:DataProcessor>

@@ -134,6 +134,7 @@
   <dataProcessors>DataProcessor.Шаблон_ПосетительМоделиВыражений</dataProcessors>
   <dataProcessors>DataProcessor.СемантическийАнализВыраженийПосетитель</dataProcessors>
   <dataProcessors>DataProcessor.ПроверкаПрименимостиОтбораПосетитель</dataProcessors>
+  <dataProcessors>DataProcessor.ИсполнительУниверсальногоОтчета</dataProcessors>
   <informationRegisters>InformationRegister.БухучетЗарплатыСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ВидыЗанятостиСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ГрафикРаботыСотрудников</informationRegisters>
