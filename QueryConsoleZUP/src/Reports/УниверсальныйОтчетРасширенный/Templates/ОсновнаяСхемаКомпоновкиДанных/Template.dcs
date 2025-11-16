@@ -16,8 +16,9 @@
 			</v8:StringQualifiers>
 		</valueType>
 		<value xsi:nil="true"/>
-		<useRestriction>false</useRestriction>
+		<useRestriction>true</useRestriction>
 		<availableAsField>false</availableAsField>
+		<denyIncompleteValues>true</denyIncompleteValues>
 	</parameter>
 	<settingsVariant>
 		<dcsset:name>Основной</dcsset:name>
