@@ -137,6 +137,7 @@
   <dataProcessors>DataProcessor.СемантическийАнализВыраженийПосетитель</dataProcessors>
   <dataProcessors>DataProcessor.ПроверкаПрименимостиОтбораПосетитель</dataProcessors>
   <dataProcessors>DataProcessor.ИсполнительУниверсальногоОтчета</dataProcessors>
+  <dataProcessors>DataProcessor.ОбработчикРазыменованийДляСКДПосетитель</dataProcessors>
   <informationRegisters>InformationRegister.БухучетЗарплатыСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ВидыЗанятостиСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ГрафикРаботыСотрудников</informationRegisters>
