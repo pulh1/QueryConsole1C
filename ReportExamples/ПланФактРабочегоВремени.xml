@@ -1,0 +1,793 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Settings xmlns="http://v8.1c.ru/8.1/data-composition-system/settings" xmlns:dcscor="http://v8.1c.ru/8.1/data-composition-system/core" xmlns:style="http://v8.1c.ru/8.1/data/ui/style" xmlns:sys="http://v8.1c.ru/8.1/data/ui/fonts/system" xmlns:v8="http://v8.1c.ru/8.1/data/core" xmlns:v8ui="http://v8.1c.ru/8.1/data/ui" xmlns:web="http://v8.1c.ru/8.1/data/ui/colors/web" xmlns:win="http://v8.1c.ru/8.1/data/ui/colors/windows" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<userFields>
+		<item xsi:type="UserFieldExpression">
+			<dataPath>ПользовательскиеПоля.Поле1</dataPath>
+			<title>ДниФакт</title>
+			<detailExpression>Сумма(ДниФакт)</detailExpression>
+			<detailExpressionPresentation>Сумма([Дни факт])</detailExpressionPresentation>
+			<totalExpression>Сумма(ДниФакт)</totalExpression>
+			<totalExpressionPresentation>Сумма([Дни факт])</totalExpressionPresentation>
+		</item>
+		<item xsi:type="UserFieldExpression">
+			<dataPath>ПользовательскиеПоля.Поле2</dataPath>
+			<title>ЧасыФакт</title>
+			<detailExpression>Сумма(ЧасыФакт)</detailExpression>
+			<detailExpressionPresentation>Сумма([Часы факт])</detailExpressionPresentation>
+			<totalExpression>Сумма(ЧасыФакт)</totalExpression>
+			<totalExpressionPresentation>Сумма([Часы факт])</totalExpressionPresentation>
+		</item>
+		<item xsi:type="UserFieldExpression">
+			<dataPath>ПользовательскиеПоля.Поле3</dataPath>
+			<title>ДниПлан</title>
+			<detailExpression>Сумма(ДниПлан)</detailExpression>
+			<detailExpressionPresentation>Сумма([Дни план])</detailExpressionPresentation>
+			<totalExpression>Сумма(ДниПлан)</totalExpression>
+			<totalExpressionPresentation>Сумма([Дни план])</totalExpressionPresentation>
+		</item>
+		<item xsi:type="UserFieldExpression">
+			<dataPath>ПользовательскиеПоля.Поле4</dataPath>
+			<title>ЧасыПлан</title>
+			<detailExpression>Сумма(ЧвсыПлан)</detailExpression>
+			<detailExpressionPresentation>Сумма([Чвсы план])</detailExpressionPresentation>
+			<totalExpression>Сумма(ЧвсыПлан)</totalExpression>
+			<totalExpressionPresentation>Сумма([Чвсы план])</totalExpressionPresentation>
+		</item>
+		<item xsi:type="UserFieldExpression">
+			<dataPath>ПользовательскиеПоля.Поле5</dataPath>
+			<title>ДниОтклонение</title>
+			<detailExpression>Сумма(ДниОтклонение)</detailExpression>
+			<detailExpressionPresentation>Сумма([Дни отклонение])</detailExpressionPresentation>
+			<totalExpression>Сумма(ДниОтклонение)</totalExpression>
+			<totalExpressionPresentation>Сумма([Дни отклонение])</totalExpressionPresentation>
+		</item>
+		<item xsi:type="UserFieldExpression">
+			<dataPath>ПользовательскиеПоля.Поле6</dataPath>
+			<title>ЧасыОтклонение</title>
+			<detailExpression>Сумма(ЧасыОтклонение)</detailExpression>
+			<detailExpressionPresentation>Сумма([Часы отклонение])</detailExpressionPresentation>
+			<totalExpression>Сумма(ЧасыОтклонение)</totalExpression>
+			<totalExpressionPresentation>Сумма([Часы отклонение])</totalExpressionPresentation>
+		</item>
+	</userFields>
+	<selection>
+		<item xsi:type="SelectedItemField">
+			<field>ПользовательскиеПоля.Поле4</field>
+		</item>
+		<item xsi:type="SelectedItemField">
+			<field>ПользовательскиеПоля.Поле2</field>
+		</item>
+		<item xsi:type="SelectedItemField">
+			<field>ПользовательскиеПоля.Поле6</field>
+		</item>
+	</selection>
+	<filter>
+		<item xsi:type="FilterItemComparison">
+			<left xsi:type="dcscor:Field">ВидУчетаВремени.РабочееВремя</left>
+			<comparisonType>Equal</comparisonType>
+			<right xsi:type="xs:boolean">true</right>
+			<viewMode>Normal</viewMode>
+			<userSettingID>e5f80f94-5b1c-4c7e-b631-a69ee4aa6cad</userSettingID>
+		</item>
+		<item xsi:type="FilterItemComparison">
+			<left xsi:type="dcscor:Field">Организация</left>
+			<comparisonType>Equal</comparisonType>
+			<right xmlns:d4p1="http://v8.1c.ru/8.1/data/enterprise/current-config" xsi:type="d4p1:CatalogRef.Организации">781a419b-7a70-11e2-9362-001b11b25590</right>
+			<userSettingID>e050798c-a105-4f3a-acf1-59c9a1f74698</userSettingID>
+		</item>
+	</filter>
+	<dataParameters>
+		<dcscor:item xsi:type="SettingsParameterValue">
+			<dcscor:parameter>ТекстЗапросаИсточника</dcscor:parameter>
+			<dcscor:value xsi:type="xs:string">ВЫБРАТЬ
+	КадроваяИсторияСотрудниковПериоды.Сотрудник КАК Сотрудник,
+	КадроваяИсторияСотрудниковПериоды.НачалоПериода КАК НачалоПериода,
+	КадроваяИсторияСотрудниковПериоды.КонецПериода КАК КонецПериода,
+	КадроваяИсторияСотрудниковПериоды.ГоловнаяОрганизация КАК ГоловнаяОрганизация,
+	КадроваяИсторияСотрудниковПериоды.Организация КАК Организация,
+	КадроваяИсторияСотрудниковПериоды.Подразделение КАК Подразделение,
+	КадроваяИсторияСотрудниковПериоды.Должность КАК Должность,
+	КадроваяИсторияСотрудниковПериоды.ДолжностьПоШтатномуРасписанию КАК ДолжностьПоШтатномуРасписанию,
+	КадроваяИсторияСотрудниковПериоды.ВидДоговора КАК ВидДоговора
+ПОМЕСТИТЬ ВТПериодыКадровойИстории
+ИЗ
+	ИсполняемоеПредставление.РегистрСведений.КадроваяИсторияСотрудников.Периоды(
+		(ДатаНачала, ДатаОкончания) В 
+		(ВЫБРАТЬ
+			&amp;ДатаНачала КАК ДатаНачала,
+			&amp;ДатаОкончания КАК ДатаОкончания),
+		ВключатьЗаписиНаНачалоПериода = ИСТИНА) КАК КадроваяИсторияСотрудниковПериоды
+ГДЕ
+	КадроваяИсторияСотрудниковПериоды.ВидСобытия &lt;&gt; ЗНАЧЕНИЕ(Перечисление.ВидыКадровыхСобытий.Увольнение)
+;
+////////////////////////////////////////////////////////////////////////////////
+ВЫБРАТЬ
+	ДанныеОВремени.Сотрудник КАК Сотрудник,
+	ДанныеОВремени.Дата КАК Дата,
+	НачалоПериода(ДанныеОВремени.Дата, Месяц) КАК Месяц,
+	ДанныеОВремени.ВидУчетаВремени КАК ВидУчетаВремени,
+	КадроваяИсторияСотрудниковПериоды.Организация КАК Организация,
+	КадроваяИсторияСотрудниковПериоды.Подразделение КАК Подразделение,
+	КадроваяИсторияСотрудниковПериоды.Должность КАК Должность,
+	КадроваяИсторияСотрудниковПериоды.ДолжностьПоШтатномуРасписанию КАК ДолжностьПоШтатномуРасписанию,
+	КадроваяИсторияСотрудниковПериоды.ВидДоговора КАК ВидДоговора,
+	СУММА(ДанныеОВремени.ДниФакт) КАК ДниФакт,
+	СУММА(ДанныеОВремени.ЧасыФакт) КАК ЧасыФакт,
+	СУММА(ДанныеОВремени.ДниПлан) КАК ДниПлан,
+	СУММА(ДанныеОВремени.ЧасыПлан) КАК ЧасыПлан,
+	СУММА(ДанныеОВремени.ДниПлан - ДанныеОВремени.ДниФакт) КАК ДниОтклонение,
+	СУММА(ДанныеОВремени.ЧасыПлан - ДанныеОВремени.ЧасыФакт) КАК ЧасыОтклонение
+ИЗ
+	(ВЫБРАТЬ
+	ДанныеУчетаВремениСотрудников.Сотрудник КАК Сотрудник,
+	ДанныеУчетаВремениСотрудников.Дата КАК Дата,
+	ДанныеУчетаВремениСотрудников.ВидУчетаВремени КАК ВидУчетаВремени,
+	ДанныеУчетаВремениСотрудников.Дни КАК ДниФакт,
+	ДанныеУчетаВремениСотрудников.Часы КАК ЧасыФакт,
+	0 КАК ДниПлан,
+	0 КАК ЧасыПлан
+ИЗ
+	ИсполняемоеПредставление.ДанныеУчетаВремениСотрудников(
+		(Сотрудник, ДатаНачала, ДатаОкончания) В 
+		(ВЫБРАТЬ РАЗЛИЧНЫЕ
+			ВТОтборСотрудников.Сотрудник КАК Сотрудник,
+			&amp;ДатаНачала КАК ДатаНачала,
+			&amp;ДатаОкончания КАК ДатаОкончания
+		ИЗ
+			ВТПериодыКадровойИстории КАК ВТОтборСотрудников),
+		ДатаНачала = &amp;ДатаНачала,
+		ДатаОкончания = &amp;ДатаОкончания,
+		ДатаАктуальности = &amp;ДатаОкончания) КАК ДанныеУчетаВремениСотрудников
+
+ОБЪЕДИНИТЬ ВСЕ
+
+ВЫБРАТЬ
+	ПлановоеВремяСотрудников.Сотрудник,
+	ПлановоеВремяСотрудников.Дата,
+	ПлановоеВремяСотрудников.ВидУчетаВремени,
+	0,
+	0,
+	ПлановоеВремяСотрудников.ДниПлан,
+	ПлановоеВремяСотрудников.ЧасыПлан
+ИЗ
+	ИсполняемоеПредставление.ПлановоеВремяСотрудников(
+		(Сотрудник, ДатаНачала, ДатаОкончания, ДатаАктуальности) В 
+		(ВЫБРАТЬ РАЗЛИЧНЫЕ
+			ВТОтборСотрудников.Сотрудник КАК Сотрудник,
+			&amp;ДатаНачала КАК ДатаНачала,
+			&amp;ДатаОкончания КАК ДатаОкончания,
+			&amp;ДатаОкончания КАК ДатаАктуальности
+		ИЗ
+			ВТПериодыКадровойИстории КАК ВТОтборСотрудников
+				ЛЕВОЕ СОЕДИНЕНИЕ ИсполняемоеПредставление.Периоды(
+					НачалоИнтервала = &amp;ДатаНачала,
+					ОкончаниеИнтервала = &amp;ДатаОкончания,
+					Периодичность = "МЕСЯЦ") КАК Периоды
+				ПО Периоды.Период МЕЖДУ &amp;ДатаНачала И &amp;ДатаОкончания)
+) КАК ПлановоеВремяСотрудников) КАК ДанныеОВремени
+		{ЛЕВОЕ СОЕДИНЕНИЕ ВТПериодыКадровойИстории КАК КадроваяИсторияСотрудниковПериоды
+		ПО ДанныеОВремени.Сотрудник = КадроваяИсторияСотрудниковПериоды.Сотрудник
+		И ДанныеОВремени.Дата МЕЖДУ КадроваяИсторияСотрудниковПериоды.НачалоПериода И КадроваяИсторияСотрудниковПериоды.КонецПериода}
+ГДЕ
+	ДанныеОВремени.ВидУчетаВремени &lt;&gt; ЗНАЧЕНИЕ(Справочник.ВидыИспользованияРабочегоВремени.РабочееВремя)
+
+СГРУППИРОВАТЬ ПО
+	ДанныеОВремени.Сотрудник,
+	ДанныеОВремени.Дата,
+	ДанныеОВремени.ВидУчетаВремени,
+	КадроваяИсторияСотрудниковПериоды.ГоловнаяОрганизация,
+	КадроваяИсторияСотрудниковПериоды.Организация,
+	КадроваяИсторияСотрудниковПериоды.Подразделение,
+	КадроваяИсторияСотрудниковПериоды.Должность,
+	КадроваяИсторияСотрудниковПериоды.ДолжностьПоШтатномуРасписанию,
+	КадроваяИсторияСотрудниковПериоды.ВидДоговора</dcscor:value>
+			<userSettingID>b8b661f3-8e4c-4ae1-9664-d9624532e9a7</userSettingID>
+		</dcscor:item>
+		<dcscor:item xsi:type="SettingsParameterValue">
+			<dcscor:parameter>ДатаНачала</dcscor:parameter>
+			<dcscor:value xsi:type="v8:StandardBeginningDate">
+				<v8:variant xsi:type="v8:StandardBeginningDateVariant">Custom</v8:variant>
+				<v8:date>2025-11-01T00:00:00</v8:date>
+			</dcscor:value>
+			<userSettingID>390f74f0-adb6-4d11-afbc-09b9e3c6dbff</userSettingID>
+		</dcscor:item>
+		<dcscor:item xsi:type="SettingsParameterValue">
+			<dcscor:use>false</dcscor:use>
+			<dcscor:parameter>ДатаОкончания</dcscor:parameter>
+			<dcscor:value xsi:type="xs:dateTime">2025-12-31T00:00:00</dcscor:value>
+			<userSettingID>bf801d8f-5501-4276-834c-dbb7a4ff7f0e</userSettingID>
+		</dcscor:item>
+	</dataParameters>
+	<conditionalAppearance>
+		<item>
+			<selection>
+				<item>
+					<field>Месяц</field>
+				</item>
+			</selection>
+			<filter/>
+			<appearance>
+				<dcscor:item xsi:type="SettingsParameterValue">
+					<dcscor:parameter>Формат</dcscor:parameter>
+					<dcscor:value xsi:type="xs:string">ДФ='ММММ гггг'</dcscor:value>
+				</dcscor:item>
+			</appearance>
+			<presentation xsi:type="xs:string">Формат: ДФ='ММММ гггг' (Поля: Месяц)</presentation>
+			<viewMode>Normal</viewMode>
+			<userSettingID>9459d2f6-c1f3-4d29-99d9-964ea801a618</userSettingID>
+		</item>
+		<item>
+			<selection/>
+			<filter>
+				<item xsi:type="FilterItemComparison">
+					<left xsi:type="dcscor:Field">ПользовательскиеПоля.Поле6</left>
+					<comparisonType>Less</comparisonType>
+					<right xsi:type="xs:decimal">0</right>
+				</item>
+			</filter>
+			<appearance>
+				<dcscor:item xsi:type="SettingsParameterValue">
+					<dcscor:parameter>ЦветТекста</dcscor:parameter>
+					<dcscor:value xsi:type="v8ui:Color">style:NegativeTextColor</dcscor:value>
+				</dcscor:item>
+			</appearance>
+			<presentation xsi:type="xs:string">Цвет текста: Отрицательное число (Все поля; Условие: ЧасыОтклонение &lt; 0)</presentation>
+			<viewMode>Normal</viewMode>
+			<userSettingID>3f21a155-7592-41d2-b2e3-69b4bc29ed21</userSettingID>
+		</item>
+		<item>
+			<selection/>
+			<filter>
+				<item xsi:type="FilterItemComparison">
+					<left xsi:type="dcscor:Field">ПользовательскиеПоля.Поле6</left>
+					<comparisonType>Greater</comparisonType>
+					<right xsi:type="xs:decimal">0</right>
+				</item>
+			</filter>
+			<appearance>
+				<dcscor:item xsi:type="SettingsParameterValue">
+					<dcscor:parameter>ЦветТекста</dcscor:parameter>
+					<dcscor:value xsi:type="v8ui:Color">style:AccentColor</dcscor:value>
+				</dcscor:item>
+			</appearance>
+			<presentation xsi:type="xs:string">Цвет текста: Цвет акцентирования (Все поля; Условие: ЧасыОтклонение &gt; 0)</presentation>
+			<viewMode>Normal</viewMode>
+			<userSettingID>7577fc64-e815-4e8f-a432-1942e28262f9</userSettingID>
+		</item>
+	</conditionalAppearance>
+	<outputParameters>
+		<dcscor:item xsi:type="SettingsParameterValue">
+			<dcscor:parameter>ВыводитьЗаголовок</dcscor:parameter>
+			<dcscor:value xsi:type="DataCompositionTextOutputType">DontOutput</dcscor:value>
+			<viewMode>Inaccessible</viewMode>
+		</dcscor:item>
+		<dcscor:item xsi:type="SettingsParameterValue">
+			<dcscor:use>false</dcscor:use>
+			<dcscor:parameter>Заголовок</dcscor:parameter>
+			<dcscor:value xsi:type="xs:string">План факт рабочего времени</dcscor:value>
+			<viewMode>Normal</viewMode>
+		</dcscor:item>
+		<dcscor:item xsi:type="SettingsParameterValue">
+			<dcscor:parameter>ВыводитьПараметрыДанных</dcscor:parameter>
+			<dcscor:value xsi:type="DataCompositionTextOutputType">DontOutput</dcscor:value>
+			<viewMode>Normal</viewMode>
+		</dcscor:item>
+		<dcscor:item xsi:type="SettingsParameterValue">
+			<dcscor:parameter>ВыводитьОтбор</dcscor:parameter>
+			<dcscor:value xsi:type="DataCompositionTextOutputType">DontOutput</dcscor:value>
+			<viewMode>Inaccessible</viewMode>
+		</dcscor:item>
+	</outputParameters>
+	<item xsi:type="StructureItemGroup">
+		<groupItems>
+			<item xsi:type="GroupItemField">
+				<field>Организация</field>
+				<groupType>Items</groupType>
+				<periodAdditionType>None</periodAdditionType>
+				<periodAdditionBegin xsi:type="xs:dateTime">0001-01-01T00:00:00</periodAdditionBegin>
+				<periodAdditionEnd xsi:type="xs:dateTime">0001-01-01T00:00:00</periodAdditionEnd>
+			</item>
+			<item xsi:type="GroupItemField">
+				<field>Подразделение</field>
+				<groupType>Items</groupType>
+				<periodAdditionType>None</periodAdditionType>
+				<periodAdditionBegin xsi:type="xs:dateTime">0001-01-01T00:00:00</periodAdditionBegin>
+				<periodAdditionEnd xsi:type="xs:dateTime">0001-01-01T00:00:00</periodAdditionEnd>
+			</item>
+		</groupItems>
+		<order>
+			<item xsi:type="OrderItemField">
+				<field>Подразделение.РеквизитДопУпорядочивания</field>
+				<orderType>Asc</orderType>
+			</item>
+		</order>
+		<selection>
+			<item xsi:type="SelectedItemAuto"/>
+		</selection>
+		<conditionalAppearance>
+			<item>
+				<selection>
+					<item>
+						<field>Месяц</field>
+					</item>
+				</selection>
+				<filter/>
+				<appearance>
+					<dcscor:item xsi:type="SettingsParameterValue">
+						<dcscor:parameter>Формат</dcscor:parameter>
+						<dcscor:value xsi:type="xs:string">ДФ='ММММ гггг'</dcscor:value>
+					</dcscor:item>
+				</appearance>
+				<presentation xsi:type="xs:string">Формат: ДФ='ММММ гггг' (Поля: Месяц)</presentation>
+				<viewMode>Normal</viewMode>
+				<userSettingID>90b6bafa-7173-44d8-8df4-73f07650cc7c</userSettingID>
+			</item>
+			<item>
+				<selection/>
+				<filter>
+					<item xsi:type="FilterItemGroup">
+						<groupType>OrGroup</groupType>
+						<item xsi:type="FilterItemComparison">
+							<left xsi:type="dcscor:Field">ПользовательскиеПоля.Поле6</left>
+							<comparisonType>Greater</comparisonType>
+							<right xsi:type="xs:decimal">0</right>
+						</item>
+						<item xsi:type="FilterItemComparison">
+							<left xsi:type="dcscor:Field">ПользовательскиеПоля.Поле5</left>
+							<comparisonType>Greater</comparisonType>
+							<right xsi:type="xs:decimal">0</right>
+						</item>
+					</item>
+				</filter>
+				<appearance>
+					<dcscor:item xsi:type="SettingsParameterValue">
+						<dcscor:parameter>ЦветТекста</dcscor:parameter>
+						<dcscor:value xsi:type="v8ui:Color">style:NegativeTextColor</dcscor:value>
+					</dcscor:item>
+				</appearance>
+				<presentation xsi:type="xs:string">Цвет текста: Отрицательное число (Все поля; Условие: Группа Или(ЧасыОтклонение &gt; 0, ДниОтклонение &gt; 0))</presentation>
+				<viewMode>Normal</viewMode>
+				<userSettingID>affd2f07-6257-47fc-bdcc-9c346783a120</userSettingID>
+			</item>
+		</conditionalAppearance>
+	</item>
+	<item xsi:type="StructureItemGroup">
+		<groupItems>
+			<item xsi:type="GroupItemField">
+				<field>Сотрудник</field>
+				<groupType>Items</groupType>
+				<periodAdditionType>None</periodAdditionType>
+				<periodAdditionBegin xsi:type="xs:dateTime">0001-01-01T00:00:00</periodAdditionBegin>
+				<periodAdditionEnd xsi:type="xs:dateTime">0001-01-01T00:00:00</periodAdditionEnd>
+			</item>
+		</groupItems>
+		<order>
+			<item xsi:type="OrderItemAuto"/>
+		</order>
+		<selection>
+			<item xsi:type="SelectedItemAuto"/>
+		</selection>
+	</item>
+	<additionalProperties>
+		<v8:Property name="ОтчетИнициализирован">
+			<v8:Value xsi:type="xs:boolean">true</v8:Value>
+		</v8:Property>
+		<v8:Property name="СохраняемыеФиксированныеПараметры">
+			<v8:Value xsi:type="v8:Structure">
+				<v8:Property name="ТекстЗапросаИсточника">
+					<v8:Value xsi:type="xs:string">ВЫБРАТЬ
+	КадроваяИсторияСотрудниковПериоды.Сотрудник КАК Сотрудник,
+	КадроваяИсторияСотрудниковПериоды.НачалоПериода КАК НачалоПериода,
+	КадроваяИсторияСотрудниковПериоды.КонецПериода КАК КонецПериода,
+	КадроваяИсторияСотрудниковПериоды.ГоловнаяОрганизация КАК ГоловнаяОрганизация,
+	КадроваяИсторияСотрудниковПериоды.Организация КАК Организация,
+	КадроваяИсторияСотрудниковПериоды.Подразделение КАК Подразделение,
+	КадроваяИсторияСотрудниковПериоды.Должность КАК Должность,
+	КадроваяИсторияСотрудниковПериоды.ДолжностьПоШтатномуРасписанию КАК ДолжностьПоШтатномуРасписанию,
+	КадроваяИсторияСотрудниковПериоды.ВидДоговора КАК ВидДоговора
+ПОМЕСТИТЬ ВТПериодыКадровойИстории
+ИЗ
+	ИсполняемоеПредставление.РегистрСведений.КадроваяИсторияСотрудников.Периоды(
+		(ДатаНачала, ДатаОкончания) В 
+		(ВЫБРАТЬ
+			&amp;ДатаНачала КАК ДатаНачала,
+			&amp;ДатаОкончания КАК ДатаОкончания),
+		ВключатьЗаписиНаНачалоПериода = ИСТИНА) КАК КадроваяИсторияСотрудниковПериоды
+ГДЕ
+	КадроваяИсторияСотрудниковПериоды.ВидСобытия &lt;&gt; ЗНАЧЕНИЕ(Перечисление.ВидыКадровыхСобытий.Увольнение)
+;
+////////////////////////////////////////////////////////////////////////////////
+ВЫБРАТЬ
+	ДанныеОВремени.Сотрудник КАК Сотрудник,
+	ДанныеОВремени.Дата КАК Дата,
+	НачалоПериода(ДанныеОВремени.Дата, Месяц) КАК Месяц,
+	ДанныеОВремени.ВидУчетаВремени КАК ВидУчетаВремени,
+	КадроваяИсторияСотрудниковПериоды.Организация КАК Организация,
+	КадроваяИсторияСотрудниковПериоды.Подразделение КАК Подразделение,
+	КадроваяИсторияСотрудниковПериоды.Должность КАК Должность,
+	КадроваяИсторияСотрудниковПериоды.ДолжностьПоШтатномуРасписанию КАК ДолжностьПоШтатномуРасписанию,
+	КадроваяИсторияСотрудниковПериоды.ВидДоговора КАК ВидДоговора,
+	СУММА(ДанныеОВремени.ДниФакт) КАК ДниФакт,
+	СУММА(ДанныеОВремени.ЧасыФакт) КАК ЧасыФакт,
+	СУММА(ДанныеОВремени.ДниПлан) КАК ДниПлан,
+	СУММА(ДанныеОВремени.ЧасыПлан) КАК ЧасыПлан,
+	СУММА(ДанныеОВремени.ДниПлан - ДанныеОВремени.ДниФакт) КАК ДниОтклонение,
+	СУММА(ДанныеОВремени.ЧасыПлан - ДанныеОВремени.ЧасыФакт) КАК ЧасыОтклонение
+ИЗ
+	(ВЫБРАТЬ
+	ДанныеУчетаВремениСотрудников.Сотрудник КАК Сотрудник,
+	ДанныеУчетаВремениСотрудников.Дата КАК Дата,
+	ДанныеУчетаВремениСотрудников.ВидУчетаВремени КАК ВидУчетаВремени,
+	ДанныеУчетаВремениСотрудников.Дни КАК ДниФакт,
+	ДанныеУчетаВремениСотрудников.Часы КАК ЧасыФакт,
+	0 КАК ДниПлан,
+	0 КАК ЧасыПлан
+ИЗ
+	ИсполняемоеПредставление.ДанныеУчетаВремениСотрудников(
+		(Сотрудник, ДатаНачала, ДатаОкончания) В 
+		(ВЫБРАТЬ РАЗЛИЧНЫЕ
+			ВТОтборСотрудников.Сотрудник КАК Сотрудник,
+			&amp;ДатаНачала КАК ДатаНачала,
+			&amp;ДатаОкончания КАК ДатаОкончания
+		ИЗ
+			ВТПериодыКадровойИстории КАК ВТОтборСотрудников),
+		ДатаНачала = &amp;ДатаНачала,
+		ДатаОкончания = &amp;ДатаОкончания,
+		ДатаАктуальности = &amp;ДатаОкончания) КАК ДанныеУчетаВремениСотрудников
+
+ОБЪЕДИНИТЬ ВСЕ
+
+ВЫБРАТЬ
+	ПлановоеВремяСотрудников.Сотрудник,
+	ПлановоеВремяСотрудников.Дата,
+	ПлановоеВремяСотрудников.ВидУчетаВремени,
+	0,
+	0,
+	ПлановоеВремяСотрудников.ДниПлан,
+	ПлановоеВремяСотрудников.ЧасыПлан
+ИЗ
+	ИсполняемоеПредставление.ПлановоеВремяСотрудников(
+		(Сотрудник, ДатаНачала, ДатаОкончания, ДатаАктуальности) В 
+		(ВЫБРАТЬ РАЗЛИЧНЫЕ
+			ВТОтборСотрудников.Сотрудник КАК Сотрудник,
+			&amp;ДатаНачала КАК ДатаНачала,
+			&amp;ДатаОкончания КАК ДатаОкончания,
+			&amp;ДатаОкончания КАК ДатаАктуальности
+		ИЗ
+			ВТПериодыКадровойИстории КАК ВТОтборСотрудников
+				ЛЕВОЕ СОЕДИНЕНИЕ ИсполняемоеПредставление.Периоды(
+					НачалоИнтервала = &amp;ДатаНачала,
+					ОкончаниеИнтервала = &amp;ДатаОкончания,
+					Периодичность = "МЕСЯЦ") КАК Периоды
+				ПО Периоды.Период МЕЖДУ &amp;ДатаНачала И &amp;ДатаОкончания)
+) КАК ПлановоеВремяСотрудников) КАК ДанныеОВремени
+		{ЛЕВОЕ СОЕДИНЕНИЕ ВТПериодыКадровойИстории КАК КадроваяИсторияСотрудниковПериоды
+		ПО ДанныеОВремени.Сотрудник = КадроваяИсторияСотрудниковПериоды.Сотрудник
+		И ДанныеОВремени.Дата МЕЖДУ КадроваяИсторияСотрудниковПериоды.НачалоПериода И КадроваяИсторияСотрудниковПериоды.КонецПериода}
+ГДЕ
+	ДанныеОВремени.ВидУчетаВремени &lt;&gt; ЗНАЧЕНИЕ(Справочник.ВидыИспользованияРабочегоВремени.РабочееВремя)
+
+СГРУППИРОВАТЬ ПО
+	ДанныеОВремени.Сотрудник,
+	ДанныеОВремени.Дата,
+	ДанныеОВремени.ВидУчетаВремени,
+	КадроваяИсторияСотрудниковПериоды.ГоловнаяОрганизация,
+	КадроваяИсторияСотрудниковПериоды.Организация,
+	КадроваяИсторияСотрудниковПериоды.Подразделение,
+	КадроваяИсторияСотрудниковПериоды.Должность,
+	КадроваяИсторияСотрудниковПериоды.ДолжностьПоШтатномуРасписанию,
+	КадроваяИсторияСотрудниковПериоды.ВидДоговора</v8:Value>
+				</v8:Property>
+			</v8:Value>
+		</v8:Property>
+		<v8:Property name="ДоступныеЗначения">
+			<v8:Value xsi:type="v8:Structure">
+				<v8:Property name="ТекстЗапросаИсточника">
+					<v8:Value xsi:nil="true"/>
+				</v8:Property>
+			</v8:Value>
+		</v8:Property>
+		<v8:Property name="СтандартныеСвойстваПредопределенныхПараметровВывода">
+			<v8:Value xsi:type="v8:Array">
+				<v8:Value xsi:type="v8:Structure">
+					<v8:Property name="Идентификатор">
+						<v8:Value xsi:type="xs:string">TITLE</v8:Value>
+					</v8:Property>
+					<v8:Property name="Использование">
+						<v8:Value xsi:type="xs:boolean">false</v8:Value>
+					</v8:Property>
+					<v8:Property name="Значение">
+						<v8:Value xsi:type="xs:string">План факт рабочего времени</v8:Value>
+					</v8:Property>
+				</v8:Value>
+				<v8:Value xsi:type="v8:Structure">
+					<v8:Property name="Идентификатор">
+						<v8:Value xsi:type="xs:string">TITLEOUTPUT</v8:Value>
+					</v8:Property>
+					<v8:Property name="Использование">
+						<v8:Value xsi:type="xs:boolean">true</v8:Value>
+					</v8:Property>
+					<v8:Property name="Значение">
+						<v8:Value xsi:type="DataCompositionTextOutputType">DontOutput</v8:Value>
+					</v8:Property>
+				</v8:Value>
+				<v8:Value xsi:type="v8:Structure">
+					<v8:Property name="Идентификатор">
+						<v8:Value xsi:type="xs:string">DATAPARAMETERSOUTPUT</v8:Value>
+					</v8:Property>
+					<v8:Property name="Использование">
+						<v8:Value xsi:type="xs:boolean">true</v8:Value>
+					</v8:Property>
+					<v8:Property name="Значение">
+						<v8:Value xsi:type="DataCompositionTextOutputType">Auto</v8:Value>
+					</v8:Property>
+				</v8:Value>
+				<v8:Value xsi:type="v8:Structure">
+					<v8:Property name="Идентификатор">
+						<v8:Value xsi:type="xs:string">FILTEROUTPUT</v8:Value>
+					</v8:Property>
+					<v8:Property name="Использование">
+						<v8:Value xsi:type="xs:boolean">true</v8:Value>
+					</v8:Property>
+					<v8:Property name="Значение">
+						<v8:Value xsi:type="DataCompositionTextOutputType">Auto</v8:Value>
+					</v8:Property>
+				</v8:Value>
+			</v8:Value>
+		</v8:Property>
+		<v8:Property name="ПараметрыПодбора">
+			<v8:Value xsi:type="v8:Map">
+				<v8:pair>
+					<v8:Key xmlns:d6p1="http://v8.1c.ru/8.1/data/enterprise/current-config" xsi:type="v8:Type">d6p1:CatalogRef.Организации</v8:Key>
+					<v8:Value xsi:type="xs:string">Справочник.Организации.ФормаВыбора</v8:Value>
+				</v8:pair>
+			</v8:Value>
+		</v8:Property>
+		<v8:Property name="РасширенноеОписаниеТипов">
+			<v8:Value xsi:type="v8:Map">
+				<v8:pair>
+					<v8:Key xsi:type="xs:decimal">3</v8:Key>
+					<v8:Value xsi:type="v8:Structure">
+						<v8:Property name="СодержитТипТип">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитТипДата">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитТипБулево">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитТипСтрока">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитТипЧисло">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитТипПериод">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитТипУИД">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитТипХранилище">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитОбъектныеТипы">
+							<v8:Value xsi:type="xs:boolean">true</v8:Value>
+						</v8:Property>
+						<v8:Property name="ОграниченнойДлины">
+							<v8:Value xsi:type="xs:boolean">true</v8:Value>
+						</v8:Property>
+						<v8:Property name="КоличествоТипов">
+							<v8:Value xsi:type="xs:decimal">1</v8:Value>
+						</v8:Property>
+						<v8:Property name="КоличествоПримитивныхТипов">
+							<v8:Value xsi:type="xs:decimal">0</v8:Value>
+						</v8:Property>
+						<v8:Property name="ОбъектныеТипы">
+							<v8:Value xsi:type="v8:Array">
+								<v8:Value xmlns:d9p1="http://v8.1c.ru/8.1/data/enterprise/current-config" xsi:type="v8:Type">d9p1:CatalogRef.Организации</v8:Value>
+							</v8:Value>
+						</v8:Property>
+						<v8:Property name="ОписаниеТиповИсходное">
+							<v8:Value xsi:type="v8:TypeDescription">
+								<v8:Type xmlns:d9p1="http://v8.1c.ru/8.1/data/enterprise/current-config">d9p1:CatalogRef.Организации</v8:Type>
+							</v8:Value>
+						</v8:Property>
+						<v8:Property name="ОписаниеТиповДляФормы">
+							<v8:Value xsi:type="v8:TypeDescription">
+								<v8:Type xmlns:d9p1="http://v8.1c.ru/8.1/data/enterprise/current-config">d9p1:CatalogRef.Организации</v8:Type>
+							</v8:Value>
+						</v8:Property>
+					</v8:Value>
+				</v8:pair>
+				<v8:pair>
+					<v8:Key xsi:type="xs:decimal">1</v8:Key>
+					<v8:Value xsi:type="v8:Structure">
+						<v8:Property name="СодержитТипТип">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитТипДата">
+							<v8:Value xsi:type="xs:boolean">true</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитТипБулево">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитТипСтрока">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитТипЧисло">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитТипПериод">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитТипУИД">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитТипХранилище">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитОбъектныеТипы">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="ОграниченнойДлины">
+							<v8:Value xsi:type="xs:boolean">true</v8:Value>
+						</v8:Property>
+						<v8:Property name="КоличествоТипов">
+							<v8:Value xsi:type="xs:decimal">1</v8:Value>
+						</v8:Property>
+						<v8:Property name="КоличествоПримитивныхТипов">
+							<v8:Value xsi:type="xs:decimal">1</v8:Value>
+						</v8:Property>
+						<v8:Property name="ОбъектныеТипы">
+							<v8:Value xsi:type="v8:Array"/>
+						</v8:Property>
+						<v8:Property name="ОписаниеТиповИсходное">
+							<v8:Value xsi:type="v8:TypeDescription">
+								<v8:Type>xs:dateTime</v8:Type>
+								<v8:DateQualifiers>
+									<v8:DateFractions>DateTime</v8:DateFractions>
+								</v8:DateQualifiers>
+							</v8:Value>
+						</v8:Property>
+						<v8:Property name="ОписаниеТиповДляФормы">
+							<v8:Value xsi:type="v8:TypeDescription">
+								<v8:Type>xs:dateTime</v8:Type>
+								<v8:DateQualifiers>
+									<v8:DateFractions>DateTime</v8:DateFractions>
+								</v8:DateQualifiers>
+							</v8:Value>
+						</v8:Property>
+					</v8:Value>
+				</v8:pair>
+				<v8:pair>
+					<v8:Key xsi:type="xs:decimal">0</v8:Key>
+					<v8:Value xsi:type="v8:Structure">
+						<v8:Property name="СодержитТипТип">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитТипДата">
+							<v8:Value xsi:type="xs:boolean">true</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитТипБулево">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитТипСтрока">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитТипЧисло">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитТипПериод">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитТипУИД">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитТипХранилище">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="СодержитОбъектныеТипы">
+							<v8:Value xsi:type="xs:boolean">false</v8:Value>
+						</v8:Property>
+						<v8:Property name="ОграниченнойДлины">
+							<v8:Value xsi:type="xs:boolean">true</v8:Value>
+						</v8:Property>
+						<v8:Property name="КоличествоТипов">
+							<v8:Value xsi:type="xs:decimal">1</v8:Value>
+						</v8:Property>
+						<v8:Property name="КоличествоПримитивныхТипов">
+							<v8:Value xsi:type="xs:decimal">1</v8:Value>
+						</v8:Property>
+						<v8:Property name="ОбъектныеТипы">
+							<v8:Value xsi:type="v8:Array"/>
+						</v8:Property>
+						<v8:Property name="ОписаниеТиповИсходное">
+							<v8:Value xsi:type="v8:TypeDescription">
+								<v8:Type>xs:dateTime</v8:Type>
+								<v8:DateQualifiers>
+									<v8:DateFractions>DateTime</v8:DateFractions>
+								</v8:DateQualifiers>
+							</v8:Value>
+						</v8:Property>
+						<v8:Property name="ОписаниеТиповДляФормы">
+							<v8:Value xsi:type="v8:TypeDescription">
+								<v8:Type>xs:dateTime</v8:Type>
+								<v8:DateQualifiers>
+									<v8:DateFractions>DateTime</v8:DateFractions>
+								</v8:DateQualifiers>
+							</v8:Value>
+						</v8:Property>
+					</v8:Value>
+				</v8:pair>
+			</v8:Value>
+		</v8:Property>
+		<v8:Property name="АдресСхемы">
+			<v8:Value xsi:type="xs:string">e1cib/tempstorage/de57e507-e56d-4dbd-ae8d-ce8ea4938cfd?seanceId=OWExOTkyMjctYTk5NC00ZTNjLWE4N2YtYTI5YjM2OWRjZTNinmk29UfiOUWQjLe9HZs6VAAAAAA</v8:Value>
+		</v8:Property>
+		<v8:Property name="ПорядокЭлементовНастроек">
+			<v8:Value xsi:type="v8:Map">
+				<v8:pair>
+					<v8:Key xsi:type="xs:string">38f22aa7-451d-490d-b366-b1b2d35e8753</v8:Key>
+					<v8:Value xsi:type="xs:decimal">1</v8:Value>
+				</v8:pair>
+				<v8:pair>
+					<v8:Key xsi:type="xs:string">e050798c-a105-4f3a-acf1-59c9a1f74698</v8:Key>
+					<v8:Value xsi:type="xs:decimal">5</v8:Value>
+				</v8:pair>
+				<v8:pair>
+					<v8:Key xsi:type="xs:string">3f21a155-7592-41d2-b2e3-69b4bc29ed21</v8:Key>
+					<v8:Value xsi:type="xs:decimal">2</v8:Value>
+				</v8:pair>
+				<v8:pair>
+					<v8:Key xsi:type="xs:string">bf801d8f-5501-4276-834c-dbb7a4ff7f0e</v8:Key>
+					<v8:Value xsi:type="xs:decimal">2</v8:Value>
+				</v8:pair>
+				<v8:pair>
+					<v8:Key xsi:type="xs:string">f1b0ded5-2438-4e1f-afe9-2332eb8839a5</v8:Key>
+					<v8:Value xsi:type="xs:decimal">3</v8:Value>
+				</v8:pair>
+				<v8:pair>
+					<v8:Key xsi:type="xs:string">390f74f0-adb6-4d11-afbc-09b9e3c6dbff</v8:Key>
+					<v8:Value xsi:type="xs:decimal">1</v8:Value>
+				</v8:pair>
+				<v8:pair>
+					<v8:Key xsi:type="xs:string">e5f80f94-5b1c-4c7e-b631-a69ee4aa6cad</v8:Key>
+					<v8:Value xsi:type="xs:decimal">4</v8:Value>
+				</v8:pair>
+				<v8:pair>
+					<v8:Key xsi:type="xs:string">9459d2f6-c1f3-4d29-99d9-964ea801a618</v8:Key>
+					<v8:Value xsi:type="xs:decimal">1</v8:Value>
+				</v8:pair>
+				<v8:pair>
+					<v8:Key xsi:type="xs:string">90b6bafa-7173-44d8-8df4-73f07650cc7c</v8:Key>
+					<v8:Value xsi:type="xs:decimal">2</v8:Value>
+				</v8:pair>
+				<v8:pair>
+					<v8:Key xsi:type="xs:string">7577fc64-e815-4e8f-a432-1942e28262f9</v8:Key>
+					<v8:Value xsi:type="xs:decimal">3</v8:Value>
+				</v8:pair>
+				<v8:pair>
+					<v8:Key xsi:type="xs:string">affd2f07-6257-47fc-bdcc-9c346783a120</v8:Key>
+					<v8:Value xsi:type="xs:decimal">3</v8:Value>
+				</v8:pair>
+			</v8:Value>
+		</v8:Property>
+		<v8:Property name="КлючВарианта">
+			<v8:Value xsi:type="xs:string">e588ad28-f07a-43d7-b1b2-ead620bcccd0</v8:Value>
+		</v8:Property>
+		<v8:Property name="КлючПредопределенногоВарианта">
+			<v8:Value xsi:type="xs:string">Основной</v8:Value>
+		</v8:Property>
+		<v8:Property name="КонтекстВарианта">
+			<v8:Value xsi:type="xs:string"/>
+		</v8:Property>
+		<v8:Property name="ФормаПараметрыОтбор">
+			<v8:Value xsi:type="v8:Structure"/>
+		</v8:Property>
+		<v8:Property name="ВариантНаименование">
+			<v8:Value xsi:type="xs:string">План факт рабочего времени</v8:Value>
+		</v8:Property>
+	</additionalProperties>
+</Settings>
