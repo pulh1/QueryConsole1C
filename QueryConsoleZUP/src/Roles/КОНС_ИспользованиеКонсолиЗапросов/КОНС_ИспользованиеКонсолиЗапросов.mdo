@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Role xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="eb66b8f8-aff0-40dd-8313-4b97679b1079">
+  <name>КОНС_ИспользованиеКонсолиЗапросов</name>
+  <synonym>
+    <key>ru</key>
+    <value>Использование консоли запросов</value>
+  </synonym>
+</mdclass:Role>

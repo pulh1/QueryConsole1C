@@ -20,6 +20,10 @@
       <lang>ru</lang>
     </pages>
   </help>
+  <extendedPresentation>
+    <key>ru</key>
+    <value>Универсальный отчет расширенный</value>
+  </extendedPresentation>
   <forms uuid="b8e257b6-ef96-4ae5-a2f0-6a5ec6a05099">
     <name>РедакторЗапроса</name>
     <synonym>

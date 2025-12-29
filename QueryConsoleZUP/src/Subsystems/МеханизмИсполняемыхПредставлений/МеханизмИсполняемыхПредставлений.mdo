@@ -45,4 +45,6 @@
   <content>DataProcessor.Шаблон_ПосетительМоделиВыражений</content>
   <content>DataProcessor.СемантическийАнализВыраженийПосетитель</content>
   <content>DataProcessor.ПроверкаПрименимостиОтбораПосетитель</content>
+  <content>Role.КОНС_ИспользованиеКонсолиЗапросов</content>
+  <subsystems>УниверсальныйОтчетРасширенный</subsystems>
 </mdclass:Subsystem>

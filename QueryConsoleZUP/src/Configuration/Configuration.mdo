@@ -21,19 +21,20 @@
   <containedObjects classId="fb282519-d103-4dd3-bc12-cb271d631dfc" objectId="3fade37f-4435-41c0-a580-6da44a59bbbe"/>
   <keepMappingToExtendedConfigurationObjectsByIDs>true</keepMappingToExtendedConfigurationObjectsByIDs>
   <namePrefix>КОНС_</namePrefix>
-  <configurationExtensionCompatibilityMode>8.3.21</configurationExtensionCompatibilityMode>
+  <configurationExtensionCompatibilityMode>8.3.24</configurationExtensionCompatibilityMode>
   <configurationExtensionPurpose>Customization</configurationExtensionPurpose>
   <defaultRunMode>ManagedApplication</defaultRunMode>
   <usePurposes>PersonalComputer</usePurposes>
   <scriptVariant>Russian</scriptVariant>
   <defaultRoles>Role.КОНС_ОсновнаяРоль</defaultRoles>
-  <version>0.5.1.1</version>
+  <version>0.6.1.1</version>
   <interfaceCompatibilityMode>TaxiEnableVersion8_2</interfaceCompatibilityMode>
   <subsystems>Subsystem.ЗУП_ИсполняемыеПредставления</subsystems>
   <subsystems>Subsystem.МеханизмИсполняемыхПредставлений</subsystems>
   <subsystems>Subsystem.ИнструментыТестирования</subsystems>
   <subsystems>Subsystem.ИсполняемыеПредставленияЗУПУтилиты</subsystems>
   <subsystems>Subsystem.ИсполняемыеПредставления</subsystems>
+  <subsystems>Subsystem.КОНС_УниверсальныйОтчетРаздел</subsystems>
   <styleItems>StyleItem.ИтогиФонГруппы</styleItems>
   <styleItems>StyleItem.ВажнаяНадписьШрифт</styleItems>
   <styleItems>StyleItem.ЦветТекстаВнимание</styleItems>
@@ -55,6 +56,9 @@
   <commonPictures>CommonPicture.Структура</commonPictures>
   <commonPictures>CommonPicture.Предупреждение</commonPictures>
   <roles>Role.КОНС_ОсновнаяРоль</roles>
+  <roles>Role.КОНС_ИспользованиеУниверсальногоОтчетаРасширенного</roles>
+  <roles>Role.КОНС_ИспользованиеКонсолиЗапросов</roles>
+  <roles>Role.КОНС_РазделУниверсальныйОтчет</roles>
   <commonModules>CommonModule.ГенерацияИсполняемогоКодаПредставленийЗУПУтилиты</commonModules>
   <commonModules>CommonModule.ГенерацияИсполняемогоКодаПредставленийУтилиты</commonModules>
   <commonModules>CommonModule.ГенерацияТекстовЗапросов</commonModules>
