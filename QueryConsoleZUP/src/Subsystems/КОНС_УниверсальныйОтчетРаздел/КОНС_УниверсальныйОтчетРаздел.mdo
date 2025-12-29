@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Subsystem xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="d9b2ac3d-2c0f-4193-9be6-153db4d8ddc3">
+  <name>КОНС_УниверсальныйОтчетРаздел</name>
+  <synonym>
+    <key>ru</key>
+    <value>Универсальный отчет раздел</value>
+  </synonym>
+  <includeHelpInContents>true</includeHelpInContents>
+  <includeInCommandInterface>true</includeInCommandInterface>
+  <content>DataProcessor.КонсольЗапросов</content>
+  <content>Report.УниверсальныйОтчетРасширенный</content>
+</mdclass:Subsystem>

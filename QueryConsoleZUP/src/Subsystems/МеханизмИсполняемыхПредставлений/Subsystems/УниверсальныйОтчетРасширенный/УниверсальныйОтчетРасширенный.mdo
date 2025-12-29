@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Subsystem xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="21364614-2a49-4260-8922-5bb24c9f52f8">
+  <name>УниверсальныйОтчетРасширенный</name>
+  <synonym>
+    <key>ru</key>
+    <value>Универсальный отчет расширенный</value>
+  </synonym>
+  <includeHelpInContents>true</includeHelpInContents>
+  <content>Report.УниверсальныйОтчетРасширенный</content>
+  <content>DataProcessor.ОбработчикРазыменованийДляСКДПосетитель</content>
+  <content>DataProcessor.ИсполнительУниверсальногоОтчета</content>
+  <content>Role.КОНС_ИспользованиеУниверсальногоОтчетаРасширенного</content>
+  <content>CommonModule.УниверсальныйОтчетРасширенный</content>
+  <content>CommonModule.УниверсальныйОтчетРасширенныйКлиент</content>
+  <content>Role.КОНС_РазделУниверсальныйОтчет</content>
+  <parentSubsystem>Subsystem.МеханизмИсполняемыхПредставлений</parentSubsystem>
+</mdclass:Subsystem>

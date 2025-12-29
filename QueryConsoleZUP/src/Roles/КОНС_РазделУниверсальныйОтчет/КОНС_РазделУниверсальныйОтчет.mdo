@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Role xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="72296176-b4b4-485f-b018-24b5e91c9a2d">
+  <name>КОНС_РазделУниверсальныйОтчет</name>
+  <synonym>
+    <key>ru</key>
+    <value>Раздел универсальный отчет</value>
+  </synonym>
+</mdclass:Role>

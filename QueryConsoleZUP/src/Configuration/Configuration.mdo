@@ -21,22 +21,44 @@
   <containedObjects classId="fb282519-d103-4dd3-bc12-cb271d631dfc" objectId="3fade37f-4435-41c0-a580-6da44a59bbbe"/>
   <keepMappingToExtendedConfigurationObjectsByIDs>true</keepMappingToExtendedConfigurationObjectsByIDs>
   <namePrefix>КОНС_</namePrefix>
-  <configurationExtensionCompatibilityMode>8.3.21</configurationExtensionCompatibilityMode>
+  <configurationExtensionCompatibilityMode>8.3.24</configurationExtensionCompatibilityMode>
   <configurationExtensionPurpose>Customization</configurationExtensionPurpose>
   <defaultRunMode>ManagedApplication</defaultRunMode>
   <usePurposes>PersonalComputer</usePurposes>
   <scriptVariant>Russian</scriptVariant>
   <defaultRoles>Role.КОНС_ОсновнаяРоль</defaultRoles>
-  <version>0.5.1.1</version>
+  <version>0.6.1.1</version>
   <interfaceCompatibilityMode>TaxiEnableVersion8_2</interfaceCompatibilityMode>
   <subsystems>Subsystem.ЗУП_ИсполняемыеПредставления</subsystems>
   <subsystems>Subsystem.МеханизмИсполняемыхПредставлений</subsystems>
   <subsystems>Subsystem.ИнструментыТестирования</subsystems>
   <subsystems>Subsystem.ИсполняемыеПредставленияЗУПУтилиты</subsystems>
   <subsystems>Subsystem.ИсполняемыеПредставления</subsystems>
+  <subsystems>Subsystem.КОНС_УниверсальныйОтчетРаздел</subsystems>
+  <styleItems>StyleItem.ИтогиФонГруппы</styleItems>
+  <styleItems>StyleItem.ВажнаяНадписьШрифт</styleItems>
+  <styleItems>StyleItem.ЦветТекстаВнимание</styleItems>
+  <styleItems>StyleItem.ЦветФонаВнимание</styleItems>
   <commonPictures>CommonPicture.ДлительнаяОперация48</commonPictures>
   <commonPictures>CommonPicture.ФорматMXL</commonPictures>
+  <commonPictures>CommonPicture.СохранитьКак</commonPictures>
+  <commonPictures>CommonPicture.ВыбратьВариантОтчета</commonPictures>
+  <commonPictures>CommonPicture.ОтменитьДействие</commonPictures>
+  <commonPictures>CommonPicture.ПовторитьДействие</commonPictures>
+  <commonPictures>CommonPicture.Сумма</commonPictures>
+  <commonPictures>CommonPicture.ПиктограммыНастроекОтчета</commonPictures>
+  <commonPictures>CommonPicture.БыстрыйДоступ</commonPictures>
+  <commonPictures>CommonPicture.ПиктограммыДоступаКНастройкамОтчета</commonPictures>
+  <commonPictures>CommonPicture.Отборы</commonPictures>
+  <commonPictures>CommonPicture.ПиктограммыТиповДанных</commonPictures>
+  <commonPictures>CommonPicture.ПоляИСортировки</commonPictures>
+  <commonPictures>CommonPicture.Оформление</commonPictures>
+  <commonPictures>CommonPicture.Структура</commonPictures>
+  <commonPictures>CommonPicture.Предупреждение</commonPictures>
   <roles>Role.КОНС_ОсновнаяРоль</roles>
+  <roles>Role.КОНС_ИспользованиеУниверсальногоОтчетаРасширенного</roles>
+  <roles>Role.КОНС_ИспользованиеКонсолиЗапросов</roles>
+  <roles>Role.КОНС_РазделУниверсальныйОтчет</roles>
   <commonModules>CommonModule.ГенерацияИсполняемогоКодаПредставленийЗУПУтилиты</commonModules>
   <commonModules>CommonModule.ГенерацияИсполняемогоКодаПредставленийУтилиты</commonModules>
   <commonModules>CommonModule.ГенерацияТекстовЗапросов</commonModules>
@@ -63,16 +85,26 @@
   <commonModules>CommonModule.ЭлементыМоделиЗапроса</commonModules>
   <commonModules>CommonModule.ЭлементыМоделиИсполненияПредставлений</commonModules>
   <commonModules>CommonModule.ЭлементыМоделиОписанияПредставлений</commonModules>
+  <commonModules>CommonModule.ОтчетыПереопределяемый</commonModules>
+  <commonModules>CommonModule.ВариантыОтчетовПереопределяемый</commonModules>
   <commonModules>CommonModule.ОписаниеИсполняемыхПредставленийШаблоны</commonModules>
+  <commonModules>CommonModule.УниверсальныйОтчетРасширенный</commonModules>
+  <commonModules>CommonModule.ОтчетыКлиентПереопределяемый</commonModules>
+  <commonModules>CommonModule.УниверсальныйОтчетРасширенныйКлиент</commonModules>
+  <settingsStorages>SettingsStorage.ХранилищеВариантовОтчетов</settingsStorages>
   <functionalOptions>FunctionalOption.ИспользоватьИсториюИзмененияШтатногоРасписания</functionalOptions>
   <definedTypes>DefinedType.МестоВыплатыЗарплатыСотрудников</definedTypes>
   <definedTypes>DefinedType.ОснованиеИзмененияПлановогоФОТ</definedTypes>
   <definedTypes>DefinedType.ОснованиеНачисленияУдержания</definedTypes>
   <definedTypes>DefinedType.ТерриторияВыполненияРаботВОрганизации</definedTypes>
+  <commonForms>CommonForm.ФормаОтчета</commonForms>
+  <commonForms>CommonForm.ФормаВариантаОтчета</commonForms>
+  <commonForms>CommonForm.ФормаНастроекОтчета</commonForms>
   <catalogs>Catalog.Организации</catalogs>
   <catalogs>Catalog.ПодразделенияОрганизаций</catalogs>
   <catalogs>Catalog.Сотрудники</catalogs>
   <reports>Report.СправкаПоИсполняемымПредставлениям</reports>
+  <reports>Report.УниверсальныйОтчетРасширенный</reports>
   <dataProcessors>DataProcessor.ПредставлениеПериоды</dataProcessors>
   <dataProcessors>DataProcessor.ГенераторКодаЗапросовДляСКД</dataProcessors>
   <dataProcessors>DataProcessor.ГенераторКодаИсполняемыхПредставлений</dataProcessors>
@@ -108,6 +140,8 @@
   <dataProcessors>DataProcessor.Шаблон_ПосетительМоделиВыражений</dataProcessors>
   <dataProcessors>DataProcessor.СемантическийАнализВыраженийПосетитель</dataProcessors>
   <dataProcessors>DataProcessor.ПроверкаПрименимостиОтбораПосетитель</dataProcessors>
+  <dataProcessors>DataProcessor.ИсполнительУниверсальногоОтчета</dataProcessors>
+  <dataProcessors>DataProcessor.ОбработчикРазыменованийДляСКДПосетитель</dataProcessors>
   <informationRegisters>InformationRegister.БухучетЗарплатыСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ВидыЗанятостиСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ГрафикРаботыСотрудников</informationRegisters>
