@@ -3202,18 +3202,19 @@
               <representationInContextMenu>Auto</representationInContextMenu>
             </items>
             <items xsi:type="form:Button">
-              <name>SummDeleteAll</name>
+              <name>УдалитьАгрегированиеДляВсехПолей</name>
               <id>306</id>
               <title>
                 <key>ru</key>
                 <value>&lt;&lt;</value>
               </title>
+              <visible>true</visible>
               <enabled>true</enabled>
               <userVisible>
                 <common>true</common>
               </userVisible>
               <extendedTooltip>
-                <name>SummDeleteAllExtendedTooltip</name>
+                <name>УдалитьАгрегированиеДляВсехПолейРасширеннаяПодсказка</name>
                 <id>307</id>
                 <type>Label</type>
                 <autoMaxWidth>true</autoMaxWidth>
@@ -16342,7 +16343,7 @@
     <name>УдалитьАгрегированиеДляВсехПолей</name>
     <title>
       <key>ru</key>
-      <value>SummDeleteAll</value>
+      <value>Удалить агрегирование для всех полей</value>
     </title>
     <id>41</id>
     <use>
