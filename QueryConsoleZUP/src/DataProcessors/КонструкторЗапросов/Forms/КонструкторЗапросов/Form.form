@@ -3142,7 +3142,7 @@
               <representationInContextMenu>Auto</representationInContextMenu>
             </items>
             <items xsi:type="form:Button">
-              <name>SummAddAll</name>
+              <name>ДобавитьАгрегированиеДляВсехПолей</name>
               <id>302</id>
               <title>
                 <key>ru</key>
@@ -3154,7 +3154,7 @@
                 <common>true</common>
               </userVisible>
               <extendedTooltip>
-                <name>SummAddAllExtendedTooltip</name>
+                <name>ДобавитьАгрегированиеДляВсехПолейРасширеннаяПодсказка</name>
                 <id>303</id>
                 <type>Label</type>
                 <autoMaxWidth>true</autoMaxWidth>
@@ -3164,7 +3164,7 @@
                 </extInfo>
               </extendedTooltip>
               <type>UsualButton</type>
-              <commandName>Form.Command.SummAddAll</commandName>
+              <commandName>Form.Command.ДобавитьАгрегированиеДляВсехПолей</commandName>
               <representation>Auto</representation>
               <autoMaxWidth>true</autoMaxWidth>
               <autoMaxHeight>true</autoMaxHeight>
@@ -16306,10 +16306,10 @@
     <currentRowUse>DontUse</currentRowUse>
   </formCommands>
   <formCommands>
-    <name>SummAddAll</name>
+    <name>ДобавитьАгрегированиеДляВсехПолей</name>
     <title>
       <key>ru</key>
-      <value>SummAddAll</value>
+      <value>Добавить агрегирование для всех полей</value>
     </title>
     <id>39</id>
     <use>
@@ -16317,7 +16317,7 @@
     </use>
     <action xsi:type="form:FormCommandHandlerContainer">
       <handler>
-        <name>SummAddAll</name>
+        <name>ДобавитьАгрегированиеДляВсехПолей</name>
       </handler>
     </action>
     <currentRowUse>DontUse</currentRowUse>
