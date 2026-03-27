@@ -4,9 +4,6 @@
 #Область ОписаниеПеременных
 
 //@skip-check bsl-variable-name-invalid
-&НаСервере
-Перем мКартинкиПоТипам; 
-//@skip-check bsl-variable-name-invalid
 &НаСервере  
 Перем _схема;
 
