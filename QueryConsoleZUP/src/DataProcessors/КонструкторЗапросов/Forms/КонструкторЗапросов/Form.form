@@ -5734,7 +5734,7 @@
             <locationInCommandBar>InCommandBarAndInAdditionalSubmenu</locationInCommandBar>
           </items>
           <items xsi:type="form:Button">
-            <name>СдвинутьКолонкуЗапросаВВерх</name>
+            <name>СдвинутьКолонкуЗапросаВверх</name>
             <id>238</id>
             <title>
               <key>ru</key>
@@ -5746,7 +5746,7 @@
               <common>true</common>
             </userVisible>
             <extendedTooltip>
-              <name>СдвинутьКолонкуЗапросаВВерхРасширеннаяПодсказка</name>
+              <name>СдвинутьКолонкуЗапросаВверхРасширеннаяПодсказка</name>
               <id>239</id>
               <type>Label</type>
               <autoMaxWidth>true</autoMaxWidth>
@@ -5755,7 +5755,7 @@
                 <horizontalAlign>Left</horizontalAlign>
               </extInfo>
             </extendedTooltip>
-            <commandName>Form.Command.СдвинутьКолонкуЗапросаВВерх</commandName>
+            <commandName>Form.Command.СдвинутьКолонкуЗапросаВверх</commandName>
             <representation>Auto</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
@@ -5766,7 +5766,7 @@
             <representationInContextMenu>Auto</representationInContextMenu>
           </items>
           <items xsi:type="form:Button">
-            <name>СдвинутьКолонкуЗапросаВНиз</name>
+            <name>СдвинутьКолонкуЗапросаВниз</name>
             <id>236</id>
             <title>
               <key>ru</key>
@@ -5778,7 +5778,7 @@
               <common>true</common>
             </userVisible>
             <extendedTooltip>
-              <name>СдвинутьКолонкуЗапросаВНизРасширеннаяПодсказка</name>
+              <name>СдвинутьКолонкуЗапросаВнизРасширеннаяПодсказка</name>
               <id>237</id>
               <type>Label</type>
               <autoMaxWidth>true</autoMaxWidth>
@@ -5787,7 +5787,7 @@
                 <horizontalAlign>Left</horizontalAlign>
               </extInfo>
             </extendedTooltip>
-            <commandName>Form.Command.СдвинутьКолонкуЗапросаВНиз</commandName>
+            <commandName>Form.Command.СдвинутьКолонкуЗапросаВниз</commandName>
             <representation>Auto</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
@@ -16167,10 +16167,10 @@
     <currentRowUse>DontUse</currentRowUse>
   </formCommands>
   <formCommands>
-    <name>СдвинутьКолонкуЗапросаВНиз</name>
+    <name>СдвинутьКолонкуЗапросаВниз</name>
     <title>
       <key>ru</key>
-      <value>СдвинутьКолонкуЗапросаВНиз</value>
+      <value>Сдвинуть колонку запроса вниз</value>
     </title>
     <id>34</id>
     <toolTip>
@@ -16182,16 +16182,16 @@
     </use>
     <action xsi:type="form:FormCommandHandlerContainer">
       <handler>
-        <name>СдвинутьКолонкуЗапросаВНиз</name>
+        <name>СдвинутьКолонкуЗапросаВниз</name>
       </handler>
     </action>
     <currentRowUse>DontUse</currentRowUse>
   </formCommands>
   <formCommands>
-    <name>СдвинутьКолонкуЗапросаВВерх</name>
+    <name>СдвинутьКолонкуЗапросаВверх</name>
     <title>
       <key>ru</key>
-      <value>AliasMoveUp</value>
+      <value>Сдвинуть колонку запроса вверх</value>
     </title>
     <id>35</id>
     <toolTip>
@@ -16203,7 +16203,7 @@
     </use>
     <action xsi:type="form:FormCommandHandlerContainer">
       <handler>
-        <name>СдвинутьКолонкуЗапросаВВерх</name>
+        <name>СдвинутьКолонкуЗапросаВверх</name>
       </handler>
     </action>
     <currentRowUse>DontUse</currentRowUse>
