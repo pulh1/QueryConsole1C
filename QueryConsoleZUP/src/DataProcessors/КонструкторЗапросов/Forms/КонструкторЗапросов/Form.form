@@ -7519,7 +7519,7 @@
           <name>ПорядокКомандыГруппа</name>
           <id>183</id>
           <items xsi:type="form:Button">
-            <name>СдвинутьЭлементПорядкаВВерх</name>
+            <name>СдвинутьЭлементПорядкаВверх</name>
             <id>185</id>
             <visible>true</visible>
             <enabled>true</enabled>
@@ -7527,7 +7527,7 @@
               <common>true</common>
             </userVisible>
             <extendedTooltip>
-              <name>СдвинутьЭлементПорядкаВВерхРасширеннаяПодсказка</name>
+              <name>СдвинутьЭлементПорядкаВверхРасширеннаяПодсказка</name>
               <id>186</id>
               <type>Label</type>
               <autoMaxWidth>true</autoMaxWidth>
@@ -7537,7 +7537,7 @@
               </extInfo>
             </extendedTooltip>
             <type>UsualButton</type>
-            <commandName>Form.Command.СдвинутьЭлементПорядкаВВерх</commandName>
+            <commandName>Form.Command.СдвинутьЭлементПорядкаВверх</commandName>
             <representation>Picture</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
@@ -7548,7 +7548,7 @@
             <representationInContextMenu>Auto</representationInContextMenu>
           </items>
           <items xsi:type="form:Button">
-            <name>СдвинутьЭлементПорядкаВВНиз</name>
+            <name>СдвинутьЭлементПорядкаВниз</name>
             <id>187</id>
             <visible>true</visible>
             <enabled>true</enabled>
@@ -7556,7 +7556,7 @@
               <common>true</common>
             </userVisible>
             <extendedTooltip>
-              <name>СдвинутьЭлементПорядкаВВНизРасширеннаяПодсказка</name>
+              <name>СдвинутьЭлементПорядкаВнизРасширеннаяПодсказка</name>
               <id>188</id>
               <type>Label</type>
               <autoMaxWidth>true</autoMaxWidth>
@@ -7566,7 +7566,7 @@
               </extInfo>
             </extendedTooltip>
             <type>UsualButton</type>
-            <commandName>Form.Command.СдвинутьЭлементПорядкаВВНиз</commandName>
+            <commandName>Form.Command.СдвинутьЭлементПорядкаВниз</commandName>
             <representation>Picture</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
@@ -16020,10 +16020,10 @@
     <currentRowUse>DontUse</currentRowUse>
   </formCommands>
   <formCommands>
-    <name>СдвинутьЭлементПорядкаВВНиз</name>
+    <name>СдвинутьЭлементПорядкаВниз</name>
     <title>
       <key>ru</key>
-      <value>OrderMoveDown</value>
+      <value>Сдвинуть элемент порядка вниз</value>
     </title>
     <id>26</id>
     <toolTip>
@@ -16035,13 +16035,17 @@
     </use>
     <action xsi:type="form:FormCommandHandlerContainer">
       <handler>
-        <name>OrderMoveDown</name>
+        <name>СдвинутьЭлементПорядкаВниз</name>
       </handler>
     </action>
     <currentRowUse>DontUse</currentRowUse>
   </formCommands>
   <formCommands>
-    <name>СдвинутьЭлементПорядкаВВерх</name>
+    <name>СдвинутьЭлементПорядкаВверх</name>
+    <title>
+      <key>ru</key>
+      <value>Сдвинуть элемент порядка вверх</value>
+    </title>
     <id>27</id>
     <toolTip>
       <key>ru</key>
@@ -16052,7 +16056,7 @@
     </use>
     <action xsi:type="form:FormCommandHandlerContainer">
       <handler>
-        <name>СдвинутьЭлементПорядкаВВерх</name>
+        <name>СдвинутьЭлементПорядкаВверх</name>
       </handler>
     </action>
     <currentRowUse>DontUse</currentRowUse>
