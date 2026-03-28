@@ -3256,6 +3256,10 @@
               <segments>АгрегируемыеПоля</segments>
             </dataPath>
             <titleLocation>None</titleLocation>
+            <excludedCommands>Add</excludedCommands>
+            <excludedCommands>Copy</excludedCommands>
+            <excludedCommands>Change</excludedCommands>
+            <excludedCommands>EndEdit</excludedCommands>
             <items xsi:type="form:FormGroup">
               <name>АгрегируемыеПоляГруппа</name>
               <id>382</id>
@@ -3392,6 +3396,14 @@
               <id>279</id>
               <horizontalAlign>Left</horizontalAlign>
             </autoCommandBar>
+            <handlers>
+              <event>BeforeAddRow</event>
+              <name>АгрегируемыеПоляПередНачаломДобавления</name>
+            </handlers>
+            <handlers>
+              <event>BeforeDeleteRow</event>
+              <name>АгрегируемыеПоляПередУдалением</name>
+            </handlers>
             <searchStringAddition>
               <name>АгрегируемыеПоляСтрокаПоиска</name>
               <id>945</id>
