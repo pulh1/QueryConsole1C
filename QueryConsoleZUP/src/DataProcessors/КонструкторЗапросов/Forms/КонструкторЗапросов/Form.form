@@ -4055,6 +4055,58 @@
                 <locationInCommandBar>InCommandBarAndInAdditionalSubmenu</locationInCommandBar>
               </items>
               <items xsi:type="form:Button">
+                <name>УсловияСкопировать</name>
+                <id>1670</id>
+                <visible>true</visible>
+                <enabled>true</enabled>
+                <userVisible>
+                  <common>true</common>
+                </userVisible>
+                <extendedTooltip>
+                  <name>УсловияСкопироватьРасширеннаяПодсказка</name>
+                  <id>1671</id>
+                  <type>Label</type>
+                  <autoMaxWidth>true</autoMaxWidth>
+                  <autoMaxHeight>true</autoMaxHeight>
+                  <extInfo xsi:type="form:LabelDecorationExtInfo">
+                    <horizontalAlign>Left</horizontalAlign>
+                  </extInfo>
+                </extendedTooltip>
+                <commandName>Form.Item.Условия.StandardCommand.Copy</commandName>
+                <representation>Auto</representation>
+                <autoMaxWidth>true</autoMaxWidth>
+                <autoMaxHeight>true</autoMaxHeight>
+                <placementArea>UserCmds</placementArea>
+                <representationInContextMenu>Auto</representationInContextMenu>
+                <locationInCommandBar>InAdditionalSubmenu</locationInCommandBar>
+              </items>
+              <items xsi:type="form:Button">
+                <name>УсловияИзменить</name>
+                <id>1672</id>
+                <visible>true</visible>
+                <enabled>true</enabled>
+                <userVisible>
+                  <common>true</common>
+                </userVisible>
+                <extendedTooltip>
+                  <name>УсловияИзменитьРасширеннаяПодсказка</name>
+                  <id>1673</id>
+                  <type>Label</type>
+                  <autoMaxWidth>true</autoMaxWidth>
+                  <autoMaxHeight>true</autoMaxHeight>
+                  <extInfo xsi:type="form:LabelDecorationExtInfo">
+                    <horizontalAlign>Left</horizontalAlign>
+                  </extInfo>
+                </extendedTooltip>
+                <commandName>Form.Item.Условия.StandardCommand.Change</commandName>
+                <representation>Auto</representation>
+                <autoMaxWidth>true</autoMaxWidth>
+                <autoMaxHeight>true</autoMaxHeight>
+                <placementArea>UserCmds</placementArea>
+                <representationInContextMenu>Auto</representationInContextMenu>
+                <locationInCommandBar>InAdditionalSubmenu</locationInCommandBar>
+              </items>
+              <items xsi:type="form:Button">
                 <name>УсловияУдалить</name>
                 <id>867</id>
                 <visible>true</visible>
@@ -4081,7 +4133,7 @@
                 <locationInCommandBar>InCommandBarAndInAdditionalSubmenu</locationInCommandBar>
               </items>
               <items xsi:type="form:Button">
-                <name>ConditionsSearch</name>
+                <name>УсловияНайти</name>
                 <id>1475</id>
                 <visible>true</visible>
                 <enabled>true</enabled>
@@ -4089,7 +4141,7 @@
                   <common>true</common>
                 </userVisible>
                 <extendedTooltip>
-                  <name>ConditionsSearchРасширеннаяПодсказка</name>
+                  <name>УсловияНайтиРасширеннаяПодсказка</name>
                   <id>1476</id>
                   <type>Label</type>
                   <autoMaxWidth>true</autoMaxWidth>
@@ -4107,7 +4159,7 @@
                 <locationInCommandBar>InAdditionalSubmenu</locationInCommandBar>
               </items>
               <items xsi:type="form:Button">
-                <name>ConditionsCancelSearch</name>
+                <name>УсловияОтменитьПоиск</name>
                 <id>1477</id>
                 <visible>true</visible>
                 <enabled>true</enabled>
@@ -4115,7 +4167,7 @@
                   <common>true</common>
                 </userVisible>
                 <extendedTooltip>
-                  <name>ConditionsCancelSearchРасширеннаяПодсказка</name>
+                  <name>УсловияОтменитьПоискРасширеннаяПодсказка</name>
                   <id>1478</id>
                   <type>Label</type>
                   <autoMaxWidth>true</autoMaxWidth>
@@ -4231,19 +4283,15 @@
               <name>УсловияКонтекстноеМеню</name>
               <id>60</id>
               <items xsi:type="form:Button">
-                <name>Add</name>
+                <name>УсловияКонтекстноеМенюДобавить</name>
                 <id>772</id>
-                <title>
-                  <key>ru</key>
-                  <value>Добавить</value>
-                </title>
                 <visible>true</visible>
                 <enabled>true</enabled>
                 <userVisible>
                   <common>true</common>
                 </userVisible>
                 <extendedTooltip>
-                  <name>AddExtendedTooltip</name>
+                  <name>УсловияКонтекстноеМенюДобавитьРасширеннаяПодсказка</name>
                   <id>773</id>
                   <type>Label</type>
                   <autoMaxWidth>true</autoMaxWidth>
@@ -4252,30 +4300,23 @@
                     <horizontalAlign>Left</horizontalAlign>
                   </extInfo>
                 </extendedTooltip>
-                <commandName>Form.Command.ConditionAdd</commandName>
-                <representation>Picture</representation>
+                <commandName>Form.Item.Условия.StandardCommand.Add</commandName>
+                <representation>Auto</representation>
                 <autoMaxWidth>true</autoMaxWidth>
                 <autoMaxHeight>true</autoMaxHeight>
                 <placementArea>UserCmds</placementArea>
-                <picture xsi:type="core:PictureRef">
-                  <picture>StdPicture.CreateListItem</picture>
-                </picture>
                 <representationInContextMenu>Auto</representationInContextMenu>
               </items>
               <items xsi:type="form:Button">
-                <name>Copy</name>
+                <name>УсловияКонтекстноеМенюСкопировать</name>
                 <id>774</id>
-                <title>
-                  <key>ru</key>
-                  <value>Скопировать</value>
-                </title>
                 <visible>true</visible>
                 <enabled>true</enabled>
                 <userVisible>
                   <common>true</common>
                 </userVisible>
                 <extendedTooltip>
-                  <name>CopyExtendedTooltip</name>
+                  <name>УсловияКонтекстноеМенюСкопироватьРасширеннаяПодсказка</name>
                   <id>775</id>
                   <type>Label</type>
                   <autoMaxWidth>true</autoMaxWidth>
@@ -4284,30 +4325,23 @@
                     <horizontalAlign>Left</horizontalAlign>
                   </extInfo>
                 </extendedTooltip>
-                <commandName>Form.Command.ConditionCopy</commandName>
-                <representation>Picture</representation>
+                <commandName>Form.Item.Условия.StandardCommand.Copy</commandName>
+                <representation>Auto</representation>
                 <autoMaxWidth>true</autoMaxWidth>
                 <autoMaxHeight>true</autoMaxHeight>
                 <placementArea>UserCmds</placementArea>
-                <picture xsi:type="core:PictureRef">
-                  <picture>StdPicture.CloneListItem</picture>
-                </picture>
                 <representationInContextMenu>Auto</representationInContextMenu>
               </items>
               <items xsi:type="form:Button">
-                <name>Change</name>
+                <name>УсловияКонтекстноеМенюИзменить</name>
                 <id>776</id>
-                <title>
-                  <key>ru</key>
-                  <value>Изменить</value>
-                </title>
                 <visible>true</visible>
                 <enabled>true</enabled>
                 <userVisible>
                   <common>true</common>
                 </userVisible>
                 <extendedTooltip>
-                  <name>ChangeExtendedTooltip</name>
+                  <name>УсловияКонтекстноеМенюИзменитьРасширеннаяПодсказка</name>
                   <id>777</id>
                   <type>Label</type>
                   <autoMaxWidth>true</autoMaxWidth>
@@ -4317,29 +4351,22 @@
                   </extInfo>
                 </extendedTooltip>
                 <commandName>Form.Item.Условия.StandardCommand.Change</commandName>
-                <representation>Picture</representation>
+                <representation>Auto</representation>
                 <autoMaxWidth>true</autoMaxWidth>
                 <autoMaxHeight>true</autoMaxHeight>
                 <placementArea>UserCmds</placementArea>
-                <picture xsi:type="core:PictureRef">
-                  <picture>StdPicture.Change</picture>
-                </picture>
                 <representationInContextMenu>Auto</representationInContextMenu>
               </items>
               <items xsi:type="form:Button">
-                <name>Remove</name>
+                <name>УсловияКонтекстноеМенюУдалить</name>
                 <id>778</id>
-                <title>
-                  <key>ru</key>
-                  <value>Удалить</value>
-                </title>
                 <visible>true</visible>
                 <enabled>true</enabled>
                 <userVisible>
                   <common>true</common>
                 </userVisible>
                 <extendedTooltip>
-                  <name>RemoveExtendedTooltip</name>
+                  <name>УсловияКонтекстноеМенюУдалитьРасширеннаяПодсказка</name>
                   <id>779</id>
                   <type>Label</type>
                   <autoMaxWidth>true</autoMaxWidth>
@@ -4348,18 +4375,15 @@
                     <horizontalAlign>Left</horizontalAlign>
                   </extInfo>
                 </extendedTooltip>
-                <commandName>Form.Command.ConditionDelete</commandName>
-                <representation>Picture</representation>
+                <commandName>Form.Item.Условия.StandardCommand.Delete</commandName>
+                <representation>Auto</representation>
                 <autoMaxWidth>true</autoMaxWidth>
                 <autoMaxHeight>true</autoMaxHeight>
                 <placementArea>UserCmds</placementArea>
-                <picture xsi:type="core:PictureRef">
-                  <picture>StdPicture.Delete</picture>
-                </picture>
                 <representationInContextMenu>Auto</representationInContextMenu>
               </items>
               <items xsi:type="form:Button">
-                <name>ConditionsContextMenuSearch</name>
+                <name>УсловияКонтекстноеМенюНайти</name>
                 <id>1425</id>
                 <visible>true</visible>
                 <enabled>true</enabled>
@@ -4367,7 +4391,7 @@
                   <common>true</common>
                 </userVisible>
                 <extendedTooltip>
-                  <name>ConditionsContextMenuSearchРасширеннаяПодсказка</name>
+                  <name>УсловияКонтекстноеМенюНайтиРасширеннаяПодсказка</name>
                   <id>1426</id>
                   <type>Label</type>
                   <autoMaxWidth>true</autoMaxWidth>
@@ -4384,7 +4408,7 @@
                 <representationInContextMenu>Auto</representationInContextMenu>
               </items>
               <items xsi:type="form:Button">
-                <name>ConditionsContextMenuCancelSearch</name>
+                <name>УсловияКонтекстноеМенюОтменитьПоиск</name>
                 <id>1371</id>
                 <visible>true</visible>
                 <enabled>true</enabled>
@@ -4392,7 +4416,7 @@
                   <common>true</common>
                 </userVisible>
                 <extendedTooltip>
-                  <name>ConditionsContextMenuCancelSearchРасширеннаяПодсказка</name>
+                  <name>УсловияКонтекстноеМенюОтменитьПоискРасширеннаяПодсказка</name>
                   <id>1372</id>
                   <type>Label</type>
                   <autoMaxWidth>true</autoMaxWidth>
@@ -15742,69 +15766,6 @@
     <currentRowUse>DontUse</currentRowUse>
   </formCommands>
   <formCommands>
-    <name>ConditionAdd</name>
-    <title>
-      <key>ru</key>
-      <value>Condition add</value>
-    </title>
-    <id>13</id>
-    <toolTip>
-      <key>ru</key>
-      <value>Добавить</value>
-    </toolTip>
-    <use>
-      <common>true</common>
-    </use>
-    <action xsi:type="form:FormCommandHandlerContainer">
-      <handler>
-        <name>ConditionAdd</name>
-      </handler>
-    </action>
-    <currentRowUse>DontUse</currentRowUse>
-  </formCommands>
-  <formCommands>
-    <name>ConditionDelete</name>
-    <title>
-      <key>ru</key>
-      <value>Condition delete</value>
-    </title>
-    <id>14</id>
-    <toolTip>
-      <key>ru</key>
-      <value>Удалить текущий элемент</value>
-    </toolTip>
-    <use>
-      <common>true</common>
-    </use>
-    <action xsi:type="form:FormCommandHandlerContainer">
-      <handler>
-        <name>ConditionDelete</name>
-      </handler>
-    </action>
-    <currentRowUse>DontUse</currentRowUse>
-  </formCommands>
-  <formCommands>
-    <name>ConditionCopy</name>
-    <title>
-      <key>ru</key>
-      <value>Condition copy</value>
-    </title>
-    <id>15</id>
-    <toolTip>
-      <key>ru</key>
-      <value>Добавить копированием</value>
-    </toolTip>
-    <use>
-      <common>true</common>
-    </use>
-    <action xsi:type="form:FormCommandHandlerContainer">
-      <handler>
-        <name>ConditionCopy</name>
-      </handler>
-    </action>
-    <currentRowUse>DontUse</currentRowUse>
-  </formCommands>
-  <formCommands>
     <name>IndexAdd</name>
     <title>
       <key>ru</key>
@@ -16947,57 +16908,6 @@
     <action xsi:type="form:FormCommandHandlerContainer">
       <handler>
         <name>SetQueryTextCommand</name>
-      </handler>
-    </action>
-    <currentRowUse>DontUse</currentRowUse>
-  </formCommands>
-  <formCommands>
-    <name>ConditionAddAll</name>
-    <title>
-      <key>ru</key>
-      <value>AdditionallyAddAll</value>
-    </title>
-    <id>78</id>
-    <use>
-      <common>true</common>
-    </use>
-    <action xsi:type="form:FormCommandHandlerContainer">
-      <handler>
-        <name>ConditionAddAll</name>
-      </handler>
-    </action>
-    <currentRowUse>DontUse</currentRowUse>
-  </formCommands>
-  <formCommands>
-    <name>ConditionDeleteAll</name>
-    <title>
-      <key>ru</key>
-      <value>AdditionallyDeleteAll</value>
-    </title>
-    <id>80</id>
-    <use>
-      <common>true</common>
-    </use>
-    <action xsi:type="form:FormCommandHandlerContainer">
-      <handler>
-        <name>ConditionDeleteAll</name>
-      </handler>
-    </action>
-    <currentRowUse>DontUse</currentRowUse>
-  </formCommands>
-  <formCommands>
-    <name>ConditionAddFromFields</name>
-    <title>
-      <key>ru</key>
-      <value>Condition add</value>
-    </title>
-    <id>77</id>
-    <use>
-      <common>true</common>
-    </use>
-    <action xsi:type="form:FormCommandHandlerContainer">
-      <handler>
-        <name>ConditionAddFromFields</name>
       </handler>
     </action>
     <currentRowUse>DontUse</currentRowUse>
