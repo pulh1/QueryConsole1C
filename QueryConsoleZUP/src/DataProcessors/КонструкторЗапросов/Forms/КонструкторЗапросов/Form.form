@@ -3884,7 +3884,7 @@
           <name>ПоляДоступныеДляОтбораContextMenu</name>
           <id>50</id>
           <items xsi:type="form:Button">
-            <name>ПоляДоступныеДляОтбораContextMenuSearch</name>
+            <name>ПоляДоступныеДляОтбораКонтекстноеМенюНайти</name>
             <id>1423</id>
             <visible>true</visible>
             <enabled>true</enabled>
@@ -3892,7 +3892,7 @@
               <common>true</common>
             </userVisible>
             <extendedTooltip>
-              <name>ПоляДоступныеДляОтбораContextMenuSearchРасширеннаяПодсказка</name>
+              <name>ПоляДоступныеДляОтбораКонтекстноеМенюНайтиРасширеннаяПодсказка</name>
               <id>1424</id>
               <type>Label</type>
               <autoMaxWidth>true</autoMaxWidth>
@@ -3901,7 +3901,7 @@
                 <horizontalAlign>Left</horizontalAlign>
               </extInfo>
             </extendedTooltip>
-            <commandName>0</commandName>
+            <commandName>Form.Item.ПоляДоступныеДляОтбора.StandardCommand.Find</commandName>
             <representation>Auto</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
@@ -3909,7 +3909,7 @@
             <representationInContextMenu>Auto</representationInContextMenu>
           </items>
           <items xsi:type="form:Button">
-            <name>ПоляДоступныеДляОтбораContextMenuCancelSearch</name>
+            <name>ПоляДоступныеДляОтбораКонтекстноеМенюОтменитьПоиск</name>
             <id>1369</id>
             <visible>true</visible>
             <enabled>true</enabled>
@@ -3917,7 +3917,7 @@
               <common>true</common>
             </userVisible>
             <extendedTooltip>
-              <name>ПоляДоступныеДляОтбораContextMenuCancelSearchРасширеннаяПодсказка</name>
+              <name>ПоляДоступныеДляОтбораКонтекстноеМенюОтменитьПоискРасширеннаяПодсказка</name>
               <id>1370</id>
               <type>Label</type>
               <autoMaxWidth>true</autoMaxWidth>
@@ -3926,7 +3926,7 @@
                 <horizontalAlign>Left</horizontalAlign>
               </extInfo>
             </extendedTooltip>
-            <commandName>0</commandName>
+            <commandName>Form.Item.ПоляДоступныеДляОтбора.StandardCommand.CancelSearch</commandName>
             <representation>Auto</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
