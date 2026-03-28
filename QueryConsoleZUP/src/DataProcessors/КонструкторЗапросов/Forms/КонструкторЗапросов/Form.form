@@ -8394,7 +8394,7 @@
                     <name>КонтрольныеТочкиИтоговГруппа6</name>
                     <id>701</id>
                     <items xsi:type="form:FormField">
-                      <name>КонтрольныеТочкиИтоговДоаолнениеПериода</name>
+                      <name>КонтрольныеТочкиИтоговДополнениеПериода</name>
                       <id>703</id>
                       <title>
                         <key>ru</key>
@@ -8406,14 +8406,14 @@
                         <common>true</common>
                       </userVisible>
                       <dataPath xsi:type="form:DataPath">
-                        <segments>КонтрольныеТочкиИтогов.ДоаолнениеПериода</segments>
+                        <segments>КонтрольныеТочкиИтогов.ДополнениеПериода</segments>
                       </dataPath>
                       <handlers>
                         <event>OnChange</event>
-                        <name>КонтрольныеТочкиИтоговДоаолнениеПериодаПриИзменении</name>
+                        <name>КонтрольныеТочкиИтоговДополнениеПериодаПриИзменении</name>
                       </handlers>
                       <extendedTooltip>
-                        <name>КонтрольныеТочкиИтоговДоаолнениеПериодаРасширеннаяПодсказка</name>
+                        <name>КонтрольныеТочкиИтоговДополнениеПериодаРасширеннаяПодсказка</name>
                         <id>705</id>
                         <type>Label</type>
                         <autoMaxWidth>true</autoMaxWidth>
@@ -8423,7 +8423,7 @@
                         </extInfo>
                       </extendedTooltip>
                       <contextMenu>
-                        <name>КонтрольныеТочкиИтоговДоаолнениеПериодаКонтекстноеМеню</name>
+                        <name>КонтрольныеТочкиИтоговДополнениеПериодаКонтекстноеМеню</name>
                         <id>704</id>
                         <autoFill>true</autoFill>
                       </contextMenu>
@@ -14115,10 +14115,10 @@
       </edit>
     </columns>
     <columns>
-      <name>ДоаолнениеПериода</name>
+      <name>ДополнениеПериода</name>
       <title>
         <key>ru</key>
-        <value>Доаолнение периода</value>
+        <value>Дополнение периода</value>
       </title>
       <id>6</id>
       <valueType>
