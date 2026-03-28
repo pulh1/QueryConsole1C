@@ -2936,7 +2936,7 @@
                 <name>ГруппируемыеПоляКонтекстноеМеню</name>
                 <id>265</id>
                 <items xsi:type="form:Button">
-                  <name>GroupingFieldsContextMenuSearch</name>
+                  <name>ГруппируемыеПоляКонтекстноеМенюНайти</name>
                   <id>1419</id>
                   <visible>true</visible>
                   <enabled>true</enabled>
@@ -2944,7 +2944,7 @@
                     <common>true</common>
                   </userVisible>
                   <extendedTooltip>
-                    <name>GroupingFieldsContextMenuSearchРасширеннаяПодсказка</name>
+                    <name>ГруппируемыеПоляКонтекстноеМенюНайтиРасширеннаяПодсказка</name>
                     <id>1420</id>
                     <type>Label</type>
                     <autoMaxWidth>true</autoMaxWidth>
@@ -2953,7 +2953,7 @@
                       <horizontalAlign>Left</horizontalAlign>
                     </extInfo>
                   </extendedTooltip>
-                  <commandName>0</commandName>
+                  <commandName>Form.Item.ГруппируемыеПоля.StandardCommand.Find</commandName>
                   <representation>Auto</representation>
                   <autoMaxWidth>true</autoMaxWidth>
                   <autoMaxHeight>true</autoMaxHeight>
@@ -2961,7 +2961,7 @@
                   <representationInContextMenu>Auto</representationInContextMenu>
                 </items>
                 <items xsi:type="form:Button">
-                  <name>GroupingFieldsContextMenuCancelSearch</name>
+                  <name>ГруппируемыеПоляКонтекстноеМенюОтменитьПоиск</name>
                   <id>1365</id>
                   <visible>true</visible>
                   <enabled>true</enabled>
@@ -2969,7 +2969,7 @@
                     <common>true</common>
                   </userVisible>
                   <extendedTooltip>
-                    <name>GroupingFieldsContextMenuCancelSearchРасширеннаяПодсказка</name>
+                    <name>ГруппируемыеПоляКонтекстноеМенюОтменитьПоискРасширеннаяПодсказка</name>
                     <id>1366</id>
                     <type>Label</type>
                     <autoMaxWidth>true</autoMaxWidth>
@@ -2978,7 +2978,7 @@
                       <horizontalAlign>Left</horizontalAlign>
                     </extInfo>
                   </extendedTooltip>
-                  <commandName>0</commandName>
+                  <commandName>Form.Item.ГруппируемыеПоля.StandardCommand.CancelSearch</commandName>
                   <representation>Auto</representation>
                   <autoMaxWidth>true</autoMaxWidth>
                   <autoMaxHeight>true</autoMaxHeight>
