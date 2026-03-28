@@ -2851,38 +2851,6 @@
                 <id>266</id>
                 <horizontalAlign>Left</horizontalAlign>
               </autoCommandBar>
-              <handlers>
-                <event>DragCheck</event>
-                <name>GroupingFieldsDragCheck</name>
-              </handlers>
-              <handlers>
-                <event>Selection</event>
-                <name>GroupingFieldsSelection</name>
-              </handlers>
-              <handlers>
-                <event>BeforeAddRow</event>
-                <name>GroupingFieldsBeforeAddRow</name>
-              </handlers>
-              <handlers>
-                <event>BeforeDeleteRow</event>
-                <name>GroupingFieldsBeforeDeleteRow</name>
-              </handlers>
-              <handlers>
-                <event>OnActivateRow</event>
-                <name>GroupingFieldsNewSelection</name>
-              </handlers>
-              <handlers>
-                <event>DragStart</event>
-                <name>GroupingFieldsDragStart</name>
-              </handlers>
-              <handlers>
-                <event>Drag</event>
-                <name>GroupingFieldsDrag</name>
-              </handlers>
-              <handlers>
-                <event>BeforeRowChange</event>
-                <name>GroupingFieldsBeforeRowChange</name>
-              </handlers>
               <searchStringAddition>
                 <name>ГруппируемыеПоляСтрокаПоиска</name>
                 <id>936</id>
