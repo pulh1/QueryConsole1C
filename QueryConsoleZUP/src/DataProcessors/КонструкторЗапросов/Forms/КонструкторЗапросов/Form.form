@@ -2477,7 +2477,7 @@
           <name>ПоляДляГруппировкиКонтекстноеМеню</name>
           <id>256</id>
           <items xsi:type="form:Button">
-            <name>AllFieldsForGroupingContextMenuSearch</name>
+            <name>ПоляДляГруппировкиКонтекстноеМенюНайти</name>
             <id>1417</id>
             <visible>true</visible>
             <enabled>true</enabled>
@@ -2485,7 +2485,7 @@
               <common>true</common>
             </userVisible>
             <extendedTooltip>
-              <name>AllFieldsForGroupingContextMenuSearchРасширеннаяПодсказка</name>
+              <name>ПоляДляГруппировкиКонтекстноеМенюНайтиРасширеннаяПодсказка</name>
               <id>1418</id>
               <type>Label</type>
               <autoMaxWidth>true</autoMaxWidth>
@@ -2494,7 +2494,7 @@
                 <horizontalAlign>Left</horizontalAlign>
               </extInfo>
             </extendedTooltip>
-            <commandName>0</commandName>
+            <commandName>Form.Item.ПоляДляГруппировки.StandardCommand.Find</commandName>
             <representation>Auto</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
@@ -2502,7 +2502,7 @@
             <representationInContextMenu>Auto</representationInContextMenu>
           </items>
           <items xsi:type="form:Button">
-            <name>AllFieldsForGroupingContextMenuCancelSearch</name>
+            <name>ПоляДляГруппировкиКонтекстноеМенюОтменитьПоиск</name>
             <id>1363</id>
             <visible>true</visible>
             <enabled>true</enabled>
@@ -2510,7 +2510,7 @@
               <common>true</common>
             </userVisible>
             <extendedTooltip>
-              <name>AllFieldsForGroupingContextMenuCancelSearchРасширеннаяПодсказка</name>
+              <name>ПоляДляГруппировкиКонтекстноеМенюОтменитьПоискРасширеннаяПодсказка</name>
               <id>1364</id>
               <type>Label</type>
               <autoMaxWidth>true</autoMaxWidth>
@@ -2519,7 +2519,7 @@
                 <horizontalAlign>Left</horizontalAlign>
               </extInfo>
             </extendedTooltip>
-            <commandName>0</commandName>
+            <commandName>Form.Item.ПоляДляГруппировки.StandardCommand.CancelSearch</commandName>
             <representation>Auto</representation>
             <autoMaxWidth>true</autoMaxWidth>
             <autoMaxHeight>true</autoMaxHeight>
