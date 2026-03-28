@@ -2728,6 +2728,9 @@
                 <segments>ГруппируемыеПоля</segments>
               </dataPath>
               <titleLocation>None</titleLocation>
+              <excludedCommands>Add</excludedCommands>
+              <excludedCommands>Copy</excludedCommands>
+              <excludedCommands>Change</excludedCommands>
               <items xsi:type="form:FormGroup">
                 <name>ГруппируемыеПоляГруппа</name>
                 <id>377</id>
@@ -2851,6 +2854,14 @@
                 <id>266</id>
                 <horizontalAlign>Left</horizontalAlign>
               </autoCommandBar>
+              <handlers>
+                <event>BeforeAddRow</event>
+                <name>ГруппируемыеПоляПередНачаломДобавления</name>
+              </handlers>
+              <handlers>
+                <event>BeforeDeleteRow</event>
+                <name>ГруппируемыеПоляПередУдалением</name>
+              </handlers>
               <searchStringAddition>
                 <name>ГруппируемыеПоляСтрокаПоиска</name>
                 <id>936</id>
@@ -2987,6 +2998,7 @@
                 </items>
               </contextMenu>
               <representation>Tree</representation>
+              <changeRowSet>true</changeRowSet>
               <autoMaxWidth>true</autoMaxWidth>
               <autoMaxHeight>true</autoMaxHeight>
               <autoMaxRowsCount>true</autoMaxRowsCount>
