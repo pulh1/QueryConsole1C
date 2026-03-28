@@ -3380,38 +3380,6 @@
               <id>279</id>
               <horizontalAlign>Left</horizontalAlign>
             </autoCommandBar>
-            <handlers>
-              <event>DragCheck</event>
-              <name>SummingFieldsDragCheck</name>
-            </handlers>
-            <handlers>
-              <event>BeforeAddRow</event>
-              <name>SummingFieldsBeforeAddRow</name>
-            </handlers>
-            <handlers>
-              <event>BeforeDeleteRow</event>
-              <name>SummingFieldsBeforeDeleteRow</name>
-            </handlers>
-            <handlers>
-              <event>BeforeEditEnd</event>
-              <name>SummingFieldsBeforeEditEnd</name>
-            </handlers>
-            <handlers>
-              <event>DragStart</event>
-              <name>SummingFieldsDragStart</name>
-            </handlers>
-            <handlers>
-              <event>Drag</event>
-              <name>SummingFieldsDrag</name>
-            </handlers>
-            <handlers>
-              <event>BeforeRowChange</event>
-              <name>SummingFieldsBeforeRowChange</name>
-            </handlers>
-            <handlers>
-              <event>OnStartEdit</event>
-              <name>SummingFieldsOnStartEdit</name>
-            </handlers>
             <searchStringAddition>
               <name>АгрегируемыеПоляСтрокаПоиска</name>
               <id>945</id>
