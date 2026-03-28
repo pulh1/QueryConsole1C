@@ -3477,7 +3477,7 @@
               <name>АгрегируемыеПоляКонтекстноеМеню</name>
               <id>278</id>
               <items xsi:type="form:Button">
-                <name>SummingFieldsContextMenuSearch</name>
+                <name>АгрегируемыеПоляКонтекстноеМенюНайти</name>
                 <id>1421</id>
                 <visible>true</visible>
                 <enabled>true</enabled>
@@ -3485,7 +3485,7 @@
                   <common>true</common>
                 </userVisible>
                 <extendedTooltip>
-                  <name>SummingFieldsContextMenuSearchРасширеннаяПодсказка</name>
+                  <name>АгрегируемыеПоляКонтекстноеМенюНайтиРасширеннаяПодсказка</name>
                   <id>1422</id>
                   <type>Label</type>
                   <autoMaxWidth>true</autoMaxWidth>
@@ -3494,7 +3494,7 @@
                     <horizontalAlign>Left</horizontalAlign>
                   </extInfo>
                 </extendedTooltip>
-                <commandName>0</commandName>
+                <commandName>Form.Item.АгрегируемыеПоля.StandardCommand.Find</commandName>
                 <representation>Auto</representation>
                 <autoMaxWidth>true</autoMaxWidth>
                 <autoMaxHeight>true</autoMaxHeight>
@@ -3502,7 +3502,7 @@
                 <representationInContextMenu>Auto</representationInContextMenu>
               </items>
               <items xsi:type="form:Button">
-                <name>SummingFieldsContextMenuCancelSearch</name>
+                <name>АгрегируемыеПоляКонтекстноеМенюОтменитьПоиск</name>
                 <id>1367</id>
                 <visible>true</visible>
                 <enabled>true</enabled>
@@ -3510,7 +3510,7 @@
                   <common>true</common>
                 </userVisible>
                 <extendedTooltip>
-                  <name>SummingFieldsContextMenuCancelSearchРасширеннаяПодсказка</name>
+                  <name>АгрегируемыеПоляКонтекстноеМенюОтменитьПоискРасширеннаяПодсказка</name>
                   <id>1368</id>
                   <type>Label</type>
                   <autoMaxWidth>true</autoMaxWidth>
@@ -3519,7 +3519,7 @@
                     <horizontalAlign>Left</horizontalAlign>
                   </extInfo>
                 </extendedTooltip>
-                <commandName>0</commandName>
+                <commandName>Form.Item.АгрегируемыеПоля.StandardCommand.CancelSearch</commandName>
                 <representation>Auto</representation>
                 <autoMaxWidth>true</autoMaxWidth>
                 <autoMaxHeight>true</autoMaxHeight>
