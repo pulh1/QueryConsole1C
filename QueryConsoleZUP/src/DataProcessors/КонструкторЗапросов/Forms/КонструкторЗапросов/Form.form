@@ -8924,7 +8924,7 @@
                 <rowFilter xsi:type="core:UndefinedValue"/>
               </items>
               <items xsi:type="form:FormField">
-                <name>ОбщиеИтоги</name>
+                <name>ПолучатьОбщиеИтоги</name>
                 <id>453</id>
                 <title>
                   <key>ru</key>
@@ -8936,15 +8936,15 @@
                   <common>true</common>
                 </userVisible>
                 <dataPath xsi:type="form:DataPath">
-                  <segments>Overall</segments>
+                  <segments>ПолучатьОбщиеИтоги</segments>
                 </dataPath>
                 <titleLocation>Right</titleLocation>
                 <handlers>
                   <event>OnChange</event>
-                  <name>TotalsFlagOnChange</name>
+                  <name>ПолучатьОбщиеИтогиПриИзменении</name>
                 </handlers>
                 <extendedTooltip>
-                  <name>ОбщиеИтогиРасширеннаяПодсказка</name>
+                  <name>ПолучатьОбщиеИтогиРасширеннаяПодсказка</name>
                   <id>455</id>
                   <type>Label</type>
                   <autoMaxWidth>true</autoMaxWidth>
@@ -8954,7 +8954,7 @@
                   </extInfo>
                 </extendedTooltip>
                 <contextMenu>
-                  <name>ОбщиеИтогиКонтекстноеМеню</name>
+                  <name>ПолучатьОбщиеИтогиКонтекстноеМеню</name>
                   <id>454</id>
                   <autoFill>true</autoFill>
                 </contextMenu>
@@ -14410,10 +14410,10 @@
     </edit>
   </attributes>
   <attributes>
-    <name>Overall</name>
+    <name>ПолучатьОбщиеИтоги</name>
     <title>
       <key>ru</key>
-      <value>Overall</value>
+      <value>Общие итоги</value>
     </title>
     <id>34</id>
     <valueType>
