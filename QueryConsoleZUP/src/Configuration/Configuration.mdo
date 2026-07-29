@@ -28,6 +28,10 @@
   <scriptVariant>Russian</scriptVariant>
   <defaultRoles>Role.КОНС_ОсновнаяРоль</defaultRoles>
   <version>0.6.1.1</version>
+  <content>DataProcessor.РеестрПоставщиковМетаданныхТаблиц</content>
+  <content>DataProcessor.ПоставщикМетаданныхСтандартныхТаблиц</content>
+  <content>DataProcessor.ПоставщикМетаданныхИсполняемыхПредставлений</content>
+  <content>DataProcessor.ПоставщикМетаданныхВременныхТаблиц</content>
   <interfaceCompatibilityMode>TaxiEnableVersion8_2</interfaceCompatibilityMode>
   <subsystems>Subsystem.ЗУП_ИсполняемыеПредставления</subsystems>
   <subsystems>Subsystem.МеханизмИсполняемыхПредставлений</subsystems>
@@ -142,6 +146,10 @@
   <dataProcessors>DataProcessor.ПроверкаПрименимостиОтбораПосетитель</dataProcessors>
   <dataProcessors>DataProcessor.ИсполнительУниверсальногоОтчета</dataProcessors>
   <dataProcessors>DataProcessor.ОбработчикРазыменованийДляСКДПосетитель</dataProcessors>
+  <dataProcessors>DataProcessor.РеестрПоставщиковМетаданныхТаблиц</dataProcessors>
+  <dataProcessors>DataProcessor.ПоставщикМетаданныхСтандартныхТаблиц</dataProcessors>
+  <dataProcessors>DataProcessor.ПоставщикМетаданныхИсполняемыхПредставлений</dataProcessors>
+  <dataProcessors>DataProcessor.ПоставщикМетаданныхВременныхТаблиц</dataProcessors>
   <informationRegisters>InformationRegister.БухучетЗарплатыСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ВидыЗанятостиСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ГрафикРаботыСотрудников</informationRegisters>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="f334f650-fbd7-4926-9b2a-6c0e6ec5c234">
+  <producedTypes>
+    <objectType typeId="8b710642-5190-482d-a6cc-a2a7739f7a77" valueTypeId="79c96ea9-6710-4514-bee8-dbbe3ffe285d"/>
+    <managerType typeId="bcb160bd-a3ae-4ec1-aadf-3f994c35ff06" valueTypeId="38a25119-9d9b-4a41-92cf-054ca7dc476f"/>
+  </producedTypes>
+  <name>ПоставщикМетаданныхВременныхТаблиц</name>
+  <synonym>
+    <key>ru</key>
+    <value>Поставщик метаданных временных таблиц</value>
+  </synonym>
+  <comment>Контекстный поставщик метаданных временных таблиц для реестра поставщиков метаданных таблиц.</comment>
+</mdclass:DataProcessor>

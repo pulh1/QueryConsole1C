@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="b6e40e80-274f-4f0a-a187-d48ecd4447cc">
+  <producedTypes>
+    <objectType typeId="7a5e3e68-75dd-46a0-98ba-32473c2ee53b" valueTypeId="216fc4cc-e695-4cf3-a506-5b3f21a2efe3"/>
+    <managerType typeId="8aef7ec7-9f56-4b4f-8c65-140387a95861" valueTypeId="01851432-c9e5-4127-877f-9c82f02acff6"/>
+  </producedTypes>
+  <name>ПоставщикМетаданныхИсполняемыхПредставлений</name>
+  <synonym>
+    <key>ru</key>
+    <value>Поставщик метаданных исполняемых представлений</value>
+  </synonym>
+  <comment>Поставщик метаданных исполняемых представлений для реестра поставщиков метаданных таблиц.</comment>
+</mdclass:DataProcessor>
