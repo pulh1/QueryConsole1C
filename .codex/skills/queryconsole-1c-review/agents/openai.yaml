@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ревью 1С-кода QueryConsoleZUP"
+  short_description: "Доказательное ревью BSL и метаданных"
+  default_prompt: "Используй $queryconsole-1c-review, чтобы провести доказательное ревью изменений QueryConsoleZUP."

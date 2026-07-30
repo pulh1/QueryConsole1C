@@ -4,6 +4,12 @@
 /.kilo/
 /.kilocode/
 
+# Local MCP and skill runtime state
+/.mcp.json
+/.v8-project.json
+/.codex/cache/
+*.log
+
 # Windows and editor temporary files
 Thumbs.db
 Desktop.ini
@@ -15,7 +21,6 @@ Desktop.ini
 # Eclipse / EDT local workspace state
 .metadata/
 .recommenders/
-*.launch
 
 # Generated 1C artifacts and database dumps
 *.cf

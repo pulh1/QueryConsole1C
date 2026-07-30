@@ -1,0 +1,4 @@
+interface:
+  display_name: "Разработка запросов QueryConsoleZUP"
+  short_description: "Изменение и диагностика запросов 1С"
+  default_prompt: "Используй $queryconsole-query-development, чтобы изменить или проверить конкретный запрос 1С."
