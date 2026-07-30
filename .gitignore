@@ -1,0 +1,32 @@
+# Local agent state
+/.serena/cache/
+/.serena/project.local.yml
+/.kilo/
+/.kilocode/
+
+# Windows and editor temporary files
+Thumbs.db
+Desktop.ini
+*.tmp
+*.bak
+*.swp
+*~
+
+# Eclipse / EDT local workspace state
+.metadata/
+.recommenders/
+*.launch
+
+# Generated 1C artifacts and database dumps
+*.cf
+*.cfu
+*.cfe
+*.epf
+*.erf
+*.dt
+*.1CD
+
+# Conventional generated output
+/build/
+/dist/
+/out/
