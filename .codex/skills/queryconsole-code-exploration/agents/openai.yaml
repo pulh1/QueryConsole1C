@@ -1,0 +1,4 @@
+interface:
+  display_name: "Исследование кода QueryConsoleZUP"
+  short_description: "Навигация по архитектуре и вызовам BSL"
+  default_prompt: "Используй $queryconsole-code-exploration, чтобы проследить архитектуру и вызовы для выбранного поведения."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "BSL-разработка QueryConsoleZUP"
+  short_description: "Безопасные изменения BSL и контрактов"
+  default_prompt: "Используй $queryconsole-bsl-development, чтобы безопасно реализовать изменение BSL в QueryConsoleZUP."

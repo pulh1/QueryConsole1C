@@ -1,0 +1,4 @@
+interface:
+  display_name: "EDT-метаданные QueryConsoleZUP"
+  short_description: "Метаданные, формы и СКД через EDT-MCP"
+  default_prompt: "Используй $queryconsole-edt-metadata, чтобы безопасно изменить метаданные QueryConsoleZUP через EDT-MCP."
