@@ -208,7 +208,7 @@ Insert the following section in `THIRD_PARTY_NOTICES.md` before `## MIT-licensed
 
 - [`bia-technologies/yaxunit`](https://github.com/bia-technologies/yaxunit),
   release `25.12`, revision
-  `15f7ae557d17b59bd80daad503efd8a3114690e5`  
+  `15f7ae557d17b59bd80daad503efd8a3114690e5`
   Copyright 2021-2026 BIA-Technologies Limited Liability Company —
   Apache License 2.0.
 
@@ -337,12 +337,17 @@ if (Get-ChildItem -LiteralPath 'yaxunit' -Recurse -Force -Directory -Filter '.gi
     throw 'Nested .git directory found'
 }
 
-git diff --check
+git diff --check 0ff2bf4..HEAD -- ':(exclude)yaxunit/**'
+git diff --check ff3a1a9..HEAD -- yaxunit
 git status --short
 git diff --name-only 3eb6352..HEAD
 ```
 
 Expected: inventory differs from upstream only by the three attribution files; no nested `.git`; worktree is clean; changes since the accepted spec are limited to the plan, `yaxunit/**`, and `THIRD_PARTY_NOTICES.md`.
+
+The snapshot commit itself is excluded from `diff --check` because YAxUnit
+25.12 contains pre-existing trailing whitespace. Hash comparison, rather than
+rewriting third-party BSL, proves that this background is unchanged.
 
 - [ ] **Step 5: Remove the verified temporary directory safely**
 
