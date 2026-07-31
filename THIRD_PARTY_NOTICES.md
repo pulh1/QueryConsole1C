@@ -1,5 +1,17 @@
 # Third-Party Notices
 
+## Apache-2.0-licensed components
+
+- [`bia-technologies/yaxunit`](https://github.com/bia-technologies/yaxunit),
+  release `25.12`, revision
+  `15f7ae557d17b59bd80daad503efd8a3114690e5`
+  Copyright 2021-2026 BIA-Technologies Limited Liability Company —
+  Apache License 2.0.
+
+The vendored EDT project is stored in `yaxunit/`. Its full license and copyright
+notice are preserved in `yaxunit/LICENSE` and `yaxunit/COPYRIGHT`; exact
+provenance and local adaptations are recorded in `yaxunit/UPSTREAM.md`.
+
 ## MIT-licensed sources
 
 The following repositories were consulted as sources for project-local skill
