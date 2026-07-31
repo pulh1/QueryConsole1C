@@ -15,6 +15,7 @@
   <containedObjects classId="9de14907-ec23-4a07-96f0-85521cb6b53b" objectId="4fb22a5b-2d3a-445e-b9c7-b51a4e59f82a"/>
   <containedObjects classId="51f2d5d8-ea4d-4064-8892-82951750031e" objectId="d26a61dd-a7a6-44b9-b131-be84fcf8c021"/>
   <containedObjects classId="e68182ea-4237-4383-967f-90c1e3370bc7" objectId="8339b2da-95e3-48c0-b355-f1f6179cebb2"/>
+  <containedObjects classId="fb282519-d103-4dd3-bc12-cb271d631dfc" objectId="60f625ae-f458-428e-95aa-bb7b5513c0b3"/>
   <keepMappingToExtendedConfigurationObjectsByIDs>true</keepMappingToExtendedConfigurationObjectsByIDs>
   <namePrefix>ЮТ</namePrefix>
   <configurationExtensionCompatibilityMode>8.3.10</configurationExtensionCompatibilityMode>
@@ -61,6 +62,8 @@
   <commonTemplates>CommonTemplate.ЮТYaxUnitAddIn</commonTemplates>
   <commonTemplates>CommonTemplate.ЮТИнформацияОбОшибке</commonTemplates>
   <commonTemplates>CommonTemplate.ЮТОписаниеМетаданных</commonTemplates>
+  <commonModules>CommonModule.КОНС_Обр_Парсер_МО</commonModules>
+  <commonModules>CommonModule.КОНС_ТестовыеФабрикиСлужебный</commonModules>
   <commonModules>CommonModule.Мокито</commonModules>
   <commonModules>CommonModule.МокитоОбучение</commonModules>
   <commonModules>CommonModule.МокитоПерехват</commonModules>
