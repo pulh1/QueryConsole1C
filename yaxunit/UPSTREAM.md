@@ -15,4 +15,20 @@ Only `DT-INF/PROJECT.PMF` differs from the upstream release:
 - `Base-Project` is changed from `configuration` to
   `База_разработки_исполняемых_представлений_демо_ЗУП`.
 
-Files under `src/` are an unmodified copy of the pinned upstream release.
+## Project-local test additions
+
+In addition to the `DT-INF/PROJECT.PMF` adaptation above, the upstream files
+remain unchanged except for:
+
+- the compatibility registration of the Integration Services internal group
+  `fb282519-d103-4dd3-bc12-cb271d631dfc` in
+  `src/Configuration/Configuration.mdo`;
+- registration of the following project-local common modules in that file:
+
+- `КОНС_ТестовыеФабрикиСлужебный`;
+- `КОНС_Обр_Парсер_МО`.
+
+Their metadata and BSL sources are stored under `src/CommonModules/`. The
+compatibility row is required because EDT 2026.1 exports seven internal groups,
+while the pinned YAxUnit 25.12 source contains six. All remaining upstream
+files are unmodified copies of the pinned release.
