@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:CommonModule xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="ff39d793-0507-463c-bb20-8c95d48fff5e">
+  <name>ЮТТестовыеДанныеПереопределяемый</name>
+  <synonym>
+    <key>ru</key>
+    <value>ЮТТестовые данные переопределяемый</value>
+  </synonym>
+  <server>true</server>
+  <externalConnection>true</externalConnection>
+  <clientOrdinaryApplication>true</clientOrdinaryApplication>
+  <serverCall>true</serverCall>
+</mdclass:CommonModule>

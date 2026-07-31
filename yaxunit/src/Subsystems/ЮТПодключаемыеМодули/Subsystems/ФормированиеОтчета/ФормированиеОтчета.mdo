@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Subsystem xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="b36a006a-66ee-4a1d-bdc9-feebc5cdde82">
+  <name>ФормированиеОтчета</name>
+  <synonym>
+    <key>ru</key>
+    <value>Формирование отчета</value>
+  </synonym>
+  <includeHelpInContents>true</includeHelpInContents>
+  <explanation>
+    <key>ru</key>
+    <value>Функциональность формирования отчетов</value>
+  </explanation>
+  <content>CommonModule.ЮТОтчетAllureСлужебный</content>
+  <content>CommonModule.ЮТОтчетJSONСлужебный</content>
+  <content>CommonModule.ЮТОтчетJUnitСлужебный</content>
+  <parentSubsystem>Subsystem.ЮТПодключаемыеМодули</parentSubsystem>
+</mdclass:Subsystem>

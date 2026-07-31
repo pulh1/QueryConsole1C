@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="6a2c026b-010e-4257-97de-ed806134ec24">
+  <producedTypes>
+    <objectType typeId="343138b3-cd10-4e99-a3e4-138f39f39a4a" valueTypeId="d751afae-6c13-46fb-b57d-cd4d453f2621"/>
+    <managerType typeId="e27f15d5-2619-405e-a556-e015fce7c76e" valueTypeId="43eee287-7700-4377-b195-e908db21e2e8"/>
+  </producedTypes>
+  <name>ЮТПомощникДляСозданияТестовыхДанных</name>
+  <synonym>
+    <key>ru</key>
+    <value>Помощник для создания тестовых данных</value>
+  </synonym>
+  <useStandardCommands>true</useStandardCommands>
+  <defaultForm>DataProcessor.ЮТПомощникДляСозданияТестовыхДанных.Form.Форма</defaultForm>
+  <forms uuid="521729a1-55e2-42f7-8ec7-ab6f9906ec6a">
+    <name>Форма</name>
+    <synonym>
+      <key>ru</key>
+      <value>Форма</value>
+    </synonym>
+    <usePurposes>PersonalComputer</usePurposes>
+    <usePurposes>MobileDevice</usePurposes>
+  </forms>
+  <commands uuid="d6c4a140-0a34-4ca2-84fc-43cd7487cc7e">
+    <name>ПомощникДляСозданияТестовыхДанных</name>
+    <synonym>
+      <key>ru</key>
+      <value>Помощник для создания тестовых данных</value>
+    </synonym>
+    <group>NavigationPanelOrdinary</group>
+    <representation>Auto</representation>
+  </commands>
+</mdclass:DataProcessor>

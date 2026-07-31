@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Subsystem xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="36bb00a3-9e36-423a-9421-935867c7993e">
+  <name>ЮТДвижок</name>
+  <synonym>
+    <key>ru</key>
+    <value>Юнит тесты</value>
+  </synonym>
+  <includeHelpInContents>true</includeHelpInContents>
+  <explanation>
+    <key>ru</key>
+    <value>Внутренняя реализация инструмента</value>
+  </explanation>
+  <subsystems>ПоддержкаДымовыхТестов</subsystems>
+  <subsystems>ЮТИсполнитель</subsystems>
+  <subsystems>ЮТКонтекст</subsystems>
+  <subsystems>ЮТМокирование</subsystems>
+  <subsystems>ЮТСервис</subsystems>
+  <subsystems>ЮТТестовыеДанные</subsystems>
+  <subsystems>ЮТУтверждения</subsystems>
+</mdclass:Subsystem>
