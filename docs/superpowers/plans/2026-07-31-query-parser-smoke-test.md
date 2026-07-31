@@ -14,7 +14,7 @@
 - EDT-проект тестов: `yaxunit`; программное имя расширения: `YAXUNIT`.
 - Базовый проект: `База_разработки_исполняемых_представлений_демо_ЗУП`.
 - Тестируемое расширение: `QueryConsoleZUP`.
-- Метаданные и BSL модулей изменяются только через EDT-MCP; `.mdo` вручную не редактируются.
+- Метаданные и BSL модулей изменяются через EDT-MCP. Узкое разрешённое пользователем исключение — прямая правка экспортированного `Configuration.mdo`: совместимостная строка внутренней группы и удаление корневого маркера `ordinaryApplicationModule`; после неё успешно выполняется `clean_project`.
 - Проектные объекты имеют префикс `КОНС_`.
 - Обработки-эмитаторы создаются только в серверном непривилегированном модуле: платформа запрещает привилегированные общие модули в расширениях.
 - Тест не использует данные информационной базы, транзакции и моки.
@@ -31,7 +31,7 @@
 - Create via EDT-MCP: `yaxunit/src/CommonModules/КОНС_ТестовыеФабрикиСлужебный/Module.bsl`
 - Create via EDT-MCP: `yaxunit/src/CommonModules/КОНС_Обр_Парсер_МО/КОНС_Обр_Парсер_МО.mdo`
 - Create via EDT-MCP: `yaxunit/src/CommonModules/КОНС_Обр_Парсер_МО/Module.bsl`
-- Modify via EDT-MCP: `yaxunit/src/Configuration/Configuration.mdo`
+- Modify through the user-authorized exported-`.mdo` exception, then `clean_project`: `yaxunit/src/Configuration/Configuration.mdo`
 
 **Interfaces:**
 
@@ -72,7 +72,7 @@ create_metadata(
   fqn="CommonModule.КОНС_ТестовыеФабрикиСлужебный",
   expectedNotExists=true,
   commonModuleKind="Server",
-  privileged=false,
+  privileged=true,
   returnValuesReuse="DontUse",
   properties=[
     {name: "synonym", value: "Тестовые фабрики (служебный)", language: "ru"}
@@ -80,7 +80,11 @@ create_metadata(
 )
 ```
 
-Expected: `persisted=true`, module kind `CommonModule`, server-only flags and `Privileged = No`.
+Expected: `persisted=true`, module kind `CommonModule` and server-only flags. The
+proven creation workaround uses temporary `privileged=true` only to obtain those
+flags; immediately set `Privileged = No` through EDT before any platform update.
+Direct creation of this server shell with `privileged=false` was not
+reproducibly accepted. The final factory remains server-only and nonprivileged.
 
 - [ ] **Step 3: Create the server test module metadata shell**
 
@@ -154,7 +158,11 @@ Read the generated factory module and replace it with:
 
 Use the read `contentHash` and `expectedSource` as lost-update guards.
 
-- [ ] **Step 6: Revalidate only the new objects before runtime RED**
+- [ ] **Step 6: Reload the authorized Configuration edit and revalidate only the new objects before runtime RED**
+
+After the narrow direct `Configuration.mdo` edit, run
+`clean_project(projectName="yaxunit")` successfully so EDT reloads the exported
+model; then call:
 
 Call:
 
@@ -243,7 +251,13 @@ Pass the current `contentHash` as `expectedHash` and keep syntax checking enable
 
 Call `read_method_source` for `СоздатьПарсер`, then `revalidate_objects` and filtered `get_project_errors` for both `КОНС_` modules.
 
-Expected: `СоздатьПарсер` contains the exact manager call; no new ERRORS/BLOCKER diagnostics belong to either test object.
+Expected: `СоздатьПарсер` contains the exact manager call and neither module has
+a BSL syntax error or an unexplained new diagnostic. The final targeted delta is
+nine known diagnostics: two `common-module-type` BLOCKER messages (one per
+module) and seven standard/static-resolution messages — two
+`extension-md-object-prefix`, `export-procedure-missing-comment`,
+`bsl-legacy-check-static-feature-access-for-unknown-left-part`, two
+`module-structure-method-in-regions`, and `module-structure-top-region`.
 
 - [ ] **Step 4: Run the same test and verify GREEN**
 
@@ -312,7 +326,8 @@ with:
 ```markdown
 ## Project-local test additions
 
-The upstream files remain unchanged except for:
+In addition to the `DT-INF/PROJECT.PMF` adaptation above, the upstream files
+remain unchanged except for:
 
 - the compatibility registration of the Integration Services internal group
   `fb282519-d103-4dd3-bc12-cb271d631dfc` in
@@ -324,8 +339,8 @@ The upstream files remain unchanged except for:
 
 Their metadata and BSL sources are stored under `src/CommonModules/`. The
 compatibility row is required because EDT 2026.1 exports seven internal groups,
-while the pinned YAxUnit 25.12 source contains six. Every other upstream file
-remains an unmodified copy of the pinned release.
+while the pinned YAxUnit 25.12 source contains six. All remaining upstream
+files are unmodified copies of the pinned release.
 ```
 
 Use `apply_patch`; do not rewrite the whole file.

@@ -414,9 +414,11 @@ YAxUnit загружает тесты из собственного расшир
 ```text
 run_yaxunit_tests(
   launchConfigurationName="QueryConsoleZUP Тонкий клиент",
-  extensions=["yaxunit"],
+  extensions=["YAXUNIT"],
+  tests=["КОНС_Обр_Парсер_МО.РазборКонстантногоВыражения"],
   updateBeforeLaunch=true,
-  updateScope="all"
+  updateScope="extension:yaxunit",
+  timeout=60
 )
 ```
 
@@ -465,7 +467,9 @@ run_yaxunit_tests(
 - структура EDT `.mdo`, а не XML-выгрузка Конфигуратора;
 - размещение проектных тестов внутри `yaxunit`;
 - платформа 8.3.24 и источник версии из проектных инструкций/EDT;
-- создание и изменение метаданных через EDT-MCP;
+- создание и изменение метаданных через EDT-MCP, кроме узкой разрешённой
+  правки экспортированного `Configuration.mdo`, после которой выполняется
+  `clean_project`;
 - серверная непривилегированная фабрика обработок-эмитаторов;
 - запуск через `run_yaxunit_tests`;
 - ограничение Мокито для методов расширений;
