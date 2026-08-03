@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:CommonModule xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="5b6785f9-bf19-44d9-bfe9-83523c5ccdc8">
+  <name>КОНС_Обр_ПарсерБудущаяГрамматика_МО</name>
+  <comment>Opt-in acceptance RED для будущей регенерации парсера из грамматики.</comment>
+  <server>true</server>
+</mdclass:CommonModule>
