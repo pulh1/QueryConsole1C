@@ -1,0 +1,917 @@
+# Query Full Parser Unit Tests Implementation Plan
+
+> **Execution:** use `superpowers:executing-plans` or
+> `superpowers:subagent-driven-development`; execute tasks in order.
+
+**Goal:** implement 92 synthetic and 42 corpus black-box YAxUnit cases for
+`Обработки.Парсер.Разобрать`, without changing parser/grammar/semantic code.
+
+**Target arithmetic:** `Q00 1 + Q01–Q05 5 + Task3 23 + Task4 10 + Task5 7 +
+Task6 15 + Task7 21 + Task8 6 + Task9 4 = 92`; `92 + X01–X42 = 134`.
+
+## Global constraints
+
+- Production parser, grammar, `ЭлементыМоделиЗапроса` and semantic modules are
+  read-only.
+- Tests call only `КОНС_ТестовыеФабрикиСлужебный.СоздатьПарсер().Разобрать`.
+- Metadata and module source writes use EDT-MCP guarded by current content hash.
+- Task 1 contains the only artificial discovery RED.
+- Tasks 2–7, 8B and 9 each use one guarded write for the complete package.
+- Outside bootstrap Task 1, a second guarded write is authorized only in
+  bounded spike Task 1A, Task 8A and runtime-count/wiring Task 9B. Tasks 1A/8A
+  add then remove probes; Task 9B replaces count probes with final corpus cases.
+- Every launch uses `extensions=["YAXUNIT"]`, `updateBeforeLaunch=true`,
+  `updateScope="extension:yaxunit"`.
+- `clean_project`, full rebuild, `updateScope="all"`, all-extension update and
+  whole-YAxUnit launch are forbidden.
+- A production defect is recorded, not fixed. A failed alternative remains
+  represented in the matrix and can move to opt-in future acceptance only after
+  a separately observed RED.
+- Preserve unrelated worktree changes.
+
+Common module GREEN command:
+
+```text
+run_yaxunit_tests(
+  launchConfigurationName="QueryConsoleZUP Тонкий клиент",
+  extensions=["YAXUNIT"],
+  modules=["КОНС_Обр_ПарсерЗапросов_МО"],
+  updateBeforeLaunch=true,
+  updateScope="extension:yaxunit",
+  timeout=60
+)
+```
+
+---
+
+### Task 0: Strictly read-only alternative and corpus discovery
+
+**Files:** read `Парсер/ObjectModule.bsl:236-1708`, FIRST-table,
+`ЭлементыМоделиЗапроса/Module.bsl:57-601`, existing parser tests and all 42
+`QueryExamples/*.q1c`.
+
+**Interfaces:** consumes production source; produces an in-memory inventory of
+67 reachable declarations, two exclusions, branch conditions, candidate inputs
+and XML file list. It does not produce or modify a repository file.
+
+- [ ] Run `git status --short` and preserve baseline.
+- [ ] Confirm 67 reachable inventory rows plus two exclusions:
+  `НеТерминалКакОпционально:1001` has no caller;
+  `НеТерминалВыражениеСКДПараметр:1117` has only its self-recursive call and no
+  external caller.
+- [ ] Preserve the call-graph evidence: exact-name source search returns one
+  occurrence for `НеТерминалКакОпционально(` (declaration) and two for
+  `НеТерминалВыражениеСКДПараметр(` (declaration plus line 1126 self-call).
+- [ ] Confirm raw factory fields/values through line 601.
+- [ ] Parse XML read-only and confirm 42 unique relative filenames; do not run
+  parser, EDT writes or YAxUnit in this task.
+- [ ] Compare the 67 rows with the exact inventory in the design. Any mismatch
+  blocks Task 1.
+
+**Verification:** source searches only; no runtime claims.
+
+**Commit:** none; Task 0 is read-only.
+
+---
+
+### Task 1: Create module, common helpers and one discovery RED
+
+**Files:** create via EDT
+`yaxunit/src/CommonModules/КОНС_Обр_ПарсерЗапросов_МО/**`; EDT-managed
+`yaxunit/src/Configuration/Configuration.mdo`; update `yaxunit/UPSTREAM.md`.
+
+**Interfaces:** consumes parser factory; produces YAxUnit set `ПарсерЗапросов`
+and helpers used by every later task.
+
+- [ ] Create server common module with no client/server-call/privileged flags.
+- [ ] First guarded write contains only registration and the single bootstrap:
+
+```bsl
+Процедура ИсполняемыеСценарии() Экспорт
+	ЮТТесты
+		.ДобавитьТестовыйНабор("ПарсерЗапросов")
+			.Тег("Парсер")
+			.Тег("ПолныйЗапрос")
+			.ДобавитьСерверныйТест("МинимальныйЗапросВыбораРазбирается");
+КонецПроцедуры
+
+Процедура МинимальныйЗапросВыбораРазбирается() Экспорт
+	ЮТест.ОжидаетЧто(Истина)
+		.Равно(Ложь, "RED: registration discovery");
+КонецПроцедуры
+```
+
+- [ ] Run only that test; require `Total=1, Failed=1` and exact message.
+- [ ] Second guarded write replaces it with the helpers and Q00:
+
+```bsl
+Функция РазобратьЗапросДляТеста(ИсходныйТекст)
+	Парсер = КОНС_ТестовыеФабрикиСлужебный.СоздатьПарсер();
+	Возврат Парсер.Разобрать(ИсходныйТекст);
+КонецФункции
+
+Функция ЕдинственныйЗапросВыбора(ИсходныйТекст)
+	Пакет = РазобратьЗапросДляТеста(ИсходныйТекст);
+	ЮТест.ОжидаетЧто(Пакет.Тип).Равно("ПакетЗапросов");
+	ЮТест.ОжидаетЧто(Пакет.Элементы.Количество()).Равно(1);
+	Запрос = Пакет.Элементы[0];
+	ЮТест.ОжидаетЧто(Запрос.Тип).Равно("ЗапросВыбора");
+	Возврат Запрос;
+КонецФункции
+
+Функция ЕдинственныйОператор(ИсходныйТекст)
+	Запрос = ЕдинственныйЗапросВыбора(ИсходныйТекст);
+	ЮТест.ОжидаетЧто(Запрос.Операторы.Количество()).Равно(1);
+	Возврат Запрос.Операторы[0];
+КонецФункции
+
+Процедура ПроверитьСинтаксическуюОшибку(ИсходныйТекст, Фрагмент)
+	Парсер = КОНС_ТестовыеФабрикиСлужебный.СоздатьПарсер();
+	ЮТест.ОжидаетЧто(Парсер)
+		.Метод("Разобрать", ЮТМетоды.МассивПараметров(ИсходныйТекст))
+		.ВыбрасываетИсключение(Фрагмент);
+КонецПроцедуры
+
+Процедура МинимальныйЗапросВыбораРазбирается() Экспорт
+	Оператор = ЕдинственныйОператор("ВЫБРАТЬ 1");
+	ЮТест.ОжидаетЧто(Оператор.Тип).Равно("ОператорЗапроса");
+	ЮТест.ОжидаетЧто(Оператор.ВыбираемыеПоля.Количество()).Равно(1);
+	Поле = Оператор.ВыбираемыеПоля[0];
+	ЮТест.ОжидаетЧто(Поле.Выражение.Тип).Равно("ВыражениеМоделиЗапроса");
+	ЮТест.ОжидаетЧто(Поле.Выражение.Значение.Тип).Равно("Константа");
+	ЮТест.ОжидаетЧто(Поле.Выражение.Значение.Значение).Равно(1);
+КонецПроцедуры
+```
+
+- [ ] Run module GREEN, object diagnostics and `git diff --check`.
+
+**Commit:** commit only module metadata/source, EDT registration and UPSTREAM:
+`test: add full query parser test module`.
+
+---
+
+### Task 1A: Bounded runtime preflight after module creation
+
+**Files:** temporarily modify the new test module; create
+`docs/superpowers/matrices/2026-08-04-query-full-parser-runtime-preflight.md`.
+
+**Interfaces:** consumes Task 0 candidates and Q00 helpers; produces a verified
+artifact with exact input, result/error, report ID, raw AST path/value and ready
+BSL registration literals for M01–M15, S01–S10, J06–J07, T11–T20, K01–K06
+and E02. J06/J07 rows verify JOIN ownership and right-source indexing before
+Task 5 consumes their generated literals.
+
+- [ ] First authorized guarded write adds one parameterized probe:
+
+```bsl
+.ДобавитьСерверныйТест("RuntimePreflightРазбираетКандидат")
+	.СПараметрамиНаСервере("M01", "ВЫБРАТЬ ПЕРВЫЕ 5 1")
+	.СПараметрамиНаСервере("M02", "ВЫБРАТЬ РАЗЛИЧНЫЕ 1")
+	.СПараметрамиНаСервере("M03", "ВЫБРАТЬ РАЗРЕШЕННЫЕ 1")
+	.СПараметрамиНаСервере("J06", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 ЛЕВОЕ СОЕДИНЕНИЕ ВТ КАК Т2 ПО Т1.Ключ = Т2.Ключ")
+	.СПараметрамиНаСервере("J07", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 ЛЕВОЕ СОЕДИНЕНИЕ (ВЫБРАТЬ 1 КАК Ключ) КАК Т2 ПО Т1.Ключ = Т2.Ключ ПРАВОЕ СОЕДИНЕНИЕ Таблица3 КАК Т3 ПО Т2.Ключ = Т3.Ключ");
+
+Процедура RuntimePreflightРазбираетКандидат(Идентификатор, ИсходныйТекст) Экспорт
+	Пакет = РазобратьЗапросДляТеста(ИсходныйТекст);
+	ЮТест.ОжидаетЧто(Пакет.Элементы.Количество())
+		.Равно(1, Идентификатор);
+КонецПроцедуры
+
+.ДобавитьСерверныйТест("RuntimePreflightКоординатаОшибки");
+
+Процедура RuntimePreflightКоординатаОшибки() Экспорт
+	Парсер = КОНС_ТестовыеФабрикиСлужебный.СоздатьПарсер();
+	Парсер.Разобрать("ВЫБРАТЬ 1 2");
+КонецПроцедуры
+```
+
+The guarded source expands this registration with every exact candidate from
+the design: all fifteen modifier strings, ten source candidates, nine period
+types plus bounded-period form, six SKD candidates and the exact J06/J07 strings
+shown above: 43 successful-parse parameter cases in total. The E02 probe
+deliberately lets the real parser exception reach the temporary test report; it
+is not an artificial assertion failure.
+
+- [ ] Run only `RuntimePreflightРазбираетКандидат` with extension-only update.
+  For failures run only the failing parameter case; do not mutate parser.
+- [ ] Run `RuntimePreflightКоординатаОшибки` separately, require the exact input
+  `ВЫБРАТЬ 1 2`, and copy the actual coordinate-bearing exception fragment and
+  report ID into E02 artifact row. Do not predict the coordinate in this plan.
+- [ ] The first guarded write already includes the temporary diagnostic
+  procedure used for successful parses; do not add it in a third write. Record
+  exact public path and value. For SKD record whether a public value actually
+  distinguishes `ВЫБРАТЬ`, `УПОРЯДОЧИТЬ ПО`, `ИТОГИ ПО`.
+- [ ] For J06 record `result=success` and exact values at
+  `Пакет.Элементы[0].Операторы[0].Источники.Элементы.Количество()`,
+  `.Источники.Элементы[0].Соединения.Количество()`, every
+  `Тип`, `ТипСоединения`, `Опционально`, `Условие.Тип` and
+  `Условие.Значение.Тип` path under `.Соединения[0]`, and
+  `.Источники.Элементы[1].Источник.Тип`. Required observed values are `2`, `1`,
+  `СоединенияИсточника`, `Левое`, `Ложь`, `ВыражениеМоделиЗапроса`,
+  `БинарнаяОперация` and `ИсточникДанныхВременнаяТаблица`; any different value
+  blocks Task 5 instead of being silently normalized.
+- [ ] For J07 record `result=success` and the same fields for both
+  `.Источники.Элементы[0].Соединения[0]` and `[1]`, plus right-source paths
+  `.Источники.Элементы[1].Источник.Тип` and
+  `.Источники.Элементы[2].Источник.Тип`. Required values are source count `3`,
+  root JOIN count `2`; first JOIN
+  `СоединенияИсточника/Левое/Ложь/ВыражениеМоделиЗапроса/БинарнаяОперация`;
+  second JOIN
+  `СоединенияИсточника/Правое/Ложь/ВыражениеМоделиЗапроса/БинарнаяОперация`;
+  right-source types `ИсточникДанныхВложенныйЗапрос` and
+  `ИсточникДанныхТаблица`. No JOIN path under `.Источники.Элементы[1]` is a
+  substitute for either root path.
+- [ ] Write the artifact. Every row has `ID | exact input | result | exact AST
+  path/value | error fragment | report ID | generated BSL parameter call`.
+  J06/J07 calls have exact parameter order `(ID, text, first join type, first
+  optional, source count, first right-source type, root join count, second join
+  type-or-Неопределено, second optional-or-Неопределено)` and are copied
+  byte-for-byte into Task 5.
+- [ ] Second and final authorized guarded write removes every probe. Run Q00
+  GREEN to prove cleanup.
+
+**Verification:** artifact has exactly 44 rows: 15 M, 10 S, 2 J, 10 T-period,
+6 K and one E02 row. J06 reports 2 sources/1 root JOIN, J07 reports 3 sources/2
+root JOINs and both indexed JOIN paths; no probe name remains in module; only
+extension:yaxunit was updated.
+
+**Commit:** commit only the runtime-preflight artifact after probe cleanup:
+`test: record full parser runtime preflight`.
+
+---
+
+### Task 2: Q01–Q05 package/destroy — 5 cases
+
+**Files:** modify only new test module.
+
+**Interfaces:** consumes Q00 helpers; produces coverage for package continuation
+variants, both package-query choices and destroy node.
+
+- [ ] One guarded write adds exact registration and complete body:
+
+```bsl
+.ДобавитьСерверныйТест("ПакетныйCase")
+	.СПараметрамиНаСервере("Q01", "ВЫБРАТЬ 1; ВЫБРАТЬ 2", 2, "ЗапросВыбора", "ЗапросВыбора")
+	.СПараметрамиНаСервере("Q02", "ВЫБРАТЬ 1;", 1, "ЗапросВыбора", "ЗапросВыбора")
+	.СПараметрамиНаСервере("Q03", "УНИЧТОЖИТЬ ВТ", 1, "ЗапросУничтожения", "ЗапросУничтожения")
+	.СПараметрамиНаСервере("Q04", "ВЫБРАТЬ 1; УНИЧТОЖИТЬ ВТ", 2, "ЗапросВыбора", "ЗапросУничтожения")
+	.СПараметрамиНаСервере("Q05", "УНИЧТОЖИТЬ ВТ; ВЫБРАТЬ 1", 2, "ЗапросУничтожения", "ЗапросВыбора");
+
+Процедура ПакетныйCase(Идентификатор, ИсходныйТекст,
+	ОжидаемоеКоличество, ПервыйТип, ПоследнийТип) Экспорт
+	Пакет = РазобратьЗапросДляТеста(ИсходныйТекст);
+	ЮТест.ОжидаетЧто(Пакет.Элементы.Количество())
+		.Равно(ОжидаемоеКоличество, Идентификатор);
+	ЮТест.ОжидаетЧто(Пакет.Элементы[0].Тип).Равно(ПервыйТип, Идентификатор);
+	Последний = Пакет.Элементы[Пакет.Элементы.Количество() - 1];
+	ЮТест.ОжидаетЧто(Последний.Тип).Равно(ПоследнийТип, Идентификатор);
+	Если Последний.Тип = "ЗапросУничтожения" Тогда
+		ЮТест.ОжидаетЧто(Последний.ИмяТаблицы).Равно("ВТ", Идентификатор);
+	КонецЕсли;
+КонецПроцедуры
+```
+
+- [ ] Run module GREEN, diagnostics, `git diff --check`.
+
+**Commit:** `test: cover query package parsing`.
+
+---
+
+### Task 3: M01–M15, F01–F07 and N-ALIAS — 23 cases
+
+**Files:** modify only new test module.
+
+**Interfaces:** consumes Task 1A M rows; produces all 15 non-empty SELECT
+modifier orderings, both field alternatives, list/alias variants and alias RED.
+
+Exact modifier inputs, in ID order:
+
+```text
+M01 ВЫБРАТЬ ПЕРВЫЕ 5 1
+M02 ВЫБРАТЬ РАЗЛИЧНЫЕ 1
+M03 ВЫБРАТЬ РАЗРЕШЕННЫЕ 1
+M04 ВЫБРАТЬ ПЕРВЫЕ 5 РАЗЛИЧНЫЕ 1
+M05 ВЫБРАТЬ ПЕРВЫЕ 5 РАЗРЕШЕННЫЕ 1
+M06 ВЫБРАТЬ ПЕРВЫЕ 5 РАЗЛИЧНЫЕ РАЗРЕШЕННЫЕ 1
+M07 ВЫБРАТЬ ПЕРВЫЕ 5 РАЗРЕШЕННЫЕ РАЗЛИЧНЫЕ 1
+M08 ВЫБРАТЬ РАЗЛИЧНЫЕ ПЕРВЫЕ 5 1
+M09 ВЫБРАТЬ РАЗЛИЧНЫЕ РАЗРЕШЕННЫЕ 1
+M10 ВЫБРАТЬ РАЗЛИЧНЫЕ ПЕРВЫЕ 5 РАЗРЕШЕННЫЕ 1
+M11 ВЫБРАТЬ РАЗЛИЧНЫЕ РАЗРЕШЕННЫЕ ПЕРВЫЕ 5 1
+M12 ВЫБРАТЬ РАЗРЕШЕННЫЕ ПЕРВЫЕ 5 1
+M13 ВЫБРАТЬ РАЗРЕШЕННЫЕ РАЗЛИЧНЫЕ 1
+M14 ВЫБРАТЬ РАЗРЕШЕННЫЕ ПЕРВЫЕ 5 РАЗЛИЧНЫЕ 1
+M15 ВЫБРАТЬ РАЗРЕШЕННЫЕ РАЗЛИЧНЫЕ ПЕРВЫЕ 5 1
+```
+
+- [ ] Generate fifteen `.СПараметрамиНаСервере` calls directly from verified
+  M artifact rows with parameters `(ID, exact text, first-or-Неопределено,
+  distinct, allowed, exact allowed-property-name)` immediately after
+  `.ДобавитьСерверныйТест("МодификаторCase")`. Then add:
+
+```bsl
+.ДобавитьСерверныйТест("ПолеCase")
+	.СПараметрамиНаСервере("F01", "ВЫБРАТЬ 1, 2", 2, "Константа", Неопределено)
+	.СПараметрамиНаСервере("F02", "ВЫБРАТЬ 1 КАК Один", 1, "Константа", "Один")
+	.СПараметрамиНаСервере("F03", "ВЫБРАТЬ 1 Один", 1, "Константа", "Один")
+	.СПараметрамиНаСервере("F04", "ВЫБРАТЬ *", 1, "ВыражениеВсеПоля", Неопределено)
+	.СПараметрамиНаСервере("F05", "ВЫБРАТЬ Т.* ИЗ Таблица КАК Т", 1, "ВыражениеВсеПоляИсточника", Неопределено)
+	.СПараметрамиНаСервере("F06", "ВЫБРАТЬ Т.Поле ИЗ Таблица КАК Т", 1, "Разыменование", Неопределено)
+	.СПараметрамиНаСервере("F07", "ВЫБРАТЬ 1 КАК Один, 2 КАК Два", 2, "Константа", "Один")
+.ДобавитьСерверныйТест("НезавершенныйПсевдонимВызываетИсключение");
+```
+
+Complete bodies:
+
+```bsl
+Процедура МодификаторCase(Идентификатор, ИсходныйТекст, ОжидаемыеПервые,
+	ОжидаемыеРазличные, ОжидаемыеРазрешенные, СвойствоРазрешенные) Экспорт
+	Оператор = ЕдинственныйОператор(ИсходныйТекст);
+	ЮТест.ОжидаетЧто(Оператор.КоличествоПолучаемыхЗаписей)
+		.Равно(ОжидаемыеПервые, Идентификатор);
+	ЮТест.ОжидаетЧто(Оператор.ВыбиратьРазличные)
+		.Равно(ОжидаемыеРазличные, Идентификатор);
+	ФактическиеРазрешенные = Неопределено;
+	ЮТест.ОжидаетЧто(Оператор.Свойство(
+		СвойствоРазрешенные, ФактическиеРазрешенные)).Равно(Истина, Идентификатор);
+	ЮТест.ОжидаетЧто(ФактическиеРазрешенные)
+		.Равно(ОжидаемыеРазрешенные, Идентификатор);
+КонецПроцедуры
+
+Процедура ПолеCase(Идентификатор, ИсходныйТекст, Количество,
+	ТипЗначенияВыражения, Псевдоним) Экспорт
+	Оператор = ЕдинственныйОператор(ИсходныйТекст);
+	ЮТест.ОжидаетЧто(Оператор.ВыбираемыеПоля.Количество())
+		.Равно(Количество, Идентификатор);
+	Поле = Оператор.ВыбираемыеПоля[0];
+	ЮТест.ОжидаетЧто(Поле.Выражение.Тип)
+		.Равно("ВыражениеМоделиЗапроса", Идентификатор);
+	ЮТест.ОжидаетЧто(Поле.Выражение.Значение.Тип)
+		.Равно(ТипЗначенияВыражения, Идентификатор);
+	ЮТест.ОжидаетЧто(Поле.Псевдоним).Равно(Псевдоним, Идентификатор);
+КонецПроцедуры
+
+Процедура НезавершенныйПсевдонимВызываетИсключение() Экспорт
+	ПроверитьСинтаксическуюОшибку("ВЫБРАТЬ 1 КАК", "Синтаксическая ошибка");
+КонецПроцедуры
+```
+
+- [ ] One guarded write, module GREEN, diagnostics, diff-check.
+
+**Commit:** `test: cover select modifiers and fields`.
+
+---
+
+### Task 4: S01–S10 sources and parameters — 10 cases
+
+**Files:** modify only new test module.
+
+**Interfaces:** consumes the ten verified S rows from Task 1A; produces coverage
+for four source kinds, joinable kinds, aliases, dereference, parameter list and
+both explicit and implicit source aliases. It does not claim coverage for the
+excluded `НеТерминалВыражениеСКДПараметр`.
+
+This task uses the bounded-artifact alternative: no candidate or abbreviated
+registration is legal. Copy the ten artifact-generated calls with exact text
+and expected values immediately after
+`.ДобавитьСерверныйТест("ИсточникCase")`.
+S09 is exactly `ВЫБРАТЬ Т.Поле ИЗ Каталог.Таблица КАК Т`; S10 is exactly
+`ВЫБРАТЬ Т.Поле ИЗ Каталог.Таблица Т`. Their expected alias is `Т`, and they
+separately exercise explicit and bare source-alias syntax.
+
+```bsl
+Процедура ИсточникCase(Идентификатор, ИсходныйТекст, КоличествоИсточников,
+	ТипИсточника, ИмяТаблицы, Псевдоним, КоличествоПараметров,
+	ТипПервогоПараметра) Экспорт
+	Оператор = ЕдинственныйОператор(ИсходныйТекст);
+	ЮТест.ОжидаетЧто(Оператор.Источники.Элементы.Количество())
+		.Равно(КоличествоИсточников, Идентификатор);
+	Данные = Оператор.Источники.Элементы[0].Источник;
+	ЮТест.ОжидаетЧто(Данные.Тип).Равно(ТипИсточника, Идентификатор);
+	Если Данные.Свойство("ИмяТаблицы") Тогда
+		ЮТест.ОжидаетЧто(Данные.ИмяТаблицы).Равно(ИмяТаблицы, Идентификатор);
+	КонецЕсли;
+	ЮТест.ОжидаетЧто(Данные.Псевдоним).Равно(Псевдоним, Идентификатор);
+	Если КоличествоПараметров > 0 Тогда
+		ЮТест.ОжидаетЧто(Данные.Параметры.Количество())
+			.Равно(КоличествоПараметров, Идентификатор);
+		ЮТест.ОжидаетЧто(Данные.Параметры[0].Значение.Тип)
+			.Равно(ТипПервогоПараметра, Идентификатор);
+	КонецЕсли;
+КонецПроцедуры
+```
+
+The runtime artifact must contain no S row attributed to
+`НеТерминалВыражениеСКДПараметр`; that production appears only in the two-row
+exclusion section of the coverage matrix.
+
+- [ ] One guarded write, module GREEN, diagnostics, diff-check.
+
+**Commit:** `test: cover full query sources`.
+
+---
+
+### Task 5: J01–J07 JOIN — 7 cases
+
+**Files:** modify only new test module.
+
+**Interfaces:** consumes verified temporary/nested source spellings from Task
+1A and its verified J06/J07 topology rows; produces all four JOIN types,
+normal/optional forms, chain and three joinable-source branches.
+
+- [ ] Add seven exact calls; J06/J07 text is copied from artifact without
+  modification:
+
+```bsl
+.ДобавитьСерверныйТест("СоединениеCase")
+	.СПараметрамиНаСервере("J01", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 ЛЕВОЕ СОЕДИНЕНИЕ Таблица2 КАК Т2 ПО Т1.Ключ = Т2.Ключ", "Левое", Ложь, 2, "ИсточникДанныхТаблица", 1, Неопределено, Неопределено)
+	.СПараметрамиНаСервере("J02", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 ПРАВОЕ СОЕДИНЕНИЕ Таблица2 КАК Т2 ПО Т1.Ключ = Т2.Ключ", "Правое", Ложь, 2, "ИсточникДанныхТаблица", 1, Неопределено, Неопределено)
+	.СПараметрамиНаСервере("J03", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 ВНУТРЕННЕЕ СОЕДИНЕНИЕ Таблица2 КАК Т2 ПО Т1.Ключ = Т2.Ключ", "Внутреннее", Ложь, 2, "ИсточникДанныхТаблица", 1, Неопределено, Неопределено)
+	.СПараметрамиНаСервере("J04", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 ПОЛНОЕ СОЕДИНЕНИЕ Таблица2 КАК Т2 ПО Т1.Ключ = Т2.Ключ", "Полное", Ложь, 2, "ИсточникДанныхТаблица", 1, Неопределено, Неопределено)
+	.СПараметрамиНаСервере("J05", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 {ЛЕВОЕ СОЕДИНЕНИЕ Таблица2 КАК Т2 ПО Т1.Ключ = Т2.Ключ}", "Левое", Истина, 2, "ИсточникДанныхТаблица", 1, Неопределено, Неопределено)
+	.СПараметрамиНаСервере("J06", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 ЛЕВОЕ СОЕДИНЕНИЕ ВТ КАК Т2 ПО Т1.Ключ = Т2.Ключ", "Левое", Ложь, 2, "ИсточникДанныхВременнаяТаблица", 1, Неопределено, Неопределено)
+	.СПараметрамиНаСервере("J07", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 ЛЕВОЕ СОЕДИНЕНИЕ (ВЫБРАТЬ 1 КАК Ключ) КАК Т2 ПО Т1.Ключ = Т2.Ключ ПРАВОЕ СОЕДИНЕНИЕ Таблица3 КАК Т3 ПО Т2.Ключ = Т3.Ключ", "Левое", Ложь, 3, "ИсточникДанныхВложенныйЗапрос", 2, "Правое", Ложь);
+```
+
+During guarded write replace J06 only if the artifact gives a different exact
+temporary-table spelling; this is artifact consumption, not a new guess.
+
+```bsl
+Процедура СоединениеCase(Идентификатор, ИсходныйТекст, ТипСоединения,
+	Опционально, КоличествоИсточников, ТипПравогоИсточника,
+	КоличествоСоединений, ТипВторогоСоединения,
+	ВтороеСоединениеОпционально) Экспорт
+	Оператор = ЕдинственныйОператор(ИсходныйТекст);
+	Корень = Оператор.Источники.Элементы[0];
+	ЮТест.ОжидаетЧто(Оператор.Источники.Элементы.Количество())
+		.Равно(КоличествоИсточников, Идентификатор);
+	ЮТест.ОжидаетЧто(Корень.Соединения.Количество())
+		.Равно(КоличествоСоединений, Идентификатор);
+	Соединение = Корень.Соединения[0];
+	ЮТест.ОжидаетЧто(Соединение.Тип).Равно("СоединенияИсточника", Идентификатор);
+	ЮТест.ОжидаетЧто(Соединение.ТипСоединения).Равно(ТипСоединения, Идентификатор);
+	ЮТест.ОжидаетЧто(Соединение.Опционально).Равно(Опционально, Идентификатор);
+	ЮТест.ОжидаетЧто(Соединение.Условие.Тип)
+		.Равно("ВыражениеМоделиЗапроса", Идентификатор);
+	ЮТест.ОжидаетЧто(Соединение.Условие.Значение.Тип)
+		.Равно("БинарнаяОперация", Идентификатор);
+	ПравыйИсточник = Оператор.Источники.Элементы[1].Источник;
+	ЮТест.ОжидаетЧто(ПравыйИсточник.Тип).Равно(ТипПравогоИсточника, Идентификатор);
+	Если КоличествоСоединений = 2 Тогда
+		ВтороеСоединение = Корень.Соединения[1];
+		ЮТест.ОжидаетЧто(ВтороеСоединение.Тип)
+			.Равно("СоединенияИсточника", Идентификатор);
+		ЮТест.ОжидаетЧто(ВтороеСоединение.ТипСоединения)
+			.Равно(ТипВторогоСоединения, Идентификатор);
+		ЮТест.ОжидаетЧто(ВтороеСоединение.Опционально)
+			.Равно(ВтороеСоединениеОпционально, Идентификатор);
+		ЮТест.ОжидаетЧто(ВтороеСоединение.Условие.Тип)
+			.Равно("ВыражениеМоделиЗапроса", Идентификатор);
+		ЮТест.ОжидаетЧто(ВтороеСоединение.Условие.Значение.Тип)
+			.Равно("БинарнаяОперация", Идентификатор);
+		ЮТест.ОжидаетЧто(Оператор.Источники.Элементы[2].Источник.Тип)
+			.Равно("ИсточникДанныхТаблица", Идентификатор);
+	КонецЕсли;
+КонецПроцедуры
+```
+
+- [ ] One guarded write, module GREEN, diagnostics, diff-check.
+
+**Commit:** `test: cover full query joins`.
+
+---
+
+### Task 6: C01–C15 clauses, UNION and ORDER — 15 cases
+
+**Files:** modify only new test module.
+
+**Interfaces:** consumes common helpers; produces WHERE/GROUP/HAVING,
+UNION/UNION ALL, ORDER default/explicit ВОЗР/УБЫВ/ИЕРАРХИЯ/list and negative
+ORDER coverage.
+
+- [ ] Add exact registrations:
+
+```bsl
+.ДобавитьСерверныйТест("УсловноеПредложениеCase")
+	.СПараметрамиНаСервере("C01", "ВЫБРАТЬ Поле ИЗ Таблица ГДЕ Поле = 1", "WHERE")
+	.СПараметрамиНаСервере("C03", "ВЫБРАТЬ Поле ИЗ Таблица СГРУППИРОВАТЬ ПО Поле ИМЕЮЩИЕ Поле > 0", "HAVING")
+.ДобавитьСерверныйТест("СписокПредложенияCase")
+	.СПараметрамиНаСервере("C02", "ВЫБРАТЬ Поле ИЗ Таблица СГРУППИРОВАТЬ ПО Поле", 1)
+	.СПараметрамиНаСервере("C12", "ВЫБРАТЬ А, Б ИЗ Таблица СГРУППИРОВАТЬ ПО А, Б", 2)
+.ДобавитьСерверныйТест("UnionCase")
+	.СПараметрамиНаСервере("C04", "ВЫБРАТЬ 1 ОБЪЕДИНИТЬ ВЫБРАТЬ 2", 2, "Объединить", Неопределено)
+	.СПараметрамиНаСервере("C05", "ВЫБРАТЬ 1 ОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ 2", 2, "ОбъединитьВсе", Неопределено)
+	.СПараметрамиНаСервере("C13", "ВЫБРАТЬ 1 ОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ 2 ОБЪЕДИНИТЬ ВЫБРАТЬ 3", 3, "ОбъединитьВсе", "Объединить")
+.ДобавитьСерверныйТест("OrderCase")
+	.СПараметрамиНаСервере("C06", "ВЫБРАТЬ Поле ИЗ Таблица УПОРЯДОЧИТЬ ПО Поле", 1, "Возр", Ложь)
+	.СПараметрамиНаСервере("C07", "ВЫБРАТЬ Поле ИЗ Таблица УПОРЯДОЧИТЬ ПО Поле ВОЗР", 1, "Возр", Ложь)
+	.СПараметрамиНаСервере("C08", "ВЫБРАТЬ Поле ИЗ Таблица УПОРЯДОЧИТЬ ПО Поле УБЫВ", 1, "Убыв", Ложь)
+	.СПараметрамиНаСервере("C09", "ВЫБРАТЬ Поле ИЗ Таблица УПОРЯДОЧИТЬ ПО Поле ИЕРАРХИЯ", 1, "Возр", Истина)
+	.СПараметрамиНаСервере("C10", "ВЫБРАТЬ А, Б ИЗ Таблица УПОРЯДОЧИТЬ ПО А ВОЗР, Б УБЫВ", 2, "Возр", Ложь)
+.ДобавитьСерверныйТест("АвтоупорядочиваниеРазбирается")
+.ДобавитьСерверныйТест("КомбинацияПредложенийРазбирается")
+.ДобавитьСерверныйТест("НезавершенныйOrderВызываетИсключение");
+```
+
+Complete bodies:
+
+```bsl
+Процедура УсловноеПредложениеCase(Идентификатор, ИсходныйТекст, Вид) Экспорт
+	Оператор = ЕдинственныйОператор(ИсходныйТекст);
+	Если Вид = "WHERE" Тогда
+		Узел = Оператор.Отбор;
+	Иначе
+		Узел = Оператор.ОтборСгруппированных;
+	КонецЕсли;
+	ЮТест.ОжидаетЧто(Узел.Тип).Равно("ВыражениеМоделиЗапроса", Идентификатор);
+	ЮТест.ОжидаетЧто(Узел.Значение.Тип).Равно("БинарнаяОперация", Идентификатор);
+КонецПроцедуры
+
+Процедура СписокПредложенияCase(Идентификатор, ИсходныйТекст, Количество) Экспорт
+	Оператор = ЕдинственныйОператор(ИсходныйТекст);
+	ЮТест.ОжидаетЧто(Оператор.Группировка.Элементы.Количество())
+		.Равно(Количество, Идентификатор);
+КонецПроцедуры
+
+Процедура UnionCase(Идентификатор, ИсходныйТекст, Количество,
+	ТипВторогоОператора, ТипТретьегоОператора) Экспорт
+	Запрос = ЕдинственныйЗапросВыбора(ИсходныйТекст);
+	ЮТест.ОжидаетЧто(Запрос.Операторы.Количество()).Равно(Количество, Идентификатор);
+	ЮТест.ОжидаетЧто(Запрос.Операторы[1].ТипОбъединения)
+		.Равно(ТипВторогоОператора, Идентификатор);
+	Если Количество = 3 Тогда
+		ЮТест.ОжидаетЧто(Запрос.Операторы[2].ТипОбъединения)
+			.Равно(ТипТретьегоОператора, Идентификатор);
+	КонецЕсли;
+КонецПроцедуры
+
+Процедура OrderCase(Идентификатор, ИсходныйТекст, Количество,
+	Направление, Иерархия) Экспорт
+	Запрос = ЕдинственныйЗапросВыбора(ИсходныйТекст);
+	ЮТест.ОжидаетЧто(Запрос.Порядок.Количество()).Равно(Количество, Идентификатор);
+	ЮТест.ОжидаетЧто(Запрос.Порядок[0].Направление).Равно(Направление, Идентификатор);
+	ЮТест.ОжидаетЧто(Запрос.Порядок[0].Иерархия).Равно(Иерархия, Идентификатор);
+КонецПроцедуры
+
+Процедура АвтоупорядочиваниеРазбирается() Экспорт
+	Запрос = ЕдинственныйЗапросВыбора("ВЫБРАТЬ 1 АВТОУПОРЯДОЧИВАНИЕ");
+	ЮТест.ОжидаетЧто(Запрос.Автопорядок).Равно(Истина, "C11");
+КонецПроцедуры
+
+Процедура КомбинацияПредложенийРазбирается() Экспорт
+	Текст = "ВЫБРАТЬ Поле ИЗ Таблица ГДЕ Поле > 0 СГРУППИРОВАТЬ ПО Поле "
+		+ "ИМЕЮЩИЕ Поле > 1 УПОРЯДОЧИТЬ ПО Поле ВОЗР АВТОУПОРЯДОЧИВАНИЕ";
+	Запрос = ЕдинственныйЗапросВыбора(Текст);
+	Оператор = Запрос.Операторы[0];
+	ЮТест.ОжидаетЧто(Оператор.Отбор.Тип).Равно("ВыражениеМоделиЗапроса", "C14");
+	ЮТест.ОжидаетЧто(Оператор.Группировка.Элементы.Количество()).Равно(1, "C14");
+	ЮТест.ОжидаетЧто(Оператор.ОтборСгруппированных.Тип).Равно("ВыражениеМоделиЗапроса", "C14");
+	ЮТест.ОжидаетЧто(Запрос.Порядок.Количество()).Равно(1, "C14");
+	ЮТест.ОжидаетЧто(Запрос.Автопорядок).Равно(Истина, "C14");
+КонецПроцедуры
+
+Процедура НезавершенныйOrderВызываетИсключение() Экспорт
+	ПроверитьСинтаксическуюОшибку("ВЫБРАТЬ 1 УПОРЯДОЧИТЬ ПО", "Синтаксическая ошибка");
+КонецПроцедуры
+```
+
+- [ ] One guarded write, module GREEN, diagnostics, diff-check.
+
+**Commit:** `test: cover query clauses union and order`.
+
+---
+
+### Task 7: T01–T21 PLACE, INDEX and TOTALS — 21 cases
+
+**Files:** modify only new test module.
+
+**Interfaces:** consumes verified T-period rows from Task 1A; produces all
+TOTALS alternatives, every one of nine period keywords, bounds, PLACE/INDEX and
+the dedicated TOTALS error.
+
+- [ ] Add exact registrations:
+
+```bsl
+.ДобавитьСерверныйТест("ПомещениеРазбирается")
+.ДобавитьСерверныйТест("ИндексРазбирается")
+.ДобавитьСерверныйТест("ИтогиКоличествоCase")
+	.СПараметрамиНаСервере("T03", "ВЫБРАТЬ Поле ИЗ Таблица ИТОГИ СУММА(Поле) ПО Поле", 1, 1)
+	.СПараметрамиНаСервере("T04", "ВЫБРАТЬ Поле ИЗ Таблица ИТОГИ СУММА(Поле), КОЛИЧЕСТВО(*) ПО Поле", 2, 1)
+	.СПараметрамиНаСервере("T05", "ВЫБРАТЬ А, Б ИЗ Таблица ИТОГИ СУММА(А) ПО А, Б", 1, 2)
+.ДобавитьСерверныйТест("ОбщиеИтогиРазбираются")
+.ДобавитьСерверныйТест("ОпцииКонтрольнойТочкиCase")
+	.СПараметрамиНаСервере("T07", "ВЫБРАТЬ Поле ИЗ Таблица ИТОГИ СУММА(Поле) ПО Поле ИЕРАРХИЯ", "Иерархия", Неопределено)
+	.СПараметрамиНаСервере("T08", "ВЫБРАТЬ Поле ИЗ Таблица ИТОГИ СУММА(Поле) ПО Поле ТОЛЬКО ИЕРАРХИЯ", "ТолькоИерархия", Неопределено)
+	.СПараметрамиНаСервере("T09", "ВЫБРАТЬ Поле ИЗ Таблица ИТОГИ СУММА(Поле) ПО Поле КАК Группа", Неопределено, "Группа")
+	.СПараметрамиНаСервере("T10", "ВЫБРАТЬ Поле ИЗ Таблица ИТОГИ СУММА(Поле) ПО Поле Группа", Неопределено, "Группа")
+.ДобавитьСерверныйТест("ПериодИтоговCase")
+	.СПараметрамиНаСервере("T11", "ВЫБРАТЬ Поле ИЗ Таблица ИТОГИ СУММА(Поле) ПО Поле ПЕРИОДАМИ(СЕКУНДА)", "СЕКУНДА")
+	.СПараметрамиНаСервере("T12", "ВЫБРАТЬ Поле ИЗ Таблица ИТОГИ СУММА(Поле) ПО Поле ПЕРИОДАМИ(МИНУТА)", "МИНУТА")
+	.СПараметрамиНаСервере("T13", "ВЫБРАТЬ Поле ИЗ Таблица ИТОГИ СУММА(Поле) ПО Поле ПЕРИОДАМИ(ЧАС)", "ЧАС")
+	.СПараметрамиНаСервере("T14", "ВЫБРАТЬ Поле ИЗ Таблица ИТОГИ СУММА(Поле) ПО Поле ПЕРИОДАМИ(ДЕНЬ)", "ДЕНЬ")
+	.СПараметрамиНаСервере("T15", "ВЫБРАТЬ Поле ИЗ Таблица ИТОГИ СУММА(Поле) ПО Поле ПЕРИОДАМИ(НЕДЕЛЯ)", "НЕДЕЛЯ")
+	.СПараметрамиНаСервере("T16", "ВЫБРАТЬ Поле ИЗ Таблица ИТОГИ СУММА(Поле) ПО Поле ПЕРИОДАМИ(МЕСЯЦ)", "МЕСЯЦ")
+	.СПараметрамиНаСервере("T17", "ВЫБРАТЬ Поле ИЗ Таблица ИТОГИ СУММА(Поле) ПО Поле ПЕРИОДАМИ(ГОД)", "ГОД")
+	.СПараметрамиНаСервере("T18", "ВЫБРАТЬ Поле ИЗ Таблица ИТОГИ СУММА(Поле) ПО Поле ПЕРИОДАМИ(ДЕКАДА)", "ДЕКАДА")
+	.СПараметрамиНаСервере("T19", "ВЫБРАТЬ Поле ИЗ Таблица ИТОГИ СУММА(Поле) ПО Поле ПЕРИОДАМИ(ПОЛУГОДИЕ)", "ПОЛУГОДИЕ")
+.ДобавитьСерверныйТест("ГраницыПериодаИтоговСохраняются")
+.ДобавитьСерверныйТест("НезавершенныеИтогиВызываютИсключение");
+```
+
+T01/T02/T06/T20/T21 bodies and all parameterized bodies are complete:
+
+```bsl
+Процедура ПомещениеРазбирается() Экспорт
+	Оператор = ЕдинственныйОператор("ВЫБРАТЬ 1 ПОМЕСТИТЬ ВТ");
+	ЮТест.ОжидаетЧто(Оператор.__ТаблицаДляПомещения).Равно("ВТ", "T01");
+КонецПроцедуры
+
+Процедура ИндексРазбирается() Экспорт
+	Запрос = ЕдинственныйЗапросВыбора(
+		"ВЫБРАТЬ 1 КАК А, 2 КАК Б ПОМЕСТИТЬ ВТ ИНДЕКСИРОВАТЬ ПО А, Б");
+	ЮТест.ОжидаетЧто(Запрос.Индекс.Элементы.Количество()).Равно(2, "T02");
+КонецПроцедуры
+
+Процедура ИтогиКоличествоCase(Идентификатор, ИсходныйТекст,
+	КоличествоВыражений, КоличествоТочек) Экспорт
+	Запрос = ЕдинственныйЗапросВыбора(ИсходныйТекст);
+	ЮТест.ОжидаетЧто(Запрос.ВыраженияИтогов.Количество())
+		.Равно(КоличествоВыражений, Идентификатор);
+	ЮТест.ОжидаетЧто(Запрос.КонтрольныеТочкиИтогов.Количество())
+		.Равно(КоличествоТочек, Идентификатор);
+КонецПроцедуры
+
+Процедура ОбщиеИтогиРазбираются() Экспорт
+	Запрос = ЕдинственныйЗапросВыбора(
+		"ВЫБРАТЬ Поле ИЗ Таблица ИТОГИ СУММА(Поле) ПО ОБЩИЕ");
+	ЮТест.ОжидаетЧто(Запрос.КонтрольныеТочкиИтогов[0].Тип)
+		.Равно("ОбщиеИтоги", "T06");
+КонецПроцедуры
+
+Процедура ОпцииКонтрольнойТочкиCase(Идентификатор, ИсходныйТекст,
+	ТипТочки, ИмяКолонки) Экспорт
+	Точка = ЕдинственныйЗапросВыбора(ИсходныйТекст).КонтрольныеТочкиИтогов[0];
+	ЮТест.ОжидаетЧто(Точка.ТипКонтрольнойТочки).Равно(ТипТочки, Идентификатор);
+	ЮТест.ОжидаетЧто(Точка.ИмяКолонки).Равно(ИмяКолонки, Идентификатор);
+КонецПроцедуры
+
+Процедура ПериодИтоговCase(Идентификатор, ИсходныйТекст, ТипПериода) Экспорт
+	Точка = ЕдинственныйЗапросВыбора(ИсходныйТекст).КонтрольныеТочкиИтогов[0];
+	ЮТест.ОжидаетЧто(Точка.ТипДополненияПериодами).Равно(ТипПериода, Идентификатор);
+КонецПроцедуры
+
+Процедура ГраницыПериодаИтоговСохраняются() Экспорт
+	Текст = "ВЫБРАТЬ Поле ИЗ Таблица ИТОГИ СУММА(Поле) "
+		+ "ПО Поле ПЕРИОДАМИ(ДЕНЬ, &Начало, &Конец)";
+	Точка = ЕдинственныйЗапросВыбора(Текст).КонтрольныеТочкиИтогов[0];
+	ЮТест.ОжидаетЧто(Точка.НачалоПериодаДополнения.Тип)
+		.Равно("ПараметрЗапроса", "T20");
+	ЮТест.ОжидаетЧто(Точка.КонецПериодаДополнения.Тип)
+		.Равно("ПараметрЗапроса", "T20");
+КонецПроцедуры
+
+Процедура НезавершенныеИтогиВызываютИсключение() Экспорт
+	ПроверитьСинтаксическуюОшибку("ВЫБРАТЬ 1 ИТОГИ ПО", "Синтаксическая ошибка");
+КонецПроцедуры
+```
+
+Before write, compare T11–T20 strings and paths byte-for-byte with Task 1A
+artifact. A mismatch blocks the write; no silent syntax repair.
+
+- [ ] One guarded write, module GREEN, diagnostics, diff-check.
+
+**Commit:** `test: cover query totals and indexes`.
+
+---
+
+### Task 8A: Bounded SKD observability spike
+
+**Files:** temporarily modify new test module; update runtime-preflight artifact.
+
+**Interfaces:** consumes K candidates from Task 1A; produces six final exact
+registration calls and executable BSL bodies whose assertions read a public raw
+AST value that distinguishes each keyword/result.
+
+- [ ] First guarded write adds exact K01–K06 probes from artifact.
+- [ ] Run only probes with extension-only update and record the full public AST
+  values. A probe is accepted only if assertion compares an actual parser result
+  to `ВЫБРАТЬ`, `УПОРЯДОЧИТЬ ПО`, `ИТОГИ ПО` or checks a keyword-specific public
+  destination such as populated `ОтборыСКД`; `Пакет.Тип` and assertion message
+  are insufficient.
+- [ ] If SELECT/ORDER/TOTALS keyword has no public raw result, record
+  `observability gap` and stop before Task 8B. Do not call private
+  `НеТерминалТипБлокаСКД` and do not invent an AST field.
+- [ ] Second guarded write removes probes; Q00 must be GREEN.
+
+**Verification:** artifact contains exact BSL registration and complete body for
+each observable K case, plus report ID. No probe remains.
+
+**Commit:** `test: record SKD parser observability spike` (artifact only).
+
+---
+
+### Task 8B: K01–K06 SKD wiring — 6 cases
+
+**Files:** modify only new test module.
+
+**Interfaces:** consumes the verified executable fragment from Task 8A;
+produces three keyword cases, SKD-WHERE/list cases and one separate malformed
+block case.
+
+- [ ] Insert the artifact's six exact `.СПараметрамиНаСервере`/procedure bodies
+  byte-for-byte in one guarded write. Reject the artifact if any positive body
+  only checks `Пакет.Тип` or uses expected keyword solely in a message.
+- [ ] K06 must call `ПроверитьСинтаксическуюОшибку` with the exact failing text
+  and observed error fragment from Task 8A.
+- [ ] Run module GREEN, diagnostics, diff-check.
+
+**Commit:** `test: cover query SKD extensions`.
+
+---
+
+### Task 9: E01–E04 parser errors and reuse — 4 cases
+
+**Files:** modify only new test module.
+
+**Interfaces:** consumes common helpers; produces empty-input error, coordinate,
+reuse and recovery coverage. Alias/ORDER/TOTALS/SKD errors remain in their own
+tasks and are not duplicated here.
+
+- [ ] One guarded write adds registration and complete bodies:
+
+```bsl
+.ДобавитьСерверныйТест("ПустойПолныйЗапросВызываетИсключение")
+.ДобавитьСерверныйТест("ОшибкаПолногоЗапросаСодержитКоординату")
+	// Единственный параметр E02 копируется из verified artifact Task 1A:
+	// exact input "ВЫБРАТЬ 1 2" + фактически наблюдённый coordinate fragment.
+.ДобавитьСерверныйТест("ПарсерПовторноРазбираетПолныеЗапросы")
+.ДобавитьСерверныйТест("ПарсерВосстанавливаетсяПослеОшибкиПолногоЗапроса");
+
+Процедура ПустойПолныйЗапросВызываетИсключение() Экспорт
+	ПроверитьСинтаксическуюОшибку("", "Синтаксическая ошибка");
+КонецПроцедуры
+
+Процедура ОшибкаПолногоЗапросаСодержитКоординату(
+	ИсходныйТекст, ПроверенныйФрагментКоординаты) Экспорт
+	ПроверитьСинтаксическуюОшибку(ИсходныйТекст, ПроверенныйФрагментКоординаты);
+КонецПроцедуры
+
+Процедура ПарсерПовторноРазбираетПолныеЗапросы() Экспорт
+	Парсер = КОНС_ТестовыеФабрикиСлужебный.СоздатьПарсер();
+	Первый = Парсер.Разобрать("ВЫБРАТЬ 1");
+	Второй = Парсер.Разобрать("ВЫБРАТЬ 2; УНИЧТОЖИТЬ ВТ");
+	ЮТест.ОжидаетЧто(Первый.Элементы.Количество()).Равно(1, "E03");
+	ЮТест.ОжидаетЧто(Второй.Элементы.Количество()).Равно(2, "E03");
+КонецПроцедуры
+
+Процедура ПарсерВосстанавливаетсяПослеОшибкиПолногоЗапроса() Экспорт
+	Парсер = КОНС_ТестовыеФабрикиСлужебный.СоздатьПарсер();
+	ЮТест.ОжидаетЧто(Парсер)
+		.Метод("Разобрать", ЮТМетоды.МассивПараметров("ВЫБРАТЬ 1,"))
+		.ВыбрасываетИсключение("Синтаксическая ошибка");
+	Пакет = Парсер.Разобрать("ВЫБРАТЬ 2");
+	ЮТест.ОжидаетЧто(Пакет.Элементы.Количество()).Равно(1, "E04");
+КонецПроцедуры
+```
+
+Before the single Task 9 write, append exactly one
+`.СПараметрамиНаСервере("ВЫБРАТЬ 1 2", ПроверенныйФрагментКоординаты)` generated
+by E02 artifact row to `ОшибкаПолногоЗапросаСодержитКоординату`. The fragment
+must be copied byte-for-byte with its Task 1A report ID; the plan contains no
+predicted coordinate.
+
+- [ ] One guarded write, module GREEN. Synthetic report must total exactly 92.
+
+**Commit:** `test: cover full parser errors and reuse`.
+
+---
+
+### Task 9A: Reproducible corpus source preparation
+
+**Files:** read 42 `QueryExamples/*.q1c`; create
+`docs/superpowers/matrices/2026-08-04-query-full-parser-corpus-source.md` and
+`docs/superpowers/matrices/2026-08-04-query-full-parser-corpus-registration.bsl.txt`.
+
+**Interfaces:** consumes XML files; produces a 42-row audit table and an exact
+42-line BSL registration fragment consumed by Task 9B. It deliberately does not
+produce a pre-wire package-element count.
+
+- [ ] For each file, XML-decode the first `<query><text>` and separately read
+  relative filename key and first-query XML `name`.
+- [ ] Canonicalize text for hashing to UTF-8 without BOM and LF newlines; compute
+  SHA-256 after XML entity decoding.
+- [ ] Escape BSL deterministically: replace each `"` with `""`; represent every
+  LF as `" + Символы.ПС + "`; preserve empty lines and tabs; never re-encode
+  decoded `&` as `&amp;`.
+- [ ] Do not count top-level package elements before wiring. A delimiter-only
+  algorithm cannot reliably distinguish semicolons in comments/string literals
+  or nested query constructs without recreating the production lexer/parser;
+  invoking that parser is forbidden in Task 9A.
+- [ ] Emit exact
+  `.СПараметрамиНаСервере(Key, XmlName, EscapedText, Sha256)` lines.
+- [ ] Verify 42 unique keys, 42 non-empty names/texts, 42 hashes and exactly 42
+  generated calls. Regenerate twice and require byte-identical artifact.
+
+**Verification:** hash a decoded text back from each generated BSL literal and
+compare to its row; `git diff --check` both artifacts.
+
+**Commit:** `test: prepare reproducible query example corpus`.
+
+---
+
+### Task 9B: X01–X42 corpus wiring
+
+**Files:** consume and update the two Task 9A artifacts; modify new test module;
+update corpus-source matrix with runtime columns.
+
+**Interfaces:** consumes exact escaped literals/checksums; first produces 42
+temporary runtime-count reports, then 42 final cases with verified counts.
+
+- [ ] First authorized guarded write pastes the generated 42 four-argument calls
+  after this temporary registration:
+
+```bsl
+.ДобавитьСерверныйТест("RuntimeCountПервогоЗапросаПримера")
+
+Процедура RuntimeCountПервогоЗапросаПримера(КлючФайла, ИмяЗапросаXML,
+	ИсходныйТекст, Sha256) Экспорт
+	Пакет = РазобратьЗапросДляТеста(ИсходныйТекст);
+	ВызватьИсключение "RUNTIME_COUNT|" + КлючФайла + "|"
+		+ Строка(Пакет.Элементы.Количество()) + "|" + Sha256;
+КонецПроцедуры
+```
+
+- [ ] Run only the temporary method with extension-only update. Every
+  successfully parsed input ends in a controlled `RUNTIME_COUNT` error. Record
+  42 exact counts and report IDs in the matrix. A parser error lacks that prefix
+  and blocks the second write.
+- [ ] Update `corpus-registration.bsl.txt` deterministically: append the recorded
+  `RuntimeVerifiedCount` as the fifth literal of each of the same 42 calls.
+  Preserve key/name/text/hash bytes and verify all 42 SHA-256 values again.
+- [ ] Second authorized guarded write removes the temporary registration/body
+  and installs the updated 42 five-argument calls after
+  `.ДобавитьСерверныйТест("ПервыйЗапросПримераРазбирается")` with this complete
+  final body:
+
+```bsl
+Процедура ПервыйЗапросПримераРазбирается(КлючФайла, ИмяЗапросаXML,
+	ИсходныйТекст, Sha256, RuntimeVerifiedCount) Экспорт
+	ЮТест.ОжидаетЧто(ПустаяСтрока(КлючФайла)).Равно(Ложь);
+	ЮТест.ОжидаетЧто(ПустаяСтрока(ИмяЗапросаXML)).Равно(Ложь);
+	ЮТест.ОжидаетЧто(ПустаяСтрока(ИсходныйТекст)).Равно(Ложь);
+	Пакет = РазобратьЗапросДляТеста(ИсходныйТекст);
+	ЮТест.ОжидаетЧто(Пакет.Тип).Равно("ПакетЗапросов", КлючФайла + Sha256);
+	ЮТест.ОжидаетЧто(Пакет.Элементы.Количество())
+		.Равно(RuntimeVerifiedCount, КлючФайла + ": runtime count changed");
+	Для Каждого Элемент Из Пакет.Элементы Цикл
+		ЮТест.ОжидаетЧто(ПустаяСтрока(Элемент.Тип)).Равно(Ложь, КлючФайла);
+	КонецЦикла;
+КонецПроцедуры
+```
+
+`Sha256` is traceability input, not recomputed by an invented BSL API. Exact
+text integrity is reverified outside BSL before both writes.
+
+- [ ] Run final corpus test, then whole module. No parser-independent pre-wire
+  count field or claim exists.
+- [ ] Expected whole-module total is 134 only after all 42 runtime cases pass.
+
+**Verification:** module GREEN, matrix has 42 runtime-count probe report IDs and
+42 final case report IDs, generated fragment has 42 five-argument calls,
+diagnostics and diff-check.
+
+**Commit:** `test: add query example parser corpus`.
+
+---
+
+### Task 10: Coverage matrices, review and conditional fix-cycle
+
+**Files:** create/update production, corpus, runtime and future-grammar matrices;
+conditionally modify new test module and
+`docs/superpowers/specs/2026-08-04-query-full-parser-unit-tests-design.md` when
+a confirmed review fix changes case arithmetic, alternative mapping or scope.
+
+**Interfaces:** consumes all reports/artifacts and the 67-row design inventory;
+produces final evidence and an independent reviewer verdict.
+
+- [ ] Expand every reachable design inventory row to one row per alternative
+  with exact input, raw AST path, case ID and status. Keep both exclusions
+  (`КакОпционально`: no caller; `ВыражениеСКДПараметр`: self-recursion only)
+  separate and do not assign them test IDs.
+- [ ] Record existing opt-in REDs `--1`, `НЕДЕЛЯ(&Дата)`, `1 +`; do not run them
+  in the main GREEN.
+- [ ] Run Q00 smoke (`Total=1`) and whole new module (`Total=134`) with only
+  extension:yaxunit update; collect diagnostics, `git diff --check`, status.
+- [ ] Independent reviewer reads actual module and all matrices. Prompt requires
+  checking every branch, fifteen modifier orders, nine periods, explicit ВОЗР,
+  raw/semantic boundary, SKD keyword observability and corpus hash/escaping.
+- [ ] For confirmed findings only, perform one bounded guarded write of the test
+  module, one module GREEN and matrix updates. If counts/mapping/scope change,
+  update the design in the same fix-cycle and re-run diff-check. If no confirmed
+  finding exists, perform no write.
+
+**Verification:** report actual procedure count and case arithmetic separately;
+do not declare readiness—the independent reviewer decides.
+
+**Commit:** commit only reviewed matrices and any confirmed conditional design
+update: `docs: record full parser coverage review`.
