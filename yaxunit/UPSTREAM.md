@@ -26,6 +26,7 @@ remain unchanged except for:
 - registration of the following project-local common modules in that file:
 
 - `КОНС_ТестовыеФабрикиСлужебный`;
+- `КОНС_Обр_ЛексическийАнализатор_МО`;
 - `КОНС_Обр_Парсер_МО`.
 
 Their metadata and BSL sources are stored under `src/CommonModules/`. The
