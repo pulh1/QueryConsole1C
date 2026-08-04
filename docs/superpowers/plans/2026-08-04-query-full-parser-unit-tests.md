@@ -20,6 +20,10 @@ Task6 15 + Task7 21 + Task8 6 + Task9 4 = 92`; `92 + X01–X42 = 134`.
 - Outside bootstrap Task 1, a second guarded write is authorized only in
   bounded spike Task 1A, Task 8A and runtime-count/wiring Task 9B. Tasks 1A/8A
   add then remove probes; Task 9B replaces count probes with final corpus cases.
+- Independent review round 1 explicitly authorizes one separate bounded
+  remediation `Task 1A-R1` with exactly two additional guarded writes: add 17
+  unique nonparameterized exact-case probes, then restore the exact Task 1
+  source. This authorization is not reusable by later rounds or tasks.
 - Every launch uses `extensions=["YAXUNIT"]`, `updateBeforeLaunch=true`,
   `updateScope="extension:yaxunit"`.
 - `clean_project`, full rebuild, `updateScope="all"`, all-extension update and
@@ -169,7 +173,7 @@ Task 5 consumes their generated literals.
 	.СПараметрамиНаСервере("M02", "ВЫБРАТЬ РАЗЛИЧНЫЕ 1")
 	.СПараметрамиНаСервере("M03", "ВЫБРАТЬ РАЗРЕШЕННЫЕ 1")
 	.СПараметрамиНаСервере("J06", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 ЛЕВОЕ СОЕДИНЕНИЕ ВТ КАК Т2 ПО Т1.Ключ = Т2.Ключ")
-	.СПараметрамиНаСервере("J07", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 ЛЕВОЕ СОЕДИНЕНИЕ (ВЫБРАТЬ 1 КАК Ключ) КАК Т2 ПО Т1.Ключ = Т2.Ключ ПРАВОЕ СОЕДИНЕНИЕ Таблица3 КАК Т3 ПО Т2.Ключ = Т3.Ключ");
+	.СПараметрамиНаСервере("J07", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 ЛЕВОЕ СОЕДИНЕНИЕ (ВЫБРАТЬ 1 КАК Ключ) КАК Т2 ПО Т1.Ключ = Т2.Ключ ПРАВОЕ СОЕДИНЕНИЕ Каталог.Таблица3 КАК Т3 ПО Т2.Ключ = Т3.Ключ");
 
 Процедура RuntimePreflightРазбираетКандидат(Идентификатор, ИсходныйТекст) Экспорт
 	Пакет = РазобратьЗапросДляТеста(ИсходныйТекст);
@@ -188,7 +192,7 @@ Task 5 consumes their generated literals.
 The guarded source expands this registration with every exact candidate from
 the design: all fifteen modifier strings, ten source candidates, nine period
 types plus bounded-period form, six SKD candidates and the exact J06/J07 strings
-shown above: 43 successful-parse parameter cases in total. The E02 probe
+shown above: 43 registered parameter outcomes in total. The E02 probe
 deliberately lets the real parser exception reach the temporary test report; it
 is not an artificial assertion failure.
 
@@ -237,6 +241,29 @@ extension:yaxunit was updated.
 
 **Commit:** commit only the runtime-preflight artifact after probe cleanup:
 `test: record full parser runtime preflight`.
+
+#### Task 1A-R1: review-authorized exact-case remediation
+
+Independent review found that 17 non-pass rows lacked separate exact-filter
+runs and that T11–T20/K02/K03 used an incorrect operator-level temporary helper.
+It also established from production source that bare `Таблица3` is correctly a
+temporary table; the metadata-table J07 candidate must use
+`Каталог.Таблица3`.
+
+- [x] First additional guarded write registers 17 unique nonparameterized
+  methods for M06, M07, M10, M14, corrected J07, T11–T20, K02 and K03. T/K
+  helpers read query-level public paths; J07 expects the dotted third source to
+  be `ИсточникДанныхТаблица`.
+- [x] Run every method separately with its exact module+method filter and the
+  mandatory extension-only update. Record every report ID/result; do not use a
+  parameterized-filter workaround.
+- [x] Second additional guarded write restores exact Task 1 source/hash. Prove
+  Q00 `1/1`, zero probes, unchanged production and zero diagnostic delta.
+- [x] Replace remediation-covered artifact evidence/report IDs, correct E02's
+  generated literal, and record no generated literal for M06/M10 because no AST
+  exists.
+
+**Commit:** `test: verify full parser preflight gaps`.
 
 ---
 
@@ -424,13 +451,13 @@ normal/optional forms, chain and three joinable-source branches.
 
 ```bsl
 .ДобавитьСерверныйТест("СоединениеCase")
-	.СПараметрамиНаСервере("J01", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 ЛЕВОЕ СОЕДИНЕНИЕ Таблица2 КАК Т2 ПО Т1.Ключ = Т2.Ключ", "Левое", Ложь, 2, "ИсточникДанныхТаблица", 1, Неопределено, Неопределено)
-	.СПараметрамиНаСервере("J02", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 ПРАВОЕ СОЕДИНЕНИЕ Таблица2 КАК Т2 ПО Т1.Ключ = Т2.Ключ", "Правое", Ложь, 2, "ИсточникДанныхТаблица", 1, Неопределено, Неопределено)
-	.СПараметрамиНаСервере("J03", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 ВНУТРЕННЕЕ СОЕДИНЕНИЕ Таблица2 КАК Т2 ПО Т1.Ключ = Т2.Ключ", "Внутреннее", Ложь, 2, "ИсточникДанныхТаблица", 1, Неопределено, Неопределено)
-	.СПараметрамиНаСервере("J04", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 ПОЛНОЕ СОЕДИНЕНИЕ Таблица2 КАК Т2 ПО Т1.Ключ = Т2.Ключ", "Полное", Ложь, 2, "ИсточникДанныхТаблица", 1, Неопределено, Неопределено)
-	.СПараметрамиНаСервере("J05", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 {ЛЕВОЕ СОЕДИНЕНИЕ Таблица2 КАК Т2 ПО Т1.Ключ = Т2.Ключ}", "Левое", Истина, 2, "ИсточникДанныхТаблица", 1, Неопределено, Неопределено)
+	.СПараметрамиНаСервере("J01", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 ЛЕВОЕ СОЕДИНЕНИЕ Каталог.Таблица2 КАК Т2 ПО Т1.Ключ = Т2.Ключ", "Левое", Ложь, 2, "ИсточникДанныхТаблица", 1, Неопределено, Неопределено)
+	.СПараметрамиНаСервере("J02", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 ПРАВОЕ СОЕДИНЕНИЕ Каталог.Таблица2 КАК Т2 ПО Т1.Ключ = Т2.Ключ", "Правое", Ложь, 2, "ИсточникДанныхТаблица", 1, Неопределено, Неопределено)
+	.СПараметрамиНаСервере("J03", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 ВНУТРЕННЕЕ СОЕДИНЕНИЕ Каталог.Таблица2 КАК Т2 ПО Т1.Ключ = Т2.Ключ", "Внутреннее", Ложь, 2, "ИсточникДанныхТаблица", 1, Неопределено, Неопределено)
+	.СПараметрамиНаСервере("J04", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 ПОЛНОЕ СОЕДИНЕНИЕ Каталог.Таблица2 КАК Т2 ПО Т1.Ключ = Т2.Ключ", "Полное", Ложь, 2, "ИсточникДанныхТаблица", 1, Неопределено, Неопределено)
+	.СПараметрамиНаСервере("J05", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 {ЛЕВОЕ СОЕДИНЕНИЕ Каталог.Таблица2 КАК Т2 ПО Т1.Ключ = Т2.Ключ}", "Левое", Истина, 2, "ИсточникДанныхТаблица", 1, Неопределено, Неопределено)
 	.СПараметрамиНаСервере("J06", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 ЛЕВОЕ СОЕДИНЕНИЕ ВТ КАК Т2 ПО Т1.Ключ = Т2.Ключ", "Левое", Ложь, 2, "ИсточникДанныхВременнаяТаблица", 1, Неопределено, Неопределено)
-	.СПараметрамиНаСервере("J07", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 ЛЕВОЕ СОЕДИНЕНИЕ (ВЫБРАТЬ 1 КАК Ключ) КАК Т2 ПО Т1.Ключ = Т2.Ключ ПРАВОЕ СОЕДИНЕНИЕ Таблица3 КАК Т3 ПО Т2.Ключ = Т3.Ключ", "Левое", Ложь, 3, "ИсточникДанныхВложенныйЗапрос", 2, "Правое", Ложь);
+	.СПараметрамиНаСервере("J07", "ВЫБРАТЬ 1 ИЗ Таблица1 КАК Т1 ЛЕВОЕ СОЕДИНЕНИЕ (ВЫБРАТЬ 1 КАК Ключ) КАК Т2 ПО Т1.Ключ = Т2.Ключ ПРАВОЕ СОЕДИНЕНИЕ Каталог.Таблица3 КАК Т3 ПО Т2.Ключ = Т3.Ключ", "Левое", Ложь, 3, "ИсточникДанныхВложенныйЗапрос", 2, "Правое", Ложь);
 ```
 
 During guarded write replace J06 only if the artifact gives a different exact

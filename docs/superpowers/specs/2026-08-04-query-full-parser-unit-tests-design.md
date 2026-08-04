@@ -158,7 +158,9 @@ Task 0 строго read-only. После создания test module Task 1A �
 ограниченный runtime spike для спорных source classifications, всех modifier
 orders, J06/J07 JOIN topology и СКД. Он создаёт verified artifact с exact input,
 result/error, raw AST path/value, report ID и generated BSL literal. Для J07
-artifact обязан подтвердить два элемента `Корень.Соединения[0]` и `[1]`, а
+metadata-источник должен быть dotted (`Каталог.Таблица3`), потому что bare
+одночастный идентификатор является временной таблицей. Remediation artifact R1
+обязан подтвердить два элемента `Корень.Соединения[0]` и `[1]`, а
 правые источники — `Оператор.Источники.Элементы[1]` и `[2]`; J06 подтверждает
 один JOIN того же корня и временный правый источник. Artifact содержит ровно
 44 строки: 15 M, 10 S, 2 J, 10 T-period, 6 K и одну E02. Помимо двух bootstrap
@@ -166,7 +168,9 @@ writes Task 1, только bounded
 spikes Task 1A, Task 8A и corpus count/wiring Task 9B имеют право на две guarded
 EDT writes. Tasks 1A/8A добавляют и удаляют probes; Task 9B сначала собирает
 runtime counts, затем заменяет probes окончательными 42 cases. Tasks 2–7, 8B и
-9 имеют по одной guarded write.
+9 имеют по одной guarded write. Independent review round 1 отдельно разрешает
+Task 1A-R1 ещё две guarded writes для 17 уникальных exact-case probes и полного
+восстановления Task 1; это разрешение не меняет counts `92 + 42 = 134`.
 
 Для `ТипБлокаСКД` нельзя считать проверкой сравнение только
 `Пакет.Тип` или использование expected keyword в сообщении. Artifact должен
