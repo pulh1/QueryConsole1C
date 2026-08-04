@@ -34,6 +34,12 @@
   delta без иных новых `ERROR/CRITICAL/MAJOR`, smoke 1/1 и точной metadata
   registration; любое изменение снова закрывает diagnostic gate. Это не общий
   allowlist и не переносится на следующие пакеты автоматически.
+- Task 2 после отдельного review заменяет Task 1 line set ровно 11 markers для
+  source hash `a637fd98c0974bfc`: `МодельЗапросаТипы` line 35;
+  `ЭлементыМоделиЗапроса` lines 76/78/87/88/125/131/137/145/155;
+  `ОбработкаМоделиЗапроса` line 157. Разрешение требует exact 12/12 run и
+  isolated delta `556→572` без изменения BLOCKER/CRITICAL/MAJOR. Оно не
+  наследуется Task 3 и автоматически закрывается при любом drift.
 - После создания каждого common module сверять EDT metadata discovery с
   `Configuration.mdo`: новый reference должен присутствовать ровно один раз,
   а набор существовавших registrations не должен сокращаться или получать
@@ -363,6 +369,18 @@ modules=["КОНС_ОМ_ОбработкаМоделиЗапроса"]
 ```
 
 Expected: all registered cases pass; the future-semantic module is not yet present.
+
+- [ ] **Step 3a: Reconcile the Task 2 diagnostic boundary**
+
+For live source hash `a637fd98c0974bfc`, require exactly 11
+`undefined-variable [Сервер]` markers: `МодельЗапросаТипы` line 35;
+`ЭлементыМоделиЗапроса` lines 76, 78, 87, 88, 125, 131, 137, 145, 155;
+`ОбработкаМоделиЗапроса` line 157. The saved module run must be 12/12 and every
+flagged reference must be exercised. Diagnostic delta must be exactly
+`556→572`: `ERRORS 4→12`, `MINOR 427→435`, with unchanged BLOCKER 86,
+CRITICAL 6 and MAJOR 27 and unchanged CRITICAL/MAJOR identity sets. This narrow
+set replaces Task 1 positions for Task 2 only; it is not inherited by Task 3.
+Any mismatch blocks commit and requires a new independent review.
 
 - [ ] **Step 4: Commit the vertical slice**
 
