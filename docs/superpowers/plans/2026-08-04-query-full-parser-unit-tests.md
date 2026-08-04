@@ -3,15 +3,15 @@
 > **Execution:** use `superpowers:executing-plans` or
 > `superpowers:subagent-driven-development`; execute tasks in order.
 
-**Goal:** implement 89 executable synthetic and 42 corpus black-box YAxUnit
+**Goal:** implement 89 executable synthetic and 12 curated corpus black-box YAxUnit
 cases for
 `Обработки.Парсер.Разобрать`, without changing parser/grammar/semantic code.
 
 **Target arithmetic:** `Q00 1 + Q01–Q05 5 + Task3 23 + Task4 10 + Task5 7 +
-Task6 15 + Task7 21 + Task8 3 + Task9 4 = 89`; `89 + X01–X42 = 131`.
+Task6 15 + Task7 21 + Task8 3 + Task9 4 = 89`; `89 + X01–X12 = 101`.
 These are represented-case totals: Task 3 contributes `11 GREEN M + 4 opt-in
 RED M + 7 F + 1 N-ALIAS = 23`. Consequently the final main module has 85
-synthetic and 42 corpus GREEN cases (`127`), while the four modifier REDs remain
+synthetic and 12 corpus GREEN cases (`97`), while the four modifier REDs remain
 isolated behind the existing future-grammar module gate; no blocker is counted
 as GREEN. K01–K03 remain three separate GAP evidence rows outside executable
 case arithmetic: they parsed, but export no public raw keyword value.
@@ -504,7 +504,7 @@ inside `Разыменование.Элементы`.
   `updateScope="extension:yaxunit"`; expected result is
   `25 total / 25 passed / 0 failed / 0 errors`. Run diagnostics and diff-check.
   Parser, grammar and factories remain read-only. Task 3 stays 23 represented
-  cases, and target arithmetic remains 89 executable synthetic / 131 overall.
+  cases, and target arithmetic remains 89 executable synthetic / 101 overall.
   EDT reuses this module's report path token between launches: after the final
   rerun its current content is `25/25`; the initial `24/25` launch output is
   preserved in tool history and the ignored Task 3 execution report, not as an
@@ -987,14 +987,45 @@ predicted coordinate.
 `docs/superpowers/matrices/2026-08-04-query-full-parser-corpus-source.md` and
 `docs/superpowers/matrices/2026-08-04-query-full-parser-corpus-registration.bsl.txt`.
 
-**Interfaces:** consumes XML files; produces a 42-row audit table and an exact
-42-line BSL registration fragment consumed by Task 9B. It deliberately does not
-produce a pre-wire package-element count.
+**Interfaces:** consumes all 42 XML files; produces a 42-row corpus decision
+matrix and an exact 12-line BSL registration fragment consumed by Task 9B. It
+deliberately does not produce a pre-wire package-element count.
+
+The approved allowlist and stable case order are fixed; clustering must not
+silently replace a selected file:
+
+| ID | Relative path |
+|---|---|
+| X01 | `QueryExamples/ТестВТПериоды.q1c` |
+| X02 | `QueryExamples/ТестЗапросОстаткиОтпусков.q1c` |
+| X03 | `QueryExamples/ТестСотрудникиОрганизацииПоВТФизлица.q1c` |
+| X04 | `QueryExamples/СведенияОДоходахНДФЛНарастающийИтог.q1c` |
+| X05 | `QueryExamples/ТестИндексыИПсевдониымПолей.q1c` |
+| X06 | `QueryExamples/СрезСОтборами.q1c` |
+| X07 | `QueryExamples/ТестЗапросаНачисленияУдержания_И_КадроваяИстория.q1c` |
+| X08 | `QueryExamples/ДанныеУчетаВремениПоПШР.q1c` |
+| X09 | `QueryExamples/ДвеТаблицыКадровыхДанныхВОдномЗапросе.q1c` |
+| X10 | `QueryExamples/ТестКадровыеДанныеСПараметрами_БезФормированияДопЗапроса.q1c` |
+| X11 | `QueryExamples/ДанныеОВремениИИнтервалыРегистра.q1c` |
+| X12 | `QueryExamples/ТестКадровыеДанныеБезИспользованияВТ.q1c` |
 
 - [ ] For each file, XML-decode the first `<query><text>` and separately read
-  relative filename key and first-query XML `name`.
+  relative filename key and first-query XML `name`. Inventory all 42 rows in
+  path order with decoded character count, line count, SHA-256, cluster evidence
+  and either `selected: Xnn` or one exact exclusion reason.
 - [ ] Canonicalize text for hashing to UTF-8 without BOM and LF newlines; compute
   SHA-256 after XML entity decoding.
+- [ ] Preserve the approved read-only clustering evidence in the decision
+  matrix: 42 total files, one exact-duplicate group of three files, and eight
+  near-duplicate groups with normalized similarity `>= 0.94`. An exact-duplicate
+  exclusion names the retained path and shared SHA-256; a near-duplicate
+  exclusion names the retained path and exact similarity; every remaining
+  non-selected row says `excluded: outside approved curated 12 after clustering`.
+- [ ] Record `QueryExamples/ТестПакетЗапрсов.q1c` as
+  `excluded: oversized stress outlier` with the observed selection evidence
+  `8170 chars / 173 lines / 13 SELECT / 8 JOIN / 6 packages`; record that the
+  next-largest file has 4183 chars. The six-package observation is selection
+  evidence only and is not used as `RuntimeVerifiedCount`.
 - [ ] Escape BSL deterministically: replace each `"` with `""`; represent every
   LF as `" + Символы.ПС + "`; preserve empty lines and tabs; never re-encode
   decoded `&` as `&amp;`.
@@ -1002,27 +1033,33 @@ produce a pre-wire package-element count.
   algorithm cannot reliably distinguish semicolons in comments/string literals
   or nested query constructs without recreating the production lexer/parser;
   invoking that parser is forbidden in Task 9A.
-- [ ] Emit exact
-  `.СПараметрамиНаСервере(Key, XmlName, EscapedText, Sha256)` lines.
-- [ ] Verify 42 unique keys, 42 non-empty names/texts, 42 hashes and exactly 42
-  generated calls. Regenerate twice and require byte-identical artifact.
+- [ ] Emit exactly 12
+  `.СПараметрамиНаСервере(Key, XmlName, EscapedText, Sha256)` lines for
+  X01–X12 only, in the fixed table order. `Key` is the exact relative path; the
+  excluded 30 rows never enter the registration fragment.
+- [ ] Verify 42 unique paths, 42 non-empty names/texts, 42 SHA-256 values, exactly
+  12 selected rows, 30 excluded rows and exactly 12 generated calls. Generate
+  both artifacts twice, then once from the reverse 42-file input order while
+  sorting the matrix by path and registrations by X ID. Require byte-identical
+  outputs and identical SHA-256 hashes in all three runs.
 
-**Verification:** hash a decoded text back from each generated BSL literal and
-compare to its row; `git diff --check` both artifacts.
+**Verification:** hash decoded text back from each of the 12 generated BSL
+literals and compare to its selected row; verify no excluded path appears in a
+registration; `git diff --check` both artifacts.
 
 **Commit:** `test: prepare reproducible query example corpus`.
 
 ---
 
-### Task 9B: X01–X42 corpus wiring
+### Task 9B: X01–X12 curated corpus wiring
 
 **Files:** consume and update the two Task 9A artifacts; modify new test module;
 update corpus-source matrix with runtime columns.
 
-**Interfaces:** consumes exact escaped literals/checksums; first produces 42
-temporary runtime-count reports, then 42 final cases with verified counts.
+**Interfaces:** consumes the 12 exact escaped literals/checksums; first produces
+12 temporary runtime-count probes, then 12 final cases with verified counts.
 
-- [ ] First authorized guarded write pastes the generated 42 four-argument calls
+- [ ] First authorized guarded write pastes the generated 12 four-argument calls
   after this temporary registration:
 
 ```bsl
@@ -1038,13 +1075,15 @@ temporary runtime-count reports, then 42 final cases with verified counts.
 
 - [ ] Run only the temporary method with extension-only update. Every
   successfully parsed input ends in a controlled `RUNTIME_COUNT` error. Record
-  42 exact counts and report IDs in the matrix. A parser error lacks that prefix
-  and blocks the second write.
+  exactly 12 counts and 12 probe report IDs on selected X01–X12 rows. A parser
+  error lacks that prefix and blocks the second write; excluded rows receive no
+  runtime count or report ID.
 - [ ] Update `corpus-registration.bsl.txt` deterministically: append the recorded
-  `RuntimeVerifiedCount` as the fifth literal of each of the same 42 calls.
-  Preserve key/name/text/hash bytes and verify all 42 SHA-256 values again.
+  `RuntimeVerifiedCount` as the fifth literal of each of the same 12 calls.
+  Preserve key/name/text/hash bytes and verify all 12 selected SHA-256 values
+  again.
 - [ ] Second authorized guarded write removes the temporary registration/body
-  and installs the updated 42 five-argument calls after
+  and installs the updated 12 five-argument calls after
   `.ДобавитьСерверныйТест("ПервыйЗапросПримераРазбирается")` with this complete
   final body:
 
@@ -1069,15 +1108,16 @@ text integrity is reverified outside BSL before both writes.
 
 - [ ] Run final corpus test, then whole module. No parser-independent pre-wire
   count field or claim exists.
-- [ ] Expected main whole-module total is 127 only after all 42 runtime cases
-  pass. Together with the four opt-in modifier RED cases, represented
-  executable coverage is `127 + 4 = 131`.
+- [ ] Record exactly 12 final-case report IDs on X01–X12 rows. Expected main
+  whole-module total rises from 85 to 97 only after all 12 runtime cases pass.
+  Together with the four opt-in modifier RED cases, represented executable
+  coverage is `97 + 4 = 101`.
 
-**Verification:** module GREEN, matrix has 42 runtime-count probe report IDs and
-42 final case report IDs, generated fragment has 42 five-argument calls,
-diagnostics and diff-check.
+**Verification:** module GREEN, matrix has exactly 12 runtime-count probe report
+IDs and 12 final-case report IDs, generated fragment has exactly 12
+five-argument calls, diagnostics and diff-check.
 
-**Commit:** `test: add query example parser corpus`.
+**Commit:** `test: add curated query example parser corpus`.
 
 ---
 
@@ -1100,14 +1140,21 @@ produces final evidence and an independent reviewer verdict.
 - [ ] Preserve K01–K03 as three separate artifact-backed observability GAP
   evidence rows outside the executable case budget. They retain their K IDs
   and report references, have no executable tests and never receive GREEN.
-- [ ] Run Q00 smoke (`Total=1`) and whole new main module (`Total=127`) with only
+- [ ] Preserve all 42 corpus decision rows: exactly 12 selected X01–X12 rows
+  have executable cases and runtime/final report IDs; each of the 30 excluded
+  rows retains its exact duplicate, near-duplicate, outlier or curated-allowlist
+  exclusion reason and never receives an executable case or GREEN.
+- [ ] Run Q00 smoke (`Total=1`) and whole new main module (`Total=97`) with only
   extension:yaxunit update. Separately run the exact future-grammar module
   filter and require the known RED distribution
   `7 total / 0 passed / 4 failed / 3 errors`; collect diagnostics,
-  `git diff --check`, status.
+  `git diff --check`, status. Represented executable arithmetic is `97` main
+  GREEN plus four Task 3 modifier REDs, exactly `101`; the three pre-existing
+  future-grammar REDs remain outside this target budget.
 - [ ] Independent reviewer reads actual module and all matrices. Prompt requires
   checking every branch, fifteen modifier orders, nine periods, explicit ВОЗР,
-  raw/semantic boundary, SKD keyword observability and corpus hash/escaping.
+  raw/semantic boundary, SKD keyword observability, the fixed 12-file corpus
+  allowlist, all 30 exclusion reasons and corpus hash/escaping determinism.
 - [ ] For confirmed findings only, perform one bounded guarded write of the test
   module, one module GREEN and matrix updates. If counts/mapping/scope change,
   update the design in the same fix-cycle and re-run diff-check. If no confirmed

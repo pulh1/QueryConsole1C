@@ -141,8 +141,8 @@ Case — один вызов `.СПараметрамиНаСервере(...)` 
 | 8 observable SKD | K04–K06 | 3 |
 | 9 errors/reuse | E01–E04 | 4 |
 | **Executable synthetic** |  | **1+5+23+10+7+15+21+3+4 = 89** |
-| Corpus | X01–X42 | 42 |
-| **Overall executable target** |  | **131** |
+| Curated corpus | X01–X12 | 12 |
+| **Overall executable target** |  | **101** |
 
 M01–M15 — все непустые перестановки без повторов множества
 `ПЕРВЫЕ/РАЗЛИЧНЫЕ/РАЗРЕШЕННЫЕ`; Q00 закрывает пустую ветвь. Из этих пятнадцати
@@ -152,12 +152,12 @@ opt-in RED cases существующего future-grammar модуля. Поэ�
 представляет все 15 альтернатив, но ни одна из четырёх неисправных альтернатив
 не помечена ложно GREEN. Task 3 сохраняет бюджет `11 + 4 + 7 + 1 = 23`;
 исполняемый synthetic budget равен 89, из них 85 GREEN в основном модуле и
-четыре opt-in RED. После 42 corpus cases общий executable target `131` состоит
-из `127` GREEN cases основного модуля и четырёх opt-in modifier RED. K01–K03
+четыре opt-in RED. После 12 curated corpus cases общий executable target `101`
+состоит из `97` GREEN cases основного модуля и четырёх opt-in modifier RED. K01–K03
 остаются тремя отдельными observability GAP evidence rows вне case budget: они
 parsed, но не имеют исполняемого теста и никогда не получают GREEN. Cumulative
 main GREEN total: после Task 7 — 78, после Task 8 — 81, после Task 9 — 85,
-после 42 corpus cases — 127. T11–T19 — девять
+после 12 curated corpus cases — 97. T11–T19 — девять
 типов периода в production-порядке. C07 содержит явное `ВОЗР`, C06 — default
 `ε`, C08 — `УБЫВ`. S09/S10 — полезные достижимые cases явного
 `Каталог.Таблица КАК Т` и bare `Каталог.Таблица Т`; они не используются для
@@ -198,7 +198,7 @@ metadata-источник должен быть dotted (`Каталог.Табл
 44 строки: 15 M, 10 S, 2 J, 10 T-period, 6 K и одну E02. Помимо двух bootstrap
 writes Task 1, только bounded spike Task 1A и corpus count/wiring Task 9B имеют
 право на две guarded EDT writes. Task 1A добавляет и удаляет probes; Task 9B
-сначала собирает runtime counts, затем заменяет probes окончательными 42 cases.
+сначала собирает runtime counts, затем заменяет probes окончательными 12 cases.
 Task 8A уже полностью удовлетворён K evidence из Task 1A/R1 artifact и не
 разрешает повторных probe writes/runs. Tasks 2, 4–7,
 8B и 9 имеют по одной guarded write. Task 3 имеет ровно по одной guarded write
@@ -206,7 +206,7 @@ Task 8A уже полностью удовлетворён K evidence из Task 
 future-grammar (две writes total, без нового metadata object). Independent
 review round 1 отдельно разрешает
 Task 1A-R1 ещё две guarded writes для 17 уникальных exact-case probes и полного
-восстановления Task 1; это разрешение не меняет counts `89 + 42 = 131`.
+восстановления Task 1; это разрешение не меняет counts `89 + 12 = 101`.
 После подтверждённого F05 failure отдельный Task 3-R1 разрешает ровно одну
 дополнительную guarded write только основного full-query модуля для исправления
 test contract. Это разрешение не распространяется на future-grammar module и
@@ -244,25 +244,56 @@ fragment дополнительно зафиксирован debug evidence `178
 
 ## Corpus handoff
 
-Task 9A формирует reproducible source artifact с 42 четырёхаргументными BSL
-registration lines для runtime-count probes; Task 9B детерминированно добавляет
-пятым аргументом проверенный count для окончательных cases. Для каждого первого
-`<query>` хранятся отдельно:
+Task 9A инвентаризует все 42 `QueryExamples/*.q1c` в reproducible
+corpus-source decision matrix, но генерирует ровно 12
+четырёхаргументных BSL registration lines. Task 9B добавляет пятым
+аргументом runtime-verified count только для этих 12 cases. Фиксированный
+allowlist и порядок таковы:
+
+| ID | Relative path |
+|---|---|
+| X01 | `QueryExamples/ТестВТПериоды.q1c` |
+| X02 | `QueryExamples/ТестЗапросОстаткиОтпусков.q1c` |
+| X03 | `QueryExamples/ТестСотрудникиОрганизацииПоВТФизлица.q1c` |
+| X04 | `QueryExamples/СведенияОДоходахНДФЛНарастающийИтог.q1c` |
+| X05 | `QueryExamples/ТестИндексыИПсевдониымПолей.q1c` |
+| X06 | `QueryExamples/СрезСОтборами.q1c` |
+| X07 | `QueryExamples/ТестЗапросаНачисленияУдержания_И_КадроваяИстория.q1c` |
+| X08 | `QueryExamples/ДанныеУчетаВремениПоПШР.q1c` |
+| X09 | `QueryExamples/ДвеТаблицыКадровыхДанныхВОдномЗапросе.q1c` |
+| X10 | `QueryExamples/ТестКадровыеДанныеСПараметрами_БезФормированияДопЗапроса.q1c` |
+| X11 | `QueryExamples/ДанныеОВремениИИнтервалыРегистра.q1c` |
+| X12 | `QueryExamples/ТестКадровыеДанныеБезИспользованияВТ.q1c` |
+
+Решение опирается на read-only clustering evidence: среди 42 файлов
+есть одна exact-duplicate группа из трёх файлов и восемь near-duplicate
+групп с normalized similarity `>= 0.94`. Исключённый
+`QueryExamples/ТестПакетЗапрсов.q1c` — oversized stress outlier:
+`8170 chars / 173 lines / 13 SELECT / 8 JOIN / 6 packages`; следующий по
+размеру файл имеет 4183 chars. Эти метрики обосновывают selection,
+но не подменяют parser-verified package count.
+
+Для каждого первого `<query>` в 42-row matrix хранятся отдельно:
 
 - relative filename key с `/`;
 - XML `name`;
 - SHA-256 decoded UTF-8 text;
-- escaped BSL expression;
-- позднее `RuntimeVerifiedCount` и YAxUnit report ID.
+- decoded character/line counts и cluster evidence;
+- `selected: Xnn` либо exact exclusion reason с reference path/hash/similarity;
+- только для 12 selected rows — escaped BSL expression, а позднее
+  `RuntimeVerifiedCount`, probe report ID и final-case report ID.
 
 XML entities декодируются XML parser до checksum/escaping. В BSL каждая `"`
 удваивается до `""`; LF представляется явным `+ Символы.ПС +`; пустые строки и
 tabs сохраняются; `&` остаётся decoded `&`. Parser-independent алгоритма,
 который надёжно считает элементы пакета при комментариях, строковых литералах и
 вложенных запросах, нет, поэтому pre-wire count не вычисляется. Первая guarded
-write Task 9B запускает 42 временных runtime-count probes после wiring и
-сохраняет counts из контролируемых сообщений. Вторая write заменяет probes
-окончательными 42 cases с уже проверенным `RuntimeVerifiedCount`.
+write Task 9B запускает 12 временных runtime-count probes после wiring и
+сохраняет 12 counts и 12 probe report IDs. Вторая write заменяет probes
+окончательными 12 cases с проверенным `RuntimeVerifiedCount` и 12 final-case
+report IDs. Два обычных прохода генератора и проход с обратным порядком
+42 inputs дают byte-identical artifacts и одинаковые SHA-256: matrix всегда
+сортируется по path, а registrations — по X ID.
 
 ## Future grammar
 
@@ -285,6 +316,8 @@ contracts: M06/M07/M10/M14 ожидают `ПЕРВЫЕ=5`, `РАЗЛИЧНЫЕ=
   `e522eafb6_f12ad5227705b0f2306214b2959313f133871e52`.
 
 Точный opt-in module run ожидает `7 total / 0 passed / 4 failed / 3 errors`.
+В executable target `101` входят `97` main GREEN и четыре Task 3 modifier RED;
+три ранее существовавших future-grammar RED остаются вне этого budget.
 Основной модуль не регистрирует эти четыре blockers; его narrow Task 3 run
 ожидает `25/25` после Q00, Q01–Q05, 11 GREEN M, 7 F и N-ALIAS. Parser и grammar
 остаются read-only.
