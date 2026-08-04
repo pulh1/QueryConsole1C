@@ -1021,6 +1021,34 @@ silently replace a selected file:
   exclusion names the retained path and shared SHA-256; a near-duplicate
   exclusion names the retained path and exact similarity; every remaining
   non-selected row says `excluded: outside approved curated 12 after clustering`.
+- [ ] Reproduce similarity exactly: XML-decode and canonicalize `CRLF/CR → LF`;
+  lowercase Unicode; collapse every Unicode whitespace run to one ASCII space
+  and trim; form a frequency multiset of all overlapping character trigrams;
+  compute cosine from trigram frequencies; remove byte/text-exact pairs from the
+  near set; connect scores `>= 0.94`; use connected components. The exact triple
+  is `ЗапросДанныеУчетаВремениСотрудников` / `ТестДанныеУчетаВремени` /
+  `ТестДанныеУчетаВремениСПараметрами`, SHA-256
+  `39e57bf70704d71de0f3ed79266e413702c675a850cec719d8e51b8fa5f3d193`.
+- [ ] Require these exact near-component edges/scores (all names are under
+  `QueryExamples/` with `.q1c`): G1 `ТестГенерацияСрезаДляСКД`—
+  `ТестИндексыИПсевдониымПолей` 0.996918904928,
+  `ТестГенерацияСрезаДляСКД`—`ТестПараметрыСрезаПоследних` 0.996939468187,
+  `ТестИндексыИПсевдониымПолей`—`ТестПараметрыСрезаПоследних` 0.997430996821;
+  G2 `ТестЗаписиРегистраЗапросБезВТ`—`ТестИнтервалыРегистраЗапросБезВТ`
+  0.985964797217; G3 `ТестЗапросаВТШтатноеРасписание`—
+  `ТестЗапросаВТШтатноеРасписаниеДляСКД` 0.951946063756; G4
+  `ТестЗапросаНачисленияУдержания`—`ТестЗапросаНачисленияУдержанияАвансом`
+  0.990230216763, `ТестЗапросаНачисленияУдержания`—
+  `ТестЗапросаНачисленияУдержания_И_КадроваяИстория` 0.948549110858,
+  `ТестЗапросаНачисленияУдержания_И_КадроваяИстория`—
+  `ТестЗапросаНачисленияУдержанияАвансом` 0.940049394782; G5
+  `ТестЗапросаРабочиеМестаСотрудников`—
+  `ТестЗапросаРабочиеМестаСотрудниковБезОтбораПоСотр` 0.993765176807; G6
+  `ТестКадровыеДанныеСПараметрами`—
+  `ТестКадровыеДанныеСПараметрами_БезФормированияДопЗапроса` 0.998571467682;
+  G7 `ТестПараметрыЗаписиРегистра`—`ТестПараметрыИнтервалыРегистра`
+  0.981880523547; G8 `ТестСотрудникиОрганизацииБезВТФизлица`—
+  `ТестСотрудникиОрганизацииПоВТФизлица` 0.944445393370.
 - [ ] Record `QueryExamples/ТестПакетЗапрсов.q1c` as
   `excluded: oversized stress outlier` with the observed selection evidence
   `8170 chars / 173 lines / 13 SELECT / 8 JOIN / 6 packages / 2 UNION`; record that the
