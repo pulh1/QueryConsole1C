@@ -65,6 +65,7 @@
   <commonModules>CommonModule.КОНС_Обр_ЛексическийАнализатор_МО</commonModules>
   <commonModules>CommonModule.КОНС_Обр_Парсер_МО</commonModules>
   <commonModules>CommonModule.КОНС_Обр_ПарсерБудущаяГрамматика_МО</commonModules>
+  <commonModules>CommonModule.КОНС_Обр_ПарсерЗапросов_МО</commonModules>
   <commonModules>CommonModule.КОНС_ТестовыеФабрикиСлужебный</commonModules>
   <commonModules>CommonModule.Мокито</commonModules>
   <commonModules>CommonModule.МокитоОбучение</commonModules>

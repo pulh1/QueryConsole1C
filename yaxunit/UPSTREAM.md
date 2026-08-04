@@ -28,6 +28,7 @@ remain unchanged except for:
 - `КОНС_ТестовыеФабрикиСлужебный`;
 - `КОНС_Обр_ЛексическийАнализатор_МО`;
 - `КОНС_Обр_Парсер_МО`.
+- `КОНС_Обр_ПарсерЗапросов_МО`.
 
 Their metadata and BSL sources are stored under `src/CommonModules/`. The
 compatibility row is required because EDT 2026.1 exports seven internal groups,
