@@ -28,6 +28,12 @@
   идентификатор источника и ключ `<идентификатор>.ИНН`, но ничего не
   утверждают о mixed-case вариантах.
 - Перед итоговым утверждением покрытия привлечь независимого reviewer, не участвовавшего в реализации пакетов.
+- Task 1 имеет ровно три независимо проверенных sibling-extension EDT false
+  positives `undefined-variable` на строках 25, 34 и 36 нового pure module.
+  Узкое исключение действует только при exact marker identity/count, изолированном
+  delta без иных новых `ERROR/CRITICAL/MAJOR`, smoke 1/1 и точной metadata
+  registration; любое изменение снова закрывает diagnostic gate. Это не общий
+  allowlist и не переносится на следующие пакеты автоматически.
 - После создания каждого common module сверять EDT metadata discovery с
   `Configuration.mdo`: новый reference должен присутствовать ровно один раз,
   а набор существовавших registrations не должен сокращаться или получать
@@ -264,9 +270,14 @@ Repeat both
 `get_problem_summary(projectName="yaxunit")` and
 `get_project_errors(projectName="yaxunit", limit=1000,
 responseFormat="detailed")`. Compare the complete marker identities, not only
-totals. New errors in the added module are not acceptable; existing unrelated
-diagnostics are recorded, not attributed to this task. Recheck the exact-once
-`Configuration.mdo` registration after the incremental update.
+totals. New errors in the added module are not acceptable except the exact three
+Task 1 sibling-extension markers fixed by the global constraint above: lines 25
+and 34 for `ЭлементыМоделиЗапроса`, line 36 for
+`ОбработкаМоделиЗапроса`, all check `undefined-variable`. Accept them only when
+their exact messages/count/positions match, the isolated delta contains no other
+new `ERROR/CRITICAL/MAJOR`, and the 1/1 smoke executes the references. Existing
+unrelated diagnostics are recorded, not attributed to this task. Recheck the
+exact-once `Configuration.mdo` registration after the incremental update.
 
 - [ ] **Step 8: Commit the independently usable smoke slice**
 
