@@ -34,6 +34,10 @@ as GREEN.
   remediation `Task 1A-R1` with exactly two additional guarded writes: add 17
   unique nonparameterized exact-case probes, then restore the exact Task 1
   source. This authorization is not reusable by later rounds or tasks.
+- Exact F05 runtime evidence explicitly authorizes separate `Task 3-R1` with
+  exactly one additional guarded write to `КОНС_Обр_ПарсерЗапросов_МО` only.
+  It corrects the test's nested AST contract, is not reusable, and authorizes no
+  additional write or rerun of `КОНС_Обр_ПарсерБудущаяГрамматика_МО`.
 - Every launch uses `extensions=["YAXUNIT"]`, `updateBeforeLaunch=true`,
   `updateScope="extension:yaxunit"`.
 - `clean_project`, full rebuild, `updateScope="all"`, all-extension update and
@@ -354,13 +358,13 @@ M15 ВЫБРАТЬ РАЗРЕШЕННЫЕ РАЗЛИЧНЫЕ ПЕРВЫЕ 5 1
 
 ```bsl
 .ДобавитьСерверныйТест("ПолеCase")
-	.СПараметрамиНаСервере("F01", "ВЫБРАТЬ 1, 2", 2, "Константа", Неопределено)
-	.СПараметрамиНаСервере("F02", "ВЫБРАТЬ 1 КАК Один", 1, "Константа", "Один")
-	.СПараметрамиНаСервере("F03", "ВЫБРАТЬ 1 Один", 1, "Константа", "Один")
-	.СПараметрамиНаСервере("F04", "ВЫБРАТЬ *", 1, "ВыражениеВсеПоля", Неопределено)
-	.СПараметрамиНаСервере("F05", "ВЫБРАТЬ Т.* ИЗ Таблица КАК Т", 1, "ВыражениеВсеПоляИсточника", Неопределено)
-	.СПараметрамиНаСервере("F06", "ВЫБРАТЬ Т.Поле ИЗ Таблица КАК Т", 1, "Разыменование", Неопределено)
-	.СПараметрамиНаСервере("F07", "ВЫБРАТЬ 1 КАК Один, 2 КАК Два", 2, "Константа", "Один")
+	.СПараметрамиНаСервере("F01", "ВЫБРАТЬ 1, 2", 2, "Константа", Неопределено, Неопределено)
+	.СПараметрамиНаСервере("F02", "ВЫБРАТЬ 1 КАК Один", 1, "Константа", "Один", Неопределено)
+	.СПараметрамиНаСервере("F03", "ВЫБРАТЬ 1 Один", 1, "Константа", "Один", Неопределено)
+	.СПараметрамиНаСервере("F04", "ВЫБРАТЬ *", 1, "ВыражениеВсеПоля", Неопределено, Неопределено)
+	.СПараметрамиНаСервере("F05", "ВЫБРАТЬ Т.* ИЗ Таблица КАК Т", 1, "Разыменование", Неопределено, "ВыражениеВсеПоляИсточника")
+	.СПараметрамиНаСервере("F06", "ВЫБРАТЬ Т.Поле ИЗ Таблица КАК Т", 1, "Разыменование", Неопределено, Неопределено)
+	.СПараметрамиНаСервере("F07", "ВЫБРАТЬ 1 КАК Один, 2 КАК Два", 2, "Константа", "Один", Неопределено)
 .ДобавитьСерверныйТест("НезавершенныйПсевдонимВызываетИсключение");
 ```
 
@@ -382,7 +386,8 @@ Complete bodies:
 КонецПроцедуры
 
 Процедура ПолеCase(Идентификатор, ИсходныйТекст, Количество,
-	ТипЗначенияВыражения, Псевдоним) Экспорт
+	ТипЗначенияВыражения, Псевдоним,
+	ТипПоследнегоЭлементаРазыменования) Экспорт
 	Оператор = ЕдинственныйОператор(ИсходныйТекст);
 	ЮТест.ОжидаетЧто(Оператор.ВыбираемыеПоля.Количество())
 		.Равно(Количество, Идентификатор);
@@ -392,6 +397,14 @@ Complete bodies:
 	ЮТест.ОжидаетЧто(Поле.Выражение.Значение.Тип)
 		.Равно(ТипЗначенияВыражения, Идентификатор);
 	ЮТест.ОжидаетЧто(Поле.Псевдоним).Равно(Псевдоним, Идентификатор);
+	Если ТипПоследнегоЭлементаРазыменования <> Неопределено Тогда
+		ЭлементыРазыменования = Поле.Выражение.Значение.Элементы;
+		ЮТест.ОжидаетЧто(ЭлементыРазыменования.Количество())
+			.Равно(2, Идентификатор);
+		ПоследнийЭлемент = ЭлементыРазыменования[ЭлементыРазыменования.Количество() - 1];
+		ЮТест.ОжидаетЧто(ПоследнийЭлемент.Тип)
+			.Равно(ТипПоследнегоЭлементаРазыменования, Идентификатор);
+	КонецЕсли;
 КонецПроцедуры
 
 Процедура НезавершенныйПсевдонимВызываетИсключение() Экспорт
@@ -449,13 +462,46 @@ Complete bodies:
   `Истина` (reports `d8cfe1f1f_a05525b9f125c94d661adc63d2b86b36f58272aa` and
   `e522eafb6_f12ad5227705b0f2306214b2959313f133871e52`). Do not normalize these
   outcomes and do not change parser/grammar.
-- [ ] Use exactly one guarded write per touched module (two total). Run the main
-  module with its exact module filter: expected `25 total / 25 passed` after
-  Q00 + Q01–Q05 + 11 M + 7 F + N-ALIAS. Separately run the exact opt-in future
-  module filter: expected `7 total / 0 passed / 4 failed / 3 errors` (the
-  existing three REDs plus four modifier REDs). Both launches use only
+- [ ] Use exactly one guarded write per initially touched module (two total).
+  The first exact main-module run after Q00 + Q01–Q05 + 11 M + 7 F + N-ALIAS
+  produced `25 total / 24 passed / 1 failed`, report
+  `8b1dc2a30_0603d958d35f2ab1215dde45c14f531d32933588`; only F05 failed because
+  the test expected leaf type `ВыражениеВсеПоляИсточника` at the root where the
+  public AST exposes root type `Разыменование`. The exact opt-in future-module
+  run produced the required `7 total / 0 passed / 4 failed / 3 errors`, report
+  `725d8a737_36b73a2a69d631547d3c684d8ed3e380dfdcbf45`. Preserve that future
+  module result without another write or rerun.
+
+#### Task 3-R1: F05 nested source-all-fields contract
+
+Conditional debug evidence `1785806808318-2` for exact F05 input
+`ВЫБРАТЬ Т.* ИЗ Таблица КАК Т` proves this public structure:
+
+- `Поле.Выражение.Тип=ВыражениеМоделиЗапроса`;
+- `Поле.Выражение.Значение.Тип=Разыменование`;
+- `Поле.Выражение.Значение.Элементы.Количество()=2`;
+- `Поле.Выражение.Значение.Элементы[0]` is string `Т`;
+- `Поле.Выражение.Значение.Элементы[1].Тип=ВыражениеВсеПоляИсточника`.
+
+Production confirms the same boundary without modification:
+`Парсер/ObjectModule.bsl:2442-2447` creates the `Разыменование` root and appends
+the source identifier, `Парсер/ObjectModule.bsl:2494-2500` appends the
+`ВыражениеВсеПоляИсточника` leaf,
+`ЭлементыМоделиЗапроса/Module.bsl:183-185,541-544` defines both factory shapes,
+and `ГенераторТекстовВыражений/ObjectModule.bsl:133-156` consumes the leaf from
+inside `Разыменование.Элементы`.
+
+- [ ] The separate review-authorized Task 3-R1 uses exactly one additional
+  guarded write to `КОНС_Обр_ПарсерЗапросов_МО` only. Apply the six-argument F
+  registrations and conditional nested assertion above. Do not write or rerun
+  `КОНС_Обр_ПарсерБудущаяГрамматика_МО`; retain report
+  `725d8a737_36b73a2a69d631547d3c684d8ed3e380dfdcbf45`.
+- [ ] Run the exact main-module filter incrementally with
   `extensions=["YAXUNIT"]`, `updateBeforeLaunch=true` and
-  `updateScope="extension:yaxunit"`. Run diagnostics and diff-check.
+  `updateScope="extension:yaxunit"`; expected result is
+  `25 total / 25 passed / 0 failed / 0 errors`. Run diagnostics and diff-check.
+  Parser, grammar and factories remain read-only. Task 3 stays 23 represented
+  cases, and total arithmetic remains 92 synthetic / 134 overall.
 
 **Commit:** `test: cover select modifiers and fields`.
 

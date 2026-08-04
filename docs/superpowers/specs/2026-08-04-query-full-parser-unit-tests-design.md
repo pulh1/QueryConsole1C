@@ -160,6 +160,23 @@ opt-in RED. После 42 corpus cases общий represented target `134` со�
 двух исключённых productions. J07 — двух-JOIN chain с вложенным первым правым
 источником и обычным вторым.
 
+F05 (`ВЫБРАТЬ Т.* ИЗ Таблица КАК Т`) проверяет nested source-all-fields
+boundary, а не leaf type на корне. Первый main run дал
+`25 total / 24 passed / 1 failed`, report
+`8b1dc2a30_0603d958d35f2ab1215dde45c14f531d32933588`; единственный F05 failure
+показал фактический root `Разыменование`. Exact conditional debug evidence
+`1785806808318-2` подтвердил полный public AST:
+`Поле.Выражение.Тип=ВыражениеМоделиЗапроса`,
+`Поле.Выражение.Значение.Тип=Разыменование`, два элемента разыменования,
+строковый `[0]="Т"` и `[1].Тип=ВыражениеВсеПоляИсточника`. Production parser
+создаёт `Разыменование` и добавляет leaf в `Элементы`; factories создают эти два
+разных shape, а генератор текстов потребляет `ВыражениеВсеПоляИсточника` именно
+внутри `Разыменование.Элементы`. Поэтому F01–F07 используют явный шестой
+параметр `ТипПоследнегоЭлементаРазыменования`: только F05 передаёт
+`"ВыражениеВсеПоляИсточника"`, остальные — `Неопределено`; F05 ожидает root
+`"Разыменование"`, count `2` и тип последнего элемента. Case arithmetic не
+меняется.
+
 ## Runtime-preflight и observability
 
 Task 0 строго read-only. После создания test module Task 1A выполняет
@@ -182,6 +199,11 @@ future-grammar (две writes total, без нового metadata object). Indep
 review round 1 отдельно разрешает
 Task 1A-R1 ещё две guarded writes для 17 уникальных exact-case probes и полного
 восстановления Task 1; это разрешение не меняет counts `92 + 42 = 134`.
+После подтверждённого F05 failure отдельный Task 3-R1 разрешает ровно одну
+дополнительную guarded write только основного full-query модуля для исправления
+test contract. Это разрешение не распространяется на future-grammar module и
+не допускает его повторный run; parser, factories, consumers и grammar остаются
+read-only.
 
 Для `ТипБлокаСКД` нельзя считать проверкой сравнение только
 `Пакет.Тип` или использование expected keyword в сообщении. Artifact должен
@@ -248,6 +270,12 @@ contracts: M06/M07/M10/M14 ожидают `ПЕРВЫЕ=5`, `РАЗЛИЧНЫЕ=
 Основной модуль не регистрирует эти четыре blockers; его narrow Task 3 run
 ожидает `25/25` после Q00, Q01–Q05, 11 GREEN M, 7 F и N-ALIAS. Parser и grammar
 остаются read-only.
+
+Фактический opt-in result уже подтверждён report
+`725d8a737_36b73a2a69d631547d3c684d8ed3e380dfdcbf45`:
+`7 total / 0 passed / 4 failed / 3 errors`. Task 3-R1 сохраняет его без новой
+future-grammar write и без повторного запуска; после единственной main-module
+write ожидается только exact incremental main rerun `25/25`.
 
 ## Инкрементальность и готовность
 
