@@ -78,3 +78,12 @@ The public raw model contains no value that distinguishes the `{ВЫБРАТЬ .
 - Targeted revalidation found the same 9 pre-existing diagnostics as baseline; diagnostic delta is zero.
 - Production source was read-only and `git diff -- QueryConsoleZUP` was empty.
 - Every test/debug launch used `extensions=["YAXUNIT"]`, `updateBeforeLaunch=true`, `updateScope="extension:yaxunit"`, and an exact module/method filter. No clean/full/all update was used.
+
+## Task 10 final verification
+
+- Exact Q00 run: `1/1`, report `60d966441_d99af5caced5d3f55b5c6b54f8aac51d75f3cc15`.
+- Exact whole-main-module run: `97/97`, report `8b1dc2a30_0603d958d35f2ab1215dde45c14f531d32933588`.
+- Exact future-module run preserved the known boundary: `7 total / 0 passed / 4 failed / 3 errors`, report `725d8a737_36b73a2a69d631547d3c684d8ed3e380dfdcbf45`.
+- M06/M10 remain parser-error RED, M07/M14 remain value-mismatch RED. K01–K03 remain three separate artifact-backed observability GAP rows, retain their K IDs and report references, have no GREEN/test IDs and stay outside executable coverage.
+- Final arithmetic is `97 main GREEN + 4 modifier RED = 101 represented executable`; the three pre-existing future REDs and K01–K03 GAP rows are outside that budget.
+- No Task 10 launch returned `Pending`; all calls used launch-configuration-only targeting, `extensions=["YAXUNIT"]`, exact module/test filters, `updateBeforeLaunch=true` and `updateScope="extension:yaxunit"`, without `projectName`, `applicationId` or `timeout`.

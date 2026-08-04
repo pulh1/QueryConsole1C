@@ -52,3 +52,10 @@
 | — | `QueryExamples/ТестСрезНаКаждыйДень.q1c` | `Периоды` | 779 | 24 | `213d12d4d0c2a9aaf553551702b504b1edf663ac120e99115a0061b2edf55f57` | none | excluded: outside approved curated 12 after clustering | — | — | — |
 | — | `QueryExamples/ТестСрезРегистраЗапросБезВТ.q1c` | `КадроваяИсторияСотрудниковСрезПоследних` | 791 | 20 | `8785de1f854ed9f93ad499564cee5564efc003be80b921fe676afab8f3d5197e` | none | excluded: outside approved curated 12 after clustering | — | — | — |
 | — | `QueryExamples/ТестСтажиФизическихЛиц.q1c` | `СтажиФизическихЛиц` | 850 | 25 | `49f7864302390338e8fbc8308ecd274f3dd99ddb634d8c80a737fb6d8bd64ccc` | none | excluded: outside approved curated 12 after clustering | — | — | — |
+
+## Task 10 final verification
+
+- Exact Q00 run: `1/1`, report `60d966441_d99af5caced5d3f55b5c6b54f8aac51d75f3cc15`.
+- Exact whole-main-module run: `97/97`, report `8b1dc2a30_0603d958d35f2ab1215dde45c14f531d32933588`; it executed all 12 selected corpus cases as part of the main GREEN total.
+- The 42 decisions above are unchanged: exactly 12 selected rows retain their Task 9B runtime counts, probe report IDs and final-case report IDs; all 30 excluded rows retain their exact exclusion reasons and empty runtime evidence cells.
+- Represented arithmetic remains `97 main GREEN + 4 opt-in modifier RED = 101`; excluded corpus rows do not enter executable coverage.
