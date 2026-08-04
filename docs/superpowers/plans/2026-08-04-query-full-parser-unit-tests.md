@@ -8,6 +8,11 @@
 
 **Target arithmetic:** `Q00 1 + Q01–Q05 5 + Task3 23 + Task4 10 + Task5 7 +
 Task6 15 + Task7 21 + Task8 6 + Task9 4 = 92`; `92 + X01–X42 = 134`.
+These are represented-case totals: Task 3 contributes `11 GREEN M + 4 opt-in
+RED M + 7 F + 1 N-ALIAS = 23`. Consequently the final main module has 88
+synthetic and 42 corpus GREEN cases (`130`), while the four modifier REDs remain
+isolated behind the existing future-grammar module gate; no blocker is counted
+as GREEN.
 
 ## Global constraints
 
@@ -16,10 +21,15 @@ Task6 15 + Task7 21 + Task8 6 + Task9 4 = 92`; `92 + X01–X42 = 134`.
 - Tests call only `КОНС_ТестовыеФабрикиСлужебный.СоздатьПарсер().Разобрать`.
 - Metadata and module source writes use EDT-MCP guarded by current content hash.
 - Task 1 contains the only artificial discovery RED.
-- Tasks 2–7, 8B and 9 each use one guarded write for the complete package.
-- Outside bootstrap Task 1, a second guarded write is authorized only in
-  bounded spike Task 1A, Task 8A and runtime-count/wiring Task 9B. Tasks 1A/8A
-  add then remove probes; Task 9B replaces count probes with final corpus cases.
+- Tasks 2, 4–7, 8B and 9 each use one guarded write for the complete package.
+  Task 3 is the only package task that touches two existing modules: exactly
+  one guarded write to `КОНС_Обр_ПарсерЗапросов_МО` and exactly one guarded
+  write to `КОНС_Обр_ПарсерБудущаяГрамматика_МО` (two writes total, no metadata
+  object creation).
+- Outside bootstrap Task 1 and the two-module Task 3 split, additional guarded
+  writes are authorized only in bounded spike Task 1A, Task 8A and
+  runtime-count/wiring Task 9B. Tasks 1A/8A add then remove probes; Task 9B
+  replaces count probes with final corpus cases.
 - Independent review round 1 explicitly authorizes one separate bounded
   remediation `Task 1A-R1` with exactly two additional guarded writes: add 17
   unique nonparameterized exact-case probes, then restore the exact Task 1
@@ -306,10 +316,14 @@ variants, both package-query choices and destroy node.
 
 ### Task 3: M01–M15, F01–F07 and N-ALIAS — 23 cases
 
-**Files:** modify only new test module.
+**Files:** modify existing `КОНС_Обр_ПарсерЗапросов_МО` and existing opt-in
+`КОНС_Обр_ПарсерБудущаяГрамматика_МО`; do not create metadata objects.
 
-**Interfaces:** consumes Task 1A M rows; produces all 15 non-empty SELECT
-modifier orderings, both field alternatives, list/alias variants and alias RED.
+**Interfaces:** consumes the verified Task 1A artifact. The main module receives
+11 GREEN SELECT modifier orderings, both field alternatives, list/alias variants
+and alias RED. Confirmed blockers M06/M07/M10/M14 remain represented as opt-in
+acceptance REDs in the existing future-grammar module and are never registered
+by the main module.
 
 Exact modifier inputs, in ID order:
 
@@ -331,10 +345,12 @@ M14 ВЫБРАТЬ РАЗРЕШЕННЫЕ ПЕРВЫЕ 5 РАЗЛИЧНЫЕ 1
 M15 ВЫБРАТЬ РАЗРЕШЕННЫЕ РАЗЛИЧНЫЕ ПЕРВЫЕ 5 1
 ```
 
-- [ ] Generate fifteen `.СПараметрамиНаСервере` calls directly from verified
-  M artifact rows with parameters `(ID, exact text, first-or-Неопределено,
-  distinct, allowed, exact allowed-property-name)` immediately after
-  `.ДобавитьСерверныйТест("МодификаторCase")`. Then add:
+- Main-module GREEN IDs are M01–M05, M08, M09, M11–M13 and M15. Generate only
+  these eleven `.СПараметрамиНаСервере` calls directly from verified artifact
+  rows with parameters `(ID, exact text, first-or-Неопределено, distinct,
+  allowed, exact allowed-property-name)` immediately after
+  `.ДобавитьСерверныйТест("МодификаторCase")`. The main module must not register
+  M06, M07, M10 or M14. Then add:
 
 ```bsl
 .ДобавитьСерверныйТест("ПолеCase")
@@ -383,7 +399,63 @@ Complete bodies:
 КонецПроцедуры
 ```
 
-- [ ] One guarded write, module GREEN, diagnostics, diff-check.
+- In the existing future-grammar module, keep the explicit module-filter gate
+  byte-for-byte unchanged. Extend only the registration chain after that gate
+  with one parameterized full-query acceptance method and these four desired
+  contracts:
+
+```bsl
+.ДобавитьСерверныйТест("МодификаторПолногоЗапросаБудущаяГрамматикаCase")
+	.СПараметрамиНаСервере("M06", "ВЫБРАТЬ ПЕРВЫЕ 5 РАЗЛИЧНЫЕ РАЗРЕШЕННЫЕ 1", 5, Истина, Истина)
+	.СПараметрамиНаСервере("M07", "ВЫБРАТЬ ПЕРВЫЕ 5 РАЗРЕШЕННЫЕ РАЗЛИЧНЫЕ 1", 5, Истина, Истина)
+	.СПараметрамиНаСервере("M10", "ВЫБРАТЬ РАЗЛИЧНЫЕ ПЕРВЫЕ 5 РАЗРЕШЕННЫЕ 1", 5, Истина, Истина)
+	.СПараметрамиНаСервере("M14", "ВЫБРАТЬ РАЗРЕШЕННЫЕ ПЕРВЫЕ 5 РАЗЛИЧНЫЕ 1", 5, Истина, Истина);
+```
+
+```bsl
+Процедура МодификаторПолногоЗапросаБудущаяГрамматикаCase(
+	Идентификатор, ИсходныйТекст, ОжидаемыеПервые,
+	ОжидаемыеРазличные, ОжидаемыеРазрешенные) Экспорт
+
+	Парсер = КОНС_ТестовыеФабрикиСлужебный.СоздатьПарсер();
+	Пакет = Парсер.Разобрать(ИсходныйТекст);
+	ЮТест.ОжидаетЧто(Пакет.Тип).Равно("ПакетЗапросов", Идентификатор);
+	ЮТест.ОжидаетЧто(Пакет.Элементы.Количество()).Равно(1, Идентификатор);
+	Запрос = Пакет.Элементы[0];
+	ЮТест.ОжидаетЧто(Запрос.Тип).Равно("ЗапросВыбора", Идентификатор);
+	ЮТест.ОжидаетЧто(Запрос.Операторы.Количество()).Равно(1, Идентификатор);
+	Оператор = Запрос.Операторы[0];
+	ЮТест.ОжидаетЧто(Оператор.КоличествоПолучаемыхЗаписей)
+		.Равно(ОжидаемыеПервые, Идентификатор);
+	ЮТест.ОжидаетЧто(Оператор.ВыбиратьРазличные)
+		.Равно(ОжидаемыеРазличные, Идентификатор);
+	ФактическиеРазрешенные = Неопределено;
+	ЮТест.ОжидаетЧто(Оператор.Свойство(
+		"__ВыбиратьРазрешенные", ФактическиеРазрешенные))
+		.Равно(Истина, Идентификатор);
+	ЮТест.ОжидаетЧто(ФактическиеРазрешенные)
+		.Равно(ОжидаемыеРазрешенные, Идентификатор);
+
+КонецПроцедуры
+```
+
+  Runtime evidence in
+  `docs/superpowers/matrices/2026-08-04-query-full-parser-runtime-preflight.md`
+  is binding: M06/M10 remain errors from
+  `Поле объекта не обнаружено (ВыбиратьРазрешенные)` (reports
+  `696aabbdb_543b4d259945c4b680c30f7339fac3665b8fc262` and
+  `5b86b1cc0_8912c057bb228f05ce83c2d39adedd835b733d32`); M07/M14 remain
+  assertion failures because `ВыбиратьРазличные=Ложь` instead of desired
+  `Истина` (reports `d8cfe1f1f_a05525b9f125c94d661adc63d2b86b36f58272aa` and
+  `e522eafb6_f12ad5227705b0f2306214b2959313f133871e52`). Do not normalize these
+  outcomes and do not change parser/grammar.
+- [ ] Use exactly one guarded write per touched module (two total). Run the main
+  module with its exact module filter: expected `25 total / 25 passed` after
+  Q00 + Q01–Q05 + 11 M + 7 F + N-ALIAS. Separately run the exact opt-in future
+  module filter: expected `7 total / 0 passed / 4 failed / 3 errors` (the
+  existing three REDs plus four modifier REDs). Both launches use only
+  `extensions=["YAXUNIT"]`, `updateBeforeLaunch=true` and
+  `updateScope="extension:yaxunit"`. Run diagnostics and diff-check.
 
 **Commit:** `test: cover select modifiers and fields`.
 
@@ -807,7 +879,9 @@ by E02 artifact row to `ОшибкаПолногоЗапросаСодержит
 must be copied byte-for-byte with its Task 1A report ID; the plan contains no
 predicted coordinate.
 
-- [ ] One guarded write, module GREEN. Synthetic report must total exactly 92.
+- [ ] One guarded write, module GREEN. Main-module synthetic report must total
+  exactly 88; together with the four Task 3 opt-in modifier RED cases, the
+  represented synthetic budget remains exactly 92.
 
 **Commit:** `test: cover full parser errors and reuse`.
 
@@ -901,7 +975,9 @@ text integrity is reverified outside BSL before both writes.
 
 - [ ] Run final corpus test, then whole module. No parser-independent pre-wire
   count field or claim exists.
-- [ ] Expected whole-module total is 134 only after all 42 runtime cases pass.
+- [ ] Expected main whole-module total is 130 only after all 42 runtime cases
+  pass. Together with the four opt-in modifier RED cases, represented coverage
+  remains `130 + 4 = 134`.
 
 **Verification:** module GREEN, matrix has 42 runtime-count probe report IDs and
 42 final case report IDs, generated fragment has 42 five-argument calls,
@@ -925,10 +1001,13 @@ produces final evidence and an independent reviewer verdict.
   with exact input, raw AST path, case ID and status. Keep both exclusions
   (`КакОпционально`: no caller; `ВыражениеСКДПараметр`: self-recursion only)
   separate and do not assign them test IDs.
-- [ ] Record existing opt-in REDs `--1`, `НЕДЕЛЯ(&Дата)`, `1 +`; do not run them
-  in the main GREEN.
-- [ ] Run Q00 smoke (`Total=1`) and whole new module (`Total=134`) with only
-  extension:yaxunit update; collect diagnostics, `git diff --check`, status.
+- [ ] Record existing opt-in REDs `--1`, `НЕДЕЛЯ(&Дата)`, `1 +` and Task 3
+  modifier REDs M06/M07/M10/M14; do not run any of them in the main GREEN.
+- [ ] Run Q00 smoke (`Total=1`) and whole new main module (`Total=130`) with only
+  extension:yaxunit update. Separately run the exact future-grammar module
+  filter and require the known RED distribution
+  `7 total / 0 passed / 4 failed / 3 errors`; collect diagnostics,
+  `git diff --check`, status.
 - [ ] Independent reviewer reads actual module and all matrices. Prompt requires
   checking every branch, fifteen modifier orders, nine periods, explicit ВОЗР,
   raw/semantic boundary, SKD keyword observability and corpus hash/escaping.

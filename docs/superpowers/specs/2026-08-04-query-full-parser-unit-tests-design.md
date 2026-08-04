@@ -48,7 +48,7 @@ Task 0 читает:
 implementation plan. Одна строка перечисляет все ветви конкретной функции, а
 несколько ветвей могут покрываться одним составным case.
 
-| # | Production (line) | Все альтернативы | Positive case IDs |
+| # | Production (line) | Все альтернативы | Case IDs / coverage evidence |
 |---:|---|---|---|
 | 1 | `ПакетЗапросов` (236) | `ЗапросПакета Продолжение` | Q00–Q05 |
 | 2 | `ПродолжениеПакетаЗапросов` (250) | `; ЗапросПакета ...`; конечный `;`; `ε` | Q01; Q02; Q00 |
@@ -133,7 +133,7 @@ Case — один вызов `.СПараметрамиНаСервере(...)` 
 |---|---|---:|
 | 1 smoke | Q00 | 1 |
 | 2 package/destroy | Q01–Q05 | 5 |
-| 3 modifiers/fields/alias error | M01–M15, F01–F07, N-ALIAS | 23 |
+| 3 modifiers/fields/alias error | M01–M15 (11 GREEN + 4 opt-in RED), F01–F07, N-ALIAS | 23 |
 | 4 sources/parameters | S01–S10 | 10 |
 | 5 JOIN | J01–J07 | 7 |
 | 6 clauses/UNION/ORDER | C01–C15 | 15 |
@@ -145,7 +145,15 @@ Case — один вызов `.СПараметрамиНаСервере(...)` 
 | **Overall target** |  | **134** |
 
 M01–M15 — все непустые перестановки без повторов множества
-`ПЕРВЫЕ/РАЗЛИЧНЫЕ/РАЗРЕШЕННЫЕ`; Q00 закрывает пустую ветвь. T11–T19 — девять
+`ПЕРВЫЕ/РАЗЛИЧНЫЕ/РАЗРЕШЕННЫЕ`; Q00 закрывает пустую ветвь. Из этих пятнадцати
+альтернатив M01–M05, M08, M09, M11–M13 и M15 являются GREEN в основном модуле,
+а подтверждённые runtime-блокеры M06, M07, M10 и M14 представлены только
+opt-in RED cases существующего future-grammar модуля. Поэтому inventory
+представляет все 15 альтернатив, но ни одна из четырёх неисправных альтернатив
+не помечена ложно GREEN. Task 3 сохраняет бюджет `11 + 4 + 7 + 1 = 23`;
+синтетический бюджет остаётся 92, из них 88 GREEN в основном модуле и четыре
+opt-in RED. После 42 corpus cases общий represented target `134` состоит из
+`130` GREEN cases основного модуля и четырёх opt-in modifier RED. T11–T19 — девять
 типов периода в production-порядке. C07 содержит явное `ВОЗР`, C06 — default
 `ε`, C08 — `УБЫВ`. S09/S10 — полезные достижимые cases явного
 `Каталог.Таблица КАК Т` и bare `Каталог.Таблица Т`; они не используются для
@@ -167,8 +175,11 @@ metadata-источник должен быть dotted (`Каталог.Табл
 writes Task 1, только bounded
 spikes Task 1A, Task 8A и corpus count/wiring Task 9B имеют право на две guarded
 EDT writes. Tasks 1A/8A добавляют и удаляют probes; Task 9B сначала собирает
-runtime counts, затем заменяет probes окончательными 42 cases. Tasks 2–7, 8B и
-9 имеют по одной guarded write. Independent review round 1 отдельно разрешает
+runtime counts, затем заменяет probes окончательными 42 cases. Tasks 2, 4–7,
+8B и 9 имеют по одной guarded write. Task 3 имеет ровно по одной guarded write
+на каждый из двух существующих модулей — основной full-query и opt-in
+future-grammar (две writes total, без нового metadata object). Independent
+review round 1 отдельно разрешает
 Task 1A-R1 ещё две guarded writes для 17 уникальных exact-case probes и полного
 восстановления Task 1; это разрешение не меняет counts `92 + 42 = 134`.
 
@@ -215,10 +226,28 @@ write Task 9B запускает 42 временных runtime-count probes по
 
 ## Future grammar
 
-Существующий opt-in модуль содержит три RED: `--1`, имя функции
-`НЕДЕЛЯ(&Дата)` и сообщение ошибки для `1 +`. Full-query spike не дублирует их.
-Новый future RED появляется лишь после отдельного фактического падения; parser
-в этой задаче не исправляется.
+Существующий opt-in `КОНС_Обр_ПарсерБудущаяГрамматика_МО` сохраняет явный
+module-filter gate без изменений. К трём существующим RED (`--1`, имя функции
+`НЕДЕЛЯ(&Дата)` и сообщение ошибки для `1 +`) Task 3 добавляет один
+параметризованный full-query modifier acceptance method с четырьмя desired
+contracts: M06/M07/M10/M14 ожидают `ПЕРВЫЕ=5`, `РАЗЛИЧНЫЕ=Истина` и
+`РАЗРЕШЕННЫЕ=Истина`. Runtime artifact
+`docs/superpowers/matrices/2026-08-04-query-full-parser-runtime-preflight.md`
+фиксирует фактическую границу:
+
+- M06/M10 остаются runtime errors `Поле объекта не обнаружено
+  (ВыбиратьРазрешенные)` — reports
+  `696aabbdb_543b4d259945c4b680c30f7339fac3665b8fc262` и
+  `5b86b1cc0_8912c057bb228f05ce83c2d39adedd835b733d32`;
+- M07/M14 остаются assertion failures из-за
+  `ВыбиратьРазличные=Ложь` — reports
+  `d8cfe1f1f_a05525b9f125c94d661adc63d2b86b36f58272aa` и
+  `e522eafb6_f12ad5227705b0f2306214b2959313f133871e52`.
+
+Точный opt-in module run ожидает `7 total / 0 passed / 4 failed / 3 errors`.
+Основной модуль не регистрирует эти четыре blockers; его narrow Task 3 run
+ожидает `25/25` после Q00, Q01–Q05, 11 GREEN M, 7 F и N-ALIAS. Parser и grammar
+остаются read-only.
 
 ## Инкрементальность и готовность
 
