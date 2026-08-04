@@ -114,9 +114,9 @@ implementation plan. Одна строка перечисляет все вет�
 | 62 | `ОкончаниеПериодаИтогов` (1590) | `, end`; `ε` | T20; T11 |
 | 63 | `ПериодИтогов` (1607) | expression | T20 |
 | 64 | `БлокИндексировать` (1623) | `ИНДЕКСИРОВАТЬ ПО list`; `ε` | T02; Q00 |
-| 65 | `РасширениеСКД` (1642) | `{ body }`; `ε` | K01–K05; Q00 |
-| 66 | `ТелоБлокаСКД` (1657) | SELECT/ORDER/TOTALS field body; `ГДЕ` field body | K01–K03; K04 |
-| 67 | `ТипБлокаСКД` (1685) | `ВЫБРАТЬ`; `УПОРЯДОЧИТЬ ПО`; `ИТОГИ ПО` | K01; K02; K03 |
+| 65 | `РасширениеСКД` (1642) | `{ body }`; `ε` | K04/K05 GREEN; Q00; K01–K03 GAP evidence |
+| 66 | `ТелоБлокаСКД` (1657) | SELECT/ORDER/TOTALS field body; `ГДЕ` field body | K01–K03 GAP evidence; K04/K05 GREEN |
+| 67 | `ТипБлокаСКД` (1685) | `ВЫБРАТЬ`; `УПОРЯДОЧИТЬ ПО`; `ИТОГИ ПО` | K01/K02/K03 GAP evidence only; no executable case |
 | — | `КакОпционально` (1001) | declaration exists, caller absent | excluded |
 | — | `ВыражениеСКДПараметр` (1117) | only self-recursion, no external caller | excluded |
 
@@ -138,11 +138,11 @@ Case — один вызов `.СПараметрамиНаСервере(...)` 
 | 5 JOIN | J01–J07 | 7 |
 | 6 clauses/UNION/ORDER | C01–C15 | 15 |
 | 7 PLACE/INDEX/TOTALS | T01–T21 | 21 |
-| 8 SKD | K01–K06 | 6 |
+| 8 observable SKD | K04–K06 | 3 |
 | 9 errors/reuse | E01–E04 | 4 |
-| **Synthetic** |  | **1+5+23+10+7+15+21+6+4 = 92** |
+| **Executable synthetic** |  | **1+5+23+10+7+15+21+3+4 = 89** |
 | Corpus | X01–X42 | 42 |
-| **Overall target** |  | **134** |
+| **Overall executable target** |  | **131** |
 
 M01–M15 — все непустые перестановки без повторов множества
 `ПЕРВЫЕ/РАЗЛИЧНЫЕ/РАЗРЕШЕННЫЕ`; Q00 закрывает пустую ветвь. Из этих пятнадцати
@@ -151,9 +151,13 @@ M01–M15 — все непустые перестановки без повто
 opt-in RED cases существующего future-grammar модуля. Поэтому inventory
 представляет все 15 альтернатив, но ни одна из четырёх неисправных альтернатив
 не помечена ложно GREEN. Task 3 сохраняет бюджет `11 + 4 + 7 + 1 = 23`;
-синтетический бюджет остаётся 92, из них 88 GREEN в основном модуле и четыре
-opt-in RED. После 42 corpus cases общий represented target `134` состоит из
-`130` GREEN cases основного модуля и четырёх opt-in modifier RED. T11–T19 — девять
+исполняемый synthetic budget равен 89, из них 85 GREEN в основном модуле и
+четыре opt-in RED. После 42 corpus cases общий executable target `131` состоит
+из `127` GREEN cases основного модуля и четырёх opt-in modifier RED. K01–K03
+остаются тремя отдельными observability GAP evidence rows вне case budget: они
+parsed, но не имеют исполняемого теста и никогда не получают GREEN. Cumulative
+main GREEN total: после Task 7 — 78, после Task 8 — 81, после Task 9 — 85,
+после 42 corpus cases — 127. T11–T19 — девять
 типов периода в production-порядке. C07 содержит явное `ВОЗР`, C06 — default
 `ε`, C08 — `УБЫВ`. S09/S10 — полезные достижимые cases явного
 `Каталог.Таблица КАК Т` и bare `Каталог.Таблица Т`; они не используются для
@@ -192,16 +196,17 @@ metadata-источник должен быть dotted (`Каталог.Табл
 правые источники — `Оператор.Источники.Элементы[1]` и `[2]`; J06 подтверждает
 один JOIN того же корня и временный правый источник. Artifact содержит ровно
 44 строки: 15 M, 10 S, 2 J, 10 T-period, 6 K и одну E02. Помимо двух bootstrap
-writes Task 1, только bounded
-spikes Task 1A, Task 8A и corpus count/wiring Task 9B имеют право на две guarded
-EDT writes. Tasks 1A/8A добавляют и удаляют probes; Task 9B сначала собирает
-runtime counts, затем заменяет probes окончательными 42 cases. Tasks 2, 4–7,
+writes Task 1, только bounded spike Task 1A и corpus count/wiring Task 9B имеют
+право на две guarded EDT writes. Task 1A добавляет и удаляет probes; Task 9B
+сначала собирает runtime counts, затем заменяет probes окончательными 42 cases.
+Task 8A уже полностью удовлетворён K evidence из Task 1A/R1 artifact и не
+разрешает повторных probe writes/runs. Tasks 2, 4–7,
 8B и 9 имеют по одной guarded write. Task 3 имеет ровно по одной guarded write
 на каждый из двух существующих модулей — основной full-query и opt-in
 future-grammar (две writes total, без нового metadata object). Independent
 review round 1 отдельно разрешает
 Task 1A-R1 ещё две guarded writes для 17 уникальных exact-case probes и полного
-восстановления Task 1; это разрешение не меняет counts `92 + 42 = 134`.
+восстановления Task 1; это разрешение не меняет counts `89 + 42 = 131`.
 После подтверждённого F05 failure отдельный Task 3-R1 разрешает ровно одну
 дополнительную guarded write только основного full-query модуля для исправления
 test contract. Это разрешение не распространяется на future-grammar module и
@@ -209,11 +214,21 @@ test contract. Это разрешение не распространяется
 read-only.
 
 Для `ТипБлокаСКД` нельзя считать проверкой сравнение только
-`Пакет.Тип` или использование expected keyword в сообщении. Artifact должен
-дать наблюдаемый raw AST path, различающий `ВЫБРАТЬ`, `УПОРЯДОЧИТЬ ПО` и
-`ИТОГИ ПО`. Если production parser не экспортирует такой результат, Task 8
-останавливается с `observability gap`; private method не вызывается и coverage
-не помечается GREEN.
+`Пакет.Тип` или использование expected keyword в сообщении. Task 1A/R1 artifact
+уже доказал, что K01–K03 parsed, но production parser не экспортирует raw AST
+value, различающее `ВЫБРАТЬ`, `УПОРЯДОЧИТЬ ПО` и `ИТОГИ ПО`. Эти alternatives
+навсегда остаются `observability GAP` evidence rows: private method не
+вызывается, поле не изобретается, исполняемый test case не создаётся и GREEN не
+присваивается. Task 8B продолжает только с наблюдаемыми K04/K05 и exact negative
+K06.
+
+Источник истины —
+`docs/superpowers/matrices/2026-08-04-query-full-parser-runtime-preflight.md`:
+K01/K04/K05/K06 используют parameter-run report
+`6c649ae60_868ff428551077d66d0e36dedc1e676be56cd796`; K02 и K03 подтверждены
+exact R1 reports `c3c157af3_03e7803f1a883fed24d783bcc04184065bbb2170` и
+`978e6a2ff_53d0af288cc5e7dd0ef045df268781cacadf4e41`; coordinate-bearing K06
+fragment дополнительно зафиксирован debug evidence `1785802760701-1`.
 
 ## Негативные границы
 

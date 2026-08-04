@@ -3,16 +3,18 @@
 > **Execution:** use `superpowers:executing-plans` or
 > `superpowers:subagent-driven-development`; execute tasks in order.
 
-**Goal:** implement 92 synthetic and 42 corpus black-box YAxUnit cases for
+**Goal:** implement 89 executable synthetic and 42 corpus black-box YAxUnit
+cases for
 `Обработки.Парсер.Разобрать`, without changing parser/grammar/semantic code.
 
 **Target arithmetic:** `Q00 1 + Q01–Q05 5 + Task3 23 + Task4 10 + Task5 7 +
-Task6 15 + Task7 21 + Task8 6 + Task9 4 = 92`; `92 + X01–X42 = 134`.
+Task6 15 + Task7 21 + Task8 3 + Task9 4 = 89`; `89 + X01–X42 = 131`.
 These are represented-case totals: Task 3 contributes `11 GREEN M + 4 opt-in
-RED M + 7 F + 1 N-ALIAS = 23`. Consequently the final main module has 88
-synthetic and 42 corpus GREEN cases (`130`), while the four modifier REDs remain
+RED M + 7 F + 1 N-ALIAS = 23`. Consequently the final main module has 85
+synthetic and 42 corpus GREEN cases (`127`), while the four modifier REDs remain
 isolated behind the existing future-grammar module gate; no blocker is counted
-as GREEN.
+as GREEN. K01–K03 remain three separate GAP evidence rows outside executable
+case arithmetic: they parsed, but export no public raw keyword value.
 
 ## Global constraints
 
@@ -27,9 +29,10 @@ as GREEN.
   write to `КОНС_Обр_ПарсерБудущаяГрамматика_МО` (two writes total, no metadata
   object creation).
 - Outside bootstrap Task 1 and the two-module Task 3 split, additional guarded
-  writes are authorized only in bounded spike Task 1A, Task 8A and
-  runtime-count/wiring Task 9B. Tasks 1A/8A add then remove probes; Task 9B
-  replaces count probes with final corpus cases.
+  writes are authorized only in bounded spike Task 1A and
+  runtime-count/wiring Task 9B. Task 1A adds then removes probes; Task 9B
+  replaces count probes with final corpus cases. Task 8A is already satisfied
+  by Task 1A/R1 artifact evidence and authorizes no repeated probe write/run.
 - Independent review round 1 explicitly authorizes one separate bounded
   remediation `Task 1A-R1` with exactly two additional guarded writes: add 17
   unique nonparameterized exact-case probes, then restore the exact Task 1
@@ -501,7 +504,7 @@ inside `Разыменование.Элементы`.
   `updateScope="extension:yaxunit"`; expected result is
   `25 total / 25 passed / 0 failed / 0 errors`. Run diagnostics and diff-check.
   Parser, grammar and factories remain read-only. Task 3 stays 23 represented
-  cases, and total arithmetic remains 92 synthetic / 134 overall.
+  cases, and target arithmetic remains 89 executable synthetic / 131 overall.
   EDT reuses this module's report path token between launches: after the final
   rerun its current content is `25/25`; the initial `24/25` launch output is
   preserved in tool history and the ignored Task 3 execution report, not as an
@@ -833,48 +836,88 @@ artifact. A mismatch blocks the write; no silent syntax repair.
 
 ---
 
-### Task 8A: Bounded SKD observability spike
+### Task 8A: SKD observability evidence handoff — already satisfied
 
-**Files:** temporarily modify new test module; update runtime-preflight artifact.
+**Files:** read only
+`docs/superpowers/matrices/2026-08-04-query-full-parser-runtime-preflight.md`.
+Do not modify the test module or rerun probes.
 
-**Interfaces:** consumes K candidates from Task 1A; produces six final exact
-registration calls and executable BSL bodies whose assertions read a public raw
-AST value that distinguishes each keyword/result.
+**Interfaces:** consumes the already verified Task 1A/R1 K rows. They are the
+final observability decision; Task 8 must not repeat the bounded spike.
 
-- [ ] First guarded write adds exact K01–K06 probes from artifact.
-- [ ] Run only probes with extension-only update and record the full public AST
-  values. A probe is accepted only if assertion compares an actual parser result
-  to `ВЫБРАТЬ`, `УПОРЯДОЧИТЬ ПО`, `ИТОГИ ПО` or checks a keyword-specific public
-  destination such as populated `ОтборыСКД`; `Пакет.Тип` and assertion message
-  are insufficient.
-- [ ] If SELECT/ORDER/TOTALS keyword has no public raw result, record
-  `observability gap` and stop before Task 8B. Do not call private
-  `НеТерминалТипБлокаСКД` and do not invent an AST field.
-- [ ] Second guarded write removes probes; Q00 must be GREEN.
+- [x] K01 parsed, but the public model retains only an ordinary selected-field
+  count and no raw `{ВЫБРАТЬ ...}` keyword value; evidence report
+  `6c649ae60_868ff428551077d66d0e36dedc1e676be56cd796` (`P`).
+- [x] K02 parsed and exposes ordinary query-level `.Порядок`, but no raw
+  `{УПОРЯДОЧИТЬ ПО ...}` keyword value; exact R1 report
+  `c3c157af3_03e7803f1a883fed24d783bcc04184065bbb2170`.
+- [x] K03 parsed and exposes ordinary query-level
+  `.КонтрольныеТочкиИтогов`, but no raw `{ИТОГИ ПО ...}` keyword value; exact R1
+  report `978e6a2ff_53d0af288cc5e7dd0ef045df268781cacadf4e41`.
+- [x] K04/K05 are observable through `Оператор.ОтборыСКД`; K06 has an exact
+  coordinate-bearing negative fragment. Their artifact evidence is report `P`;
+  K06's exact caught fragment also has debug evidence `1785802760701-1` (`D2`).
 
-**Verification:** artifact contains exact BSL registration and complete body for
-each observable K case, plus report ID. No probe remains.
-
-**Commit:** `test: record SKD parser observability spike` (artifact only).
+K01–K03 remain GAP evidence rows outside the executable case budget. They have
+no executable test, are never GREEN, and must not be replaced by an invented
+field, a private `НеТерминалТипБлокаСКД` call, `Пакет.Тип`, or expected keyword
+text used only in an assertion message. No Task 8A write, test run or commit is
+required.
 
 ---
 
-### Task 8B: K01–K06 SKD wiring — 6 cases
+### Task 8B: K04–K06 observable SKD wiring — 3 cases
 
 **Files:** modify only new test module.
 
-**Interfaces:** consumes the verified executable fragment from Task 8A;
-produces three keyword cases, SKD-WHERE/list cases and one separate malformed
-block case.
+**Interfaces:** consumes only observable K04/K05 and exact negative K06 from the
+runtime-preflight artifact. It produces two SKD-WHERE assertions and one
+malformed-block assertion; K01–K03 are not registered.
 
-- [ ] Insert the artifact's six exact `.СПараметрамиНаСервере`/procedure bodies
-  byte-for-byte in one guarded write. Reject the artifact if any positive body
-  only checks `Пакет.Тип` or uses expected keyword solely in a message.
-- [ ] K06 must call `ПроверитьСинтаксическуюОшибку` with the exact failing text
-  and observed error fragment from Task 8A.
-- [ ] Run module GREEN, diagnostics, diff-check.
+- [ ] In one guarded main-module write, add the artifact's exact calls:
 
-**Commit:** `test: cover query SKD extensions`.
+```bsl
+.ДобавитьСерверныйТест("ОтборСКДCase")
+	.СПараметрамиНаСервере("K04", "ВЫБРАТЬ 1 ГДЕ 1 = 1 {ГДЕ 2}")
+	.СПараметрамиНаСервере("K05", "ВЫБРАТЬ 1 {ГДЕ 2, 3}")
+.ДобавитьСерверныйТест("ОшибкаБлокаСКДCase")
+	.СПараметрамиНаСервере("K06", "ВЫБРАТЬ 1 {ГДЕ 2, 3");
+```
+
+- [ ] Add the complete observable bodies. They assert only artifact-backed
+  public paths; no keyword field is invented:
+
+```bsl
+Процедура ОтборСКДCase(Идентификатор, ИсходныйТекст) Экспорт
+	Оператор = ЕдинственныйОператор(ИсходныйТекст);
+	Если Идентификатор = "K04" Тогда
+		ОжидаемоеКоличество = 1;
+	Иначе
+		ОжидаемоеКоличество = 2;
+	КонецЕсли;
+	ЮТест.ОжидаетЧто(Оператор.ОтборыСКД.Количество())
+		.Равно(ОжидаемоеКоличество, Идентификатор);
+	Для Каждого ОтборСКД Из Оператор.ОтборыСКД Цикл
+		ЮТест.ОжидаетЧто(ОтборСКД.Выражение.Значение.Тип)
+			.Равно("Константа", Идентификатор);
+	КонецЦикла;
+КонецПроцедуры
+
+Процедура ОшибкаБлокаСКДCase(Идентификатор, ИсходныйТекст) Экспорт
+	ПроверитьСинтаксическуюОшибку(ИсходныйТекст,
+		"{(1, 20)}: Синтаксическая ошибка. Ожидается ""}""");
+КонецПроцедуры
+```
+
+- [ ] Run the exact main-module filter with extension-only incremental update.
+  Task 7 leaves the main module at `78/78`; Task 8 adds three cases, so expected
+  result is `81 total / 81 passed / 0 failed / 0 errors`. Run diagnostics and
+  diff-check. Preserve the existing exact future-module result
+  `7 total / 0 passed / 4 failed / 3 errors`, report
+  `725d8a737_36b73a2a69d631547d3c684d8ed3e380dfdcbf45`; Task 8 requires no
+  future-module write or rerun.
+
+**Commit:** `test: cover observable query SKD extensions`.
 
 ---
 
@@ -929,9 +972,10 @@ by E02 artifact row to `ОшибкаПолногоЗапросаСодержит
 must be copied byte-for-byte with its Task 1A report ID; the plan contains no
 predicted coordinate.
 
-- [ ] One guarded write, module GREEN. Main-module synthetic report must total
-  exactly 88; together with the four Task 3 opt-in modifier RED cases, the
-  represented synthetic budget remains exactly 92.
+- [ ] One guarded write, module GREEN. Task 8 leaves the main-module synthetic
+  report at 81; these four cases raise it to exactly 85. Together with the four
+  Task 3 opt-in modifier RED cases, represented executable synthetic coverage
+  is exactly 89.
 
 **Commit:** `test: cover full parser errors and reuse`.
 
@@ -1025,9 +1069,9 @@ text integrity is reverified outside BSL before both writes.
 
 - [ ] Run final corpus test, then whole module. No parser-independent pre-wire
   count field or claim exists.
-- [ ] Expected main whole-module total is 130 only after all 42 runtime cases
-  pass. Together with the four opt-in modifier RED cases, represented coverage
-  remains `130 + 4 = 134`.
+- [ ] Expected main whole-module total is 127 only after all 42 runtime cases
+  pass. Together with the four opt-in modifier RED cases, represented
+  executable coverage is `127 + 4 = 131`.
 
 **Verification:** module GREEN, matrix has 42 runtime-count probe report IDs and
 42 final case report IDs, generated fragment has 42 five-argument calls,
@@ -1053,7 +1097,10 @@ produces final evidence and an independent reviewer verdict.
   separate and do not assign them test IDs.
 - [ ] Record existing opt-in REDs `--1`, `НЕДЕЛЯ(&Дата)`, `1 +` and Task 3
   modifier REDs M06/M07/M10/M14; do not run any of them in the main GREEN.
-- [ ] Run Q00 smoke (`Total=1`) and whole new main module (`Total=130`) with only
+- [ ] Preserve K01–K03 as three separate artifact-backed observability GAP
+  evidence rows outside the executable case budget. They retain their K IDs
+  and report references, have no executable tests and never receive GREEN.
+- [ ] Run Q00 smoke (`Total=1`) and whole new main module (`Total=127`) with only
   extension:yaxunit update. Separately run the exact future-grammar module
   filter and require the known RED distribution
   `7 total / 0 passed / 4 failed / 3 errors`; collect diagnostics,
