@@ -464,7 +464,7 @@ Complete bodies:
   outcomes and do not change parser/grammar.
 - [ ] Use exactly one guarded write per initially touched module (two total).
   The first exact main-module run after Q00 + Q01–Q05 + 11 M + 7 F + N-ALIAS
-  produced `25 total / 24 passed / 1 failed`, report
+  produced `25 total / 24 passed / 1 failed`, mutable report path token
   `8b1dc2a30_0603d958d35f2ab1215dde45c14f531d32933588`; only F05 failed because
   the test expected leaf type `ВыражениеВсеПоляИсточника` at the root where the
   public AST exposes root type `Разыменование`. The exact opt-in future-module
@@ -502,6 +502,10 @@ inside `Разыменование.Элементы`.
   `25 total / 25 passed / 0 failed / 0 errors`. Run diagnostics and diff-check.
   Parser, grammar and factories remain read-only. Task 3 stays 23 represented
   cases, and total arithmetic remains 92 synthetic / 134 overall.
+  EDT reuses this module's report path token between launches: after the final
+  rerun its current content is `25/25`; the initial `24/25` launch output is
+  preserved in tool history and the ignored Task 3 execution report, not as an
+  immutable report file.
 
 **Commit:** `test: cover select modifiers and fields`.
 

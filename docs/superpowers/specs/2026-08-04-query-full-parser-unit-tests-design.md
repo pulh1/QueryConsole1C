@@ -162,7 +162,7 @@ opt-in RED. После 42 corpus cases общий represented target `134` со�
 
 F05 (`ВЫБРАТЬ Т.* ИЗ Таблица КАК Т`) проверяет nested source-all-fields
 boundary, а не leaf type на корне. Первый main run дал
-`25 total / 24 passed / 1 failed`, report
+`25 total / 24 passed / 1 failed`, mutable report path token
 `8b1dc2a30_0603d958d35f2ab1215dde45c14f531d32933588`; единственный F05 failure
 показал фактический root `Разыменование`. Exact conditional debug evidence
 `1785806808318-2` подтвердил полный public AST:
@@ -176,6 +176,9 @@ boundary, а не leaf type на корне. Первый main run дал
 `"ВыражениеВсеПоляИсточника"`, остальные — `Неопределено`; F05 ожидает root
 `"Разыменование"`, count `2` и тип последнего элемента. Case arithmetic не
 меняется.
+После исправления EDT переиспользовал тот же path token, и текущее содержимое
+report стало `25/25`. Начальный результат `24/25` сохраняется в tool history и
+ignored Task 3 execution report; token не считается immutable artifact.
 
 ## Runtime-preflight и observability
 
