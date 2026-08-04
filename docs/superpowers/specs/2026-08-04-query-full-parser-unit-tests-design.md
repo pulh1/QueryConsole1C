@@ -269,7 +269,7 @@ allowlist и порядок таковы:
 есть одна exact-duplicate группа из трёх файлов и восемь near-duplicate
 групп с normalized similarity `>= 0.94`. Исключённый
 `QueryExamples/ТестПакетЗапрсов.q1c` — oversized stress outlier:
-`8170 chars / 173 lines / 13 SELECT / 8 JOIN / 6 packages`; следующий по
+`8170 chars / 173 lines / 13 SELECT / 8 JOIN / 6 packages / 2 UNION`; следующий по
 размеру файл имеет 4183 chars. Эти метрики обосновывают selection,
 но не подменяют parser-verified package count.
 

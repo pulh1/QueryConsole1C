@@ -1023,7 +1023,7 @@ silently replace a selected file:
   non-selected row says `excluded: outside approved curated 12 after clustering`.
 - [ ] Record `QueryExamples/ТестПакетЗапрсов.q1c` as
   `excluded: oversized stress outlier` with the observed selection evidence
-  `8170 chars / 173 lines / 13 SELECT / 8 JOIN / 6 packages`; record that the
+  `8170 chars / 173 lines / 13 SELECT / 8 JOIN / 6 packages / 2 UNION`; record that the
   next-largest file has 4183 chars. The six-package observation is selection
   evidence only and is not used as `RuntimeVerifiedCount`.
 - [ ] Escape BSL deterministically: replace each `"` with `""`; represent every
