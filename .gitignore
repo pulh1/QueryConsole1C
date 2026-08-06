@@ -10,6 +10,20 @@
 /.codex/cache/
 *.log
 
+# Python parser-generator local state
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.venv/
+*.egg-info/
+build/
+dist/
+
 # Windows and editor temporary files
 Thumbs.db
 Desktop.ini
