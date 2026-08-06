@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Subsystem xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="79e08bfe-eee5-4316-a7b1-769ce49d8acc">
+  <name>ЮТКодогенерация</name>
+  <synonym>
+    <key>ru</key>
+    <value>ЮТКодогенерация</value>
+  </synonym>
+  <includeHelpInContents>true</includeHelpInContents>
+  <includeInCommandInterface>true</includeInCommandInterface>
+  <content>CommonModule.ЮТГенераторКода</content>
+  <content>CommonModule.ЮТГенераторКодаСлужебныйСервер</content>
+  <content>CommonModule.ЮТРаботаСТекстом</content>
+  <content>CommonModule.ЮТТестовыеДанныеПереопределяемый</content>
+  <content>DataProcessor.ЮТГенераторКода</content>
+  <content>DataProcessor.ЮТГенераторКодаТестовыхДанных</content>
+  <content>DataProcessor.ЮТКонструкторТекста</content>
+  <content>DataProcessor.ЮТПомощникДляСозданияТестовыхДанных</content>
+</mdclass:Subsystem>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="8534cadd-7e29-416a-9594-faa7db0f88b8">
+  <producedTypes>
+    <objectType typeId="d58ece79-1b40-46da-81bd-2e0e6d950118" valueTypeId="9bdce938-00eb-46ee-b3b7-86e1251aeaa2"/>
+    <managerType typeId="94041e5b-567d-45e4-9b79-f9495bf06789" valueTypeId="d9fcadde-6e8d-47d1-95c1-61a0313be2e1"/>
+  </producedTypes>
+  <name>ЮТКонструкторТекста</name>
+  <synonym>
+    <key>ru</key>
+    <value>ЮТКонструктор текста</value>
+  </synonym>
+</mdclass:DataProcessor>

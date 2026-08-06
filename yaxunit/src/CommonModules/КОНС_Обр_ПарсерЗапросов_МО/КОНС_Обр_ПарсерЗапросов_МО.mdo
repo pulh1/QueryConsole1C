@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:CommonModule xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="d5f3f4e0-16bf-46b7-8f11-2a2715928ef3">
+  <name>КОНС_Обр_ПарсерЗапросов_МО</name>
+  <server>true</server>
+</mdclass:CommonModule>

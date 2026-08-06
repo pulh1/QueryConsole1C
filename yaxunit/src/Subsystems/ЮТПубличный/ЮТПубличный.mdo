@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:Subsystem xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:core="http://g5.1c.ru/v8/dt/mcore" xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" xmlns:mdclassExtension="http://g5.1c.ru/v8/dt/metadata/mdclass/extension" uuid="46383f22-a834-40f0-b79e-c358ce9f5a10">
+  <name>ЮТПубличный</name>
+  <synonym>
+    <key>ru</key>
+    <value>YAxUnit</value>
+  </synonym>
+  <extension xsi:type="mdclassExtension:SubsystemExtension">
+    <commandInterface>Extended</commandInterface>
+  </extension>
+  <includeHelpInContents>true</includeHelpInContents>
+  <includeInCommandInterface>true</includeInCommandInterface>
+  <explanation>
+    <key>ru</key>
+    <value>Публичные API и инструменты,  применяемые при написании тестов и самом тестировании. Остальные использовать напрямую не рекомендуется</value>
+  </explanation>
+  <picture xsi:type="core:PictureRef">
+    <picture>CommonPicture.ЮТПодсистема</picture>
+  </picture>
+  <content>CommonModule.Мокито</content>
+  <content>CommonModule.МокитоОбучение</content>
+  <content>CommonModule.МокитоПерехват</content>
+  <content>CommonModule.МокитоПроверки</content>
+  <content>CommonModule.ЮТАлюр</content>
+  <content>CommonModule.ЮТест</content>
+  <content>CommonModule.ЮТЗависимости</content>
+  <content>CommonModule.ЮТЗапросы</content>
+  <content>CommonModule.ЮТИсключения</content>
+  <content>CommonModule.ЮТКоллекции</content>
+  <content>CommonModule.ЮТКомпоненты</content>
+  <content>CommonModule.ЮТКонструкторВариантов</content>
+  <content>CommonModule.ЮТКонтекст</content>
+  <content>CommonModule.ЮТКонтекстТеста</content>
+  <content>CommonModule.ЮТЛогирование</content>
+  <content>CommonModule.ЮТМетаданные</content>
+  <content>CommonModule.ЮТМетоды</content>
+  <content>CommonModule.ЮТНастройкиВыполнения</content>
+  <content>CommonModule.ЮТОбщий</content>
+  <content>CommonModule.ЮТОкружение</content>
+  <content>CommonModule.ЮТПодражатель</content>
+  <content>CommonModule.ЮТПодражатель_Банки</content>
+  <content>CommonModule.ЮТПодражатель_Компании</content>
+  <content>CommonModule.ЮТПодражатель_Люди</content>
+  <content>CommonModule.ЮТПредикаты</content>
+  <content>CommonModule.ЮТРегистрацияОшибок</content>
+  <content>CommonModule.ЮТСтроки</content>
+  <content>CommonModule.ЮТТестовыеДанные</content>
+  <content>CommonModule.ЮТТесты</content>
+  <content>CommonModule.ЮТУтверждения</content>
+  <content>CommonModule.ЮТУтвержденияИБ</content>
+  <content>CommonModule.ЮТФабрика</content>
+  <content>CommonModule.ЮТФайлы</content>
+  <content>DataProcessor.ЮТHTTPServiceRequest</content>
+  <content>DataProcessor.ЮТHTTPОтвет</content>
+  <content>DataProcessor.ЮТHTTPСервисЗапрос</content>
+  <content>DataProcessor.ЮТHTTPСоединение</content>
+  <content>DataProcessor.ЮТRecordSet</content>
+  <content>DataProcessor.ЮТКонструкторОбъектаXDTO</content>
+  <content>DataProcessor.ЮТКонструкторТестовыхДанных</content>
+  <content>DataProcessor.ЮТРедакторТестов</content>
+  <content>DataProcessor.ЮТСообщениеСервисаИнтеграции</content>
+  <content>DataProcessor.ЮТЮнитТесты</content>
+  <subsystems>ГенерацияКода</subsystems>
+</mdclass:Subsystem>
