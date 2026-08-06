@@ -97,7 +97,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
                 sys.stdout.write("\n")
             else:
-                _render_analysis_text(compilation.analysis)
+                sys.stdout.write(_analysis_text(compilation.analysis))
         elif arguments.command == "generate":
             try:
                 assert compilation.grammar is not None
@@ -268,18 +268,21 @@ def _sorted_words(words: Sequence[tuple[str, ...]]) -> list[list[str]]:
     return [list(word) for word in sorted(words, key=lambda word: (len(word), word))]
 
 
-def _render_analysis_text(analysis: AnalysisResult) -> None:
-    print(f"lookahead: {analysis.k}")
-    print(f"nullable: {', '.join(sorted(analysis.nullable)) or '-'}")
+def _analysis_text(analysis: AnalysisResult) -> str:
+    lines = [
+        f"lookahead: {analysis.k}",
+        f"nullable: {', '.join(sorted(analysis.nullable)) or '-'}",
+    ]
     for name in sorted(analysis.first):
-        print(f"FIRST {name}: {_format_words(analysis.first[name])}")
+        lines.append(f"FIRST {name}: {_format_words(analysis.first[name])}")
     for name in sorted(analysis.follow):
-        print(f"FOLLOW {name}: {_format_words(analysis.follow[name])}")
+        lines.append(f"FOLLOW {name}: {_format_words(analysis.follow[name])}")
     for name, alternative in sorted(analysis.select):
-        print(
+        lines.append(
             f"SELECT {name}:{alternative}: "
             f"{_format_words(analysis.select[(name, alternative)])}"
         )
+    return "\n".join(lines) + "\n"
 
 
 def _format_words(words: Sequence[tuple[str, ...]]) -> str:
