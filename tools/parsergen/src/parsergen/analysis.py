@@ -112,6 +112,13 @@ class _FollowTransform:
     prefix: _PackedPrefix
 
 
+@dataclass(slots=True)
+class _FollowTransformGroup:
+    needed: int
+    transforms: list[_FollowTransform] = field(default_factory=list)
+    seen_projections: set[_PackedPrefix] = field(default_factory=set)
+
+
 def concat_words(
     left: LookaheadWord,
     right: LookaheadWord,
@@ -1869,6 +1876,16 @@ def _packed_concat(
     )
 
 
+def _packed_project(
+    value: _PackedPrefix,
+    max_length: int,
+    solver: _ContinuationFirst,
+) -> _PackedPrefix:
+    length, packed = value
+    taken = min(length, max_length)
+    return taken, packed & solver.prefix_masks[taken]
+
+
 def _compute_packed_follow(
     solver: _ContinuationFirst,
     start_productions: tuple[str, ...],
@@ -1876,8 +1893,8 @@ def _compute_packed_follow(
     follow: list[set[_PackedPrefix]] = [
         set() for _ in solver.production_names
     ]
-    outgoing: list[list[_FollowTransform]] = [
-        [] for _ in solver.production_names
+    outgoing: list[dict[int, _FollowTransformGroup]] = [
+        {} for _ in solver.production_names
     ]
     transform_keys: set[tuple[int, int, _PackedPrefix]] = set()
     direct: list[tuple[int, _PackedPrefix]] = []
@@ -1909,9 +1926,13 @@ def _compute_packed_follow(
                 stats["duplicate_follow_transforms"] += 1
                 continue
             transform_keys.add(transform_key)
-            outgoing[occurrence.parent_id].append(
-                _FollowTransform(*transform_key)
-            )
+            transform = _FollowTransform(*transform_key)
+            needed = solver.k - prefix[0]
+            group = outgoing[occurrence.parent_id].get(needed)
+            if group is None:
+                group = _FollowTransformGroup(needed)
+                outgoing[occurrence.parent_id][needed] = group
+            group.transforms.append(transform)
 
     delta_queues: list[deque[_PackedPrefix]] = [
         deque() for _ in solver.production_names
@@ -1946,12 +1967,19 @@ def _compute_packed_follow(
         while deltas:
             delta = deltas.popleft()
             stats["follow_work_items"] += 1
-            for transform in outgoing[parent_id]:
-                stats["follow_transform_applications"] += 1
-                publish(
-                    transform.referenced_id,
-                    _packed_concat(transform.prefix, delta, solver),
-                )
+            for group in outgoing[parent_id].values():
+                stats["follow_projection_checks"] += 1
+                projection = _packed_project(delta, group.needed, solver)
+                if projection in group.seen_projections:
+                    stats["duplicate_follow_projections"] += 1
+                    continue
+                group.seen_projections.add(projection)
+                for transform in group.transforms:
+                    stats["follow_transform_applications"] += 1
+                    publish(
+                        transform.referenced_id,
+                        _packed_concat(transform.prefix, projection, solver),
+                    )
         in_production_queue.remove(parent_id)
 
     packed = tuple(frozenset(items) for items in follow)
@@ -1968,6 +1996,8 @@ def _compute_packed_follow(
         "duplicate_follow_transforms",
         "duplicate_follow_facts",
         "follow_transform_applications",
+        "follow_projection_checks",
+        "duplicate_follow_projections",
     ):
         stats.setdefault(name, 0)
     return packed, dict(stats)

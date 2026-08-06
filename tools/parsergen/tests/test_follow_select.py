@@ -121,6 +121,26 @@ class FollowAnalysisTests(unittest.TestCase):
         self.assertEqual(stats["follow_transform_applications"], 2)
         self.assertEqual(stats["follow_facts"], 3)
 
+    def test_follow_projection_deduplicates_irrelevant_delta_tails(self) -> None:
+        grammar = resolved(
+            "<S> ::= start\n"
+            "<Owner> ::= <Parent> x u z | <Parent> x v z\n"
+            "<Parent> ::= <A> p q\n"
+            "<A> ::= a"
+        )
+
+        result = compute_analysis(grammar, 3, ("S",))
+
+        self.assertEqual(
+            result.follow["Parent"],
+            frozenset({("x", "u", "z"), ("x", "v", "z")}),
+        )
+        self.assertEqual(result.follow["A"], frozenset({("p", "q", "x")}))
+        stats = result._compressed.stats
+        self.assertEqual(stats["follow_transform_applications"], 1)
+        self.assertEqual(stats["follow_projection_checks"], 2)
+        self.assertEqual(stats["duplicate_follow_projections"], 1)
+
     def test_public_follow_mapping_is_lazy_cached_and_immutable(self) -> None:
         result = compute_analysis(
             resolved("<S> ::= <A> x\n<A> ::= a"),
