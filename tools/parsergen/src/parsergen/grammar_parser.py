@@ -1,0 +1,622 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from .diagnostics import Diagnostic, DiagnosticBag, Severity, SourcePosition, SourceSpan
+from .model import (
+    Action,
+    Alternative,
+    Constant,
+    Grammar,
+    IdentifierDefinition,
+    IdentifierRef,
+    Lexeme,
+    NonterminalCall,
+    Production,
+    Terminal,
+)
+
+
+@dataclass(frozen=True, slots=True)
+class ParseResult:
+    grammar: Grammar | None
+    diagnostics: tuple[Diagnostic, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class LogicalDeclaration:
+    text: str
+    start_offset: int
+    end_offset: int
+
+
+class Cursor:
+    def __init__(self, text: str, path: str) -> None:
+        self.text = text
+        self.path = path
+        self.offset = 0
+        self.line = 1
+        self.column = 1
+
+    def position(self) -> SourcePosition:
+        return SourcePosition(self.line, self.column, self.offset)
+
+    def advance(self) -> str:
+        char = self.text[self.offset]
+        self.offset += 1
+        if char == "\n":
+            self.line += 1
+            self.column = 1
+        else:
+            self.column += 1
+        return char
+
+
+def parse_grammar(text: str, path: str = "<memory>") -> ParseResult:
+    bag = DiagnosticBag()
+    declarations = _logical_declarations(text, path, bag)
+    production_builders: dict[str, _ProductionBuilder] = {}
+    identifiers: list[IdentifierDefinition] = []
+    production_order = 0
+    identifier_order = 0
+
+    for declaration in declarations:
+        header, body, header_span, body_start_offset = _split_declaration(
+            declaration, text, path, bag
+        )
+        if header is None:
+            continue
+        if header.startswith("#"):
+            definition = _parse_identifier_definition(
+                header, body, header_span, identifier_order, path, bag
+            )
+            if definition is not None:
+                identifiers.append(definition)
+                identifier_order += 1
+            continue
+        parsed_header = _parse_production_header(header, header_span, bag)
+        if parsed_header is None:
+            continue
+        name, parameters = parsed_header
+        alternatives = _parse_alternatives(body, body_start_offset, text, path, bag)
+        builder = production_builders.get(name)
+        if builder is None:
+            builder = _ProductionBuilder(name, parameters, production_order, header_span)
+            production_builders[name] = builder
+            production_order += 1
+        builder.add_declaration(parameters, alternatives, header_span, bag)
+
+    productions = tuple(builder.build() for builder in production_builders.values())
+    grammar = Grammar(productions, tuple(identifiers), path)
+    return ParseResult(grammar, bag.sorted())
+
+
+def _logical_declarations(text: str, path: str, bag: DiagnosticBag) -> tuple[LogicalDeclaration, ...]:
+    declarations: list[LogicalDeclaration] = []
+    cleaned = list(text)
+    start = _next_nonspace(text, 0)
+    if start is None:
+        return ()
+    lexeme_quote = False
+    bsl_quote = False
+    line_comment = False
+    braces = 0
+    angles = 0
+    parentheses = 0
+    quote_start: int | None = None
+    brace_start: int | None = None
+    angle_start: int | None = None
+    parenthesis_start: int | None = None
+    index = start
+    while index < len(text):
+        char = text[index]
+        next_start = _next_nonspace(text, index + 1) if char == "\n" else None
+        if char == "\n" and next_start is not None and _looks_like_declaration(text, next_start):
+            _report_unclosed(
+                text, path, bag, quote_start, brace_start, angle_start, parenthesis_start
+            )
+            end = _trim_end(text, start, index)
+            if end > start:
+                cleaned_declaration = "".join(cleaned[start:end])
+                if cleaned_declaration.strip():
+                    declarations.append(LogicalDeclaration(cleaned_declaration, start, end))
+            start = next_start
+            if start is None:
+                break
+            lexeme_quote = bsl_quote = line_comment = False
+            braces = angles = parentheses = 0
+            quote_start = brace_start = angle_start = parenthesis_start = None
+            index = start
+            continue
+        if line_comment:
+            if char == "\n":
+                line_comment = False
+            else:
+                if braces == 0:
+                    cleaned[index] = " "
+                index += 1
+                continue
+        if lexeme_quote:
+            if char == "'" and index + 1 < len(text) and text[index + 1] == "'":
+                index += 1
+            elif char == "'":
+                lexeme_quote = False
+                quote_start = None
+        elif bsl_quote:
+            if char == '"' and index + 1 < len(text) and text[index + 1] == '"':
+                index += 1
+            elif char == '"':
+                bsl_quote = False
+        elif char == "'":
+            lexeme_quote = True
+            quote_start = index
+        elif char == "{":
+            if braces == 0:
+                brace_start = index
+            braces += 1
+        elif char == "}" and braces:
+            braces -= 1
+            if braces == 0:
+                brace_start = None
+        elif char == "}" and not braces:
+            _error(bag, "GP006", "unexpected closing delimiter", _span(text, path, index, index + 1))
+        elif char == '"' and (braces or parentheses):
+            bsl_quote = True
+        elif braces and char == "/" and index + 1 < len(text) and text[index + 1] == "/":
+            line_comment = True
+            index += 1
+        elif braces == 0 and char == "<":
+            if angles == 0:
+                angle_start = index
+            angles += 1
+        elif braces == 0 and char == ">" and angles:
+            angles -= 1
+            if angles == 0:
+                angle_start = None
+        elif braces == 0 and char == ">" and not angles:
+            _error(bag, "GP006", "unexpected closing delimiter", _span(text, path, index, index + 1))
+        elif braces == 0 and angles == 0 and char == "(":
+            if parentheses == 0:
+                parenthesis_start = index
+            parentheses += 1
+        elif braces == 0 and angles == 0 and char == ")" and parentheses:
+            parentheses -= 1
+            if parentheses == 0:
+                parenthesis_start = None
+        elif braces == 0 and angles == 0 and char == ")" and not parentheses:
+            _error(bag, "GP006", "unexpected closing delimiter", _span(text, path, index, index + 1))
+        elif (
+            braces == 0
+            and angles == 0
+            and parentheses == 0
+            and not lexeme_quote
+            and char == "/"
+            and index + 1 < len(text)
+            and text[index + 1] == "/"
+        ):
+            line_comment = True
+            cleaned[index] = cleaned[index + 1] = " "
+            index += 1
+        index += 1
+    _report_unclosed(text, path, bag, quote_start, brace_start, angle_start, parenthesis_start)
+    end = _trim_end(text, start, len(text))
+    if end > start:
+        cleaned_declaration = "".join(cleaned[start:end])
+        if cleaned_declaration.strip():
+            declarations.append(LogicalDeclaration(cleaned_declaration, start, end))
+    return tuple(declarations)
+
+
+def _split_declaration(
+    declaration: LogicalDeclaration, text: str, path: str, bag: DiagnosticBag
+) -> tuple[str | None, str, SourceSpan, int]:
+    split = _find_top_level(declaration.text, "::=")
+    span = _span(text, path, declaration.start_offset, declaration.end_offset)
+    if split is None:
+        _error(bag, "GP001", "expected ::= in declaration", span)
+        return None, "", span, declaration.start_offset
+    header = declaration.text[:split].strip()
+    body_start_offset = declaration.start_offset + split + 3
+    body = declaration.text[split + 3 :]
+    header_start = declaration.start_offset + declaration.text.index(header) if header else declaration.start_offset
+    header_span = _span(text, path, header_start, header_start + len(header))
+    if not header:
+        _error(bag, "GP001", "declaration header is empty", header_span)
+        return None, body, header_span, body_start_offset
+    return header, body, header_span, body_start_offset
+
+
+def _parse_identifier_definition(
+    header: str,
+    body: str,
+    span: SourceSpan,
+    order: int,
+    path: str,
+    bag: DiagnosticBag,
+) -> IdentifierDefinition | None:
+    del path
+    name = header[1:].strip()
+    token_types = tuple(part.strip() for part in _split_top_level(body, "|") if part.strip())
+    if not name:
+        _error(bag, "GP001", "invalid identifier definition", span)
+        return None
+    return IdentifierDefinition(name, token_types, order, span)
+
+
+def _parse_production_header(
+    header: str, span: SourceSpan, bag: DiagnosticBag
+) -> tuple[str, tuple[str, ...]] | None:
+    if not header.startswith("<"):
+        _error(bag, "GP001", "production header must start with <", span)
+        return None
+    closing = header.find(">")
+    if closing <= 1:
+        _error(bag, "GP001", "invalid production header", span)
+        return None
+    name = header[1:closing].strip()
+    rest = header[closing + 1 :].strip()
+    if not name or (rest and not (rest.startswith("(") and rest.endswith(")"))):
+        _error(bag, "GP001", "invalid production header", span)
+        return None
+    parameters = _split_arguments(rest[1:-1]) if rest else ()
+    if not name or any(not parameter for parameter in parameters):
+        _error(bag, "GP001", "invalid production header", span)
+        return None
+    if len(set(parameters)) != len(parameters):
+        _error(bag, "GR002", "duplicate formal parameter", span)
+    return name, parameters
+
+
+def _parse_alternatives(
+    body: str,
+    body_start_offset: int,
+    text: str,
+    path: str,
+    bag: DiagnosticBag,
+) -> tuple[Alternative, ...]:
+    alternatives: list[Alternative] = []
+    consumed = 0
+    for index, raw in enumerate(_split_top_level(body, "|")):
+        stripped = raw.strip()
+        start = body_start_offset + consumed + (len(raw) - len(raw.lstrip()))
+        span = _span(text, path, start, start + len(stripped))
+        if not stripped:
+            _error(bag, "GP007", "alternative is empty", span)
+        alternatives.append(Alternative(index, _parse_elements(stripped, text, path, start, bag), span))
+        consumed += len(raw) + 1
+    return tuple(alternatives)
+
+
+def _parse_elements(
+    body: str, text: str, path: str, start_offset: int, bag: DiagnosticBag
+) -> tuple[Action | Constant | IdentifierRef | Lexeme | NonterminalCall | Terminal, ...]:
+    elements: list[Action | Constant | IdentifierRef | Lexeme | NonterminalCall | Terminal] = []
+    epsilon_seen = False
+    index = 0
+    while index < len(body):
+        if body[index].isspace():
+            index += 1
+            continue
+        symbol_start = index
+        if body[index] == "{":
+            end = _matching_action(body, index)
+            if end is None:
+                break
+            elements.append(Action(body[index + 1 : end].strip(), len([item for item in elements if not isinstance(item, Action)]), _span(text, path, start_offset + index, start_offset + end + 1)))
+            index = end + 1
+            continue
+        if body[index] == "'":
+            end = _quoted_end(body, index)
+            if end is None:
+                break
+            elements.append(Lexeme(body[index + 1 : end].replace("''", "'"), _span(text, path, start_offset + index, start_offset + end + 1)))
+            index = end + 1
+            continue
+        if body[index] == "<":
+            end = body.find(">", index + 1)
+            if end < 0:
+                break
+            name = body[index + 1 : end].strip()
+            if not name:
+                _error(bag, "GP007", "invalid symbol", _span(text, path, start_offset + index, start_offset + end + 1))
+                index = end + 1
+                continue
+            index = end + 1
+            arguments: tuple[str, ...] = ()
+            if index < len(body) and body[index] == "(":
+                argument_end = _matching_parenthesis(body, index)
+                if argument_end is None:
+                    break
+                arguments = _split_arguments(body[index + 1 : argument_end])
+                index = argument_end + 1
+            elements.append(NonterminalCall(name, arguments, _span(text, path, start_offset + symbol_start, start_offset + index)))
+            continue
+        index += 1
+        while (
+            index < len(body)
+            and not body[index].isspace()
+            and body[index] not in "{'<#&"
+        ):
+            index += 1
+        token = body[symbol_start:index]
+        if token == "ПУСТО":
+            epsilon_seen = True
+            continue
+        span = _span(text, path, start_offset + symbol_start, start_offset + index)
+        if token.startswith("#"):
+            if len(token) == 1:
+                _error(bag, "GP007", "invalid symbol", span)
+            else:
+                elements.append(IdentifierRef(token[1:], span))
+        elif token.startswith("&"):
+            if len(token) == 1:
+                _error(bag, "GP007", "invalid symbol", span)
+            else:
+                elements.append(Constant(token[1:], span))
+        else:
+            elements.append(Terminal(token, span))
+    if epsilon_seen and any(not isinstance(item, Action) for item in elements):
+        _error(bag, "GR004", "ПУСТО cannot be mixed with a syntax symbol", _span(text, path, start_offset, start_offset + len(body)))
+    return tuple(elements)
+
+
+@dataclass(slots=True)
+class _ProductionBuilder:
+    name: str
+    parameters: tuple[str, ...]
+    order: int
+    span: SourceSpan
+    alternatives: list[Alternative] | None = None
+
+    def add_declaration(
+        self, parameters: tuple[str, ...], alternatives: tuple[Alternative, ...], span: SourceSpan, bag: DiagnosticBag
+    ) -> None:
+        if parameters and self.parameters and parameters != self.parameters:
+            _error(bag, "GR001", "incompatible repeated production parameters", span)
+            return
+        if parameters and not self.parameters:
+            self.parameters = parameters
+        if self.alternatives is None:
+            self.alternatives = []
+        offset = len(self.alternatives)
+        self.alternatives.extend(
+            Alternative(offset + alternative.index, alternative.elements, alternative.span)
+            for alternative in alternatives
+        )
+
+    def build(self) -> Production:
+        return Production(self.name, self.parameters, tuple(self.alternatives or ()), self.order, self.span)
+
+
+def _next_nonspace(text: str, index: int) -> int | None:
+    while index < len(text) and text[index].isspace():
+        index += 1
+    return index if index < len(text) else None
+
+
+def _trim_end(text: str, start: int, end: int) -> int:
+    while end > start and text[end - 1].isspace():
+        end -= 1
+    return end
+
+
+def _looks_like_declaration(text: str, index: int) -> bool:
+    if text[index] == "#":
+        return "::=" in text[index : text.find("\n", index) if text.find("\n", index) >= 0 else len(text)]
+    if text[index] != "<":
+        return False
+    line_end = text.find("\n", index)
+    line = text[index : line_end if line_end >= 0 else len(text)]
+    return ">" in line and "::=" in line
+
+
+def _report_unclosed(
+    text: str,
+    path: str,
+    bag: DiagnosticBag,
+    quote_start: int | None,
+    brace_start: int | None,
+    angle_start: int | None,
+    parenthesis_start: int | None,
+) -> None:
+    if quote_start is not None:
+        _error(bag, "GP002", "unclosed quote", _span(text, path, quote_start, quote_start + 1))
+    elif brace_start is not None:
+        _error(bag, "GP003", "unclosed action", _span(text, path, brace_start, brace_start + 1))
+    elif angle_start is not None:
+        _error(bag, "GP004", "unclosed nonterminal", _span(text, path, angle_start, angle_start + 1))
+    elif parenthesis_start is not None:
+        _error(
+            bag,
+            "GP005",
+            "unclosed argument list",
+            _span(text, path, parenthesis_start, parenthesis_start + 1),
+        )
+
+
+def _find_top_level(text: str, marker: str) -> int | None:
+    quote = False
+    bsl_quote = False
+    line_comment = False
+    braces = 0
+    angles = 0
+    parentheses = 0
+    index = 0
+    while index < len(text):
+        char = text[index]
+        if line_comment:
+            if char == "\n":
+                line_comment = False
+        elif quote:
+            if char == "'" and index + 1 < len(text) and text[index + 1] == "'":
+                index += 1
+            elif char == "'":
+                quote = False
+        elif bsl_quote:
+            if char == '"' and index + 1 < len(text) and text[index + 1] == '"':
+                index += 1
+            elif char == '"':
+                bsl_quote = False
+        elif braces and char == "/" and index + 1 < len(text) and text[index + 1] == "/":
+            line_comment = True
+            index += 1
+        elif char == "'":
+            quote = True
+        elif char == '"' and (braces or parentheses):
+            bsl_quote = True
+        elif char == "{":
+            braces += 1
+        elif char == "}" and braces:
+            braces -= 1
+        elif not braces and char == "<":
+            angles += 1
+        elif not braces and char == ">" and angles:
+            angles -= 1
+        elif not braces and not angles and char == "(":
+            parentheses += 1
+        elif not braces and not angles and char == ")" and parentheses:
+            parentheses -= 1
+        elif not quote and not bsl_quote and not line_comment and not braces and not angles and not parentheses and text.startswith(marker, index):
+            return index
+        index += 1
+    return None
+
+
+def _split_top_level(text: str, delimiter: str) -> tuple[str, ...]:
+    parts: list[str] = []
+    start = 0
+    index = 0
+    quote = False
+    bsl_quote = False
+    line_comment = False
+    braces = 0
+    angles = 0
+    parentheses = 0
+    while index < len(text):
+        char = text[index]
+        if line_comment:
+            if char == "\n":
+                line_comment = False
+        elif quote:
+            if char == "'" and index + 1 < len(text) and text[index + 1] == "'":
+                index += 1
+            elif char == "'":
+                quote = False
+        elif bsl_quote:
+            if char == '"' and index + 1 < len(text) and text[index + 1] == '"':
+                index += 1
+            elif char == '"':
+                bsl_quote = False
+        elif braces and char == "/" and index + 1 < len(text) and text[index + 1] == "/":
+            line_comment = True
+            index += 1
+        elif char == "'":
+            quote = True
+        elif char == '"':
+            bsl_quote = True
+        elif char == "{":
+            braces += 1
+        elif char == "}" and braces:
+            braces -= 1
+        elif not braces and char == "<":
+            angles += 1
+        elif not braces and char == ">" and angles:
+            angles -= 1
+        elif not braces and not angles and char == "(":
+            parentheses += 1
+        elif not braces and not angles and char == ")" and parentheses:
+            parentheses -= 1
+        elif not quote and not bsl_quote and not line_comment and not braces and not angles and not parentheses and text.startswith(delimiter, index):
+            parts.append(text[start:index])
+            index += len(delimiter)
+            start = index
+            continue
+        index += 1
+    parts.append(text[start:])
+    return tuple(parts)
+
+
+def _quoted_end(text: str, start: int) -> int | None:
+    index = start + 1
+    while index < len(text):
+        if text[index] == "'" and index + 1 < len(text) and text[index + 1] == "'":
+            index += 2
+        elif text[index] == "'":
+            return index
+        else:
+            index += 1
+    return None
+
+
+def _matching_action(text: str, start: int) -> int | None:
+    depth = 0
+    quote = False
+    line_comment = False
+    index = start
+    while index < len(text):
+        char = text[index]
+        if line_comment:
+            if char == "\n":
+                line_comment = False
+        elif quote:
+            if char == '"' and index + 1 < len(text) and text[index + 1] == '"':
+                index += 2
+                continue
+            if char == '"':
+                quote = False
+        elif char == '"':
+            quote = True
+        elif char == "/" and index + 1 < len(text) and text[index + 1] == "/":
+            line_comment = True
+            index += 1
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return index
+        index += 1
+    return None
+
+
+def _matching_parenthesis(text: str, start: int) -> int | None:
+    depth = 0
+    quote = False
+    index = start
+    while index < len(text):
+        char = text[index]
+        if quote:
+            if char == '"' and index + 1 < len(text) and text[index + 1] == '"':
+                index += 2
+                continue
+            if char == '"':
+                quote = False
+        elif char == '"':
+            quote = True
+        elif char == "(":
+            depth += 1
+        elif char == ")":
+            depth -= 1
+            if depth == 0:
+                return index
+        index += 1
+    return None
+
+
+def _split_arguments(text: str) -> tuple[str, ...]:
+    if not text.strip():
+        return ()
+    return tuple(item.strip() for item in _split_top_level(text, ","))
+
+
+def _span(text: str, path: str, start: int, end: int) -> SourceSpan:
+    def position(offset: int) -> SourcePosition:
+        line = text.count("\n", 0, offset) + 1
+        previous_newline = text.rfind("\n", 0, offset)
+        return SourcePosition(line, offset - previous_newline, offset)
+
+    return SourceSpan(path, position(start), position(end))
+
+
+def _error(bag: DiagnosticBag, code: str, message: str, span: SourceSpan) -> None:
+    bag.add(Diagnostic(code, Severity.ERROR, message, span))

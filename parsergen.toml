@@ -1,0 +1,7 @@
+grammar = "tools/parsergen/grammar/query-language.grammar"
+target = "QueryConsoleZUP/src/DataProcessors/Парсер"
+lookahead = 2
+
+[entrypoints]
+"Разобрать" = "ПакетЗапросов"
+"РазобратьВыражение" = "Выражение"
