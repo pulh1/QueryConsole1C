@@ -75,6 +75,8 @@ class AnalysisBenchmarkTests(unittest.TestCase):
             "follow_transforms",
             "follow_delta_facts",
             "follow_work_items",
+            "follow_projection_checks",
+            "duplicate_follow_projections",
             "conflict_work_items",
         ):
             self.assertIn(name, counts)
@@ -91,6 +93,38 @@ class AnalysisBenchmarkTests(unittest.TestCase):
         )
         self.assertEqual(counts["select_cartesian_materializations"], 0)
         self.assertEqual(counts["select_packed_product_rows"], 0)
+
+    def test_production_grammar_meets_follow_work_budget(self) -> None:
+        completed = self.run_cli(
+            "--grammar",
+            str(ROOT / "grammar" / "query-language.grammar"),
+            "--k",
+            "2",
+            "--k",
+            "3",
+            "--timeout",
+            "30",
+        )
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        measurements = json.loads(completed.stdout)["measurements"]
+        self.assertEqual(
+            [measurement["status"] for measurement in measurements],
+            ["ok", "ok"],
+        )
+        by_k = {measurement["k"]: measurement for measurement in measurements}
+        self.assertLessEqual(
+            by_k[2]["counts"]["follow_transform_applications"],
+            105_417,
+        )
+        self.assertLessEqual(
+            by_k[3]["counts"]["follow_transform_applications"],
+            1_597_664,
+        )
+        self.assertGreater(
+            by_k[3]["counts"]["duplicate_follow_projections"],
+            0,
+        )
 
     def test_default_is_compressed_only_even_for_tiny_estimates(self) -> None:
         with TemporaryDirectory() as directory:

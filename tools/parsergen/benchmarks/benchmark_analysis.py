@@ -275,6 +275,10 @@ def _measure_worker(
         "follow_transforms": stats["follow_transforms"],
         "follow_delta_facts": stats["follow_delta_facts"],
         "follow_work_items": stats["follow_work_items"],
+        "follow_projection_checks": stats["follow_projection_checks"],
+        "duplicate_follow_projections": stats[
+            "duplicate_follow_projections"
+        ],
         "follow_transform_applications": stats[
             "follow_transform_applications"
         ],
