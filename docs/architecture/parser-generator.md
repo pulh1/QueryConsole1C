@@ -34,7 +34,7 @@ EDT-обработка `QueryConsoleZUP/src/DataProcessors/Парсер` вла�
 
 ## CLI
 
-Из корня репозитория после установки editable-пакета:
+Из корня репозитория после установки пакета:
 
 ```powershell
 python -m pip install "tools/parsergen[test]"

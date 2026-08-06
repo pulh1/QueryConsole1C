@@ -11,6 +11,15 @@ def resolve(text: str):
 
 
 class ResolverTests(unittest.TestCase):
+    def test_private_diagnostic_annotations_are_resolvable(self) -> None:
+        from typing import get_type_hints
+
+        from parsergen import resolver
+
+        hints = get_type_hints(resolver._diagnostic)
+
+        self.assertIs(hints["return"], resolver.Diagnostic)
+
     def test_resolves_identifier_class_to_concrete_token_types(self) -> None:
         result = resolve("#ID_Name ::= ID | ГДЕ\n<S> ::= #ID_Name | ГДЕ")
 
@@ -106,4 +115,3 @@ class ResolverTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

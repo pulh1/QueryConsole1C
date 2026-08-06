@@ -825,7 +825,28 @@ class BslCodegenTests(unittest.TestCase):
         )
         self.assertEqual(generated.constructor_names, ("НовыйEmpty",))
 
+    def test_actionful_epsilon_rejects_tokens_outside_select(self) -> None:
+        entries = {"Разобрать": "S"}
+        grammar, resolved, analysis = compiled(
+            "<S> ::= a | {ЭтотУзел = НовыйEmpty} ПУСТО",
+            1,
+            entries,
+        )
+
+        generated = generate_parser(grammar, resolved, analysis, entries)
+        function = generated.module_text.split(
+            "Функция НеТерминалS", 1
+        )[1].split("КонецФункции", 1)[0]
+
+        self.assertIn(
+            "ИначеЕсли НомерВариантаПродукции = 2 Тогда",
+            function,
+        )
+        self.assertIn(
+            "ВызватьИсключениеНеУдалосьВыпполнитьРазбор",
+            function,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
-

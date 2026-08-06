@@ -212,8 +212,6 @@ def _diagnostic(
     code: str,
     span: SourceSpan,
     symbol: str,
-    *,
-    related: tuple[RelatedLocation, ...] = (),
 ) -> Diagnostic:
     messages = {
         "RES001": "unknown nonterminal",
@@ -225,4 +223,4 @@ def _diagnostic(
         ),
         "GR003": "too many arguments for nonterminal",
     }
-    return Diagnostic(code, Severity.ERROR, messages[code], span, related)
+    return Diagnostic(code, Severity.ERROR, messages[code], span)

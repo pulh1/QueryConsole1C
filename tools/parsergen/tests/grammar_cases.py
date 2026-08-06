@@ -1,4 +1,4 @@
-"""Small grammar inputs shared by parser parser tests."""
+"""Small grammar inputs shared by parser tests."""
 
 SYMBOL_CASES = (
     ("bare terminal", "<S> ::= WORD", "symbol", "Terminal"),
@@ -238,4 +238,3 @@ VALIDATION_CASES = (
         ("VAL103",),
     ),
 )
-

@@ -440,11 +440,11 @@ class BslGenerator:
             if body:
                 result.extend(body.rstrip("\r\n").split("\r\n"))
 
-        has_epsilon = any(
-            not alternative.syntax_symbols
+        has_implicit_epsilon = any(
+            not alternative.elements
             for alternative in production.alternatives
         )
-        if dispatchable and not has_epsilon:
+        if dispatchable and not has_implicit_epsilon:
             result.extend(
                 (
                     "\tИначе",
@@ -454,7 +454,7 @@ class BslGenerator:
             )
         if dispatchable:
             result.append("\tКонецЕсли;")
-        elif not has_epsilon:
+        elif not has_implicit_epsilon:
             result.append(
                 "\tВызватьИсключениеНеУдалосьВыпполнитьРазбор("
                 f"{_bsl_string(production.name)});"

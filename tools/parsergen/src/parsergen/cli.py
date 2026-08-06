@@ -8,7 +8,11 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Mapping, Sequence
 
-from .analysis import AnalysisResult, compute_analysis
+from .analysis import (
+    AnalysisResult,
+    LookaheadMaterializationError,
+    compute_analysis,
+)
 from .artifacts import compare_artifacts, render_artifacts, replace_artifacts
 from .bsl_codegen import generate_parser
 from .config import ParsergenConfig, load_config
@@ -123,7 +127,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 print(str(error), file=sys.stderr)
                 return 2
         return 0
-    except OSError as error:
+    except (OSError, LookaheadMaterializationError) as error:
         print(str(error), file=sys.stderr)
         return 2
     except ValueError as error:
@@ -190,7 +194,9 @@ def _config_from_arguments(arguments: argparse.Namespace) -> ParsergenConfig:
             if arguments.target is not None
             else Path.cwd()
         ),
-        lookahead=_valid_lookahead(arguments.lookahead or 2),
+        lookahead=_valid_lookahead(
+            arguments.lookahead if arguments.lookahead is not None else 2
+        ),
         entrypoints=_parse_entrypoints(arguments.entry),
     )
 

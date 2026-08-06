@@ -81,6 +81,27 @@ class CliTests(unittest.TestCase):
         self.assertIn("RES001", completed.stderr)
         self.assertIn(str(grammar), completed.stderr)
 
+    def test_zero_lookahead_without_config_is_rejected(self) -> None:
+        grammar = self.root / "grammar.txt"
+        grammar.write_text("<S> ::= a", encoding="utf-8")
+
+        completed = self.run_cli(
+            "validate",
+            "--grammar",
+            str(grammar),
+            "--entry",
+            "Разобрать=S",
+            "--lookahead",
+            "0",
+        )
+
+        self.assertEqual(completed.returncode, 1)
+        self.assertEqual(completed.stdout, "")
+        self.assertIn(
+            "--lookahead must be an integer at least 1",
+            completed.stderr,
+        )
+
     def test_validate_reports_warnings_without_failing(self) -> None:
         grammar = self.root / "grammar.txt"
         grammar.write_text("<S> ::= a\n<Unused> ::= b", encoding="utf-8")
@@ -136,6 +157,36 @@ class CliTests(unittest.TestCase):
         self.assertEqual(payload["nullable"], ["S"])
         self.assertEqual(payload["first"]["S"], [[], ["a"]])
         self.assertEqual(payload["follow"]["S"], [["$"]])
+
+    def test_analyze_reports_materialization_limit_without_traceback(
+        self,
+    ) -> None:
+        grammar = self.root / "grammar.txt"
+        tokens = " | ".join(f"T{index:03d}" for index in range(101))
+        grammar.write_text(
+            f"#ID_X ::= {tokens}\n<S> ::= #ID_X #ID_X",
+            encoding="utf-8",
+        )
+
+        completed = self.run_cli(
+            "analyze",
+            "--grammar",
+            str(grammar),
+            "--entry",
+            "Разобрать=S",
+            "--lookahead",
+            "2",
+            "--format",
+            "json",
+        )
+
+        self.assertEqual(completed.returncode, 2)
+        self.assertEqual(completed.stdout, "")
+        self.assertIn(
+            "may expand to 10201 rows; limit is 10000",
+            completed.stderr,
+        )
+        self.assertNotIn("Traceback", completed.stderr)
 
     def test_analyze_text_has_stable_human_readable_sections(self) -> None:
         grammar = self.root / "grammar.txt"
@@ -237,4 +288,3 @@ class CliTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
