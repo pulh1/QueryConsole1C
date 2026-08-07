@@ -58,13 +58,13 @@
 - `result_index` points to the sole operation producing the transparent value.
 - Constructor alternatives keep `result_index = None`; `ConstructNode` owns their result.
 
-- [ ] Write RED tests for transparent nonterminal/identifier/constant, syntax-only branch, grouped alternative and two-semantic-child rejection.
-- [ ] Compute semantic indices from source operations before constructing `BranchIr`/`AlternativeIr`.
-- [ ] Treat `ParseSymbol(NonterminalCall|IdentifierRef|Constant)`, value-producing `Dispatch` and value-producing `OptionalBranch` as transparent values; terminals/lexemes alone are syntax-only unless directly wrapped by a binding.
-- [ ] Reject more than one transparent semantic operation during `build_parser_ir`, before codegen.
-- [ ] Update all EBNF/binding IR tests for the explicit fields and verify no synthetic production enters `ParserIr.productions`.
-- [ ] Run Parser IR, source validation and canonical SELECT suites GREEN.
-- [ ] Commit and push as `Зафиксировать transparent result в Parser IR`.
+- [x] Write RED tests for transparent nonterminal/identifier/constant, syntax-only branch, grouped alternative and two-semantic-child rejection.
+- [x] Compute semantic indices from source operations before constructing `BranchIr`/`AlternativeIr`.
+- [x] Treat `ParseSymbol(NonterminalCall|IdentifierRef|Constant)`, value-producing `Dispatch` and value-producing `OptionalBranch` as transparent values; terminals/lexemes alone are syntax-only unless directly wrapped by a binding.
+- [x] Reject more than one transparent semantic operation during `build_parser_ir`, before codegen.
+- [x] Update all EBNF/binding IR tests for the explicit fields and verify no synthetic production enters `ParserIr.productions`.
+- [x] Run Parser IR, source validation and canonical SELECT suites GREEN.
+- [x] Commit and push as `Зафиксировать transparent result в Parser IR`.
 
 ---
 

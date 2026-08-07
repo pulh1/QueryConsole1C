@@ -87,6 +87,7 @@ class DispatchValue:
 class BranchIr:
     alternative: int
     operations: tuple[Operation, ...]
+    result_index: int | None
     source_span: SourceSpan
 
 
@@ -160,6 +161,7 @@ Operation = (
 class AlternativeIr:
     index: int
     operations: tuple[Operation, ...]
+    result_index: int | None
     source_span: SourceSpan
 
 
@@ -238,11 +240,7 @@ class _ParserIrBuilder:
 
     def _production(self, production: SourceProduction) -> ProductionIr:
         alternatives = tuple(
-            AlternativeIr(
-                alternative.index,
-                self._sequence(alternative.body),
-                alternative.span,
-            )
+            self._alternative_ir(alternative)
             for alternative in production.alternatives
         )
         decision = (
@@ -256,6 +254,18 @@ class _ParserIrBuilder:
             alternatives,
             decision,
             production.span,
+        )
+
+    def _alternative_ir(
+        self,
+        alternative: SourceAlternative,
+    ) -> AlternativeIr:
+        operations = self._sequence(alternative.body)
+        return AlternativeIr(
+            alternative.index,
+            operations,
+            self._result_index(operations),
+            alternative.span,
         )
 
     def _sequence(self, sequence: SourceSequence) -> tuple[Operation, ...]:
@@ -416,6 +426,7 @@ class _ParserIrBuilder:
                             self._branch_value(alternative),
                         ),
                     ),
+                    None,
                     alternative.span,
                 )
                 for alternative in primary.alternatives
@@ -429,6 +440,7 @@ class _ParserIrBuilder:
                         ParseSymbol(primary, primary.span),
                     ),
                 ),
+                None,
                 primary.span,
             ),
         )
@@ -504,7 +516,7 @@ class _ParserIrBuilder:
         if isinstance(primary, SourceGroup):
             return self._group_branches(primary)
         return (
-            BranchIr(
+            self._branch_ir(
                 1,
                 (ParseSymbol(primary, primary.span),),
                 primary.span,
@@ -515,11 +527,42 @@ class _ParserIrBuilder:
         self,
         alternative: SourceAlternative,
     ) -> BranchIr:
-        return BranchIr(
+        operations = self._sequence(alternative.body)
+        return self._branch_ir(
             alternative.index + 1,
-            self._sequence(alternative.body),
+            operations,
             alternative.span,
         )
+
+    def _branch_ir(
+        self,
+        alternative: int,
+        operations: tuple[Operation, ...],
+        source_span: SourceSpan,
+    ) -> BranchIr:
+        return BranchIr(
+            alternative,
+            operations,
+            self._result_index(operations),
+            source_span,
+        )
+
+    def _result_index(
+        self,
+        operations: tuple[Operation, ...],
+    ) -> int | None:
+        if any(isinstance(item, ConstructNode) for item in operations):
+            return None
+        semantic_indices = tuple(
+            index
+            for index, operation in enumerate(operations)
+            if _produces_transparent_value(operation)
+        )
+        if len(semantic_indices) > 1:
+            raise ValueError(
+                "alternative has multiple transparent semantic values"
+            )
+        return semantic_indices[0] if semantic_indices else None
 
     def _construct(
         self,
@@ -569,4 +612,9 @@ def _produces_transparent_value(operation: Operation) -> bool:
             operation.symbol,
             (NonterminalCall, IdentifierRef, Constant),
         )
-    return isinstance(operation, (Dispatch, OptionalBranch))
+    if isinstance(operation, (Dispatch, OptionalBranch)):
+        return bool(operation.branches) and all(
+            branch.result_index is not None
+            for branch in operation.branches
+        )
+    return False

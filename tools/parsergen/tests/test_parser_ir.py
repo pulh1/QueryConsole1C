@@ -31,6 +31,78 @@ def _build(source: str, k: int = 1):
 
 
 class ParserIrTests(unittest.TestCase):
+    def test_transparent_nonterminal_identifier_and_constant_have_result(
+        self,
+    ) -> None:
+        parser_ir = _build(
+            "#ID_Name ::= ID\n"
+            "<S> ::= <Node>\n"
+            "<Node> ::= #ID_Name\n"
+            "<ConstantNode> ::= &NUMBER"
+        )
+
+        productions = {
+            item.name: item
+            for item in parser_ir.productions
+        }
+        self.assertEqual(
+            productions["S"].alternatives[0].result_index,
+            0,
+        )
+        self.assertEqual(
+            productions["Node"].alternatives[0].result_index,
+            0,
+        )
+        self.assertEqual(
+            productions["ConstantNode"].alternatives[0].result_index,
+            0,
+        )
+
+    def test_terminal_only_alternative_is_syntax_only(self) -> None:
+        parser_ir = _build("<S> ::= ITEM")
+
+        alternative = parser_ir.productions[0].alternatives[0]
+        self.assertIsNone(alternative.result_index)
+
+    def test_group_branches_record_exact_transparent_result(self) -> None:
+        parser_ir = _build(
+            "<S> ::= (',' <A> | ';' <B>)\n"
+            "<A> ::= A\n<B> ::= B"
+        )
+
+        dispatch = parser_ir.productions[0].alternatives[0].operations[0]
+        assert isinstance(dispatch, Dispatch)
+        self.assertEqual(
+            [branch.result_index for branch in dispatch.branches],
+            [1, 1],
+        )
+        self.assertEqual(
+            parser_ir.productions[0].alternatives[0].result_index,
+            0,
+        )
+
+    def test_rejects_two_transparent_semantic_values_before_codegen(self) -> None:
+        parsed = parse_grammar(
+            "<S> ::= <A> <B>\n<A> ::= A\n<B> ::= B"
+        )
+        assert parsed.grammar is not None
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        resolved = resolve_grammar(parsed.grammar)
+        assert resolved.grammar is not None
+        analysis = compute_analysis(resolved.grammar, 1, ("S",))
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "multiple transparent semantic values",
+        ):
+            build_parser_ir(
+                parsed.source_grammar,
+                parsed.lowering,
+                resolved.grammar,
+                analysis,
+            )
+
     def test_separator_star_becomes_repeat_loop_without_synthetic_function(
         self,
     ) -> None:
