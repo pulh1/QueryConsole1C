@@ -102,10 +102,10 @@ class ValueTableCodecTests(unittest.TestCase):
                 ColumnKind.NUMBER,
             ],
         )
-        self.assertEqual(len(select.rows), 6630)
+        self.assertEqual(len(select.rows), 6564)
         self.assertEqual(
             select.rows[0],
-            (2, "ВЫБРАТЬ", "&", "ЗапросПакета", 1),
+            (2, "ВЫБРАТЬ", "&", "ЗапросВыбора", 1),
         )
         self.assertEqual(
             select.rows[-1],

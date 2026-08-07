@@ -39,6 +39,7 @@ class ConfigTests(unittest.TestCase):
             config.canonical_productions,
             (
                 "ПакетЗапросов",
+                "ЗапросПакета",
                 "ЗапросУничтожения",
                 "Выражение",
                 "ЛогическоеСлагаемое",

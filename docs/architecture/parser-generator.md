@@ -500,6 +500,11 @@ table-name token binding. Exact delta зафиксирован в
 Exact delta зафиксирован в
 [query-package checkpoint](../superpowers/matrices/2026-08-07-query-package-ebnf-checkpoint.md).
 
+`ЗапросПакета` после этого стал transparent canonical choice: каждая из двух
+disjoint alternatives возвращает единственный child без structural action.
+Exact delta зафиксирован в
+[package-query checkpoint](../superpowers/matrices/2026-08-07-package-query-transparent-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:
