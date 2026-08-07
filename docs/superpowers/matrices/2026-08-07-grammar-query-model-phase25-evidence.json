@@ -149,6 +149,30 @@
           "errors": 0,
           "skipped": 2
         }
+      },
+      {
+        "purpose": "Task 9 final combined Phase 2.5 closure including runtime benchmark",
+        "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ЛексическийАнализатор_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\", \"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_ПостроениеИГенерацияЗапросов_МО\", \"КОНС_Обр_ИсполняемыеПредставления_МО\", \"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО\", \"КОНС_Обр_ПотребителиПредставлений_МО\", \"КОНС_Обр_БенчмаркПарсера_МО\"], timeout: 240, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+        "module_filters": [
+          "КОНС_Обр_ЛексическийАнализатор_МО",
+          "КОНС_Обр_Парсер_МО",
+          "КОНС_Обр_ПарсерЗапросов_МО",
+          "КОНС_ОМ_ОбработкаМоделиЗапроса",
+          "КОНС_Обр_МодельВыражений_МО",
+          "КОНС_Обр_ПостроениеИГенерацияЗапросов_МО",
+          "КОНС_Обр_ИсполняемыеПредставления_МО",
+          "КОНС_Обр_ПрикладныеПотребителиЗапроса_МО",
+          "КОНС_Обр_ПотребителиПредставлений_МО",
+          "КОНС_Обр_БенчмаркПарсера_МО"
+        ],
+        "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________eaea5e771_422d1da37e95cc5cca07dabba1b8e3d037f0f212\\report.md",
+        "junit": {
+          "total": 457,
+          "passed": 454,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 3
+        }
       }
     ]
   },
@@ -1399,19 +1423,52 @@
             "КОНС_Обр_ПостроениеИГенерацияЗапросов_МО",
             "КОНС_Обр_ИсполняемыеПредставления_МО",
             "КОНС_Обр_ПрикладныеПотребителиЗапроса_МО",
-            "КОНС_Обр_ПотребителиПредставлений_МО"
+            "КОНС_Обр_ПотребителиПредставлений_МО",
+            "КОНС_Обр_БенчмаркПарсера_МО"
           ],
-          "test_or_tag": "Phase 2.5 combined regression including C18",
-          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [9 Phase 2.5 modules], timeout: 180, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
-          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________88a9fd0f6_c80186a14815cdfdc9adb690aaa277e584ead855\\report.md",
+          "test_or_tag": "Phase 2.5 final combined regression including C18 and X01",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ЛексическийАнализатор_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\", \"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_ПостроениеИГенерацияЗапросов_МО\", \"КОНС_Обр_ИсполняемыеПредставления_МО\", \"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО\", \"КОНС_Обр_ПотребителиПредставлений_МО\", \"КОНС_Обр_БенчмаркПарсера_МО\"], timeout: 240, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________eaea5e771_422d1da37e95cc5cca07dabba1b8e3d037f0f212\\report.md",
           "exit_code": null,
           "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
           "junit": {
-            "total": 456,
-            "passed": 453,
+            "total": 457,
+            "passed": 454,
             "failed": 0,
             "errors": 0,
             "skipped": 3
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "X01",
+      "component": "New test/benchmark harness owned by the production parser entrypoints `DataProcessors/Парсер/ObjectModule.bsl.Разобрать` and `РазобратьВыражение`",
+      "status": "green",
+      "date": "2026-08-07",
+      "external_blockers": [],
+      "benchmark_result": "docs/superpowers/matrices/2026-08-07-runtime-parser-benchmark-before.json",
+      "baseline_report": "docs/superpowers/matrices/2026-08-07-runtime-parser-benchmark-baseline.md",
+      "raw_benchmark_result": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________f49cea393_39767d76ab1d38f5fadfa5c32807961daa03e544\\runtime-parser-benchmark-before.json",
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_БенчмаркПарсера_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_БенчмаркПарсера_МО"
+          ],
+          "test_or_tag": "КОНС_Обр_БенчмаркПарсера_МО.RuntimeBaselineПарсераФормируется",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_БенчмаркПарсера_МО\"], timeout: 180, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________f49cea393_39767d76ab1d38f5fadfa5c32807961daa03e544\\report.md",
+          "benchmark_result": "docs/superpowers/matrices/2026-08-07-runtime-parser-benchmark-before.json",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 1,
+            "passed": 1,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
           }
         }
       ]
