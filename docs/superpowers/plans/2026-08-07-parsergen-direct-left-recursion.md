@@ -98,16 +98,16 @@
 - `FoldLeftValue` resolves only inside its owning fold to the generated accumulator temporary.
 - A semantic recursive branch assigns `ЭтотУзел` back to the accumulator exactly once; a recognition-only branch preserves it.
 
-- [ ] Write RED codegen test for `Expr ::= Expr '+' Term | Term`: one `Пока`, no self-call in `НеТерминалExpr`, no synthetic tail function, explicit malformed-input error.
-- [ ] Write RED semantic test for `@НовыйБинарный Левый=<Expr> Оператор='+' Правый=<Term>`: constructor once in branch text, left property gets accumulator before right parse, accumulator gets `ЭтотУзел` after suffix.
-- [ ] Run the focused codegen test and verify failure on unsupported `LeftFold`.
-- [ ] Implement base rendering with canonical dispatch. Initialize one deterministic accumulator from constructor node, explicit branch result or `Неопределено` in recognition-only mode.
-- [ ] Implement recursive loop using the union of recursive SELECT rows, branch dispatch for multiple suffixes, and the canonical exit/error check already used by `RepeatLoop`.
-- [ ] Resolve nested `FoldLeftValue` through an explicitly scoped generator stack; reject use outside a fold.
-- [ ] Add structural cases for `+`/`-` recursive alternatives and separate `Expr -> Term -> Factor` productions; assert the assignment order that implements left associativity and the calls that preserve precedence.
-- [ ] Prove stack shape statically: the generated same-precedence production has one loop and no self-call, independent of input length. Record 10,000-operator runtime execution as a YAxUnit/Vanessa gate rather than pretending Python executed BSL.
-- [ ] Run all canonical BSL, EBNF, binding and Parser IR suites GREEN.
-- [ ] Commit and push as `Генерировать iterative BSL left fold`.
+- [x] Write RED codegen test for `Expr ::= Expr '+' Term | Term`: one `Пока`, no self-call in `НеТерминалExpr`, no synthetic tail function, explicit malformed-input error.
+- [x] Write RED semantic test for `@НовыйБинарный Левый=<Expr> Оператор='+' Правый=<Term>`: constructor once in branch text, left property gets accumulator before right parse, accumulator gets `ЭтотУзел` after suffix.
+- [x] Run the focused codegen test and verify failure on unsupported `LeftFold`.
+- [x] Implement base rendering with canonical dispatch. Initialize one deterministic accumulator from constructor node, explicit branch result or `Неопределено` in recognition-only mode.
+- [x] Implement recursive loop using the union of recursive SELECT rows, branch dispatch for multiple suffixes, and the canonical exit/error check already used by `RepeatLoop`.
+- [x] Resolve nested `FoldLeftValue` through an explicitly scoped generator stack; reject use outside a fold.
+- [x] Add structural cases for `+`/`-` recursive alternatives and separate `Expr -> Term -> Factor` productions; assert the assignment order that implements left associativity and the calls that preserve precedence.
+- [x] Prove stack shape statically: the generated same-precedence production has one loop and no self-call, independent of input length. Record 10,000-operator runtime execution as a YAxUnit/Vanessa gate rather than pretending Python executed BSL.
+- [x] Run all canonical BSL, EBNF, binding and Parser IR suites GREEN.
+- [x] Commit and push as `Генерировать iterative BSL left fold`.
 
 ### Task 5: Phase 6 regression and architecture gate
 

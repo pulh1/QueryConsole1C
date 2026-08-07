@@ -29,6 +29,8 @@ from .parser_ir import (
     ConstructNode,
     Dispatch,
     DispatchValue,
+    FoldLeftValue,
+    LeftFold,
     Operation,
     OptionalBranch,
     ParseBranchValue,
@@ -90,6 +92,7 @@ class _CanonicalBslGenerator:
         self._temporary = 0
         self._constructors: list[str] = []
         self._seen_constructors: set[str] = set()
+        self._fold_left_values: list[str] = []
 
     def generate(self) -> CanonicalGeneratedParser:
         self._validate_inputs()
@@ -377,6 +380,12 @@ class _CanonicalBslGenerator:
                 indent,
                 error_label,
             )
+        if isinstance(operation, LeftFold):
+            return self._render_left_fold(
+                operation,
+                indent,
+                error_label,
+            )
         raise ValueError(
             f"unsupported canonical operation {type(operation).__name__}"
         )
@@ -423,6 +432,10 @@ class _CanonicalBslGenerator:
             return lines, result
         if isinstance(value, UndefinedValue):
             return [], value.value
+        if isinstance(value, FoldLeftValue):
+            if not self._fold_left_values:
+                raise ValueError("fold-left value used outside LeftFold")
+            return [], self._fold_left_values[-1]
         if isinstance(value, ParseBranchValue):
             lines, values = self._render_operations(
                 value.operations,
@@ -475,6 +488,184 @@ class _CanonicalBslGenerator:
             )
         )
         return lines, result
+
+    def _render_left_fold(
+        self,
+        fold: LeftFold,
+        indent: str,
+        error_label: str,
+    ) -> tuple[list[str], str]:
+        accumulator = self._new_temporary()
+        lines = self._render_left_fold_base(
+            fold,
+            accumulator,
+            indent,
+            error_label,
+        )
+        alternatives = tuple(
+            branch.alternative
+            for branch in fold.recursive_branches
+        )
+        consume_condition = self._conditions.for_alternatives(
+            fold.recursive_decision,
+            alternatives,
+        )
+        lines.append(f"{indent}Пока {consume_condition} Цикл")
+        self._fold_left_values.append(accumulator)
+        try:
+            if len(fold.recursive_branches) == 1:
+                lines.extend(
+                    self._render_left_fold_recursive_branch(
+                        fold.recursive_branches[0],
+                        accumulator,
+                        indent + "\t",
+                        error_label,
+                    )
+                )
+            else:
+                for position, branch in enumerate(
+                    fold.recursive_branches
+                ):
+                    keyword = "Если" if position == 0 else "ИначеЕсли"
+                    condition = self._conditions.for_alternative(
+                        fold.recursive_decision,
+                        branch.alternative,
+                    )
+                    lines.append(
+                        f"{indent}\t{keyword} {condition} Тогда"
+                    )
+                    lines.extend(
+                        self._render_left_fold_recursive_branch(
+                            branch,
+                            accumulator,
+                            indent + "\t\t",
+                            error_label,
+                        )
+                    )
+                lines.extend(
+                    (
+                        f"{indent}\tИначе",
+                        self._syntax_error_line(
+                            indent + "\t\t",
+                            error_label,
+                        ),
+                        f"{indent}\tКонецЕсли;",
+                    )
+                )
+        finally:
+            self._fold_left_values.pop()
+        lines.append(f"{indent}КонецЦикла;")
+        exit_condition = self._conditions.for_alternative(
+            fold.recursive_decision,
+            fold.exit_alternative,
+        )
+        lines.extend(
+            (
+                f"{indent}Если Не {exit_condition} Тогда",
+                self._syntax_error_line(indent + "\t", error_label),
+                f"{indent}КонецЕсли;",
+            )
+        )
+        return lines, accumulator
+
+    def _render_left_fold_base(
+        self,
+        fold: LeftFold,
+        accumulator: str,
+        indent: str,
+        error_label: str,
+    ) -> list[str]:
+        if fold.base_decision is None:
+            if len(fold.base_branches) != 1:
+                raise ValueError(
+                    "left fold without base decision must have one branch"
+                )
+            return self._render_left_fold_base_branch(
+                fold.base_branches[0],
+                accumulator,
+                indent,
+                error_label,
+            )
+
+        lines: list[str] = []
+        for position, branch in enumerate(fold.base_branches):
+            keyword = "Если" if position == 0 else "ИначеЕсли"
+            condition = self._conditions.for_alternative(
+                fold.base_decision,
+                branch.alternative,
+            )
+            lines.append(f"{indent}{keyword} {condition} Тогда")
+            lines.extend(
+                self._render_left_fold_base_branch(
+                    branch,
+                    accumulator,
+                    indent + "\t",
+                    error_label,
+                )
+            )
+        lines.extend(
+            (
+                f"{indent}Иначе",
+                self._syntax_error_line(indent + "\t", error_label),
+                f"{indent}КонецЕсли;",
+            )
+        )
+        return lines
+
+    def _render_left_fold_base_branch(
+        self,
+        branch: BranchIr,
+        accumulator: str,
+        indent: str,
+        error_label: str,
+    ) -> list[str]:
+        lines, values = self._render_operations(
+            branch.operations,
+            indent,
+            error_label,
+        )
+        value = self._left_fold_branch_value(branch, values)
+        lines.append(
+            f"{indent}{accumulator} = "
+            f"{value if value is not None else 'Неопределено'};"
+        )
+        return lines
+
+    def _render_left_fold_recursive_branch(
+        self,
+        branch: BranchIr,
+        accumulator: str,
+        indent: str,
+        error_label: str,
+    ) -> list[str]:
+        lines, _ = self._render_operations(
+            branch.operations,
+            indent,
+            error_label,
+        )
+        if any(
+            isinstance(operation, ConstructNode)
+            for operation in branch.operations
+        ):
+            lines.append(f"{indent}{accumulator} = ЭтотУзел;")
+        return lines
+
+    def _left_fold_branch_value(
+        self,
+        branch: BranchIr,
+        values: list[str | None],
+    ) -> str | None:
+        if any(
+            isinstance(operation, ConstructNode)
+            for operation in branch.operations
+        ):
+            return "ЭтотУзел"
+        if branch.result_index is None:
+            return None
+        value = values[branch.result_index]
+        if value is None:
+            raise ValueError("left-fold branch result has no value")
+        return value
 
     def _render_dispatch(
         self,
