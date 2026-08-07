@@ -1,4 +1,5 @@
 import itertools
+import re
 import unittest
 
 from parsergen.analysis import CanonicalDecisionRow, MatcherDefinition
@@ -35,6 +36,28 @@ def _matching_alternatives(
     return matched
 
 
+def _condition_matches(
+    condition: str,
+    word: tuple[str | None, ...],
+) -> bool:
+    expression = re.sub(
+        r"ТипТокенаПросмотра\((\d+)\)",
+        lambda match: f"word[{match.group(1)}]",
+        condition,
+    )
+    expression = expression.replace("Неопределено", "None")
+    expression = expression.replace(" = ", " == ")
+    expression = expression.replace(" И ", " and ")
+    expression = expression.replace(" Или ", " or ")
+    return bool(
+        eval(
+            expression,
+            {"__builtins__": {}},
+            {"word": word},
+        )
+    )
+
+
 class CanonicalBslConditionTests(unittest.TestCase):
     def test_renders_single_token_condition(self) -> None:
         definitions = (MatcherDefinition("A", ("a",)),)
@@ -65,8 +88,8 @@ class CanonicalBslConditionTests(unittest.TestCase):
 
         self.assertEqual(
             rendered,
-            '((ТипТокенаПросмотра(0) = "ID" Или '
-            'ТипТокенаПросмотра(0) = "WORD"))',
+            '(ТипТокенаПросмотра(0) = "ID" Или '
+            'ТипТокенаПросмотра(0) = "WORD")',
         )
 
     def test_renders_k3_conjunction_and_short_prefix_rows(self) -> None:
@@ -89,12 +112,70 @@ class CanonicalBslConditionTests(unittest.TestCase):
 
         self.assertEqual(
             rendered,
-            '((ТипТокенаПросмотра(0) = "a" И '
-            'ТипТокенаПросмотра(1) = "b" И '
-            'ТипТокенаПросмотра(2) = "c") Или '
             '(ТипТокенаПросмотра(0) = "a" И '
+            '((ТипТокенаПросмотра(1) = "b" И '
+            '(ТипТокенаПросмотра(2) = "c")) Или '
             'ТипТокенаПросмотра(1) = "c"))',
         )
+
+    def test_factors_common_prefix_and_equal_suffixes(self) -> None:
+        definitions = (
+            MatcherDefinition("A", ("a",)),
+            MatcherDefinition("B", ("b",)),
+            MatcherDefinition("C", ("c",)),
+            MatcherDefinition("D", ("d",)),
+        )
+        decision = _decision(
+            (
+                CanonicalDecisionRow("Choice", 1, ("A", "B")),
+                CanonicalDecisionRow("Choice", 1, ("A", "C")),
+                CanonicalDecisionRow("Choice", 1, ("A", "D")),
+            ),
+            definitions,
+        )
+
+        rendered = CanonicalConditionRenderer(
+            definitions
+        ).for_alternative(decision, 1)
+
+        self.assertEqual(
+            rendered,
+            '(ТипТокенаПросмотра(0) = "a" И '
+            '(ТипТокенаПросмотра(1) = "b" Или '
+            'ТипТокенаПросмотра(1) = "c" Или '
+            'ТипТокенаПросмотра(1) = "d"))',
+        )
+        self.assertEqual(rendered.count("ТипТокенаПросмотра(0)"), 1)
+
+    def test_factorization_preserves_union_of_canonical_rows(self) -> None:
+        definitions = (
+            MatcherDefinition("A", ("a",)),
+            MatcherDefinition("B", ("b",)),
+            MatcherDefinition("C", ("c",)),
+            MatcherDefinition("ID", ("ID", "WORD")),
+            MatcherDefinition("$", ("$",)),
+        )
+        decision = _decision(
+            (
+                CanonicalDecisionRow("Choice", 1, ("A", "B", "C")),
+                CanonicalDecisionRow("Choice", 1, ("A", "C")),
+                CanonicalDecisionRow("Choice", 1, ("ID", "$")),
+            ),
+            definitions,
+        )
+
+        rendered = CanonicalConditionRenderer(
+            definitions
+        ).for_alternative(decision, 1)
+
+        alphabet = ("a", "b", "c", "ID", "WORD", "other", None)
+        for word in itertools.product(alphabet, repeat=3):
+            with self.subTest(word=word):
+                expected = bool(_matching_alternatives(decision, word))
+                self.assertEqual(
+                    _condition_matches(rendered, word),
+                    expected,
+                )
 
     def test_renders_eof_as_undefined_lookahead(self) -> None:
         definitions = (MatcherDefinition("$", ("$",)),)
@@ -131,8 +212,8 @@ class CanonicalBslConditionTests(unittest.TestCase):
 
         self.assertEqual(
             rendered,
-            '((ТипТокенаПросмотра(0) = "a") Или '
-            '(ТипТокенаПросмотра(0) = "b"))',
+            '(ТипТокенаПросмотра(0) = "a" Или '
+            'ТипТокенаПросмотра(0) = "b")',
         )
         for word in itertools.product(("a", "b", "c", None), repeat=1):
             self.assertLessEqual(len(_matching_alternatives(decision, word)), 1)

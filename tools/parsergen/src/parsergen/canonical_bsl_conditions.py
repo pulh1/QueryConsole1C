@@ -67,13 +67,11 @@ class CanonicalConditionRenderer:
                 f"alternative {formatted} has no canonical rows"
             )
         rows = tuple(
-            self._row(row.matchers)
+            row.matchers
             for row in decision.rows
             if row.alternative in requested
         )
-        if len(rows) == 1:
-            return rows[0]
-        return f"({' Или '.join(rows)})"
+        return self._rows(rows, 0)
 
     def _validate_decision(self, decision: CanonicalDecision) -> None:
         if decision.matcher_definitions != self._definitions:
@@ -86,26 +84,56 @@ class CanonicalConditionRenderer:
                     "canonical row belongs to another production"
                 )
 
-    def _row(self, matchers: tuple[str, ...]) -> str:
-        if not matchers:
-            raise ValueError("canonical row has empty matcher sequence")
-        conditions = tuple(
-            self._matcher(label, offset)
-            for offset, label in enumerate(matchers)
-        )
-        return f"({' И '.join(conditions)})"
+    def _rows(
+        self,
+        rows: tuple[tuple[str, ...], ...],
+        offset: int,
+    ) -> str:
+        by_label: dict[str, list[tuple[str, ...]]] = {}
+        for row in rows:
+            if not row:
+                raise ValueError("canonical row has empty matcher sequence")
+            by_label.setdefault(row[0], []).append(row[1:])
 
-    def _matcher(self, label: str, offset: int) -> str:
-        token_types = self._by_label.get(label)
-        if token_types is None:
-            raise ValueError(f"unknown matcher {label!r}")
+        grouped: dict[
+            tuple[tuple[str, ...], ...] | None,
+            list[str],
+        ] = {}
+        for label, tails in by_label.items():
+            unique_tails = tuple(sorted(set(tails)))
+            signature = None if () in unique_tails else unique_tails
+            grouped.setdefault(signature, []).append(label)
+
+        branches: list[str] = []
+        for signature, labels in grouped.items():
+            prefix = self._matchers(tuple(labels), offset)
+            if signature is None:
+                branches.append(prefix)
+            else:
+                suffix = self._rows(signature, offset + 1)
+                branches.append(f"({prefix} И {suffix})")
+        if len(branches) == 1:
+            branch = branches[0]
+            return branch if branch.startswith("(") else f"({branch})"
+        return f"({' Или '.join(branches)})"
+
+    def _matchers(self, labels: tuple[str, ...], offset: int) -> str:
         lookahead = f"{_LOOKAHEAD_FUNCTION}({offset})"
-        if label == _END_MATCHER:
-            return f"{lookahead} = Неопределено"
-        comparisons = tuple(
-            f"{lookahead} = {bsl_string(token_type)}"
-            for token_type in token_types
-        )
+        comparisons: list[str] = []
+        observed: set[str] = set()
+        for label in labels:
+            token_types = self._by_label.get(label)
+            if token_types is None:
+                raise ValueError(f"unknown matcher {label!r}")
+            for token_type in token_types:
+                comparison = (
+                    f"{lookahead} = Неопределено"
+                    if label == _END_MATCHER
+                    else f"{lookahead} = {bsl_string(token_type)}"
+                )
+                if comparison not in observed:
+                    observed.add(comparison)
+                    comparisons.append(comparison)
         if len(comparisons) == 1:
             return comparisons[0]
         return f"({' Или '.join(comparisons)})"

@@ -58,6 +58,7 @@ class ConfigTests(unittest.TestCase):
                 "КогдаТогда",
                 "Константа",
                 "Параметр",
+                "АгрегатнаяФункция",
             ),
         )
         self.assertEqual(

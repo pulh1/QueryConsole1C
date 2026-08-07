@@ -62,8 +62,8 @@ class CanonicalBslEbnfTests(unittest.TestCase):
         )
 
         self.assertIn(
-            'Пока ((ТипТокенаПросмотра(0) = "A") Или '
-            '(ТипТокенаПросмотра(0) = "B")) Цикл',
+            'Пока (ТипТокенаПросмотра(0) = "A" Или '
+            'ТипТокенаПросмотра(0) = "B") Цикл',
             function,
         )
         loop = function.split("Пока ", 1)[1].split("КонецЦикла;", 1)[0]

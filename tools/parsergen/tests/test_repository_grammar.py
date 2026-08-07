@@ -35,6 +35,7 @@ MIGRATED_PRODUCTIONS = (
     "КогдаТогда",
     "Константа",
     "Параметр",
+    "АгрегатнаяФункция",
 )
 
 
@@ -468,8 +469,8 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 110)
-        self.assertEqual(len(parsed.grammar.productions), 126)
+        self.assertEqual(len(parsed.source_grammar.productions), 109)
+        self.assertEqual(len(parsed.grammar.productions), 127)
 
         resolution = resolve_grammar(parsed.grammar)
         self.assertEqual(resolution.diagnostics, ())
@@ -953,6 +954,112 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             function,
             r'Значение\d+ = Терминал\("(?:КОГДА|ТОГДА)"\);',
         )
+        self.assertNotIn("НомерВариантаПродукции", function)
+
+    def test_aggregate_functions_generate_name_and_argument_bindings(
+        self,
+    ) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        canonical = MIGRATED_PRODUCTIONS
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=canonical,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=canonical,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        function = _generated_function(
+            generated.module_text,
+            "АгрегатнаяФункция",
+        )
+        for token in ("СУММА", "МАКСИМУМ", "МИНИМУМ", "СРЕДНЕЕ"):
+            with self.subTest(token=token):
+                self.assertEqual(function.count(f'Терминал("{token}")'), 1)
+        self.assertEqual(
+            function.count(
+                "ЭлементыМоделиЗапроса.НовыйАгрегатнаяФункция("
+            ),
+            4,
+        )
+        self.assertEqual(function.count("ЭтотУзел.ИмяФункции ="), 4)
+        self.assertEqual(function.count("ЭтотУзел.Аргумент ="), 5)
+        self.assertNotIn("ТекущийЭлемент", function)
+        self.assertNotIn("НомерВариантаПродукции", function)
+
+    def test_count_aggregate_preserves_default_and_argument_choice(
+        self,
+    ) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        canonical = MIGRATED_PRODUCTIONS
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=canonical,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=canonical,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        module = generated.module_text
+        self.assertNotIn("Функция НеТерминалАргументКоличество(", module)
+        function = _generated_function(module, "АгрегатнаяФункция")
+        self.assertEqual(
+            function.count(
+                "ЭлементыМоделиЗапроса.НовыйАгрегатнаяФункцияКоличество("
+            ),
+            1,
+        )
+        self.assertEqual(function.count('Терминал("РАЗЛИЧНЫЕ");'), 1)
+        self.assertEqual(function.count("ЭтотУзел.Различные = Истина;"), 1)
+        self.assertNotIn("ЭтотУзел.Различные = Неопределено;", function)
+        self.assertEqual(function.count('Лексема("*")'), 1)
+        self.assertNotIn("ТекущийЭлемент", function)
         self.assertNotIn("НомерВариантаПродукции", function)
 
     def test_query_parameter_generates_canonical_identifier_binding(self) -> None:

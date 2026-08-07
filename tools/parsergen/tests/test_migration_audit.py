@@ -95,6 +95,7 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "КогдаТогда",
                 "Константа",
                 "Параметр",
+                "АгрегатнаяФункция",
             ],
         )
         self.assertEqual(report["canonical"]["conflicts"], [])
@@ -113,19 +114,19 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["structural"],
             {
-                "source_productions": 110,
-                "source_alternatives": 256,
-                "productions": 126,
-                "alternatives": 284,
-                "epsilon_alternatives": 64,
+                "source_productions": 109,
+                "source_alternatives": 254,
+                "productions": 127,
+                "alternatives": 286,
+                "epsilon_alternatives": 65,
                 "formal_parameters": 8,
                 "actual_arguments": 26,
-                "action_blocks": 293,
-                "statements": 318,
-                "constructor_statements": 70,
+                "action_blocks": 280,
+                "statements": 301,
+                "constructor_statements": 65,
                 "collection_statements": 27,
-                "constant_statements": 20,
-                "structural_statements": 197,
+                "constant_statements": 15,
+                "structural_statements": 190,
                 "other_assignment_statements": 0,
                 "other_statements": 4,
             },
@@ -153,13 +154,13 @@ class MigrationAuditProductionTests(unittest.TestCase):
                     },
                 ],
                 "stats": {
-                    "packed_first_rows": 10_765,
-                    "packed_follow_rows": 42_598,
-                    "select_descriptors": 284,
+                    "packed_first_rows": 10_767,
+                    "packed_follow_rows": 42_973,
+                    "select_descriptors": 286,
                     "select_direct_facts": 10_442,
-                    "select_short_complete_prefixes": 323,
-                    "packed_select_upper_bound": 32_068,
-                    "conflict_work_items": 511,
+                    "select_short_complete_prefixes": 325,
+                    "packed_select_upper_bound": 32_485,
+                    "conflict_work_items": 512,
                     "public_select_expansions": 0,
                     "select_cartesian_materializations": 0,
                 },
@@ -168,7 +169,7 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["legacy"],
             {
-                "matcher_rows": 9_081,
+                "matcher_rows": 9_083,
                 "matcher_definitions": 0,
                 "runtime_conflicts": [],
             },
@@ -179,10 +180,10 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["generated"],
             {
-                "bsl_functions": 122,
-                "bsl_loc": 3088,
+                "bsl_functions": 121,
+                "bsl_loc": 3056,
                 "constructor_names": 78,
-                "select_rows": 6_223,
+                "select_rows": 5_973,
                 "identifier_rows": 276,
             },
         )
@@ -253,7 +254,8 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 '"УнарнаяОперация", '
                 '"СписокВыражений", '
                 '"СписокВыраженийМодели", '
-                '"Выбор", "КогдаТогда", "Константа", "Параметр"]\n\n'
+                '"Выбор", "КогдаТогда", "Константа", "Параметр", '
+                '"АгрегатнаяФункция"]\n\n'
                 "[entrypoints]\n"
                 '"Разобрать" = "ПакетЗапросов"\n'
                 '"РазобратьВыражение" = "Выражение"\n',

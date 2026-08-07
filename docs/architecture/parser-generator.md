@@ -522,6 +522,15 @@ EBNF optionals. `ИерархияОпционально` удалён, а absent
 сохраняет factory-default `"Возр"` без legacy sentinel semantics. Exact
 delta: [order-element checkpoint](../superpowers/matrices/2026-08-07-order-element-ebnf-checkpoint.md).
 
+`АгрегатнаяФункция` затем переведена на terminal/scalar/constant bindings.
+Technical `АргументКоличество` удалён, а absent `РАЗЛИЧНЫЕ` сохраняет
+factory-default `Ложь`. Shared `РазличныеОпционально` остаётся legacy до
+миграции его второго consumer. Canonical BSL conditions при этом lowered в
+эквивалентное префиксное булево дерево: это уменьшает generated module без
+изменения SELECT rows и не использует порядок веток для разрешения конфликтов.
+Exact delta:
+[aggregate-function checkpoint](../superpowers/matrices/2026-08-07-aggregate-function-binding-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:
