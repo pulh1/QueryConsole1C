@@ -713,6 +713,12 @@ class _ParserIrBuilder:
             for index, operation in enumerate(operations)
             if _produces_transparent_value(operation)
         )
+        if not semantic_indices:
+            semantic_indices = tuple(
+                index
+                for index, operation in enumerate(operations)
+                if isinstance(operation, ParseSymbol)
+            )
         if len(semantic_indices) != 1:
             raise ValueError(
                 "bound branch does not identify exactly one semantic value"

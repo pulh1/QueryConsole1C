@@ -73,7 +73,7 @@ class ReferenceParserTests(unittest.TestCase):
                 len(production.alternatives)
                 for production in parsed.grammar.productions
             ),
-            281,
+            282,
         )
 
         config = load_config(REPOSITORY_ROOT / "parsergen.toml")

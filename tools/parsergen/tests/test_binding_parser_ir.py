@@ -7,6 +7,7 @@ from parsergen.parser_ir import (
     AssignConstant,
     BindScalar,
     ConstructNode,
+    Dispatch,
     DispatchValue,
     OptionalBranch,
     ParseBranchValue,
@@ -190,6 +191,24 @@ class BindingParserIrTests(unittest.TestCase):
             [type(item) for item in binding.value.operations],
             [ParseSymbol, ParseSymbol],
         )
+
+    def test_explicit_group_binding_accepts_literal_branch_values(self) -> None:
+        parser_ir = _build(
+            "<S> ::= @НовыйСписок Знаки += ('-' | '+')+"
+        )
+
+        operations = parser_ir.productions[0].alternatives[0].operations
+        first = operations[1]
+        self.assertIsInstance(first, Dispatch)
+        assert isinstance(first, Dispatch)
+        for branch in first.branches:
+            append = branch.operations[0]
+            self.assertIsInstance(append, AppendCollection)
+            assert isinstance(append, AppendCollection)
+            self.assertIsInstance(append.value, ParseBranchValue)
+            assert isinstance(append.value, ParseBranchValue)
+            self.assertEqual(append.value.result_index, 0)
+            self.assertIsInstance(append.value.operations[0], ParseSymbol)
 
 
 if __name__ == "__main__":

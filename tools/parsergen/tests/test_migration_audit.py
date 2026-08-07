@@ -79,6 +79,7 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "ЛогическоеСлагаемое",
                 "АрифметическоеВыражение",
                 "Слагаемое",
+                "УнарнаяОперация",
                 "СписокВыражений",
                 "СписокВыраженийМодели",
             ],
@@ -99,19 +100,19 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["structural"],
             {
-                "source_productions": 118,
-                "source_alternatives": 273,
+                "source_productions": 116,
+                "source_alternatives": 269,
                 "productions": 124,
-                "alternatives": 281,
+                "alternatives": 282,
                 "epsilon_alternatives": 63,
                 "formal_parameters": 8,
                 "actual_arguments": 26,
-                "action_blocks": 354,
-                "statements": 380,
-                "constructor_statements": 93,
-                "collection_statements": 33,
+                "action_blocks": 347,
+                "statements": 373,
+                "constructor_statements": 92,
+                "collection_statements": 31,
                 "constant_statements": 26,
-                "structural_statements": 223,
+                "structural_statements": 219,
                 "other_assignment_statements": 0,
                 "other_statements": 5,
             },
@@ -139,13 +140,13 @@ class MigrationAuditProductionTests(unittest.TestCase):
                     },
                 ],
                 "stats": {
-                    "packed_first_rows": 10_758,
-                    "packed_follow_rows": 42_545,
-                    "select_descriptors": 281,
-                    "select_direct_facts": 10_438,
+                    "packed_first_rows": 10_762,
+                    "packed_follow_rows": 42_465,
+                    "select_descriptors": 282,
+                    "select_direct_facts": 10_442,
                     "select_short_complete_prefixes": 320,
                     "packed_select_upper_bound": 32_050,
-                    "conflict_work_items": 511,
+                    "conflict_work_items": 513,
                     "public_select_expansions": 0,
                     "select_cartesian_materializations": 0,
                 },
@@ -165,10 +166,10 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["generated"],
             {
-                "bsl_functions": 130,
-                "bsl_loc": 3275,
+                "bsl_functions": 128,
+                "bsl_loc": 3246,
                 "constructor_names": 79,
-                "select_rows": 7_312,
+                "select_rows": 7_223,
                 "identifier_rows": 276,
             },
         )
@@ -231,6 +232,7 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 'canonical_productions = ["Выражение", '
                 '"ЛогическоеСлагаемое", '
                 '"АрифметическоеВыражение", "Слагаемое", '
+                '"УнарнаяОперация", '
                 '"СписокВыражений", '
                 '"СписокВыраженийМодели"]\n\n'
                 "[entrypoints]\n"

@@ -459,6 +459,12 @@ Codegen дополнительно исключает temporary variables для
 discarded separator values. Exact delta зафиксирован в
 [model-expression-list checkpoint](../superpowers/matrices/2026-08-07-model-expression-list-ebnf-checkpoint.md).
 
+`УнарнаяОперация` затем переведена на declarative `+` для группы
+литеральных знаков. Continuation и отдельная sign-production удалены,
+а generated parser хранит знаки в исходном порядке и использует один loop.
+Exact delta зафиксирован в
+[unary-plus checkpoint](../superpowers/matrices/2026-08-07-unary-plus-ebnf-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:
