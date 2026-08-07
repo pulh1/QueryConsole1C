@@ -465,6 +465,12 @@ discarded separator values. Exact delta зафиксирован в
 Exact delta зафиксирован в
 [unary-plus checkpoint](../superpowers/matrices/2026-08-07-unary-plus-ebnf-checkpoint.md).
 
+CASE/`ВЫБОР` затем переведён на direct optional/repeated bindings в
+предметные properties родительского узла. Четыре helper-productions и
+неиспользуемый constructor промежуточного массива удалены. Exact delta
+зафиксирован в
+[choice checkpoint](../superpowers/matrices/2026-08-07-choice-ebnf-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:

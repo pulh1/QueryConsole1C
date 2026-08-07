@@ -85,6 +85,13 @@ def validate_bsl_identifier(name: str, origin: str) -> None:
         )
 
 
+def validate_bsl_member_name(name: str, origin: str) -> None:
+    if _BSL_IDENTIFIER.fullmatch(name) is None:
+        raise ValueError(
+            f"{origin} {name!r} is not a valid BSL member name"
+        )
+
+
 def bsl_string(value: str) -> str:
     escaped = value.replace('"', '""')
     return f'"{escaped}"'

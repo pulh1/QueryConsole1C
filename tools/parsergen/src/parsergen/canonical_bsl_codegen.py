@@ -9,6 +9,7 @@ from .bsl_rendering import (
     bsl_string,
     normalize_newlines,
     validate_bsl_identifier,
+    validate_bsl_member_name,
 )
 from .canonical_bsl_conditions import CanonicalConditionRenderer
 from .model import (
@@ -347,15 +348,19 @@ class _CanonicalBslGenerator:
         indent: str,
         error_label: str,
     ) -> list[str]:
+        has_constructor = any(
+            isinstance(operation, ConstructNode)
+            for operation in alternative.operations
+        )
         lines, values = self._render_operations(
             alternative.operations,
             indent,
             error_label,
+            required_result_index=(
+                None if has_constructor else alternative.result_index
+            ),
         )
-        if any(
-            isinstance(operation, ConstructNode)
-            for operation in alternative.operations
-        ):
+        if has_constructor:
             lines.append(f"{indent}РезультатПродукции = ЭтотУзел;")
         elif alternative.result_index is not None:
             value = values[alternative.result_index]
@@ -370,14 +375,14 @@ class _CanonicalBslGenerator:
         indent: str,
         error_label: str,
         *,
-        discard_unbound_results: bool = False,
+        required_result_index: int | None = None,
     ) -> tuple[list[str], list[str | None]]:
         lines: list[str] = []
         values: list[str | None] = []
-        for operation in operations:
-            if discard_unbound_results and isinstance(
-                operation,
-                ParseSymbol,
+        for index, operation in enumerate(operations):
+            if (
+                isinstance(operation, ParseSymbol)
+                and index != required_result_index
             ):
                 rendered = [
                     f"{indent}{_symbol_call(operation.symbol)};"
@@ -435,7 +440,7 @@ class _CanonicalBslGenerator:
                 append=True,
             )
         if isinstance(operation, AssignConstant):
-            validate_bsl_identifier(operation.property, "bound property")
+            validate_bsl_member_name(operation.property, "bound property")
             return (
                 [
                     f"{indent}ЭтотУзел.{operation.property} = "
@@ -480,7 +485,7 @@ class _CanonicalBslGenerator:
         *,
         append: bool,
     ) -> tuple[list[str], None]:
-        validate_bsl_identifier(property_name, "bound property")
+        validate_bsl_member_name(property_name, "bound property")
         lines, expression = self._render_bound_value(
             value,
             indent,
@@ -522,6 +527,7 @@ class _CanonicalBslGenerator:
                 value.operations,
                 indent,
                 error_label,
+                required_result_index=value.result_index,
             )
             result = values[value.result_index]
             if result is None:
@@ -704,6 +710,14 @@ class _CanonicalBslGenerator:
             branch.operations,
             indent,
             error_label,
+            required_result_index=(
+                None
+                if any(
+                    isinstance(operation, ConstructNode)
+                    for operation in branch.operations
+                )
+                else branch.result_index
+            ),
         )
         value = self._left_fold_branch_value(branch, values)
         lines.append(
@@ -767,6 +781,9 @@ class _CanonicalBslGenerator:
                 branch.operations,
                 indent + "\t",
                 error_label,
+                required_result_index=(
+                    branch.result_index if result is not None else None
+                ),
             )
             lines.extend(branch_lines)
             if result is not None:
@@ -803,6 +820,9 @@ class _CanonicalBslGenerator:
                 branch.operations,
                 indent + "\t",
                 error_label,
+                required_result_index=(
+                    branch.result_index if result is not None else None
+                ),
             )
             lines.extend(branch_lines)
             if result is not None:
@@ -853,7 +873,6 @@ class _CanonicalBslGenerator:
                 repeat.branches[0].operations,
                 indent + "\t",
                 error_label,
-                discard_unbound_results=True,
             )
             lines.extend(body)
         else:
@@ -870,7 +889,6 @@ class _CanonicalBslGenerator:
                     branch.operations,
                     indent + "\t\t",
                     error_label,
-                    discard_unbound_results=True,
                 )
                 lines.extend(body)
             lines.extend(

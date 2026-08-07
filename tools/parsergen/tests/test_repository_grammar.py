@@ -22,6 +22,7 @@ MIGRATED_PRODUCTIONS = (
     "УнарнаяОперация",
     "СписокВыражений",
     "СписокВыраженийМодели",
+    "Выбор",
 )
 
 
@@ -39,7 +40,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 116)
+        self.assertEqual(len(parsed.source_grammar.productions), 112)
         self.assertEqual(len(parsed.grammar.productions), 124)
 
         resolution = resolve_grammar(parsed.grammar)
@@ -411,6 +412,65 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         )
         self.assertEqual(function.count("ЭтотУзел.Элементы.Добавить("), 2)
         self.assertEqual(function.count('Лексема(",")'), 1)
+        self.assertNotIn("НомерВариантаПродукции", function)
+
+    def test_choice_generates_optional_bindings_and_alternative_loop(self) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=MIGRATED_PRODUCTIONS,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=MIGRATED_PRODUCTIONS,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        module = generated.module_text
+        for helper in (
+            "ВыражениеВыбора",
+            "АльтернативыВыбора",
+            "ПродолжениеАльтернативВыбора",
+            "Иначе",
+        ):
+            self.assertNotIn(f"Функция НеТерминал{helper}(", module)
+        function = _generated_function(module, "Выбор")
+        self.assertEqual(function.count("Пока "), 1)
+        self.assertEqual(
+            function.count("ЭлементыМоделиЗапроса.НовыйВыбор("),
+            1,
+        )
+        self.assertEqual(
+            function.count("ЭтотУзел.АльтернативыВыбора.Добавить("),
+            2,
+        )
+        self.assertIn("ЭтотУзел.ВыражениеВыбора = Неопределено;", function)
+        self.assertIn("ЭтотУзел.Иначе = Неопределено;", function)
+        self.assertNotRegex(
+            function,
+            r'Значение\d+ = Терминал\("(?:ВЫБОР|ИНАЧЕ|КОНЕЦ)"\);',
+        )
         self.assertNotIn("НомерВариантаПродукции", function)
 
 

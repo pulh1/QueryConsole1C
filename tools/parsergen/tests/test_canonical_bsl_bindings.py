@@ -4,6 +4,16 @@ from tests.test_canonical_bsl_codegen import _build, _function
 
 
 class CanonicalBslBindingTests(unittest.TestCase):
+    def test_reserved_keyword_is_valid_as_bound_member_name(self) -> None:
+        function = _function(
+            _build(
+                "<S> ::= @НовыйУзел Иначе = VALUE"
+            ).module_text,
+            "НеТерминалS",
+        )
+
+        self.assertIn("ЭтотУзел.Иначе = Значение1;", function)
+
     def test_renders_constructor_scalar_and_constant_assignments(self) -> None:
         generated = _build(
             "#ID_Name ::= ID\n"
@@ -110,10 +120,10 @@ class CanonicalBslBindingTests(unittest.TestCase):
         )[0]
         self.assertLess(
             first_branch.index("Значение1 = НеТерминалA();"),
-            first_branch.index('Значение2 = Лексема(",");'),
+            first_branch.index('Лексема(",");'),
         )
-        self.assertIn("Значение3 = Значение1;", first_branch)
-        self.assertIn("ЭтотУзел.Значение = Значение3;", function)
+        self.assertIn("Значение2 = Значение1;", first_branch)
+        self.assertIn("ЭтотУзел.Значение = Значение2;", function)
 
 
 if __name__ == "__main__":

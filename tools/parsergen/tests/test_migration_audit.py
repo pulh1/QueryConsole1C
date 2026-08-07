@@ -82,6 +82,7 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "УнарнаяОперация",
                 "СписокВыражений",
                 "СписокВыраженийМодели",
+                "Выбор",
             ],
         )
         self.assertEqual(report["canonical"]["conflicts"], [])
@@ -100,19 +101,19 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["structural"],
             {
-                "source_productions": 116,
-                "source_alternatives": 269,
+                "source_productions": 112,
+                "source_alternatives": 262,
                 "productions": 124,
                 "alternatives": 282,
                 "epsilon_alternatives": 63,
                 "formal_parameters": 8,
                 "actual_arguments": 26,
-                "action_blocks": 347,
-                "statements": 373,
-                "constructor_statements": 92,
-                "collection_statements": 31,
+                "action_blocks": 337,
+                "statements": 363,
+                "constructor_statements": 90,
+                "collection_statements": 29,
                 "constant_statements": 26,
-                "structural_statements": 219,
+                "structural_statements": 213,
                 "other_assignment_statements": 0,
                 "other_statements": 5,
             },
@@ -166,10 +167,10 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["generated"],
             {
-                "bsl_functions": 128,
-                "bsl_loc": 3246,
-                "constructor_names": 79,
-                "select_rows": 7_223,
+                "bsl_functions": 124,
+                "bsl_loc": 3193,
+                "constructor_names": 78,
+                "select_rows": 6_846,
                 "identifier_rows": 276,
             },
         )
@@ -234,7 +235,8 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 '"АрифметическоеВыражение", "Слагаемое", '
                 '"УнарнаяОперация", '
                 '"СписокВыражений", '
-                '"СписокВыраженийМодели"]\n\n'
+                '"СписокВыраженийМодели", '
+                '"Выбор"]\n\n'
                 "[entrypoints]\n"
                 '"Разобрать" = "ПакетЗапросов"\n'
                 '"РазобратьВыражение" = "Выражение"\n',
