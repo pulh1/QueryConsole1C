@@ -75,6 +75,28 @@
   известный metadata marker `extension-md-object-prefix`, обусловленный
   утверждённым проектным именем тестового модуля.
 
+## Headless-контракты прикладных потребителей — 2026-08-07
+
+- Новый серверный модуль `КОНС_Обр_ПрикладныеПотребителиЗапроса_МО` прошёл
+  focused/combined gate: **6 total / 4 passed / 0 failed / 0 errors / 2 skipped**;
+  совместный прогон семи Phase 2.5 модулей — **225 total / 223 passed /
+  0 failed / 0 errors / 2 skipped**.
+- `C14`: прямые вызовы `КонсольЗапросов.ВыполнитьЗапрос` и
+  `ПреобразоватьВМетаданные` прошли focused-прогон **2/2 GREEN**; проверены
+  колонка/строка результата и литеральные identity/cost поля плана.
+- `C15`: `GetSchemaQuery` прошёл **1/1 GREEN** и вернул структурно вложенный
+  запрос с сохранённой парой индексов. `AvailableTablesBeforeExpandAtServer`
+  и `SourcesBeforeExpandAtServer` отдельно дошли до production object module
+  и завершились точной ошибкой `Метод объекта не обнаружен (FindByID)`:
+  headless `ДеревоЗначений` не заменяет требуемое `ДанныеФормыДерево`. После
+  фиксации failing-run evidence оба зарегистрированных теста используют
+  штатный `ЮТест.Пропустить` с этой причиной; формы и production не менялись.
+- `C17`: реальный `ГенераторFeatureФайлов` с реальным expression generator и
+  `ТекстовыйДокумент` прошёл **1/1 GREEN**; две ожидаемые строки feature-текста
+  заданы независимыми литералами в тестовом модуле.
+- EDT object revalidation не выявила BSL-проблем; остаётся только известный
+  marker `extension-md-object-prefix` из-за утверждённого имени модуля.
+
 ## Решения о покрытии
 
 | Contract ID | Consumer | Affected | Current automated evidence | Gap | Phase 2.5 test | Gate type |
@@ -92,10 +114,10 @@
 | C11 | Query/expression text generation | Да: `ГенерацияТекстовЗапросов/Module.bsl.ТекстПакетаЗапросов`, `ВыражениеВСтроку`. | Task 3 covers the real unknown-node error; fresh Task 4 module run 2/2 covers semantic model → text → model. | Закрыт: package/operator order, source, field, filter, order and totals projection survives generation and reparsing. | `НеизвестныйУзелВыраженияВызываетИсключениеГенератораТекста`; `ТекстПакетаПослеПовторногоРазбораСохраняетСемантику`. | new-headless-test |
 | C12 | Executable-view processing | Да: `ОбработкаПредставлениеЗапросов/Module.bsl.ОбработатьИсточникЗапроса`, `ИсполняемоеПредставлениеПоОписанию`. | Fresh Task 5 module run: 3/3 passed; combined Phase 2.5 run: 219/219 passed. | Закрыт: transform/delegation projection проверяет provider-built identity, explicit `Отбор` и сохранение residual `ГДЕ`. | `ИсполняемоеПредставлениеПреобразуетИДелегируетОтбор`. | new-headless-test |
 | C13 | Executor/code/SKD generation | Да: `ИсполнительПредставлений/Module.bsl.ВыполнитьПакетЗапросов`, `ПолучитьИсполняемыйКод`, `ПолучитьТекстЗапросаДляСКД`. | Fresh Task 5 module run: 3/3 passed; generated BSL и СКД проходят общий executor traversal на parser-built модели. | Закрыт для code/SKD generation: проверены предметный generator call, ВТ identity, period parameters и удаление executable source из СКД-текста. | `ИсполнительФормируетКодИТекстСКДДляПредставительнойМодели`. | new-headless-test |
-| C14 | Query console underlying logic | Да: `КонсольЗапросов/ObjectModule.bsl.ВыполнитьЗапрос`, `ПреобразоватьВМетаданные`. | 42 execution/code features; fresh Vanessa отсутствует. | Object-module contract не изолирован от form workflow. | Direct headless object characterization of `ВыполнитьЗапрос` and `ПреобразоватьВМетаданные`; interactive flow only after headless gate. | new-headless-test |
-| C15 | Query Constructor underlying logic | Да: `КонструкторЗапросов/ObjectModule.bsl.AvailableTablesBeforeExpandAtServer`, `SourcesBeforeExpandAtServer`, `GetSchemaQuery`. | 42 constructor features; fresh Vanessa отсутствует. | Stable non-form chain ещё не доказана, но это не manual-only. | Query Constructor non-form dependencies: characterize public object calls and stable chain before final UI gate. | new-headless-test |
+| C14 | Query console underlying logic | Да: `КонсольЗапросов/ObjectModule.bsl.ВыполнитьЗапрос`, `ПреобразоватьВМетаданные`. | Fresh Task 6 focused run: 2/2 passed; combined Phase 2.5 run: 225 total / 223 passed / 2 documented C15 skips. | Закрыт для прямых headless object-call contracts; интерактивный form flow остаётся последующим gate. | `КонсольВыполняетМинимальныйЗапросБезФормы`; `КонсольПреобразуетПланВМетаданныеБезФормы`. | new-headless-test |
+| C15 | Query Constructor underlying logic | Да: `КонструкторЗапросов/ObjectModule.bsl.AvailableTablesBeforeExpandAtServer`, `SourcesBeforeExpandAtServer`, `GetSchemaQuery`. | `GetSchemaQuery` GREEN 1/1; combined module gate 6 total / 4 passed / 2 skipped. Оба tree-expansion calls воспроизведены отдельно и сохранены как exact runtime blockers. | `AvailableTablesBeforeExpandAtServer` и `SourcesBeforeExpandAtServer` требуют `ДанныеФормыДерево.FindByID`; headless `ДеревоЗначений` не предоставляет этот API. Это external blocker, не manual-only классификация. | `СхемаЗапросаВозвращаетсяДляВложеннойПозиции` GREEN; два экспортных exact-call characterization зарегистрированы и штатно skipped после фиксации failing-run evidence. | external-blocker |
 | C16 | Universal report | Да: `УниверсальныйОтчетРасширенный/Module.bsl.ЗаменитьИсполняемыеПредставленияВременнымиТаблицами`. | Fresh Task 5 module run: 3/3 passed; combined Phase 2.5 run: 219/219 passed. | Закрыт: проверены декларация ВТ, замена source и сохранение table/alias/column identities. | `УниверсальныйОтчетЗаменяетИсполняемыеПредставленияВременнымиТаблицами`. | new-headless-test |
-| C17 | Feature-generation helpers | Да: `ГенераторFeatureФайлов/ObjectModule.bsl.СценарийСозданияПакетаЗапросаВТекДок`. | Сгенерированные suites — downstream evidence. | Нет direct helper golden. | Model-to-feature golden with generated oracle content. | new-headless-test |
+| C17 | Feature-generation helpers | Да: `ГенераторFeatureФайлов/ObjectModule.bsl.СценарийСозданияПакетаЗапросаВТекДок`. | Fresh Task 6 focused run: 1/1 passed; independent two-line literal golden matched. | Закрыт: expected строки хранятся литерально в тесте и не выводятся production generator-ом. | `ГенераторFeatureФайловФормируетЭталонПакетаЗапроса`. | new-headless-test |
 | C18 | 15 `Представление*` manager consumers | Да: каждый direct consumer вызывает `МодельЗапросаУтилиты.СоздатьПостроительМодели(Модель)`; перечень путей — в impact matrix. | Соответствующие Vanessa workflows существуют. | Provider dispatch и infobase dependencies ещё не проверены фактическим runtime trace. | Для каждого из 15 managers проверить exports `Описание`, `Справка`, `ИмяПредставления`, `Исполнить`, `ИсполняемыйКод`, `ТекстЗапросаДляСКД`; каждый незапускаемый contract получает exact failing call/prerequisite blocker. | new-headless-test |
 
 ## Точный backlog Phase 2.5

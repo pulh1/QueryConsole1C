@@ -128,6 +128,27 @@
           "errors": 0,
           "skipped": 0
         }
+      },
+      {
+        "purpose": "Task 6 application consumers combined Phase 2.5 regression",
+        "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПостроениеИГенерацияЗапросов_МО\", \"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\", \"КОНС_Обр_ИсполняемыеПредставления_МО\", \"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО\"], timeout: 180, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+        "module_filters": [
+          "КОНС_Обр_ПостроениеИГенерацияЗапросов_МО",
+          "КОНС_Обр_МодельВыражений_МО",
+          "КОНС_Обр_Парсер_МО",
+          "КОНС_Обр_ПарсерЗапросов_МО",
+          "КОНС_ОМ_ОбработкаМоделиЗапроса",
+          "КОНС_Обр_ИсполняемыеПредставления_МО",
+          "КОНС_Обр_ПрикладныеПотребителиЗапроса_МО"
+        ],
+        "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________a8ebd9979_85bb9084483c5dfd88a004e74489f84b44782ba2\\report.md",
+        "junit": {
+          "total": 225,
+          "passed": 223,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 2
+        }
       }
     ]
   },
@@ -632,6 +653,142 @@
           "junit": {
             "total": 219,
             "passed": 219,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C14",
+      "component": "Query console underlying logic",
+      "status": "green",
+      "date": "2026-08-07",
+      "external_blockers": [],
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_ПрикладныеПотребителиЗапроса_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ПрикладныеПотребителиЗапроса_МО"
+          ],
+          "test_or_tag": "КонсольВыполняетМинимальныйЗапросБезФормы; КонсольПреобразуетПланВМетаданныеБезФормы",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО\"], tests: [\"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО.КонсольВыполняетМинимальныйЗапросБезФормы\", \"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО.КонсольПреобразуетПланВМетаданныеБезФормы\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________1dcc53836_4ef1d417a291d5e579edca572c664c8a11dd95ad\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 2,
+            "passed": 2,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C15",
+      "component": "Query Constructor underlying logic",
+      "status": "external-blocker",
+      "date": "2026-08-07",
+      "external_blockers": [
+        "AvailableTablesBeforeExpandAtServer requires ДанныеФормыДерево.FindByID",
+        "SourcesBeforeExpandAtServer requires ДанныеФормыДерево.FindByID"
+      ],
+      "evidence": [
+        {
+          "kind": "external-blocker",
+          "call": "Конструктор.AvailableTablesBeforeExpandAtServer(Неопределено, 0, Неопределено, Неопределено, ДеревоЗначений, 1, Истина, Неопределено, Неопределено, ЗапросВыбораСхемыЗапроса)",
+          "error": "Метод объекта не обнаружен (FindByID); КонструкторЗапросов.ObjectModule.bsl:29",
+          "prerequisite": "Headless-constructible ДанныеФормыДерево; ДеревоЗначений does not expose FindByID/GetItems/GetParent.",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________aba3b22f9_ef02011810933aa62c63cd51328bce7594ebec6a\\report.md",
+          "failing_junit": {
+            "total": 1,
+            "passed": 0,
+            "failed": 0,
+            "errors": 1,
+            "skipped": 0
+          }
+        },
+        {
+          "kind": "external-blocker",
+          "call": "Конструктор.SourcesBeforeExpandAtServer(Неопределено, 0, 0, Неопределено, Неопределено, ДеревоЗначений, 1, Неопределено, Неопределено, ЗапросВыбораСхемыЗапроса)",
+          "error": "Метод объекта не обнаружен (FindByID); КонструкторЗапросов.ObjectModule.bsl:84",
+          "prerequisite": "Headless-constructible ДанныеФормыДерево; ДеревоЗначений does not expose FindByID/GetItems/GetParent.",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________8017bc5ce_14da1b209503c0047745f11d70af7cf07a3e6e2a\\report.md",
+          "failing_junit": {
+            "total": 1,
+            "passed": 0,
+            "failed": 0,
+            "errors": 1,
+            "skipped": 0
+          }
+        }
+      ],
+      "verified_green_runs": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_ПрикладныеПотребителиЗапроса_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ПрикладныеПотребителиЗапроса_МО"
+          ],
+          "test_or_tag": "СхемаЗапросаВозвращаетсяДляВложеннойПозиции",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО\"], tests: [\"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО.СхемаЗапросаВозвращаетсяДляВложеннойПозиции\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________a3d020982_8837c349f1ae21f53a5af5a10913cfd592719a71\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 1,
+            "passed": 1,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_ПрикладныеПотребителиЗапроса_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ПрикладныеПотребителиЗапроса_МО"
+          ],
+          "test_or_tag": "ПрикладныеПотребителиЗапроса",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________fa91874d4_6e20db4f4e6c9ec7c4aec57bcf206937e54a20ff\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 6,
+            "passed": 4,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 2
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C17",
+      "component": "Feature-generation helpers",
+      "status": "green",
+      "date": "2026-08-07",
+      "external_blockers": [],
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_ПрикладныеПотребителиЗапроса_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ПрикладныеПотребителиЗапроса_МО"
+          ],
+          "test_or_tag": "ГенераторFeatureФайловФормируетЭталонПакетаЗапроса",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО\"], tests: [\"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО.ГенераторFeatureФайловФормируетЭталонПакетаЗапроса\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________7936deb53_be7c5fc074d169631d3e2b4b6e3ec65bebb53d4d\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 1,
+            "passed": 1,
             "failed": 0,
             "errors": 0,
             "skipped": 0

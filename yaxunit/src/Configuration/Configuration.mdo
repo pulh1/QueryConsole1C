@@ -69,6 +69,7 @@
   <commonModules>CommonModule.КОНС_Обр_ПарсерБудущаяГрамматика_МО</commonModules>
   <commonModules>CommonModule.КОНС_Обр_ПарсерЗапросов_МО</commonModules>
   <commonModules>CommonModule.КОНС_Обр_ПостроениеИГенерацияЗапросов_МО</commonModules>
+  <commonModules>CommonModule.КОНС_Обр_ПрикладныеПотребителиЗапроса_МО</commonModules>
   <commonModules>CommonModule.КОНС_ОМ_ОбработкаМоделиЗапроса</commonModules>
   <commonModules>CommonModule.КОНС_ТестовыеФабрикиСлужебный</commonModules>
   <commonModules>CommonModule.Мокито</commonModules>
