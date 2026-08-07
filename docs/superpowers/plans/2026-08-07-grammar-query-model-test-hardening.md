@@ -434,7 +434,7 @@ git push
 
 - [ ] **Step 1: Reconcile all mandatory backlog items**
 
-Create the evidence JSON with `schema_version: 1`, a `runner` object and exactly 19 rows keyed by `contract_id`: `C01`–`C18` and `X01`. Each row repeats the exact component label from the impact/coverage matrices, has status `green` or `external-blocker`, and has a non-empty `evidence` array. A GREEN evidence item contains `kind: "test-run"`, module path, registered test/tag, exact command, exit code `0` and result reference. A blocker item contains `kind: "external-blocker"`, exact public call, error text and missing prerequisite. `X01` may only be `green` and must reference the actual runtime benchmark JSON/baseline; internal counter gaps belong inside that baseline as `null` plus reason.
+Create the evidence JSON with `schema_version: 1`, a `runner` object and exactly 19 rows keyed by `contract_id`: `C01`–`C18` and `X01`. Each row repeats the exact component label from the impact/coverage matrices, has status `green` or `external-blocker`, and has a non-empty `evidence` array. A GREEN evidence item contains `kind: "test-run"`, the exact module path and module filter, registered test/tag, exact factual command and result reference. Success is represented either by an actual process `exit_code: 0` or by observed JUnit counts with `total > 0`, `failed = 0` and `errors = 0`. When the runner does not expose a process exit code, store `exit_code: null` and a non-empty `exit_code_unavailable_reason`; do not manufacture `0`. A blocker item contains `kind: "external-blocker"`, exact public call, error text and missing prerequisite. `X01` may only be `green` and must reference the actual runtime benchmark JSON/baseline; internal counter gaps belong inside that baseline as `null` plus reason.
 
 Run this mapping/schema gate from repository root:
 
@@ -470,8 +470,19 @@ for row in rows:
     if row['status'] == 'green':
         for item in row['evidence']:
             assert item['kind'] == 'test-run'
-            assert item['module'] and item['test_or_tag'] and item['command']
-            assert item['exit_code'] == 0 and item['result_ref']
+            assert item['module'] and item['module_filter']
+            assert item['test_or_tag'] and item['command'] and item['result_ref']
+            exit_code = item.get('exit_code')
+            junit = item.get('junit')
+            junit_success = (
+                isinstance(junit, dict)
+                and junit.get('total', 0) > 0
+                and junit.get('failed') == 0
+                and junit.get('errors') == 0
+            )
+            assert exit_code == 0 or junit_success
+            if exit_code is None:
+                assert item.get('exit_code_unavailable_reason')
     else:
         for item in row['evidence']:
             assert item['kind'] == 'external-blocker'

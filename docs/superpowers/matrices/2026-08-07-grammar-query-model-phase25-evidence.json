@@ -1,71 +1,132 @@
 {
   "schema_version": 1,
   "runner": {
-    "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_Парсер_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+    "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ЛексическийАнализатор_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
     "executable": "EDT-MCP run_yaxunit_tests; it launches the configured 1C:Enterprise thin client, whose executable path is not exposed by launch metadata",
     "version": "EDT-MCP 2026.1.2.2; target configuration compatibility mode 8.3.24 (thin-client executable version is not exposed)",
     "infobase": "База разработки исполняемых представлений (демо ЗУП)",
     "update_state": "INCREMENTAL_UPDATE_REQUIRED before the runner auto-chain",
     "launch_configuration": "QueryConsoleZUP Тонкий клиент",
     "project": "База_разработки_исполняемых_представлений_демо_ЗУП",
-    "extension": "YAXUNIT",
-    "selected_tag": "Парсер",
-    "module_filter": "КОНС_Обр_Парсер_МО",
+    "extension_filter": [
+      "YAXUNIT"
+    ],
+    "module_filters": [
+      "КОНС_Обр_ЛексическийАнализатор_МО",
+      "КОНС_Обр_Парсер_МО",
+      "КОНС_Обр_ПарсерЗапросов_МО",
+      "КОНС_ОМ_ОбработкаМоделиЗапроса"
+    ],
     "update_before_launch": true,
     "update_scope": "extension:yaxunit",
-    "result": {
-      "total": 84,
-      "passed": 84,
+    "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________89fbc7bb7_3a8fdb4e66dc47e2790da4331afb515197924971\\report.md",
+    "junit": {
+      "total": 347,
+      "passed": 347,
       "failed": 0,
       "errors": 0,
-      "skipped": 0,
-      "output_contract": "JUnit Markdown report; full report persisted by EDT-MCP in its temporary report directory"
-    }
+      "skipped": 0
+    },
+    "verified_runs": [
+      {
+        "purpose": "Task 1 runner discovery",
+        "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_Парсер_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+        "module_filters": [
+          "КОНС_Обр_Парсер_МО"
+        ],
+        "result_ref": "docs/superpowers/matrices/2026-08-07-grammar-query-model-coverage.md#граница-headless-запуска--2026-08-07",
+        "junit": {
+          "total": 84,
+          "passed": 84,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      },
+      {
+        "purpose": "Task 2 final combined gate",
+        "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ЛексическийАнализатор_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+        "module_filters": [
+          "КОНС_Обр_ЛексическийАнализатор_МО",
+          "КОНС_Обр_Парсер_МО",
+          "КОНС_Обр_ПарсерЗапросов_МО",
+          "КОНС_ОМ_ОбработкаМоделиЗапроса"
+        ],
+        "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________89fbc7bb7_3a8fdb4e66dc47e2790da4331afb515197924971\\report.md",
+        "junit": {
+          "total": 347,
+          "passed": 347,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      }
+    ]
   },
   "contracts": [
     {
-      "id": "C02",
+      "contract_id": "C02",
+      "component": "Lexer",
       "status": "green",
       "date": "2026-08-07",
-      "consumer": "Lexer",
-      "module_filter": "КОНС_Обр_ЛексическийАнализатор_МО",
-      "test_contract": "Полный существующий модуль лексера: tokens, EOF and syntax-error behavior",
-      "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ЛексическийАнализатор_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
-      "result": {
-        "total": 141,
-        "passed": 141,
-        "failed": 0,
-        "errors": 0,
-        "skipped": 0
-      },
-      "report": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________1f15b44f3_b2c06897646187031cb4f17dd398113c28997056\\report.md"
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_ЛексическийАнализатор_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ЛексическийАнализатор_МО"
+          ],
+          "test_or_tag": "КОНС_Обр_ЛексическийАнализатор_МО (полный модуль; зарегистрированный тег Лексер)",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ЛексическийАнализатор_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________1f15b44f3_b2c06897646187031cb4f17dd398113c28997056\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 141,
+            "passed": 141,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
     },
     {
-      "id": "C03",
+      "contract_id": "C03",
+      "component": "Expression parser",
       "status": "green",
       "date": "2026-08-07",
-      "consumer": "Expression parser",
-      "module_filter": "КОНС_Обр_Парсер_МО",
-      "test_contract": "ПроверяетсяСемантическаяПроекцияВыражения: current subtraction associativity, precedence, dereference order, function argument order, conditional alternatives/result",
-      "cases": 5,
-      "suite_result": {
-        "total": 347,
-        "passed": 347,
-        "failed": 0,
-        "errors": 0,
-        "skipped": 0
-      },
-      "report": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________89fbc7bb7_3a8fdb4e66dc47e2790da4331afb515197924971\\report.md",
-      "known_non_normative_behavior": "1 - 2 - 3 currently parses as 1 - (2 - 3); direct-LR migration must replace this baseline with left fold ((1 - 2) - 3)."
+      "known_non_normative_behavior": "1 - 2 - 3 currently parses as 1 - (2 - 3); direct-LR migration must replace this baseline with left fold ((1 - 2) - 3).",
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_Парсер_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ЛексическийАнализатор_МО",
+            "КОНС_Обр_Парсер_МО",
+            "КОНС_Обр_ПарсерЗапросов_МО",
+            "КОНС_ОМ_ОбработкаМоделиЗапроса"
+          ],
+          "test_or_tag": "КОНС_Обр_Парсер_МО.ПроверяетсяСемантическаяПроекцияВыражения",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ЛексическийАнализатор_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________89fbc7bb7_3a8fdb4e66dc47e2790da4331afb515197924971\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 347,
+            "passed": 347,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
     },
     {
-      "id": "C04",
+      "contract_id": "C04",
+      "component": "Full-query parser",
       "status": "green",
       "date": "2026-08-07",
-      "consumer": "Full-query parser",
-      "module_filter": "КОНС_Обр_ПарсерЗапросов_МО",
-      "test_contract": "ПроверяетсяСемантическаяПроекцияПолногоЗапроса plus the actual QueryExamples/ТестПакетЗапрсов.q1c corpus row: package/query order, sources, aliases, fields, LEFT JOIN condition, nested query and UNION member order",
-      "focused_cases": 6,
       "corpus_paths": [
         "QueryExamples/ТестВТПериоды.q1c",
         "QueryExamples/ТестЗапросОстаткиОтпусков.q1c",
@@ -74,31 +135,60 @@
         "QueryExamples/СрезСОтборами.q1c",
         "QueryExamples/ТестПакетЗапрсов.q1c"
       ],
-      "suite_result": {
-        "total": 347,
-        "passed": 347,
-        "failed": 0,
-        "errors": 0,
-        "skipped": 0
-      },
-      "report": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________89fbc7bb7_3a8fdb4e66dc47e2790da4331afb515197924971\\report.md"
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_ПарсерЗапросов_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ЛексическийАнализатор_МО",
+            "КОНС_Обр_Парсер_МО",
+            "КОНС_Обр_ПарсерЗапросов_МО",
+            "КОНС_ОМ_ОбработкаМоделиЗапроса"
+          ],
+          "test_or_tag": "КОНС_Обр_ПарсерЗапросов_МО.ПроверяетсяСемантическаяПроекцияПолногоЗапроса; КОНС_Обр_ПарсерЗапросов_МО.ПервыйЗапросПримераРазбирается",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ЛексическийАнализатор_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________89fbc7bb7_3a8fdb4e66dc47e2790da4331afb515197924971\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 347,
+            "passed": 347,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
     },
     {
-      "id": "C05",
+      "contract_id": "C05",
+      "component": "Semantic analyzer",
       "status": "green",
       "date": "2026-08-07",
-      "consumer": "Semantic analyzer",
-      "module_filter": "КОНС_ОМ_ОбработкаМоделиЗапроса",
-      "test_contract": "СемантикаИсточниковПакетаСогласованаСПарсером: real one-argument semantic analysis preserves source identity, explicit alias and resolved field source",
-      "cases": 1,
-      "suite_result": {
-        "total": 347,
-        "passed": 347,
-        "failed": 0,
-        "errors": 0,
-        "skipped": 0
-      },
-      "report": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________89fbc7bb7_3a8fdb4e66dc47e2790da4331afb515197924971\\report.md"
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_ОМ_ОбработкаМоделиЗапроса/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ЛексическийАнализатор_МО",
+            "КОНС_Обр_Парсер_МО",
+            "КОНС_Обр_ПарсерЗапросов_МО",
+            "КОНС_ОМ_ОбработкаМоделиЗапроса"
+          ],
+          "test_or_tag": "КОНС_ОМ_ОбработкаМоделиЗапроса.СемантикаИсточниковПакетаСогласованаСПарсером",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ЛексическийАнализатор_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________89fbc7bb7_3a8fdb4e66dc47e2790da4331afb515197924971\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 347,
+            "passed": 347,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
     }
   ]
 }
