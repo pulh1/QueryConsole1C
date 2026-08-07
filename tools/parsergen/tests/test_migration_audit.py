@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 import sys
 import unittest
+from unittest.mock import patch
 
 from parsergen.grammar_parser import parse_grammar
 
@@ -91,3 +92,17 @@ class MigrationAuditUnitTests(unittest.TestCase):
         self.assertEqual(payload["status"], "error")
         self.assertEqual(payload["type"], "FileNotFoundError")
         self.assertNotIn("Traceback", result.stderr.decode("utf-8"))
+
+    def test_report_derives_runtime_conflicts_from_its_legacy_rows(self) -> None:
+        with patch.object(
+            audit_migration,
+            "find_runtime_dispatch_conflicts",
+            side_effect=AssertionError("must not build a second artifact"),
+            create=True,
+        ):
+            report = audit_migration.build_migration_audit(
+                REPOSITORY_ROOT / "parsergen.toml",
+                max_matcher_rows=100_001,
+            )
+
+        self.assertEqual(report["legacy"]["runtime_conflicts"], [])

@@ -16,7 +16,6 @@ from parsergen.model import Action, Grammar
 from parsergen.analysis import (
     build_legacy_matcher_artifact,
     find_canonical_select_conflicts,
-    find_runtime_dispatch_conflicts,
 )
 from parsergen.artifacts import compare_artifacts, render_artifacts
 from parsergen.bsl_codegen import generate_parser
@@ -92,6 +91,44 @@ def _conflict_rows(conflicts) -> list[dict[str, object]]:
             "witness": list(item.witness),
         }
         for item in conflicts
+    ]
+
+
+def _legacy_runtime_conflict_rows(select_rows) -> list[dict[str, object]]:
+    alternatives_by_word: dict[tuple[str, tuple[str, ...]], set[int]] = {}
+    production_order: dict[str, int] = {}
+    for row in select_rows:
+        production_order.setdefault(row.production, len(production_order))
+        alternatives_by_word.setdefault(
+            (row.production, row.matchers), set()
+        ).add(row.alternative)
+
+    witnesses_by_pair: dict[tuple[str, int, int], tuple[str, ...]] = {}
+    for (production, word), alternatives in alternatives_by_word.items():
+        ordered_alternatives = sorted(alternatives)
+        for left_index, left_alternative in enumerate(ordered_alternatives):
+            for right_alternative in ordered_alternatives[left_index + 1 :]:
+                key = (production, left_alternative, right_alternative)
+                previous = witnesses_by_pair.get(key)
+                if previous is None or (len(word), word) < (
+                    len(previous), previous
+                ):
+                    witnesses_by_pair[key] = word
+    return [
+        {
+            "production": production,
+            "left_alternative": left_alternative,
+            "right_alternative": right_alternative,
+            "witness": list(witness),
+        }
+        for (production, left_alternative, right_alternative), witness in sorted(
+            witnesses_by_pair.items(),
+            key=lambda item: (
+                production_order[item[0][0]],
+                item[0][1],
+                item[0][2],
+            ),
+        )
     ]
 
 
@@ -190,8 +227,8 @@ def build_migration_audit(
         "legacy": {
             "matcher_rows": len(legacy_artifact.select_rows),
             "matcher_definitions": len(legacy_artifact.matcher_definitions),
-            "runtime_conflicts": _conflict_rows(
-                find_runtime_dispatch_conflicts(resolved, analysis)
+            "runtime_conflicts": _legacy_runtime_conflict_rows(
+                legacy_artifact.select_rows
             ),
         },
         "generated": {
