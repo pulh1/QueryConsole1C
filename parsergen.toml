@@ -3,7 +3,7 @@ target = "QueryConsoleZUP/src/DataProcessors/Парсер"
 lookahead = 2
 
 [migration]
-canonical_productions = ["АрифметическоеВыражение", "Слагаемое"]
+canonical_productions = ["Выражение", "ЛогическоеСлагаемое", "АрифметическоеВыражение", "Слагаемое"]
 
 [entrypoints]
 "Разобрать" = "ПакетЗапросов"

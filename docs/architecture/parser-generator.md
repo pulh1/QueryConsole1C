@@ -442,6 +442,12 @@ CLI, read-only audit и reference test выбирают backend через об�
 contract. Exact metrics, tests и remaining gates зафиксированы в
 [production checkpoint](../superpowers/matrices/2026-08-07-arithmetic-direct-lr-checkpoint.md).
 
+Следующим production slice в canonical ownership добавлены `Выражение`
+и `ЛогическоеСлагаемое`; helper-productions `ЛогическоеИли`/
+`ЛогическоеИ` удалены, `И` и `ИЛИ` lowered в два iterative left folds.
+Exact delta зафиксирован в
+[logical checkpoint](../superpowers/matrices/2026-08-07-logical-direct-lr-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:

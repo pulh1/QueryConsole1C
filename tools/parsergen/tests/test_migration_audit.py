@@ -74,7 +74,12 @@ class MigrationAuditUnitTests(unittest.TestCase):
         })
         self.assertEqual(
             report["config"]["canonical_productions"],
-            ["АрифметическоеВыражение", "Слагаемое"],
+            [
+                "Выражение",
+                "ЛогическоеСлагаемое",
+                "АрифметическоеВыражение",
+                "Слагаемое",
+            ],
         )
         self.assertEqual(report["canonical"]["conflicts"], [])
         self.assertEqual(report["legacy"]["runtime_conflicts"], [])
@@ -92,19 +97,19 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["structural"],
             {
-                "source_productions": 122,
-                "source_alternatives": 279,
+                "source_productions": 120,
+                "source_alternatives": 277,
                 "productions": 124,
                 "alternatives": 281,
                 "epsilon_alternatives": 63,
                 "formal_parameters": 8,
                 "actual_arguments": 26,
-                "action_blocks": 374,
-                "statements": 402,
-                "constructor_statements": 97,
+                "action_blocks": 362,
+                "statements": 388,
+                "constructor_statements": 95,
                 "collection_statements": 37,
-                "constant_statements": 28,
-                "structural_statements": 235,
+                "constant_statements": 26,
+                "structural_statements": 225,
                 "other_assignment_statements": 0,
                 "other_statements": 5,
             },
@@ -158,10 +163,10 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["generated"],
             {
-                "bsl_functions": 134,
-                "bsl_loc": 3351,
+                "bsl_functions": 132,
+                "bsl_loc": 3307,
                 "constructor_names": 79,
-                "select_rows": 8_464,
+                "select_rows": 7_888,
                 "identifier_rows": 276,
             },
         )
@@ -221,7 +226,9 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 'target = "Parser"\n'
                 "lookahead = 2\n\n"
                 "[migration]\n"
-                'canonical_productions = ["АрифметическоеВыражение", "Слагаемое"]\n\n'
+                'canonical_productions = ["Выражение", '
+                '"ЛогическоеСлагаемое", '
+                '"АрифметическоеВыражение", "Слагаемое"]\n\n'
                 "[entrypoints]\n"
                 '"Разобрать" = "ПакетЗапросов"\n'
                 '"РазобратьВыражение" = "Выражение"\n',

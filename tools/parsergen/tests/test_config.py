@@ -37,7 +37,12 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.lookahead, 2)
         self.assertEqual(
             config.canonical_productions,
-            ("АрифметическоеВыражение", "Слагаемое"),
+            (
+                "Выражение",
+                "ЛогическоеСлагаемое",
+                "АрифметическоеВыражение",
+                "Слагаемое",
+            ),
         )
         self.assertEqual(
             list(config.entrypoints.items()),

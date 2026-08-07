@@ -14,6 +14,12 @@ from parsergen.resolver import resolve_grammar
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY_GRAMMAR = PACKAGE_ROOT / "grammar/query-language.grammar"
+MIGRATED_PRODUCTIONS = (
+    "Выражение",
+    "ЛогическоеСлагаемое",
+    "АрифметическоеВыражение",
+    "Слагаемое",
+)
 
 
 def _generated_function(module: str, production: str) -> str:
@@ -30,7 +36,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 122)
+        self.assertEqual(len(parsed.source_grammar.productions), 120)
         self.assertEqual(len(parsed.grammar.productions), 124)
 
         resolution = resolve_grammar(parsed.grammar)
@@ -147,13 +153,12 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             2,
             ("ПакетЗапросов", "Выражение"),
         )
-        canonical = ("АрифметическоеВыражение", "Слагаемое")
         parser_ir = build_parser_ir(
             parsed.source_grammar,
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=canonical,
+            production_names=MIGRATED_PRODUCTIONS,
         )
 
         generated = generate_hybrid_parser(
@@ -163,7 +168,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             resolution.grammar,
             analysis,
             parser_ir,
-            canonical_productions=canonical,
+            canonical_productions=MIGRATED_PRODUCTIONS,
             entrypoints={
                 "РазобратьПакетЗапросов": "ПакетЗапросов",
                 "РазобратьВыражение": "Выражение",
@@ -191,6 +196,68 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
                 self.assertEqual(function.count("ЭтотУзел.ЛеваяЧасть ="), branches)
                 self.assertEqual(function.count("ЭтотУзел.Операция ="), branches)
                 self.assertEqual(function.count("ЭтотУзел.ПраваяЧасть ="), branches)
+
+    def test_logical_families_generate_iterative_left_folds(self) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=MIGRATED_PRODUCTIONS,
+        )
+
+        for production in parser_ir.productions[:2]:
+            with self.subTest(ir=production.name):
+                self.assertEqual(len(production.alternatives), 1)
+                self.assertIsInstance(
+                    production.alternatives[0].operations[0],
+                    LeftFold,
+                )
+
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=MIGRATED_PRODUCTIONS,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+        module = generated.module_text
+        self.assertNotIn("Функция НеТерминалЛогическоеИли(", module)
+        self.assertNotIn("Функция НеТерминалЛогическоеИ(", module)
+        expected = {
+            "Выражение": "НеТерминалЛогическоеСлагаемое()",
+            "ЛогическоеСлагаемое": "НеТерминалЛогическийМножитель()",
+        }
+        for production, base_call in expected.items():
+            with self.subTest(codegen=production):
+                function = _generated_function(module, production)
+                self.assertEqual(function.count("Пока "), 1)
+                self.assertNotIn(f"НеТерминал{production}(", function)
+                self.assertNotIn("НомерВариантаПродукции", function)
+                self.assertIn(base_call, function)
+                self.assertEqual(
+                    function.count("ЭлементыМоделиЗапроса.НовыйБинарнаяОперация("),
+                    1,
+                )
+                self.assertEqual(function.count("ЭтотУзел.ЛеваяЧасть ="), 1)
+                self.assertEqual(function.count("ЭтотУзел.ПраваяЧасть ="), 1)
 
 
 if __name__ == "__main__":
