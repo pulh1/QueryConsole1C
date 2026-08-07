@@ -93,7 +93,7 @@ git push
 - Test data: selected existing `QueryExamples/*.q1c` with sources, aliases, joins, fields, nested query and union.
 
 **Interfaces:**
-- Consumes: `Парсер.Разобрать(ИсходныйТекст)`, `КОНС_ТестовыеФабрикиСлужебный.СоздатьПарсер()`, `ОбработкаМоделиЗапроса.ОбработатьМодельЗапроса(Модель, Контекст)` after its live signature is read.
+- Consumes: `Парсер.Разобрать(ИсходныйТекст)`, `КОНС_ТестовыеФабрикиСлужебный.СоздатьПарсер()` and `ОбработкаМоделиЗапроса.ОбработатьМодельЗапроса(ПакетЗапросов)`.
 - Produces: parser and semantic projection assertions for `ПакетЗапросов`, `ЗапросВыбора`, `ОператорЗапроса`, sources, aliases, joins, fields, nested query and union.
 
 - [ ] **Step 1: Select and name six existing corpus inputs before editing tests**
@@ -109,7 +109,7 @@ Record in the test module comments the exact six chosen relative paths and the c
 
 - [ ] **Step 2: Add RED registered server tests in the existing modules**
 
-Register a parameterized `ПроверяетсяСемантическаяПроекцияПолногоЗапроса` in `КОНС_Обр_ПарсерЗапросов_МО.ИсполняемыеСценарии()` and `СемантикаИсточниковПакетаСогласованаСПарсером` in `КОНС_ОМ_ОбработкаМоделиЗапроса.ИсполняемыеСценарии()`. Each case must assert element count/order, source identity, alias, join kind/condition, field expression/alias, nested-query boundary or union member count.
+Register a parameterized `ПроверяетсяСемантическаяПроекцияПолногоЗапроса` in `КОНС_Обр_ПарсерЗапросов_МО.ИсполняемыеСценарии()` and `СемантикаИсточниковПакетаСогласованаСПарсером` in `КОНС_ОМ_ОбработкаМоделиЗапроса.ИсполняемыеСценарии()`. The semantic test parses a `ПакетЗапросов`, calls `ОбработкаМоделиЗапроса.ОбработатьМодельЗапроса(ПакетЗапросов)` with its single real argument, then asserts element count/order, source identity, alias, join kind/condition, field expression/alias, nested-query boundary or union member count.
 
 - [ ] **Step 3: Run the discovered YAxUnit tags and confirm RED**
 
@@ -130,39 +130,52 @@ git commit -m "Усилить headless контракт полного разб�
 git push
 ```
 
-### Task 3: Expression model family — factories, dispatcher, visitors and text error
+### Task 3: Complete factory inventory, expression dispatcher, visitors and text error
 
 **Files:**
 - Modify: `yaxunit/src/CommonModules/КОНС_Обр_Парсер_МО/Module.bsl`
 - Create through EDT: `yaxunit/src/CommonModules/КОНС_Обр_МодельВыражений_МО/КОНС_Обр_МодельВыражений_МО.mdo`, `.../Module.bsl`
 
 **Interfaces:**
-- Consumes: 91 `ЭлементыМоделиЗапроса.Новый*`, `ОбходМоделиЯзыкаВыражений.ОбойтиДерево(Выражение, Посетитель)`, 59 callback template methods, `ГенерацияТекстовЗапросов.ВыражениеВСтроку(Выражение)`, visitor `УстановитьКонтекст` and `ВыделитьИМодифицироватьОтбор`.
-- Produces: factory-property/collection completeness, dispatcher callback order, three concrete visitor contracts and unknown-expression-node error.
+- Consumes: all 91 exports of `ЭлементыМоделиЗапроса`: helper `НовыйЭлементМоделиЗапроса(Тип, ТекущийТокен = Неопределено)` plus 90 concrete `Новый*` factories; `ОбходМоделиЯзыкаВыражений.ОбойтиДерево(Узел, Посетитель)`; 59 callback template methods; `ГенерацияТекстовЗапросов.СоздатьГенераторТекстовВыражений()` and `ВыражениеВСтроку(Выражение, ГенераторТекстовВыражений)`; visitor lifecycle methods and `ВыделитьИМодифицироватьОтбор`.
+- Produces: a classified 91-export inventory; complete factory property/collection contracts split into expression, query/package/source, and remaining type/executable-view families; dispatcher callback order; three concrete visitor contracts; and the unknown-expression-node generator error.
 
 - [ ] **Step 1: Read exact public signatures and callback names**
 
 ```powershell
-rg -n "^Функция Новый|^Процедура Посетить|^Функция Посетить" QueryConsoleZUP/src/CommonModules/ЭлементыМоделиЗапроса/Module.bsl QueryConsoleZUP/src/DataProcessors/Шаблон_ПосетительМоделиВыражений/ObjectModule.bsl
-rg -n "ОбойтиДерево|ВыражениеВСтроку|УстановитьКонтекст|ВыделитьИМодифицироватьОтбор" QueryConsoleZUP/src/CommonModules/ОбходМоделиЯзыкаВыражений/Module.bsl QueryConsoleZUP/src/CommonModules/ГенерацияТекстовЗапросов/Module.bsl QueryConsoleZUP/src/DataProcessors/СемантическийАнализВыраженийПосетитель/ObjectModule.bsl QueryConsoleZUP/src/DataProcessors/ПроверкаПрименимостиОтбораПосетитель/ObjectModule.bsl QueryConsoleZUP/src/DataProcessors/ОбработчикРазыменованийДляСКДПосетитель/ObjectModule.bsl
+$factory = 'QueryConsoleZUP/src/CommonModules/ЭлементыМоделиЗапроса/Module.bsl'
+$exports = Select-String -Path $factory -Pattern '^Функция\s+(Новый\S+)\(' | ForEach-Object { $_.Matches[0].Groups[1].Value }
+"factory_exports=$($exports.Count)"; $exports
+$template = 'QueryConsoleZUP/src/DataProcessors/Шаблон_ПосетительМоделиВыражений/ObjectModule.bsl'
+$templateCallbacks = Select-String -Path $template -Pattern '^Процедура\s+(\S+)\(.*\)\s+Экспорт' | ForEach-Object { $_.Matches[0].Groups[1].Value }
+$visitorFiles = @('QueryConsoleZUP/src/DataProcessors/СемантическийАнализВыраженийПосетитель/ObjectModule.bsl','QueryConsoleZUP/src/DataProcessors/ПроверкаПрименимостиОтбораПосетитель/ObjectModule.bsl','QueryConsoleZUP/src/DataProcessors/ОбработчикРазыменованийДляСКДПосетитель/ObjectModule.bsl')
+foreach ($visitor in $visitorFiles) { $exports = Select-String -Path $visitor -Pattern '^(Процедура|Функция)\s+(\S+)\(.*\)\s+Экспорт' | ForEach-Object { $_.Matches[0].Groups[2].Value }; "visitor=$visitor"; Compare-Object $templateCallbacks $exports; "lifecycle_extras="; $exports | Where-Object { $_ -notin $templateCallbacks } }
+$dispatcherCalls = Select-String -Path 'QueryConsoleZUP/src/CommonModules/ОбходМоделиЯзыкаВыражений/Module.bsl' -Pattern 'Посетитель\.(\S+)\(' | ForEach-Object { $_.Matches[0].Groups[1].Value } | Sort-Object -Unique
+"dispatcher_callback_targets=$($dispatcherCalls.Count)"; Compare-Object $templateCallbacks $dispatcherCalls
+rg -n "СоздатьГенераторТекстовВыражений|ВыражениеВСтроку|УстановитьКонтекст|ВыделитьИМодифицироватьОтбор" QueryConsoleZUP/src/CommonModules/ГенерацияТекстовЗапросов/Module.bsl QueryConsoleZUP/src/DataProcessors/СемантическийАнализВыраженийПосетитель/ObjectModule.bsl QueryConsoleZUP/src/DataProcessors/ПроверкаПрименимостиОтбораПосетитель/ObjectModule.bsl QueryConsoleZUP/src/DataProcessors/ОбработчикРазыменованийДляСКДПосетитель/ObjectModule.bsl
 ```
+
+Expected: exactly 91 factory exports; the first is the documented base helper and the remaining 90 are concrete factories. Exact set comparisons distinguish 59 template callbacks from each visitor's lifecycle exports; the dispatcher is compared by its `Посетитель.<callback>` targets because it exports only `ОбойтиДерево`.
 
 - [ ] **Step 2: Add RED contracts as one expression vertical slice**
 
-Create the common module through EDT and register five server tests: `ФабрикиВыраженийСоздаютОжидаемыеСвойства`, `ДиспетчерВызываетВсе59КолбэковВПорядкеОбхода`, `СемантическийПосетительСохраняетТипыИАгрегаты`, `ПосетительОтбораРазделяетДелегируемыеСмешанныеИНедопустимыеУсловия`, `ПосетительСКДПреобразуетРазыменованиеИТип`. Add `НеизвестныйУзелВыраженияВызываетИсключениеГенератораТекста` to the existing parser module. The 59-callback recorder must emit callback name plus enter/exit order and compare it to the explicit expected array derived from the template, not merely count calls.
+Create the common module through EDT and register seven server tests: `ФабрикиВыраженийСоздаютОжидаемыеСвойства`, `ФабрикиПакетаЗапросаИИсточниковСоздаютОжидаемыеСвойства`, `ОстальныеФабрикиТиповИИсполняемыхПредставленийСоздаютОжидаемыеСвойства`, `ДиспетчерВызываетВсе59КолбэковВПорядкеОбхода`, `СемантическийПосетительСохраняетТипыИАгрегаты`, `ПосетительОтбораРазделяетДелегируемыеСмешанныеИНедопустимыеУсловия`, `ПосетительСКДПреобразуетРазыменованиеИТип`.
+
+The three factory tests must consume an explicit 91-row inventory maintained beside the tests: (1) `НовыйЭлементМоделиЗапроса` is tested as a base helper for `Тип`; (2) expression factories cover expression nodes, functions, type descriptions and their collections; (3) query/package/source factories cover package, selection/destruction query, operator, columns, source, joins, ordering and totals; (4) the remaining concrete factories cover executable-view/filter/parameter structures. Every row declares export name, test family, expected `Тип`, scalar property names and collection/map property names. A missing export, duplicate inventory row, unexpected export, absent property or wrong empty collection/map fails the test. This is deliberately not a claim that all 91 exports are expression factories.
+
+Add `НеизвестныйУзелВыраженияВызываетИсключениеГенератораТекста` to the existing parser module. It creates `ГенераторТекстовВыражений = ГенерацияТекстовЗапросов.СоздатьГенераторТекстовВыражений()` and calls `ГенерацияТекстовЗапросов.ВыражениеВСтроку(НеизвестныйУзел, ГенераторТекстовВыражений)`, asserting the real generator's exception; no one-argument call is permitted. The callback recorder must emit callback name plus enter/exit order and compare it to the explicit expected array derived from the template, not merely count calls.
 
 - [ ] **Step 3: Execute RED, then implement only test fixtures**
 
-Run the discovered tags. Expected RED: unregistered/new test or missing assertion helper. Add factories for real expression nodes and a test visitor object; do not add production dispatch, model fields or fallback text generation.
+Run the discovered tags. Expected RED: unregistered/new test or missing assertion helper. Add only test fixtures: the full factory inventory, real nodes from the four stated families, and a test visitor object. Do not add production dispatch, model fields or fallback text generation.
 
 - [ ] **Step 4: Execute GREEN and verify contract completeness**
 
 ```powershell
-rg -c "^.*Посетить" QueryConsoleZUP/src/DataProcessors/Шаблон_ПосетительМоделиВыражений/ObjectModule.bsl
-rg -n "ФабрикиВыраженийСоздаютОжидаемыеСвойства|ДиспетчерВызываетВсе59КолбэковВПорядкеОбхода|НеизвестныйУзелВыраженияВызываетИсключениеГенератораТекста" yaxunit/src/CommonModules/КОНС_Обр_МодельВыражений_МО/Module.bsl yaxunit/src/CommonModules/КОНС_Обр_Парсер_МО/Module.bsl
+rg -n "ФабрикиВыраженийСоздаютОжидаемыеСвойства|ФабрикиПакетаЗапросаИИсточниковСоздаютОжидаемыеСвойства|ОстальныеФабрикиТиповИИсполняемыхПредставленийСоздаютОжидаемыеСвойства|ДиспетчерВызываетВсе59КолбэковВПорядкеОбхода|НеизвестныйУзелВыраженияВызываетИсключениеГенератораТекста" yaxunit/src/CommonModules/КОНС_Обр_МодельВыражений_МО/Module.bsl yaxunit/src/CommonModules/КОНС_Обр_Парсер_МО/Module.bsl
 ```
 
-Expected: explicit 59-callback test registration and all five behavior contracts. Execute the real YAxUnit tags if Task 1 found a command; otherwise retain explicit blocked status.
+Expected: the full extraction/set-comparison command from Step 1 is clean, the registered inventory covers 91 exports exactly once, and all seven behavior contracts are present. Execute the real YAxUnit tags if Task 1 found a command; otherwise retain explicit blocked status.
 
 - [ ] **Step 5: Commit and publish**
 
@@ -178,18 +191,18 @@ git push
 - Create through EDT: `yaxunit/src/CommonModules/КОНС_Обр_ПостроениеИГенерацияЗапросов_МО/КОНС_Обр_ПостроениеИГенерацияЗапросов_МО.mdo`, `.../Module.bsl`
 
 **Interfaces:**
-- Consumes: `ПостроительМоделиЗапроса.Инициализировать`, `ПолучитьМодель`, `ДобавитьИсточник`, `ДобавитьОтбор`; `ГенерацияТекстовЗапросов.ТекстПакетаЗапросов`, `ТекстЗапросаВыбора`, `ВыражениеВСтроку`; parser `Разобрать`.
+- Consumes: `ПостроительМоделиЗапроса.Инициализировать`, `ПолучитьМодель`, `ДобавитьИсточник`, `ДобавитьОтбор`, `ДобавитьУпорядочивание`, `ДобавитьКонтрольнуюТочкуИтогов`, `УстановитьПолучениеОбщихИтогов`; `ГенерацияТекстовЗапросов.ТекстПакетаЗапросов`, `ТекстЗапросаВыбора`, `ВыражениеВСтроку`; parser `Разобрать`.
 - Produces: source/filter/order/totals mutation sequence and semantic equality projection for `model → text → model`.
 
 - [ ] **Step 1: Read live signatures before creating fixtures**
 
 ```powershell
-rg -n "^(Процедура|Функция) (Инициализировать|ПолучитьМодель|ДобавитьИсточник|ДобавитьОтбор|ТекстПакетаЗапросов|ТекстЗапросаВыбора|ВыражениеВСтроку)" QueryConsoleZUP/src/DataProcessors/ПостроительМоделиЗапроса/ObjectModule.bsl QueryConsoleZUP/src/CommonModules/ГенерацияТекстовЗапросов/Module.bsl
+rg -n "^(Процедура|Функция) (Инициализировать|ПолучитьМодель|ДобавитьИсточник|ДобавитьОтбор|ДобавитьУпорядочивание|ДобавитьКонтрольнуюТочкуИтогов|УстановитьПолучениеОбщихИтогов|ТекстПакетаЗапросов|ТекстЗапросаВыбора|ВыражениеВСтроку)" QueryConsoleZUP/src/DataProcessors/ПостроительМоделиЗапроса/ObjectModule.bsl QueryConsoleZUP/src/CommonModules/ГенерацияТекстовЗапросов/Module.bsl
 ```
 
 - [ ] **Step 2: Register RED tests**
 
-Register `ПостроительМеняетИсточникиОтборСортировкуИИтогиПоШагам` and `ТекстПакетаПослеПовторногоРазбораСохраняетСемантику`. The first asserts state after each public builder call. The second compares a projection containing package/operator order, source identity/alias, selected-field expression/alias, filter and ordering; it explicitly excludes continuation/container topology.
+Register `ПостроительМеняетИсточникиОтборСортировкуИИтогиПоШагам` and `ТекстПакетаПослеПовторногоРазбораСохраняетСемантику`. The first calls, in order, `ДобавитьИсточник(ИмяИсточника, Псевдоним)`, `ДобавитьОтбор(ТекстВыражения)`, `ДобавитьУпорядочивание(ТекстВыражения)`, `ДобавитьКонтрольнуюТочкуИтогов(ТекстВыражения)` and `УстановитьПолучениеОбщихИтогов(ОбщиеИтоги)`, asserting model state after each returned operation. The second compares a projection containing package/operator order, source identity/alias, selected-field expression/alias, filter, ordering, totals point and general-totals flag; it explicitly excludes continuation/container topology.
 
 - [ ] **Step 3: Run RED and add minimal private projection helpers**
 
