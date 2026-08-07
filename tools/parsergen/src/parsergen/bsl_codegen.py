@@ -84,11 +84,24 @@ class BslGenerator:
         resolved: ResolvedGrammar,
         analysis: AnalysisResult,
         entrypoints: Mapping[str, str],
+        *,
+        function_overrides: Mapping[str, str] | None = None,
+        omitted_productions: frozenset[str] = frozenset(),
+        support_fragment: str = "",
+        matcher_productions: frozenset[str] | None = None,
+        additional_constructor_names: tuple[str, ...] = (),
+        allow_synthetic_cfg: bool = False,
     ) -> None:
         self._grammar = grammar
         self._resolved = resolved
         self._analysis = analysis
         self._entrypoints = entrypoints
+        self._function_overrides = dict(function_overrides or {})
+        self._omitted_productions = omitted_productions
+        self._support_fragment = support_fragment
+        self._matcher_productions = matcher_productions
+        self._additional_constructor_names = additional_constructor_names
+        self._allow_synthetic_cfg = allow_synthetic_cfg
         self._constructors: list[str] = []
         self._seen_constructors: set[str] = set()
 
@@ -98,6 +111,15 @@ class BslGenerator:
             self._analysis,
             max_rows=MAX_MATCHER_ROWS,
         )
+        if self._matcher_productions is not None:
+            artifact = SelectMatcherArtifact(
+                tuple(
+                    row
+                    for row in artifact.select_rows
+                    if row.production in self._matcher_productions
+                ),
+                artifact.matcher_definitions,
+            )
         select_table = _select_table(
             artifact,
             self._resolved.production_order,
@@ -114,6 +136,7 @@ class BslGenerator:
             self._render_entry_results(),
             self._render_productions_and_ending(),
         )
+        self._record_constructors(self._additional_constructor_names)
         return GeneratedParser(
             module,
             select_table,
@@ -122,7 +145,7 @@ class BslGenerator:
         )
 
     def _validate_inputs(self) -> None:
-        if any(
+        if not self._allow_synthetic_cfg and any(
             production.name.casefold().startswith(
                 "__parsergen_ebnf__".casefold()
             )
@@ -131,6 +154,21 @@ class BslGenerator:
             raise ValueError(
                 "canonical Parser IR/codegen is required for EBNF grammar"
             )
+        known_productions = {
+            production.name for production in self._grammar.productions
+        }
+        unknown_overrides = set(self._function_overrides).difference(
+            known_productions
+        )
+        unknown_omissions = self._omitted_productions.difference(
+            known_productions
+        )
+        if unknown_overrides or unknown_omissions:
+            raise ValueError("BSL assembly references unknown production")
+        if set(self._function_overrides).intersection(
+            self._omitted_productions
+        ):
+            raise ValueError("production cannot be overridden and omitted")
         if _contains_reserved_end(self._grammar, self._resolved):
             raise ValueError(
                 "reserved END token '$' cannot be produced by grammar"
@@ -230,7 +268,13 @@ class BslGenerator:
             (matched.group(1), "fixed template helper")
             for matched in _BSL_DECLARATION.finditer(template)
         )
+        symbols.extend(
+            (matched.group(1), "generated support helper")
+            for matched in _BSL_DECLARATION.finditer(self._support_fragment)
+        )
         for production in self._grammar.productions:
+            if production.name in self._omitted_productions:
+                continue
             name = f"НеТерминал{production.name}"
             _validate_bsl_identifier(name, "generated production function")
             symbols.append((name, f"production {production.name!r}"))
@@ -306,9 +350,16 @@ class BslGenerator:
 
     def _render_productions_and_ending(self) -> str:
         functions = "\r\n\r\n".join(
-            self._render_production(production)
+            self._render_assembled_production(production)
             for production in self._grammar.productions
+            if production.name not in self._omitted_productions
         )
+        if self._support_fragment:
+            functions = (
+                f"{self._support_fragment}\r\n\r\n{functions}"
+                if functions
+                else self._support_fragment
+            )
         ending = (
             "#КонецОбласти\r\n"
             "\r\n"
@@ -328,6 +379,12 @@ class BslGenerator:
         if not functions:
             return ending
         return f"{functions}\r\n\r\n{ending}"
+
+    def _render_assembled_production(self, production: Production) -> str:
+        override = self._function_overrides.get(production.name)
+        if override is not None:
+            return override
+        return self._render_production(production)
 
     def _render_production(self, production: Production) -> str:
         parameters = "".join(
