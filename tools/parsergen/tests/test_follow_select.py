@@ -141,6 +141,24 @@ class FollowAnalysisTests(unittest.TestCase):
         self.assertEqual(stats["follow_projection_checks"], 2)
         self.assertEqual(stats["duplicate_follow_projections"], 1)
 
+    def test_short_follow_delta_is_projected_at_its_own_length(self) -> None:
+        grammar = resolved(
+            "<S> ::= <Parent> x\n"
+            "<Other> ::= <Parent> x y z\n"
+            "<Parent> ::= <A>\n"
+            "<A> ::= a"
+        )
+
+        result = compute_analysis(grammar, 3, ("S",))
+
+        expected = frozenset({("x", END), ("x", "y", "z")})
+        self.assertEqual(result.follow["Parent"], expected)
+        self.assertEqual(result.follow["A"], expected)
+        stats = result._compressed.stats
+        self.assertEqual(stats["follow_transform_applications"], 3)
+        self.assertEqual(stats["follow_projection_checks"], 3)
+        self.assertEqual(stats["duplicate_follow_projections"], 0)
+
     def test_public_follow_mapping_is_lazy_cached_and_immutable(self) -> None:
         result = compute_analysis(
             resolved("<S> ::= <A> x\n<A> ::= a"),
