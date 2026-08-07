@@ -36,6 +36,41 @@ Nullable/FIRST/FOLLOW/SELECT и диагностика LLK202 — канонич
 
 В production-грамматике сейчас зафиксированы две канонические диагностики LLK202: для `ЛогическийОператор` между альтернативами 2 и 5 со свидетелем `ССЫЛКА/АВТОУПОРЯДОЧИВАНИЕ`, а также для `ОперандВ` между альтернативами 1 и 2 со свидетелем `ВЫБРАТЬ/*`. Исправление грамматики и сохранение языка runtime-парсера относятся к отдельной задаче.
 
+## Граница canonical и legacy API
+
+Canonical API:
+
+- `compute_analysis`;
+- `find_canonical_select_conflicts`;
+- `find_select_conflicts` — canonical compatibility alias.
+
+Legacy API:
+
+- `build_legacy_matcher_artifact`;
+- `find_runtime_dispatch_conflicts`.
+
+Compatibility-only wrappers:
+
+- `build_select_matcher_artifact`;
+- `compatible_lookahead`.
+
+Legacy API обслуживает только временный compatibility layer: его matcher и
+runtime dispatch не являются canonical LL(k) analysis. В частности,
+контрпример `A → a B | a b d`, `B → ε | b c` показывает, что отсутствие
+коллизий в окончательно нормализованных legacy-строках не доказывает
+сохранение языка. Для legacy dispatch отдельного доказательства
+language-preservation нет.
+
+Legacy можно удалить только при одновременном выполнении всех условий:
+
+- production config uses canonical backend;
+- zero legacy islands;
+- zero production references to legacy APIs;
+- canonical parser regression GREEN;
+- differential semantic corpus complete;
+- intentional generated artifact review complete;
+- runtime benchmark complete.
+
 ## CLI
 
 Из корня репозитория после установки пакета:
@@ -46,9 +81,16 @@ python -m pytest tools/parsergen/tests
 parsergen validate --config parsergen.toml
 parsergen analyze --config parsergen.toml --format json
 parsergen generate --config parsergen.toml --check
+python tools/parsergen/benchmarks/audit_migration.py --config parsergen.toml
 ```
 
 `generate --check` — штатный read-only gate: код возврата `0` означает актуальные артефакты, `3` — найденные расхождения. Однако при канонических LLK202 валидация завершается кодом `1` до сравнения артефактов. `generate` без `--check` заменяет production-файлы и должен запускаться только в задаче, где такая регенерация явно предусмотрена.
+
+`audit_migration.py` — read-only аудит: он семантически сравнивает три
+артефакта, не останавливается на двух известных canonical `LLK202` и возвращает
+canonical и legacy разделы раздельно. Canonical-раздел содержит конфликты и
+диагностики, legacy-раздел — состояние окончательно нормализованных matcher
+rows и runtime-конфликтов.
 
 На Windows editable-установка (`pip install -e`) из пути с кириллицей может завершиться ошибкой `setuptools` при создании `.pth` в системной кодировке. Обычная wheel-установка выше не использует этот механизм и является проверенным вариантом для текущего расположения репозитория.
 

@@ -45,3 +45,17 @@
 No runtime median/p95, call-count or recursion-depth harness exists yet.
 Phase 2.5 must implement and run it before the first production grammar/model
 change. Python analysis timings are not a substitute for BSL runtime timings.
+
+## Foundation Phase 0–2 status
+
+- impact matrix:
+  [query-model consumer impact](2026-08-07-query-model-consumer-impact.md)
+- coverage matrix:
+  [grammar/query-model coverage](2026-08-07-grammar-query-model-coverage.md)
+- approved architecture:
+  [grammar/query-model optimization design](../specs/2026-08-07-grammar-query-model-optimization-design.md)
+- pre-change Python baseline: 226 passed, 1 skipped, 4011 subtests passed
+- current Python suite after audit tests: 233 passed, 1 skipped; 234 collected
+- current YAxUnit status: static inventory only; fresh incremental run belongs
+  to Phase 2.5
+- production grammar/model/artifacts changed: no
