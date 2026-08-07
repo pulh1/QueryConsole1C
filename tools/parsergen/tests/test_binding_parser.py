@@ -1,6 +1,6 @@
 import unittest
 
-from parsergen.grammar_parser import parse_grammar, parse_source_grammar
+from parsergen.grammar_parser import parse_source_grammar
 from parsergen.model import Constant, IdentifierRef, NonterminalCall, Terminal
 from parsergen.source_model import (
     BindingMode,
@@ -121,17 +121,6 @@ class BindingParserTests(unittest.TestCase):
                     [item.code for item in result.diagnostics],
                     ["GP010"],
                 )
-
-    def test_parse_facade_reports_controlled_pre_lowering_diagnostic(self) -> None:
-        result = parse_grammar("<S> ::= @НовыйУзел Значение = a")
-
-        self.assertEqual(
-            [item.code for item in result.diagnostics],
-            ["BIND100"],
-        )
-        self.assertIsNone(result.grammar)
-        self.assertIsNotNone(result.source_grammar)
-
 
 if __name__ == "__main__":
     unittest.main()

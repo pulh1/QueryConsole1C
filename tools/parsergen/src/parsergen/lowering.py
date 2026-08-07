@@ -5,7 +5,8 @@ from enum import StrEnum
 from types import MappingProxyType
 from typing import Mapping
 
-from .diagnostics import Diagnostic, SourceSpan
+from .binding_validation import validate_bindings
+from .diagnostics import Diagnostic, DiagnosticBag, SourceSpan
 from .model import (
     Action,
     Alternative,
@@ -15,8 +16,12 @@ from .model import (
     SyntaxSymbol,
 )
 from .source_model import (
+    BindingMode,
     QuantifierKind,
     SourceAlternative,
+    SourceBinding,
+    SourceConstantBinding,
+    SourceConstructor,
     SourceGrammar,
     SourceGroup,
     SourceItem,
@@ -39,6 +44,24 @@ class LoweredConstructKind(StrEnum):
     OPTIONAL = "optional"
 
 
+class BindingOriginKind(StrEnum):
+    CONSTRUCTOR = "constructor"
+    SCALAR = "scalar"
+    APPEND = "append"
+    CONSTANT = "constant"
+
+
+@dataclass(frozen=True, slots=True)
+class BindingOrigin:
+    kind: BindingOriginKind
+    property: str | None
+    value: str | None
+    path: str
+    source_span: SourceSpan
+    source_production: str
+    source_alternative: int
+
+
 @dataclass(frozen=True, slots=True)
 class LoweredConstruct:
     kind: LoweredConstructKind
@@ -57,10 +80,12 @@ class LoweringResult:
     production_origins: Mapping[str, SourceSpan]
     alternative_origins: Mapping[tuple[str, int], SourceSpan]
     diagnostics: tuple[Diagnostic, ...] = ()
+    bindings: tuple[BindingOrigin, ...] = ()
 
 
 def lower_source_grammar(grammar: SourceGrammar) -> LoweringResult:
-    diagnostics = validate_source_grammar(grammar).diagnostics
+    diagnostics = DiagnosticBag(validate_source_grammar(grammar).diagnostics)
+    diagnostics.extend(validate_bindings(grammar).diagnostics)
     return _Lowerer(grammar, diagnostics).lower()
 
 
@@ -68,14 +93,15 @@ class _Lowerer:
     def __init__(
         self,
         grammar: SourceGrammar,
-        diagnostics: tuple[Diagnostic, ...],
+        diagnostics: DiagnosticBag,
     ) -> None:
         self._source = grammar
-        self._diagnostics = diagnostics
+        self._diagnostics = diagnostics.sorted()
         self._synthetic: list[Production] = []
         self._constructs: list[LoweredConstruct] = []
         self._production_origins: dict[str, SourceSpan] = {}
         self._alternative_origins: dict[tuple[str, int], SourceSpan] = {}
+        self._bindings: list[BindingOrigin] = []
 
     def lower(self) -> LoweringResult:
         public: list[Production] = []
@@ -119,6 +145,7 @@ class _Lowerer:
             MappingProxyType(dict(self._production_origins)),
             MappingProxyType(dict(self._alternative_origins)),
             self._diagnostics,
+            tuple(self._bindings),
         )
 
     def _lower_sequence(
@@ -132,6 +159,49 @@ class _Lowerer:
         result: list[SyntaxSymbol | Action] = []
         for index, item in enumerate(sequence.items):
             item_path = f"{path}_n{index}"
+            if isinstance(item, SourceConstructor):
+                self._bindings.append(
+                    BindingOrigin(
+                        BindingOriginKind.CONSTRUCTOR,
+                        None,
+                        item.name,
+                        item_path,
+                        item.span,
+                        production.name,
+                        source_alternative,
+                    )
+                )
+                continue
+            if isinstance(item, SourceConstantBinding):
+                self._bindings.append(
+                    BindingOrigin(
+                        BindingOriginKind.CONSTANT,
+                        item.property,
+                        item.value,
+                        item_path,
+                        item.span,
+                        production.name,
+                        source_alternative,
+                    )
+                )
+                continue
+            if isinstance(item, SourceBinding):
+                self._bindings.append(
+                    BindingOrigin(
+                        (
+                            BindingOriginKind.APPEND
+                            if item.mode is BindingMode.APPEND
+                            else BindingOriginKind.SCALAR
+                        ),
+                        item.property,
+                        None,
+                        item_path,
+                        item.span,
+                        production.name,
+                        source_alternative,
+                    )
+                )
+                item = item.value
             if isinstance(item, SourceGroup):
                 result.append(
                     self._lower_group(

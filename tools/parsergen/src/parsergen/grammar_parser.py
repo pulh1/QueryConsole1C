@@ -101,14 +101,6 @@ def parse_grammar(text: str, path: str = "<memory>") -> ParseResult:
         diagnostics.extend(
             validate_bindings(source_result.grammar).diagnostics
         )
-    first_binding = _first_binding_span(source_result.grammar)
-    if first_binding is not None and not diagnostics.has_errors:
-        _error(
-            diagnostics,
-            "BIND100",
-            "declarative binding lowering is not available yet",
-            first_binding,
-        )
     lowering = None
     if source_result.grammar is not None and not diagnostics.has_errors:
         lowering = lower_source_grammar(source_result.grammar)
