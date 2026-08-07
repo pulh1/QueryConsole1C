@@ -386,6 +386,10 @@ def _compute_nullable(grammar: ResolvedGrammar) -> frozenset[str]:
 
 _PackedPrefix: TypeAlias = tuple[int, int]
 _PackedLanguage: TypeAlias = frozenset[_PackedPrefix]
+# The boolean is semantically meaningful only while length < budget: True
+# means the variant may finish at this short fact, so an outer RHS may resume.
+# At length == budget it is deliberately ignored and may remain False even
+# when a complete derivation exists with the same saturated k-prefix.
 _PackedFact: TypeAlias = tuple[int, int, bool]
 _PackedFacts: TypeAlias = tuple[_PackedFact, ...]
 

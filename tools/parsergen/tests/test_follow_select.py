@@ -38,6 +38,27 @@ def _factorized_adversarial_grammar(size: int):
     )
 
 
+def _materialized_conflicts(grammar, select) -> tuple[SelectConflict, ...]:
+    conflicts = []
+    for production in grammar.production_order:
+        alternatives = grammar.productions[production]
+        for left in range(1, len(alternatives) + 1):
+            for right in range(left + 1, len(alternatives) + 1):
+                intersection = select[(production, left)].intersection(
+                    select[(production, right)]
+                )
+                witness = min(
+                    intersection,
+                    key=lambda word: (len(word), word),
+                    default=None,
+                )
+                if witness is not None:
+                    conflicts.append(
+                        SelectConflict(production, left, right, witness)
+                    )
+    return tuple(conflicts)
+
+
 class FollowAnalysisTests(unittest.TestCase):
     def test_follow_cases(self) -> None:
         for name, grammar, k, production, expected in FOLLOW_CASES:
@@ -652,6 +673,10 @@ class GeneratedFollowSelectTests(unittest.TestCase):
                     self.assertEqual(optimized.first, oracle_first)
                     self.assertEqual(optimized.follow, oracle_follow)
                     self.assertEqual(optimized.select, oracle_select)
+                    self.assertEqual(
+                        find_select_conflicts(grammar, optimized),
+                        _materialized_conflicts(grammar, oracle_select),
+                    )
                     for languages in (optimized.follow, optimized.select):
                         self.assertTrue(
                             all(
