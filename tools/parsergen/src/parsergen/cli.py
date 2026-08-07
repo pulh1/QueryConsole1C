@@ -18,8 +18,10 @@ from .bsl_codegen import generate_parser
 from .config import ParsergenConfig, load_config
 from .diagnostics import Diagnostic, Severity
 from .grammar_parser import parse_grammar
+from .hybrid_bsl_codegen import generate_hybrid_parser
 from .lowering import LoweringResult
 from .model import Grammar
+from .parser_ir import build_parser_ir
 from .resolver import ResolvedGrammar, ResolutionResult, resolve_grammar
 from .source_model import SourceGrammar
 from .validation import ValidationReport, validate_grammar
@@ -110,13 +112,35 @@ def main(argv: Sequence[str] | None = None) -> int:
                 assert compilation.grammar is not None
                 assert compilation.resolved is not None
                 assert compilation.analysis is not None
-                artifacts = render_artifacts(
-                    generate_parser(
+                if config.canonical_productions:
+                    assert compilation.source_grammar is not None
+                    assert compilation.lowering is not None
+                    parser_ir = build_parser_ir(
+                        compilation.source_grammar,
+                        compilation.lowering,
+                        compilation.resolved,
+                        compilation.analysis,
+                        production_names=config.canonical_productions,
+                    )
+                    generated = generate_hybrid_parser(
+                        compilation.source_grammar,
+                        compilation.lowering,
+                        compilation.grammar,
+                        compilation.resolved,
+                        compilation.analysis,
+                        parser_ir,
+                        canonical_productions=config.canonical_productions,
+                        entrypoints=config.entrypoints,
+                    )
+                else:
+                    generated = generate_parser(
                         compilation.grammar,
                         compilation.resolved,
                         compilation.analysis,
                         config.entrypoints,
                     )
+                artifacts = render_artifacts(
+                    generated
                 )
                 comparison = compare_artifacts(config.target, artifacts)
                 if arguments.check:

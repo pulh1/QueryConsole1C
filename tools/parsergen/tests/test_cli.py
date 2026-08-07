@@ -272,6 +272,73 @@ class CliTests(unittest.TestCase):
         self.assertEqual(target_module.read_text(encoding="utf-8"), "stale")
         self.assertEqual(manager.read_bytes(), manager_before)
 
+    def test_generate_uses_hybrid_backend_only_with_explicit_migration(self) -> None:
+        config, target = self.make_configured_project()
+        (self.root / "grammar.txt").write_text(
+            "<S> ::= <Expr> {ЭтотУзел = ТекущийЭлемент}\n"
+            "<Expr> ::= @НовыйБинарный Левая = <Expr> "
+            "Оператор = '+' Правая = <Term> | <Term>\n"
+            "<Term> ::= {ЭтотУзел = НовыйТерм} ITEM | "
+            "{ЭтотУзел = НовыйТерм} NUMBER",
+            encoding="utf-8",
+        )
+        config.write_text(
+            'grammar = "grammar.txt"\n'
+            'target = "Парсер"\n'
+            "lookahead = 1\n"
+            "[migration]\n"
+            'canonical_productions = ["Expr"]\n'
+            "[entrypoints]\n"
+            '"Разобрать" = "S"\n',
+            encoding="utf-8",
+        )
+
+        completed = self.run_cli("generate", "--config", str(config))
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        module = (target / "ObjectModule.bsl").read_text(encoding="utf-8")
+        expression = module.split("Функция НеТерминалExpr", 1)[1].split(
+            "КонецФункции",
+            1,
+        )[0]
+        self.assertEqual(expression.count("Пока "), 1)
+        self.assertNotIn("НомерВариантаПродукции", expression)
+        self.assertNotIn("Функция НеТерминал__parsergen_ebnf__", module)
+
+    def test_generate_rejects_canonical_action_before_writing_artifacts(
+        self,
+    ) -> None:
+        config, target = self.make_configured_project()
+        (self.root / "grammar.txt").write_text(
+            "<S> ::= {ЭтотУзел = НовыйS} ITEM",
+            encoding="utf-8",
+        )
+        config.write_text(
+            'grammar = "grammar.txt"\n'
+            'target = "Парсер"\n'
+            "lookahead = 1\n"
+            "[migration]\n"
+            'canonical_productions = ["S"]\n'
+            "[entrypoints]\n"
+            '"Разобрать" = "S"\n',
+            encoding="utf-8",
+        )
+        artifact_paths = (
+            target / "ObjectModule.bsl",
+            target / "Templates/ТаблицаПервыхСимволовВариантов/Template.txt",
+            target / "Templates/ОпределенияИдентификаторов/Template.txt",
+        )
+        before = tuple(path.read_bytes() for path in artifact_paths)
+
+        completed = self.run_cli("generate", "--config", str(config))
+
+        self.assertEqual(completed.returncode, 2)
+        self.assertIn("arbitrary source actions", completed.stderr)
+        self.assertEqual(
+            tuple(path.read_bytes() for path in artifact_paths),
+            before,
+        )
+
     def test_generate_layout_failure_returns_two_without_partial_writes(
         self,
     ) -> None:
