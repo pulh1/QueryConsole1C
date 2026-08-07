@@ -256,6 +256,42 @@ def compatible_lookahead(left: LookaheadWord, right: LookaheadWord) -> bool:
     return left == right
 
 
+def find_canonical_select_conflicts(
+    grammar: ResolvedGrammar,
+    analysis: AnalysisResult,
+) -> tuple[SelectConflict, ...]:
+    conflicts: list[SelectConflict] = []
+    compressed = analysis._compressed
+    for production_name in grammar.production_order:
+        alternatives = grammar.productions[production_name]
+        for left_position, _ in enumerate(alternatives):
+            left_number = left_position + 1
+            left_key = (production_name, left_number)
+            for right_position in range(left_position + 1, len(alternatives)):
+                right_number = right_position + 1
+                right_key = (production_name, right_number)
+                if compressed is not None:
+                    witness = compressed.canonical_conflict_witness(
+                        compressed._select_index[left_key],
+                        compressed._select_index[right_key],
+                    )
+                else:
+                    witness = _select_conflict_witness(
+                        analysis.select[left_key],
+                        analysis.select[right_key],
+                    )
+                if witness is not None:
+                    conflicts.append(
+                        SelectConflict(
+                            production_name,
+                            left_number,
+                            right_number,
+                            witness,
+                        )
+                    )
+    return tuple(conflicts)
+
+
 def find_select_conflicts(
     grammar: ResolvedGrammar,
     analysis: AnalysisResult,
@@ -1212,7 +1248,7 @@ class _CompressedAnalysis:
         self._state_terminal: dict[_FactorState, bool] = {}
         self._strict_non_end: dict[tuple[_FactorState, int], bool] = {}
         self._conflict_memo: dict[
-            tuple[_FactorState, _FactorState, bool, int],
+            tuple[_FactorState, _FactorState, int],
             LookaheadWord | None,
         ] = {}
         self._matcher_intersections: dict[
@@ -1627,6 +1663,51 @@ class _CompressedAnalysis:
             return result
 
         return visit(0, 0, self.k)
+
+    def canonical_conflict_witness(
+        self,
+        left_position: int,
+        right_position: int,
+    ) -> LookaheadWord | None:
+        def visit(
+            left: _FactorState,
+            right: _FactorState,
+            remaining: int,
+        ) -> LookaheadWord | None:
+            if right < left:
+                left, right = right, left
+            key = (left, right, remaining)
+            if key in self._conflict_memo:
+                return self._conflict_memo[key]
+            self._stats["conflict_work_items"] += 1
+
+            if remaining == 0 or (
+                self._terminal(left) and self._terminal(right)
+            ):
+                result: LookaheadWord | None = EPSILON
+            else:
+                candidates: list[LookaheadWord] = []
+                for left_matcher, left_child in self._children(left):
+                    for right_matcher, right_child in self._children(right):
+                        tokens = self._intersection(left_matcher, right_matcher)
+                        if not tokens:
+                            continue
+                        suffix = visit(left_child, right_child, remaining - 1)
+                        if suffix is not None:
+                            candidates.append((tokens[0], *suffix))
+                result = min(
+                    candidates,
+                    key=lambda word: (len(word), word),
+                    default=None,
+                )
+            self._conflict_memo[key] = result
+            return result
+
+        return visit(
+            self._descriptor_state(left_position),
+            self._descriptor_state(right_position),
+            self.k,
+        )
 
     def _runtime_trie(self, position: int) -> _PackedTrie:
         cached = self._runtime_tries[position]
@@ -2074,15 +2155,8 @@ def _select_conflict_witness(
     left: LookaheadSet,
     right: LookaheadSet,
 ) -> LookaheadWord | None:
-    candidates: set[LookaheadWord] = set()
-    for left_word in left:
-        for right_word in right:
-            if not compatible_lookahead(left_word, right_word):
-                continue
-            candidates.add(
-                min(
-                    (left_word, right_word),
-                    key=lambda word: (len(word), word),
-                )
-            )
-    return min(candidates, key=lambda word: (len(word), word), default=None)
+    return min(
+        left.intersection(right),
+        key=lambda word: (len(word), word),
+        default=None,
+    )

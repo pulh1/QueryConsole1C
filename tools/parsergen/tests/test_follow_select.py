@@ -15,6 +15,7 @@ from parsergen.analysis import (
     build_select_matcher_artifact,
     compatible_lookahead,
     compute_analysis,
+    find_canonical_select_conflicts,
     find_select_conflicts,
     materialize_lookahead,
 )
@@ -260,6 +261,50 @@ class SelectAnalysisTests(unittest.TestCase):
             with self.subTest(name=name, k=clean_at):
                 clean = compute_analysis(resolved_grammar, clean_at, ("S",))
                 self.assertEqual(find_select_conflicts(resolved_grammar, clean), ())
+
+    def test_canonical_conflict_includes_follow_continuation(self) -> None:
+        grammar = resolved(
+            "<S> ::= <A>\n"
+            "<A> ::= a <B> | a b d\n"
+            "<B> ::= ПУСТО | b c"
+        )
+        result = compute_analysis(grammar, 2, ("S",))
+
+        self.assertEqual(
+            result.select[("A", 1)],
+            frozenset({("a", END), ("a", "b")}),
+        )
+        self.assertEqual(
+            result.select[("A", 2)],
+            frozenset({("a", "b")}),
+        )
+        self.assertEqual(
+            find_canonical_select_conflicts(grammar, result),
+            (SelectConflict("A", 1, 2, ("a", "b")),),
+        )
+
+    def test_canonical_conflicts_do_not_depend_on_analysis_representation(
+        self,
+    ) -> None:
+        grammar = resolved(
+            "<S> ::= <A>\n"
+            "<A> ::= a <B> | a b d\n"
+            "<B> ::= ПУСТО | b c"
+        )
+        compressed = compute_analysis(grammar, 2, ("S",))
+        materialized = AnalysisResult(
+            k=compressed.k,
+            nullable=compressed.nullable,
+            first=MappingProxyType(dict(compressed.first.items())),
+            follow=MappingProxyType(dict(compressed.follow.items())),
+            select=MappingProxyType(dict(compressed.select.items())),
+            updates=compressed.updates,
+        )
+
+        self.assertEqual(
+            find_canonical_select_conflicts(grammar, compressed),
+            find_canonical_select_conflicts(grammar, materialized),
+        )
 
     def test_first_follow_overlap_uses_nullable_runtime_fallback(self) -> None:
         grammar = resolved("<S> ::= <A> a\n<A> ::= a | ПУСТО")
