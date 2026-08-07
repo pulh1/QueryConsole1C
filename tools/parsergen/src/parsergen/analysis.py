@@ -239,7 +239,7 @@ def materialize_lookahead(
     return value
 
 
-def build_select_matcher_artifact(
+def build_legacy_matcher_artifact(
     analysis: AnalysisResult,
     *,
     max_rows: int,
@@ -247,6 +247,14 @@ def build_select_matcher_artifact(
     if analysis._compressed is None:
         raise ValueError("compressed analysis is required for matcher artifacts")
     return analysis._compressed.build_matcher_artifact(max_rows=max_rows)
+
+
+def build_select_matcher_artifact(
+    analysis: AnalysisResult,
+    *,
+    max_rows: int,
+) -> SelectMatcherArtifact:
+    return build_legacy_matcher_artifact(analysis, max_rows=max_rows)
 
 
 def runtime_rows_overlap(left: LookaheadWord, right: LookaheadWord) -> bool:

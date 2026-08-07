@@ -4,16 +4,102 @@ import re
 import unittest
 from unittest import mock
 
-from parsergen.analysis import LookaheadMaterializationError, compute_analysis
+from parsergen.analysis import (
+    LookaheadMaterializationError,
+    build_legacy_matcher_artifact,
+    build_select_matcher_artifact,
+    compute_analysis,
+)
 from parsergen.bsl_codegen import (
     BslGenerator,
     _substitute_markers,
     generate_parser,
 )
 from parsergen.grammar_parser import parse_grammar
-from parsergen.resolver import resolve_grammar
-from parsergen.value_table_codec import ColumnKind
+from parsergen.resolver import (
+    ResolvedGrammar,
+    ResolvedNonterminal,
+    ResolvedToken,
+    resolve_grammar,
+)
+from parsergen.value_table_codec import ColumnKind, ValueTable
 from tests.helpers import compiled
+
+
+def _legacy_choice(
+    table: ValueTable,
+    production: str,
+    tokens: tuple[str, ...],
+    position: int,
+    k: int,
+) -> int | None:
+    available = min(k, len(tokens) - position)
+    for length in range(available, -1, -1):
+        prefix = tokens[position : position + length]
+        for row in table.rows:
+            if (
+                row[0] == length
+                and row[-2] == production
+                and tuple(row[1 : 1 + length]) == prefix
+            ):
+                return int(row[-1])
+    return None
+
+
+def _legacy_generated_accepts(
+    grammar: ResolvedGrammar,
+    table: ValueTable,
+    start: str,
+    tokens: tuple[str, ...],
+    k: int,
+) -> bool:
+    def parse(production: str, position: int) -> int | None:
+        alternative = _legacy_choice(table, production, tokens, position, k)
+        if alternative is None:
+            return None
+        current = position
+        for symbol in grammar.productions[production][alternative - 1].symbols:
+            if isinstance(symbol, ResolvedToken):
+                if current >= len(tokens) or tokens[current] not in symbol.token_types:
+                    return None
+                current += 1
+            else:
+                assert isinstance(symbol, ResolvedNonterminal)
+                nested = parse(symbol.name, current)
+                if nested is None:
+                    return None
+                current = nested
+        return current
+
+    return parse(start, 0) == len(tokens)
+
+
+def _cfg_accepts(
+    grammar: ResolvedGrammar,
+    start: str,
+    tokens: tuple[str, ...],
+) -> bool:
+    def parse(production: str, position: int) -> frozenset[int]:
+        ends: set[int] = set()
+        for alternative in grammar.productions[production]:
+            positions = {position}
+            for symbol in alternative.symbols:
+                next_positions: set[int] = set()
+                for current in positions:
+                    if isinstance(symbol, ResolvedToken):
+                        if (
+                            current < len(tokens)
+                            and tokens[current] in symbol.token_types
+                        ):
+                            next_positions.add(current + 1)
+                    else:
+                        assert isinstance(symbol, ResolvedNonterminal)
+                        next_positions.update(parse(symbol.name, current))
+                positions = next_positions
+            ends.update(positions)
+        return frozenset(ends)
+
+    return len(tokens) in parse(start, 0)
 
 
 class _ForbiddenSelect(Mapping[tuple[str, int], object]):
@@ -28,6 +114,47 @@ class _ForbiddenSelect(Mapping[tuple[str, int], object]):
 
 
 class BslCodegenTests(unittest.TestCase):
+    def test_legacy_matcher_artifact_preserves_select_compatibility(self) -> None:
+        entries = {"Разобрать": "S"}
+        _, _, analysis = compiled("<S> ::= a | b", 1, entries)
+
+        self.assertEqual(
+            build_legacy_matcher_artifact(analysis, max_rows=100),
+            build_select_matcher_artifact(analysis, max_rows=100),
+        )
+
+    def test_legacy_generated_dispatch_rejects_the_canonical_counterexample(
+        self,
+    ) -> None:
+        entries = {"Разобрать": "S"}
+        parsed = parse_grammar(
+            "<S> ::= <A>\n"
+            "<A> ::= a <B> | a b d\n"
+            "<B> ::= ПУСТО | b c"
+        )
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        grammar = resolution.grammar
+        analysis = compute_analysis(grammar, 2, tuple(entries.values()))
+        generated = generate_parser(parsed.grammar, grammar, analysis, entries)
+        tokens = ("a", "b", "c")
+
+        self.assertEqual(
+            _legacy_choice(generated.select_table, "A", tokens, 0, 2),
+            2,
+        )
+        self.assertFalse(
+            _legacy_generated_accepts(
+                grammar,
+                generated.select_table,
+                "S",
+                tokens,
+                2,
+            )
+        )
+        self.assertTrue(_cfg_accepts(grammar, "S", tokens))
+
     def test_generates_parameters_actions_and_configured_lookahead(self) -> None:
         entrypoints = {"Разобрать": "S"}
         grammar, resolved, analysis = compiled(

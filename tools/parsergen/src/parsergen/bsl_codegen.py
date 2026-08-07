@@ -8,7 +8,7 @@ import re
 from .analysis import (
     AnalysisResult,
     SelectMatcherArtifact,
-    build_select_matcher_artifact,
+    build_legacy_matcher_artifact,
 )
 from .model import (
     Action,
@@ -168,7 +168,7 @@ class BslGenerator:
 
     def generate(self) -> GeneratedParser:
         self._validate_inputs()
-        artifact = build_select_matcher_artifact(
+        artifact = build_legacy_matcher_artifact(
             self._analysis,
             max_rows=MAX_MATCHER_ROWS,
         )
