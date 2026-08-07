@@ -43,6 +43,7 @@ class ConfigTests(unittest.TestCase):
                 "АрифметическоеВыражение",
                 "Слагаемое",
                 "СписокВыражений",
+                "СписокВыраженийМодели",
             ),
         )
         self.assertEqual(

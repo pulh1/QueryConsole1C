@@ -369,15 +369,26 @@ class _CanonicalBslGenerator:
         operations: tuple[Operation, ...],
         indent: str,
         error_label: str,
+        *,
+        discard_unbound_results: bool = False,
     ) -> tuple[list[str], list[str | None]]:
         lines: list[str] = []
         values: list[str | None] = []
         for operation in operations:
-            rendered, value = self._render_operation(
+            if discard_unbound_results and isinstance(
                 operation,
-                indent,
-                error_label,
-            )
+                ParseSymbol,
+            ):
+                rendered = [
+                    f"{indent}{_symbol_call(operation.symbol)};"
+                ]
+                value = None
+            else:
+                rendered, value = self._render_operation(
+                    operation,
+                    indent,
+                    error_label,
+                )
             lines.extend(rendered)
             values.append(value)
         return lines, values
@@ -842,6 +853,7 @@ class _CanonicalBslGenerator:
                 repeat.branches[0].operations,
                 indent + "\t",
                 error_label,
+                discard_unbound_results=True,
             )
             lines.extend(body)
         else:
@@ -858,6 +870,7 @@ class _CanonicalBslGenerator:
                     branch.operations,
                     indent + "\t\t",
                     error_label,
+                    discard_unbound_results=True,
                 )
                 lines.extend(body)
             lines.extend(

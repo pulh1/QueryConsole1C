@@ -15,7 +15,8 @@ class CanonicalBslEbnfTests(unittest.TestCase):
             'Пока (ТипТокенаПросмотра(0) = "ITEM") Цикл',
             function,
         )
-        self.assertIn('Значение1 = Терминал("ITEM");', function)
+        self.assertIn('Терминал("ITEM");', function)
+        self.assertNotIn('= Терминал("ITEM");', function)
         self.assertIn("Если Не (ТипТокенаПросмотра(0) = Неопределено) Тогда", function)
         self.assertNotIn("НеТерминал__parsergen_ebnf__", function)
 

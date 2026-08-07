@@ -20,6 +20,7 @@ MIGRATED_PRODUCTIONS = (
     "АрифметическоеВыражение",
     "Слагаемое",
     "СписокВыражений",
+    "СписокВыраженийМодели",
 )
 
 
@@ -37,7 +38,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 119)
+        self.assertEqual(len(parsed.source_grammar.productions), 118)
         self.assertEqual(len(parsed.grammar.productions), 124)
 
         resolution = resolve_grammar(parsed.grammar)
@@ -299,6 +300,54 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             module,
         )
         function = _generated_function(module, "СписокВыражений")
+        self.assertEqual(function.count("Пока "), 1)
+        self.assertEqual(
+            function.count("ЭлементыМоделиЗапроса.НовыйСписокВыражений("),
+            1,
+        )
+        self.assertEqual(function.count("ЭтотУзел.Элементы.Добавить("), 2)
+        self.assertEqual(function.count('Лексема(",")'), 1)
+        self.assertNotIn("НомерВариантаПродукции", function)
+
+    def test_model_expression_list_generates_collection_loop(self) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=MIGRATED_PRODUCTIONS,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=MIGRATED_PRODUCTIONS,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        module = generated.module_text
+        self.assertNotIn(
+            "Функция НеТерминалОпциональноеПродолжениеСпискаВыраженийМодели(",
+            module,
+        )
+        function = _generated_function(module, "СписокВыраженийМодели")
         self.assertEqual(function.count("Пока "), 1)
         self.assertEqual(
             function.count("ЭлементыМоделиЗапроса.НовыйСписокВыражений("),

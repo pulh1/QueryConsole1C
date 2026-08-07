@@ -454,6 +454,11 @@ declarative repeated binding. Helper-production
 использует iterative BSL loop. Exact delta зафиксирован в
 [expression-list checkpoint](../superpowers/matrices/2026-08-07-expression-list-ebnf-checkpoint.md).
 
+Тот же EBNF-паттерн затем применён к `СписокВыраженийМодели`.
+Codegen дополнительно исключает temporary variables для
+discarded separator values. Exact delta зафиксирован в
+[model-expression-list checkpoint](../superpowers/matrices/2026-08-07-model-expression-list-ebnf-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:

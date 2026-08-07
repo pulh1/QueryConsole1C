@@ -54,10 +54,10 @@ class CanonicalBslBindingTests(unittest.TestCase):
 
         self.assertEqual(function.count("ЭтотУзел.Элементы.Добавить("), 2)
         loop = function.split("Пока ", 1)[1].split("КонецЦикла;", 1)[0]
-        self.assertIn('Лексема(",")', loop)
-        self.assertIn('Значение3 = Терминал("ITEM");', loop)
-        self.assertIn("ЭтотУзел.Элементы.Добавить(Значение3);", loop)
-        self.assertNotIn("Добавить(Значение2)", loop)
+        self.assertIn('Лексема(",");', loop)
+        self.assertNotIn('= Лексема(",");', loop)
+        self.assertIn('Значение2 = Терминал("ITEM");', loop)
+        self.assertIn("ЭтотУзел.Элементы.Добавить(Значение2);", loop)
 
     def test_captures_terminal_identifier_and_constant_values(self) -> None:
         function = _function(
