@@ -11,15 +11,27 @@ from .analysis import (
 )
 from .diagnostics import Severity, SourceSpan
 from .lowering import (
+    BindingOrigin,
+    BindingOriginKind,
     LoweredConstruct,
     LoweredConstructKind,
     LoweringResult,
     lower_source_grammar,
 )
-from .model import Action, SyntaxSymbol
+from .model import (
+    Action,
+    Constant,
+    IdentifierRef,
+    NonterminalCall,
+    SyntaxSymbol,
+)
 from .resolver import ResolvedGrammar, resolve_grammar
 from .source_model import (
+    BindingMode,
     SourceAlternative,
+    SourceBinding,
+    SourceConstantBinding,
+    SourceConstructor,
     SourceGrammar,
     SourceGroup,
     SourceItem,
@@ -41,6 +53,33 @@ class CanonicalDecision:
 @dataclass(frozen=True, slots=True)
 class ParseSymbol:
     symbol: SyntaxSymbol
+    source_span: SourceSpan
+
+
+@dataclass(frozen=True, slots=True)
+class UndefinedValue:
+    value: str
+    source_span: SourceSpan
+
+
+@dataclass(frozen=True, slots=True)
+class ParseBranchValue:
+    operations: tuple[Operation, ...]
+    result_index: int
+    source_span: SourceSpan
+
+
+@dataclass(frozen=True, slots=True)
+class ValueBranchIr:
+    alternative: int
+    value: ParseBranchValue
+    source_span: SourceSpan
+
+
+@dataclass(frozen=True, slots=True)
+class DispatchValue:
+    decision: CanonicalDecision
+    branches: tuple[ValueBranchIr, ...]
     source_span: SourceSpan
 
 
@@ -71,10 +110,50 @@ class OptionalBranch:
     decision: CanonicalDecision
     branches: tuple[BranchIr, ...]
     exit_alternative: int
+    exit_operations: tuple[Operation, ...]
     source_span: SourceSpan
 
 
-Operation = ParseSymbol | Dispatch | RepeatLoop | OptionalBranch
+BoundValue = ParseSymbol | DispatchValue | ParseBranchValue | UndefinedValue
+
+
+@dataclass(frozen=True, slots=True)
+class ConstructNode:
+    constructor: str
+    source_span: SourceSpan
+
+
+@dataclass(frozen=True, slots=True)
+class BindScalar:
+    property: str
+    value: BoundValue
+    source_span: SourceSpan
+
+
+@dataclass(frozen=True, slots=True)
+class AppendCollection:
+    property: str
+    value: BoundValue
+    source_span: SourceSpan
+
+
+@dataclass(frozen=True, slots=True)
+class AssignConstant:
+    property: str
+    value: str
+    source_span: SourceSpan
+
+
+Operation = (
+    ParseSymbol
+    | Dispatch
+    | RepeatLoop
+    | OptionalBranch
+    | ConstructNode
+    | BindScalar
+    | AppendCollection
+    | AssignConstant
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -186,7 +265,27 @@ class _ParserIrBuilder:
                 raise ValueError(
                     "arbitrary source actions require declarative bindings"
                 )
-            if isinstance(item, SourceGroup):
+            if isinstance(item, SourceConstructor):
+                origin = self._binding_origin(
+                    item.span,
+                    BindingOriginKind.CONSTRUCTOR,
+                )
+                result.append(ConstructNode(item.name, origin.source_span))
+            elif isinstance(item, SourceConstantBinding):
+                origin = self._binding_origin(
+                    item.span,
+                    BindingOriginKind.CONSTANT,
+                )
+                result.append(
+                    AssignConstant(
+                        item.property,
+                        item.value,
+                        origin.source_span,
+                    )
+                )
+            elif isinstance(item, SourceBinding):
+                result.extend(self._binding(item))
+            elif isinstance(item, SourceGroup):
                 branches = self._group_branches(item)
                 construct = self._construct(
                     item.span,
@@ -212,6 +311,7 @@ class _ParserIrBuilder:
                         self._decision(construct.production),
                         branches,
                         len(branches) + 1,
+                        (),
                         item.span,
                     )
                 )
@@ -219,14 +319,63 @@ class _ParserIrBuilder:
                 result.append(ParseSymbol(item, item.span))
         return tuple(result)
 
-    def _repeat(self, repeat: SourceRepeat) -> tuple[Operation, ...]:
+    def _binding(self, binding: SourceBinding) -> tuple[Operation, ...]:
+        kind = (
+            BindingOriginKind.APPEND
+            if binding.mode is BindingMode.APPEND
+            else BindingOriginKind.SCALAR
+        )
+        origin = self._binding_origin(binding.span, kind)
+        if isinstance(binding.value, SourceOptional):
+            optional = binding.value
+            construct = self._construct(
+                optional.span,
+                LoweredConstructKind.OPTIONAL,
+            )
+            branches = self._bound_primary_branches(optional.body, binding)
+            exit_operations: tuple[Operation, ...] = ()
+            if binding.mode is BindingMode.SCALAR:
+                exit_operations = (
+                    BindScalar(
+                        binding.property,
+                        UndefinedValue("Неопределено", origin.source_span),
+                        origin.source_span,
+                    ),
+                )
+            return (
+                OptionalBranch(
+                    self._decision(construct.production),
+                    branches,
+                    len(branches) + 1,
+                    exit_operations,
+                    optional.span,
+                ),
+            )
+        if isinstance(binding.value, SourceRepeat):
+            return self._repeat(binding.value, binding)
+        return (
+            self._binding_operation(
+                binding,
+                self._bound_value(binding.value),
+            ),
+        )
+
+    def _repeat(
+        self,
+        repeat: SourceRepeat,
+        binding: SourceBinding | None = None,
+    ) -> tuple[Operation, ...]:
         kind = (
             LoweredConstructKind.STAR
             if repeat.kind.value == "star"
             else LoweredConstructKind.PLUS
         )
         construct = self._construct(repeat.span, kind)
-        branches = self._primary_branches(repeat.body)
+        branches = (
+            self._bound_primary_branches(repeat.body, binding)
+            if binding is not None
+            else self._primary_branches(repeat.body)
+        )
         result: list[Operation] = []
         decision_production = construct.production
         if kind is LoweredConstructKind.PLUS:
@@ -251,6 +400,96 @@ class _ParserIrBuilder:
             )
         )
         return tuple(result)
+
+    def _bound_primary_branches(
+        self,
+        primary: SourcePrimary,
+        binding: SourceBinding,
+    ) -> tuple[BranchIr, ...]:
+        if isinstance(primary, SourceGroup):
+            return tuple(
+                BranchIr(
+                    alternative.index + 1,
+                    (
+                        self._binding_operation(
+                            binding,
+                            self._branch_value(alternative),
+                        ),
+                    ),
+                    alternative.span,
+                )
+                for alternative in primary.alternatives
+            )
+        return (
+            BranchIr(
+                1,
+                (
+                    self._binding_operation(
+                        binding,
+                        ParseSymbol(primary, primary.span),
+                    ),
+                ),
+                primary.span,
+            ),
+        )
+
+    def _bound_value(self, value: SourcePrimary) -> BoundValue:
+        if isinstance(value, SourceGroup):
+            construct = self._construct(
+                value.span,
+                LoweredConstructKind.GROUP,
+            )
+            return DispatchValue(
+                self._decision(construct.production),
+                tuple(
+                    ValueBranchIr(
+                        alternative.index + 1,
+                        self._branch_value(alternative),
+                        alternative.span,
+                    )
+                    for alternative in value.alternatives
+                ),
+                value.span,
+            )
+        return ParseSymbol(value, value.span)
+
+    def _branch_value(
+        self,
+        alternative: SourceAlternative,
+    ) -> ParseBranchValue:
+        operations = self._sequence(alternative.body)
+        semantic_indices = tuple(
+            index
+            for index, operation in enumerate(operations)
+            if _produces_transparent_value(operation)
+        )
+        if len(semantic_indices) != 1:
+            raise ValueError(
+                "bound branch does not identify exactly one semantic value"
+            )
+        return ParseBranchValue(
+            operations,
+            semantic_indices[0],
+            alternative.span,
+        )
+
+    def _binding_operation(
+        self,
+        binding: SourceBinding,
+        value: BoundValue,
+    ) -> BindScalar | AppendCollection:
+        kind = (
+            BindingOriginKind.APPEND
+            if binding.mode is BindingMode.APPEND
+            else BindingOriginKind.SCALAR
+        )
+        origin = self._binding_origin(binding.span, kind)
+        operation = (
+            AppendCollection
+            if binding.mode is BindingMode.APPEND
+            else BindScalar
+        )
+        return operation(binding.property, value, origin.source_span)
 
     def _group_branches(self, group: SourceGroup) -> tuple[BranchIr, ...]:
         return tuple(
@@ -298,6 +537,22 @@ class _ParserIrBuilder:
             )
         return matches[0]
 
+    def _binding_origin(
+        self,
+        span: SourceSpan,
+        kind: BindingOriginKind,
+    ) -> BindingOrigin:
+        matches = tuple(
+            origin
+            for origin in self._lowering.bindings
+            if origin.kind is kind and origin.source_span == span
+        )
+        if len(matches) != 1:
+            raise ValueError(
+                "lowering origin does not identify exactly one binding"
+            )
+        return matches[0]
+
     def _decision(self, production: str) -> CanonicalDecision:
         return CanonicalDecision(
             production,
@@ -306,3 +561,12 @@ class _ParserIrBuilder:
             ),
             self._matcher_definitions,
         )
+
+
+def _produces_transparent_value(operation: Operation) -> bool:
+    if isinstance(operation, ParseSymbol):
+        return isinstance(
+            operation.symbol,
+            (NonterminalCall, IdentifierRef, Constant),
+        )
+    return isinstance(operation, (Dispatch, OptionalBranch))

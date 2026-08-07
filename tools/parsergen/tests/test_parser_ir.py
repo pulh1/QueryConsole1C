@@ -76,6 +76,7 @@ class ParserIrTests(unittest.TestCase):
         self.assertEqual([type(item) for item in operations], [OptionalBranch])
         optional = operations[0]
         self.assertEqual(len(optional.branches), 2)
+        self.assertEqual(optional.exit_operations, ())
         self.assertEqual(
             [branch.operations[0].symbol.token_type for branch in optional.branches],
             ["a", "b"],
