@@ -57,14 +57,14 @@
 - Extend `LoweringResult.left_recursions: tuple[LoweredLeftRecursion, ...]`.
 - Lower public `A` to base rows `β TailA`; lower synthetic tail to `α TailA | epsilon`.
 
-- [ ] Write RED lowering test that asserts exact public/tail symbols, stable base/recursive source order, one epsilon tail row, parameter forwarding and no leading self-call in suffix.
-- [ ] Run the focused lowering test and verify failure because direct LR is still emitted unchanged.
-- [ ] Implement `_lower_left_recursive_production`; lower every original sequence once so binding origins remain complete, remove exactly its classified leading self-call from recursive syntax, then add the tail call.
-- [ ] Record public base and synthetic recursive/exit `alternative_origins` against original source spans; record one `LoweredLeftRecursion` descriptor.
-- [ ] Add RED analysis tests proving base rows and recursive/exit rows are disjoint, multiple recursive alternatives conflict at insufficient `k`, and the conflict disappears at a sufficient finite `k`.
-- [ ] Assert indirect and nullable-prefix recursion still produce source-located `VAL202`, while valid direct LR no longer does.
-- [ ] Run EBNF lowering/analysis, FIRST/FOLLOW/SELECT oracle and validation suites GREEN.
-- [ ] Commit and push as `Lowerить direct recursion для canonical analysis`.
+- [x] Write RED lowering test that asserts exact public/tail symbols, stable base/recursive source order, one epsilon tail row, parameter forwarding and no leading self-call in suffix.
+- [x] Run the focused lowering test and verify failure because direct LR is still emitted unchanged.
+- [x] Implement `_lower_left_recursive_production`; lower every original sequence once so binding origins remain complete, remove exactly its classified leading self-call from recursive syntax, then add the tail call.
+- [x] Record public base and synthetic recursive/exit `alternative_origins` against original source spans; record one `LoweredLeftRecursion` descriptor.
+- [x] Add RED analysis tests proving base rows and recursive/exit rows are disjoint, multiple recursive alternatives conflict at insufficient `k`, and the conflict disappears at a sufficient finite `k`.
+- [x] Assert indirect and nullable-prefix recursion still produce source-located `VAL202`, while valid direct LR no longer does.
+- [x] Run EBNF lowering/analysis, FIRST/FOLLOW/SELECT oracle and validation suites GREEN.
+- [x] Commit and push as `Lowerить direct recursion для canonical analysis`.
 
 ### Task 3: High-level `LeftFold` Parser IR
 

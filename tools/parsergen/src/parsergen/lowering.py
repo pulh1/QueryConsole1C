@@ -15,6 +15,7 @@ from .model import (
     Production,
     SyntaxSymbol,
 )
+from .left_recursion import DirectLeftRecursion
 from .source_model import (
     BindingMode,
     QuantifierKind,
@@ -74,6 +75,15 @@ class LoweredConstruct:
 
 
 @dataclass(frozen=True, slots=True)
+class LoweredLeftRecursion:
+    production: str
+    tail_production: str
+    base_alternatives: tuple[int, ...]
+    recursive_alternatives: tuple[int, ...]
+    source_span: SourceSpan
+
+
+@dataclass(frozen=True, slots=True)
 class LoweringResult:
     grammar: Grammar
     constructs: tuple[LoweredConstruct, ...]
@@ -81,12 +91,26 @@ class LoweringResult:
     alternative_origins: Mapping[tuple[str, int], SourceSpan]
     diagnostics: tuple[Diagnostic, ...] = ()
     bindings: tuple[BindingOrigin, ...] = ()
+    left_recursions: tuple[LoweredLeftRecursion, ...] = ()
 
 
 def lower_source_grammar(grammar: SourceGrammar) -> LoweringResult:
-    diagnostics = DiagnosticBag(validate_source_grammar(grammar).diagnostics)
+    source_validation = validate_source_grammar(grammar)
+    diagnostics = DiagnosticBag(source_validation.diagnostics)
     diagnostics.extend(validate_bindings(grammar).diagnostics)
-    return _Lowerer(grammar, diagnostics).lower()
+    left_recursions = (
+        {}
+        if any(
+            item.code.startswith("LR")
+            for item in source_validation.diagnostics
+        )
+        else source_validation.left_recursions
+    )
+    return _Lowerer(
+        grammar,
+        diagnostics,
+        left_recursions,
+    ).lower()
 
 
 class _Lowerer:
@@ -94,6 +118,7 @@ class _Lowerer:
         self,
         grammar: SourceGrammar,
         diagnostics: DiagnosticBag,
+        left_recursions: Mapping[str, DirectLeftRecursion],
     ) -> None:
         self._source = grammar
         self._diagnostics = diagnostics.sorted()
@@ -102,10 +127,23 @@ class _Lowerer:
         self._production_origins: dict[str, SourceSpan] = {}
         self._alternative_origins: dict[tuple[str, int], SourceSpan] = {}
         self._bindings: list[BindingOrigin] = []
+        self._source_left_recursions = left_recursions
+        self._left_recursions: list[LoweredLeftRecursion] = []
 
     def lower(self) -> LoweringResult:
         public: list[Production] = []
         for production in self._source.productions:
+            left_recursion = self._source_left_recursions.get(
+                production.name
+            )
+            if left_recursion is not None:
+                public.append(
+                    self._lower_left_recursive_production(
+                        production,
+                        left_recursion,
+                    )
+                )
+                continue
             alternatives: list[Alternative] = []
             for alternative in production.alternatives:
                 elements = self._lower_sequence(
@@ -146,6 +184,102 @@ class _Lowerer:
             MappingProxyType(dict(self._alternative_origins)),
             self._diagnostics,
             tuple(self._bindings),
+            tuple(self._left_recursions),
+        )
+
+    def _lower_left_recursive_production(
+        self,
+        production: SourceProduction,
+        recursion: DirectLeftRecursion,
+    ) -> Production:
+        lowered_by_source: dict[int, tuple[SyntaxSymbol | Action, ...]] = {}
+        for alternative in production.alternatives:
+            lowered_by_source[alternative.index] = self._lower_sequence(
+                alternative.body,
+                production,
+                alternative.index,
+                f"p{production.order}_a{alternative.index}",
+            )
+
+        tail_name = (
+            f"{_SYNTHETIC_PREFIX}p{production.order}_left_fold_tail"
+        )
+        public_alternatives: list[Alternative] = []
+        for index, source_index in enumerate(recursion.base_alternatives):
+            source = production.alternatives[source_index]
+            public_alternatives.append(
+                Alternative(
+                    index,
+                    (
+                        *lowered_by_source[source_index],
+                        _synthetic_call(
+                            tail_name,
+                            production.parameters,
+                            source.span,
+                        ),
+                    ),
+                    source.span,
+                )
+            )
+            self._alternative_origins[(production.name, index)] = source.span
+
+        tail_alternatives: list[Alternative] = []
+        for index, recursive in enumerate(recursion.recursive_alternatives):
+            source = production.alternatives[recursive.alternative]
+            elements = lowered_by_source[recursive.alternative]
+            if (
+                not elements
+                or not isinstance(elements[0], NonterminalCall)
+                or elements[0].name != production.name
+            ):
+                raise ValueError(
+                    "direct-LR lowering lost the classified self-call"
+                )
+            tail_alternatives.append(
+                Alternative(
+                    index,
+                    (
+                        *elements[1:],
+                        _synthetic_call(
+                            tail_name,
+                            production.parameters,
+                            source.span,
+                        ),
+                    ),
+                    source.span,
+                )
+            )
+            self._alternative_origins[(tail_name, index)] = source.span
+        exit_index = len(tail_alternatives)
+        tail_alternatives.append(
+            Alternative(exit_index, (), production.span)
+        )
+        self._alternative_origins[(tail_name, exit_index)] = production.span
+        self._add_synthetic(
+            tail_name,
+            production.parameters,
+            tuple(tail_alternatives),
+            production.span,
+        )
+        self._left_recursions.append(
+            LoweredLeftRecursion(
+                production.name,
+                tail_name,
+                recursion.base_alternatives,
+                tuple(
+                    item.alternative
+                    for item in recursion.recursive_alternatives
+                ),
+                production.span,
+            )
+        )
+        self._production_origins[production.name] = production.span
+        return Production(
+            production.name,
+            production.parameters,
+            tuple(public_alternatives),
+            production.order,
+            production.span,
         )
 
     def _lower_sequence(
