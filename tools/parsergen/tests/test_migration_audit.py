@@ -78,6 +78,7 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "ПакетЗапросов",
                 "ЗапросПакета",
                 "ЗапросУничтожения",
+                "Псевдоним",
                 "Выражение",
                 "ЛогическоеСлагаемое",
                 "ТипСсылочногоПоля",
@@ -115,12 +116,12 @@ class MigrationAuditProductionTests(unittest.TestCase):
                 "epsilon_alternatives": 64,
                 "formal_parameters": 8,
                 "actual_arguments": 26,
-                "action_blocks": 308,
-                "statements": 333,
+                "action_blocks": 306,
+                "statements": 331,
                 "constructor_statements": 79,
                 "collection_statements": 27,
                 "constant_statements": 22,
-                "structural_statements": 201,
+                "structural_statements": 199,
                 "other_assignment_statements": 0,
                 "other_statements": 4,
             },
@@ -175,9 +176,9 @@ class MigrationAuditProductionTests(unittest.TestCase):
             self.report["generated"],
             {
                 "bsl_functions": 123,
-                "bsl_loc": 3125,
+                "bsl_loc": 3114,
                 "constructor_names": 78,
-                "select_rows": 6_564,
+                "select_rows": 6_479,
                 "identifier_rows": 276,
             },
         )
@@ -238,7 +239,8 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 "lookahead = 2\n\n"
                 "[migration]\n"
                 'canonical_productions = ["ПакетЗапросов", '
-                '"ЗапросПакета", "ЗапросУничтожения", "Выражение", '
+                '"ЗапросПакета", "ЗапросУничтожения", "Псевдоним", '
+                '"Выражение", '
                 '"ЛогическоеСлагаемое", '
                 '"ТипСсылочногоПоля", '
                 '"АрифметическоеВыражение", "Слагаемое", '

@@ -505,6 +505,10 @@ disjoint alternatives возвращает единственный child без
 Exact delta зафиксирован в
 [package-query checkpoint](../superpowers/matrices/2026-08-07-package-query-transparent-checkpoint.md).
 
+`Псевдоним` затем переведён на transparent canonical choice с сохранением
+разных identifier classes для формы с `КАК` и без него. Exact delta:
+[alias checkpoint](../superpowers/matrices/2026-08-07-alias-transparent-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:
