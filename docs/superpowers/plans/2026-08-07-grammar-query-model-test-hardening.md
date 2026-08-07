@@ -480,9 +480,11 @@ for row in rows:
                 and junit.get('failed') == 0
                 and junit.get('errors') == 0
             )
-            assert exit_code == 0 or junit_success
             if exit_code is None:
                 assert item.get('exit_code_unavailable_reason')
+                assert junit_success
+            else:
+                assert exit_code == 0
     else:
         for item in row['evidence']:
             assert item['kind'] == 'external-blocker'
