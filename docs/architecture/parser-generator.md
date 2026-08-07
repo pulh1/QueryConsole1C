@@ -475,6 +475,11 @@ CASE/`ВЫБОР` затем переведён на direct optional/repeated bi
 declarative scalar bindings без изменения query model. Exact delta зафиксирован
 в [choice-alternative checkpoint](../superpowers/matrices/2026-08-07-choice-alternative-binding-checkpoint.md).
 
+`Параметр` затем стал первым production-срезом с declarative identifier-token
+binding: значение `#ID_Полный` напрямую записывается в `ПараметрЗапроса.Имя`.
+Exact delta зафиксирован в
+[query-parameter checkpoint](../superpowers/matrices/2026-08-07-query-parameter-binding-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:
