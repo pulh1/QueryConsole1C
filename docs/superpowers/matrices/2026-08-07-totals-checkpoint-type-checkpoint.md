@@ -11,8 +11,10 @@ explicit empty alternative:
 
 ## Result
 
-- The two present forms construct the same string enum values; the empty form
-  returns `Неопределено` as before.
+- The two present forms construct the same string enum values. Canonical empty
+  returns `Неопределено`; the legacy function previously returned the
+  `"ПУСТО"` sentinel, but the observable checkpoint property remains
+  `Неопределено` in both paths.
 - Alternatives are disjoint under production `k=2`; generated branch order is
   not conflict resolution.
 - `КонтрольнаяТочкаИтогов.ТипКонтрольнойТочки` and downstream consumers remain

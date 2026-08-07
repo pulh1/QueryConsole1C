@@ -20,6 +20,8 @@ MIGRATED_PRODUCTIONS = (
     "ЗапросУничтожения",
     "Псевдоним",
     "ТипСоединения",
+    "ЭлементУпорядочивания",
+    "НаправлениеУпорядочивания",
     "ТипКонтрольнойТочки",
     "Выражение",
     "ЛогическоеСлагаемое",
@@ -42,6 +44,121 @@ def _generated_function(module: str, production: str) -> str:
 
 
 class RepositoryGrammarCompatibilityTests(unittest.TestCase):
+    def test_order_element_preserves_factory_defaults_on_absent_options(
+        self,
+    ) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        canonical = MIGRATED_PRODUCTIONS
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=canonical,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=canonical,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        function = _generated_function(
+            generated.module_text,
+            "ЭлементУпорядочивания",
+        )
+        self.assertEqual(
+            function.count(
+                "ЭлементыМоделиЗапроса.НовыйЭлементПорядка("
+            ),
+            1,
+        )
+        self.assertEqual(function.count('Терминал("ИЕРАРХИЯ");'), 1)
+        self.assertEqual(function.count("ЭтотУзел.Иерархия = Истина;"), 1)
+        self.assertEqual(
+            function.count("НеТерминалНаправлениеУпорядочивания()"),
+            1,
+        )
+        self.assertEqual(function.count("ЭтотУзел.Направление ="), 1)
+        self.assertNotIn("НеТерминалИерархияОпционально", function)
+        self.assertNotIn("ЭтотУзел.Направление = Неопределено;", function)
+        self.assertNotIn("ТекущийЭлемент", function)
+        self.assertNotIn("НомерВариантаПродукции", function)
+
+    def test_order_direction_generates_constructor_alternatives(
+        self,
+    ) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        canonical = MIGRATED_PRODUCTIONS
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=canonical,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=canonical,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        function = _generated_function(
+            generated.module_text,
+            "НаправлениеУпорядочивания",
+        )
+        expected = {
+            "ВОЗР": "НовыйНаправлениеВозрастание",
+            "УБЫВ": "НовыйНаправлениеУбывание",
+        }
+        for token, constructor in expected.items():
+            with self.subTest(token=token):
+                self.assertEqual(function.count(f'Терминал("{token}");'), 1)
+                self.assertEqual(
+                    function.count(
+                        f"ЭлементыМоделиЗапроса.{constructor}("
+                    ),
+                    1,
+                )
+        self.assertIn("ВызватьИсключениеCanonicalСинтаксическаяОшибка", function)
+        self.assertNotIn("ТекущийЭлемент", function)
+        self.assertNotIn("НомерВариантаПродукции", function)
+
     def test_totals_checkpoint_type_generates_constructor_or_empty_result(
         self,
     ) -> None:
@@ -351,8 +468,8 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 111)
-        self.assertEqual(len(parsed.grammar.productions), 125)
+        self.assertEqual(len(parsed.source_grammar.productions), 110)
+        self.assertEqual(len(parsed.grammar.productions), 126)
 
         resolution = resolve_grammar(parsed.grammar)
         self.assertEqual(resolution.diagnostics, ())

@@ -517,6 +517,11 @@ alternatives без изменения строковых enum-values модел
 explicit empty result без изменения totals model. Exact delta:
 [totals checkpoint-type checkpoint](../superpowers/matrices/2026-08-07-totals-checkpoint-type-checkpoint.md).
 
+`ЭлементУпорядочивания` затем переведён на constructor, scalar binding и
+EBNF optionals. `ИерархияОпционально` удалён, а absent direction
+сохраняет factory-default `"Возр"` без legacy sentinel semantics. Exact
+delta: [order-element checkpoint](../superpowers/matrices/2026-08-07-order-element-ebnf-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:
