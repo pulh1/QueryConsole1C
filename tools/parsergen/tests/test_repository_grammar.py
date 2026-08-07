@@ -24,6 +24,7 @@ MIGRATED_PRODUCTIONS = (
     "СписокВыраженийМодели",
     "Выбор",
     "КогдаТогда",
+    "Константа",
     "Параметр",
 )
 
@@ -565,6 +566,61 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertIn('Лексема("&");', function)
         self.assertIn('Значение1 = Идентификатор("ID_Полный");', function)
         self.assertEqual(function.count("ЭтотУзел.Имя = Значение1;"), 1)
+        self.assertNotIn("ТекущийЭлемент", function)
+        self.assertNotIn("НомерВариантаПродукции", function)
+
+    def test_constants_generate_canonical_value_bindings(self) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=MIGRATED_PRODUCTIONS,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=MIGRATED_PRODUCTIONS,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        function = _generated_function(generated.module_text, "Константа")
+        self.assertEqual(
+            function.count("ЭлементыМоделиЗапроса.НовыйКонстанта("),
+            6,
+        )
+        self.assertEqual(function.count("ЭтотУзел.Значение ="), 6)
+        self.assertRegex(
+            function,
+            r'ЭтотУзел\.Значение = Значение\d+;',
+        )
+        for keyword, value in (
+            ("ИСТИНА", "Истина"),
+            ("ЛОЖЬ", "Ложь"),
+            ("NULL", "Null"),
+            ("НЕОПРЕДЕЛЕНО", "Неопределено"),
+        ):
+            with self.subTest(keyword=keyword):
+                self.assertIn(f'Терминал("{keyword}");', function)
+                self.assertIn(f"ЭтотУзел.Значение = {value};", function)
         self.assertNotIn("ТекущийЭлемент", function)
         self.assertNotIn("НомерВариантаПродукции", function)
 

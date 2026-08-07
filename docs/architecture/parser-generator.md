@@ -167,7 +167,7 @@ Property := constant
 `=` задаёт scalar или optional property; отсутствующий optional в
 Parser IR явно присваивает `Неопределено`. `+=` добавляет каждое
 фактически parsed value в collection. `:=` не потребляет input и
-принимает `Истина`, `Ложь`, `Неопределено` или dotted symbolic constant.
+принимает `Истина`, `Ложь`, `Неопределено`, `Null` или dotted symbolic constant.
 Терминал, identifier class и constant token могут быть semantic value.
 
 High-level validation до lowering доказывает:
@@ -479,6 +479,11 @@ declarative scalar bindings без изменения query model. Exact delta �
 binding: значение `#ID_Полный` напрямую записывается в `ПараметрЗапроса.Имя`.
 Exact delta зафиксирован в
 [query-parameter checkpoint](../superpowers/matrices/2026-08-07-query-parameter-binding-checkpoint.md).
+
+`Константа` затем переведена целиком: string/number token values используют
+scalar binding, а keyword alternatives — explicit constant binding, включая
+BSL `Null`. Exact delta зафиксирован в
+[constant checkpoint](../superpowers/matrices/2026-08-07-constant-binding-checkpoint.md).
 
 ## CLI
 

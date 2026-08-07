@@ -84,6 +84,7 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "СписокВыраженийМодели",
                 "Выбор",
                 "КогдаТогда",
+                "Константа",
                 "Параметр",
             ],
         )
@@ -110,12 +111,12 @@ class MigrationAuditProductionTests(unittest.TestCase):
                 "epsilon_alternatives": 63,
                 "formal_parameters": 8,
                 "actual_arguments": 26,
-                "action_blocks": 332,
-                "statements": 358,
-                "constructor_statements": 88,
+                "action_blocks": 320,
+                "statements": 346,
+                "constructor_statements": 82,
                 "collection_statements": 29,
-                "constant_statements": 26,
-                "structural_statements": 210,
+                "constant_statements": 22,
+                "structural_statements": 208,
                 "other_assignment_statements": 0,
                 "other_statements": 5,
             },
@@ -170,9 +171,9 @@ class MigrationAuditProductionTests(unittest.TestCase):
             self.report["generated"],
             {
                 "bsl_functions": 124,
-                "bsl_loc": 3183,
+                "bsl_loc": 3162,
                 "constructor_names": 78,
-                "select_rows": 6_725,
+                "select_rows": 6_719,
                 "identifier_rows": 276,
             },
         )
@@ -238,7 +239,7 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 '"УнарнаяОперация", '
                 '"СписокВыражений", '
                 '"СписокВыраженийМодели", '
-                '"Выбор", "КогдаТогда", "Параметр"]\n\n'
+                '"Выбор", "КогдаТогда", "Константа", "Параметр"]\n\n'
                 "[entrypoints]\n"
                 '"Разобрать" = "ПакетЗапросов"\n'
                 '"РазобратьВыражение" = "Выражение"\n',

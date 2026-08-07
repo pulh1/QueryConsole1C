@@ -96,7 +96,7 @@ class BindingValidationTests(unittest.TestCase):
     def test_accepts_supported_literal_and_symbolic_constants(self) -> None:
         report = _validate(
             "<S> ::= @НовыйУзел "
-            "А := Истина Б := Ложь В := Неопределено Г := Типы.Все"
+            "А := Истина Б := Ложь В := Неопределено Г := Null Д := Типы.Все"
         )
 
         self.assertEqual(report.diagnostics, ())

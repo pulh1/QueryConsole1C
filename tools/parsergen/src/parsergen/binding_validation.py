@@ -340,7 +340,7 @@ def _sequence_value_cardinality(
 
 
 def _valid_constant(value: str) -> bool:
-    return value in {"Истина", "Ложь", "Неопределено"} or "." in value
+    return value in {"Истина", "Ложь", "Неопределено", "Null"} or "." in value
 
 
 def semantic_child_counts(sequence: SourceSequence) -> tuple[int, ...]:

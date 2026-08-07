@@ -18,7 +18,7 @@ class CanonicalBslBindingTests(unittest.TestCase):
         generated = _build(
             "#ID_Name ::= ID\n"
             "<S> ::= @НовыйУзел Значение = <A> "
-            "Флаг := Истина Тип := Типы.Все\n"
+            "Флаг := Истина Пустое := Null Тип := Типы.Все\n"
             "<A> ::= @НовыйДочерний Имя = #ID_Name"
         )
 
@@ -33,6 +33,7 @@ class CanonicalBslBindingTests(unittest.TestCase):
         self.assertIn("Значение1 = НеТерминалA();", function)
         self.assertIn("ЭтотУзел.Значение = Значение1;", function)
         self.assertIn("ЭтотУзел.Флаг = Истина;", function)
+        self.assertIn("ЭтотУзел.Пустое = Null;", function)
         self.assertIn("ЭтотУзел.Тип = Типы.Все;", function)
         self.assertIn("РезультатПродукции = ЭтотУзел;", function)
         self.assertEqual(
