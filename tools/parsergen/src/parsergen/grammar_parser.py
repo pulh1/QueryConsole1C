@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .diagnostics import Diagnostic, DiagnosticBag, Severity, SourcePosition, SourceSpan
+from .lowering import LoweringResult, lower_source_grammar
 from .model import (
     Action,
     Alternative,
@@ -34,7 +35,7 @@ class ParseResult:
     grammar: Grammar | None
     diagnostics: tuple[Diagnostic, ...]
     source_grammar: SourceGrammar | None = None
-    lowering: object | None = None
+    lowering: LoweringResult | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,24 +75,23 @@ class Cursor:
 
 def parse_grammar(text: str, path: str = "<memory>") -> ParseResult:
     source_result = parse_source_grammar(text, path)
-    grammar, first_ebnf = _flatten_bnf_source(source_result.grammar)
     diagnostics = DiagnosticBag(source_result.diagnostics)
     if source_result.grammar is not None and not diagnostics.has_errors:
         diagnostics.extend(
             validate_source_grammar(source_result.grammar).diagnostics
         )
-    if first_ebnf is not None and not diagnostics.has_errors:
-        _error(
-            diagnostics,
-            "EBNF100",
-            "EBNF lowering is not available yet",
-            first_ebnf,
-        )
+    lowering = None
+    if source_result.grammar is not None and not diagnostics.has_errors:
+        lowering = lower_source_grammar(source_result.grammar)
+        diagnostics.extend(lowering.diagnostics)
+        grammar = lowering.grammar
+    else:
+        grammar, _ = _flatten_bnf_source(source_result.grammar)
     return ParseResult(
         grammar,
         diagnostics.sorted(),
         source_result.grammar,
-        None,
+        lowering,
     )
 
 

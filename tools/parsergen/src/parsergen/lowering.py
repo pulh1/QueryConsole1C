@@ -1,0 +1,422 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import StrEnum
+from types import MappingProxyType
+from typing import Mapping
+
+from .diagnostics import Diagnostic, SourceSpan
+from .model import (
+    Action,
+    Alternative,
+    Grammar,
+    NonterminalCall,
+    Production,
+    SyntaxSymbol,
+)
+from .source_model import (
+    QuantifierKind,
+    SourceAlternative,
+    SourceGrammar,
+    SourceGroup,
+    SourceItem,
+    SourceOptional,
+    SourcePrimary,
+    SourceProduction,
+    SourceRepeat,
+    SourceSequence,
+)
+from .source_validation import validate_source_grammar
+
+
+_SYNTHETIC_PREFIX = "__parsergen_ebnf__"
+
+
+class LoweredConstructKind(StrEnum):
+    GROUP = "group"
+    STAR = "star"
+    PLUS = "plus"
+    OPTIONAL = "optional"
+
+
+@dataclass(frozen=True, slots=True)
+class LoweredConstruct:
+    kind: LoweredConstructKind
+    production: str
+    tail_production: str | None
+    source_span: SourceSpan
+    operator_span: SourceSpan
+    source_production: str
+    source_alternative: int
+
+
+@dataclass(frozen=True, slots=True)
+class LoweringResult:
+    grammar: Grammar
+    constructs: tuple[LoweredConstruct, ...]
+    production_origins: Mapping[str, SourceSpan]
+    alternative_origins: Mapping[tuple[str, int], SourceSpan]
+    diagnostics: tuple[Diagnostic, ...] = ()
+
+
+def lower_source_grammar(grammar: SourceGrammar) -> LoweringResult:
+    diagnostics = validate_source_grammar(grammar).diagnostics
+    return _Lowerer(grammar, diagnostics).lower()
+
+
+class _Lowerer:
+    def __init__(
+        self,
+        grammar: SourceGrammar,
+        diagnostics: tuple[Diagnostic, ...],
+    ) -> None:
+        self._source = grammar
+        self._diagnostics = diagnostics
+        self._synthetic: list[Production] = []
+        self._constructs: list[LoweredConstruct] = []
+        self._production_origins: dict[str, SourceSpan] = {}
+        self._alternative_origins: dict[tuple[str, int], SourceSpan] = {}
+
+    def lower(self) -> LoweringResult:
+        public: list[Production] = []
+        for production in self._source.productions:
+            alternatives: list[Alternative] = []
+            for alternative in production.alternatives:
+                elements = self._lower_sequence(
+                    alternative.body,
+                    production,
+                    alternative.index,
+                    f"p{production.order}_a{alternative.index}",
+                )
+                alternatives.append(
+                    Alternative(
+                        alternative.index,
+                        elements,
+                        alternative.span,
+                    )
+                )
+                self._alternative_origins[
+                    (production.name, alternative.index)
+                ] = alternative.span
+            public.append(
+                Production(
+                    production.name,
+                    production.parameters,
+                    tuple(alternatives),
+                    production.order,
+                    production.span,
+                )
+            )
+            self._production_origins[production.name] = production.span
+
+        return LoweringResult(
+            Grammar(
+                (*public, *self._synthetic),
+                self._source.identifier_definitions,
+                self._source.path,
+            ),
+            tuple(self._constructs),
+            MappingProxyType(dict(self._production_origins)),
+            MappingProxyType(dict(self._alternative_origins)),
+            self._diagnostics,
+        )
+
+    def _lower_sequence(
+        self,
+        sequence: SourceSequence,
+        owner: SourceProduction,
+        source_alternative: int,
+        path: str,
+    ) -> tuple[SyntaxSymbol | Action, ...]:
+        production = owner
+        result: list[SyntaxSymbol | Action] = []
+        for index, item in enumerate(sequence.items):
+            item_path = f"{path}_n{index}"
+            if isinstance(item, SourceGroup):
+                result.append(
+                    self._lower_group(
+                        item,
+                        production,
+                        source_alternative,
+                        item_path,
+                    )
+                )
+            elif isinstance(item, SourceRepeat):
+                result.append(
+                    self._lower_repeat(
+                        item,
+                        production,
+                        source_alternative,
+                        item_path,
+                    )
+                )
+            elif isinstance(item, SourceOptional):
+                result.append(
+                    self._lower_optional(
+                        item,
+                        production,
+                        source_alternative,
+                        item_path,
+                    )
+                )
+            else:
+                result.append(item)
+        return tuple(result)
+
+    def _lower_group(
+        self,
+        group: SourceGroup,
+        owner: SourceProduction,
+        source_alternative: int,
+        path: str,
+    ) -> NonterminalCall:
+        production = owner
+        name = f"{_SYNTHETIC_PREFIX}{path}_group"
+        bodies = self._lower_body_alternatives(
+            group,
+            production,
+            source_alternative,
+            path,
+        )
+        alternatives = tuple(
+            Alternative(index, elements, origin)
+            for index, (elements, origin) in enumerate(bodies)
+        )
+        self._add_synthetic(name, production.parameters, alternatives, group.span)
+        self._record_alternative_origins(name, bodies)
+        self._constructs.append(
+            LoweredConstruct(
+                LoweredConstructKind.GROUP,
+                name,
+                None,
+                group.span,
+                group.span,
+                production.name,
+                source_alternative,
+            )
+        )
+        return _synthetic_call(name, production.parameters, group.span)
+
+    def _lower_repeat(
+        self,
+        repeat: SourceRepeat,
+        owner: SourceProduction,
+        source_alternative: int,
+        path: str,
+    ) -> NonterminalCall:
+        production = owner
+        kind = (
+            LoweredConstructKind.STAR
+            if repeat.kind is QuantifierKind.ZERO_OR_MORE
+            else LoweredConstructKind.PLUS
+        )
+        suffix = kind.value
+        name = f"{_SYNTHETIC_PREFIX}{path}_{suffix}"
+        bodies = self._lower_body_alternatives(
+            repeat.body,
+            production,
+            source_alternative,
+            path,
+        )
+        tail_name: str | None = None
+        if kind is LoweredConstructKind.STAR:
+            recursive = tuple(
+                Alternative(
+                    index,
+                    (
+                        *elements,
+                        _synthetic_call(
+                            name,
+                            production.parameters,
+                            repeat.operator_span,
+                        ),
+                    ),
+                    origin,
+                )
+                for index, (elements, origin) in enumerate(bodies)
+            )
+            alternatives = (
+                *recursive,
+                Alternative(len(recursive), (), repeat.operator_span),
+            )
+            self._add_synthetic(
+                name,
+                production.parameters,
+                alternatives,
+                repeat.span,
+            )
+            self._record_alternative_origins(name, bodies)
+            self._alternative_origins[(name, len(recursive))] = (
+                repeat.operator_span
+            )
+        else:
+            tail_name = f"{name}_tail"
+            head_alternatives = tuple(
+                Alternative(
+                    index,
+                    (
+                        *elements,
+                        _synthetic_call(
+                            tail_name,
+                            production.parameters,
+                            repeat.operator_span,
+                        ),
+                    ),
+                    origin,
+                )
+                for index, (elements, origin) in enumerate(bodies)
+            )
+            tail_recursive = tuple(
+                Alternative(
+                    index,
+                    (
+                        *elements,
+                        _synthetic_call(
+                            tail_name,
+                            production.parameters,
+                            repeat.operator_span,
+                        ),
+                    ),
+                    origin,
+                )
+                for index, (elements, origin) in enumerate(bodies)
+            )
+            tail_alternatives = (
+                *tail_recursive,
+                Alternative(
+                    len(tail_recursive),
+                    (),
+                    repeat.operator_span,
+                ),
+            )
+            self._add_synthetic(
+                name,
+                production.parameters,
+                head_alternatives,
+                repeat.span,
+            )
+            self._add_synthetic(
+                tail_name,
+                production.parameters,
+                tail_alternatives,
+                repeat.span,
+            )
+            self._record_alternative_origins(name, bodies)
+            self._record_alternative_origins(tail_name, bodies)
+            self._alternative_origins[
+                (tail_name, len(tail_recursive))
+            ] = repeat.operator_span
+
+        self._constructs.append(
+            LoweredConstruct(
+                kind,
+                name,
+                tail_name,
+                repeat.span,
+                repeat.operator_span,
+                production.name,
+                source_alternative,
+            )
+        )
+        return _synthetic_call(name, production.parameters, repeat.span)
+
+    def _lower_optional(
+        self,
+        optional: SourceOptional,
+        owner: SourceProduction,
+        source_alternative: int,
+        path: str,
+    ) -> NonterminalCall:
+        production = owner
+        name = f"{_SYNTHETIC_PREFIX}{path}_optional"
+        bodies = self._lower_body_alternatives(
+            optional.body,
+            production,
+            source_alternative,
+            path,
+        )
+        alternatives = tuple(
+            Alternative(index, elements, origin)
+            for index, (elements, origin) in enumerate(bodies)
+        )
+        alternatives = (
+            *alternatives,
+            Alternative(len(alternatives), (), optional.operator_span),
+        )
+        self._add_synthetic(
+            name,
+            production.parameters,
+            alternatives,
+            optional.span,
+        )
+        self._record_alternative_origins(name, bodies)
+        self._alternative_origins[(name, len(bodies))] = (
+            optional.operator_span
+        )
+        self._constructs.append(
+            LoweredConstruct(
+                LoweredConstructKind.OPTIONAL,
+                name,
+                None,
+                optional.span,
+                optional.operator_span,
+                production.name,
+                source_alternative,
+            )
+        )
+        return _synthetic_call(name, production.parameters, optional.span)
+
+    def _lower_body_alternatives(
+        self,
+        body: SourcePrimary,
+        owner: SourceProduction,
+        source_alternative: int,
+        path: str,
+    ) -> tuple[tuple[tuple[SyntaxSymbol | Action, ...], SourceSpan], ...]:
+        production = owner
+        if isinstance(body, SourceGroup):
+            return tuple(
+                (
+                    self._lower_sequence(
+                        alternative.body,
+                        production,
+                        source_alternative,
+                        f"{path}_g{alternative.index}",
+                    ),
+                    alternative.span,
+                )
+                for alternative in body.alternatives
+            )
+        return (((body,), body.span),)
+
+    def _add_synthetic(
+        self,
+        name: str,
+        parameters: tuple[str, ...],
+        alternatives: tuple[Alternative, ...],
+        span: SourceSpan,
+    ) -> None:
+        order = len(self._source.productions) + len(self._synthetic)
+        self._synthetic.append(
+            Production(name, parameters, alternatives, order, span)
+        )
+        self._production_origins[name] = span
+
+    def _record_alternative_origins(
+        self,
+        production: str,
+        bodies: tuple[
+            tuple[tuple[SyntaxSymbol | Action, ...], SourceSpan],
+            ...,
+        ],
+    ) -> None:
+        for index, (_, origin) in enumerate(bodies):
+            self._alternative_origins[(production, index)] = origin
+
+
+def _synthetic_call(
+    name: str,
+    parameters: tuple[str, ...],
+    span: SourceSpan,
+) -> NonterminalCall:
+    return NonterminalCall(name, parameters, span)

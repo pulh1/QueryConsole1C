@@ -18,8 +18,10 @@ from .bsl_codegen import generate_parser
 from .config import ParsergenConfig, load_config
 from .diagnostics import Diagnostic, Severity
 from .grammar_parser import parse_grammar
+from .lowering import LoweringResult
 from .model import Grammar
 from .resolver import ResolvedGrammar, ResolutionResult, resolve_grammar
+from .source_model import SourceGrammar
 from .validation import ValidationReport, validate_grammar
 
 
@@ -29,6 +31,8 @@ class Compilation:
     resolved: ResolvedGrammar | None
     analysis: AnalysisResult | None
     report: ValidationReport
+    source_grammar: SourceGrammar | None = None
+    lowering: LoweringResult | None = None
 
 
 class _ArgumentParser(argparse.ArgumentParser):
@@ -72,6 +76,8 @@ def compile_from_config(config: ParsergenConfig) -> Compilation:
         resolved_result.grammar,
         analysis,
         report,
+        parsed.source_grammar,
+        parsed.lowering,
     )
 
 
