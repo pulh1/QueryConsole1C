@@ -513,6 +513,10 @@ Exact delta зафиксирован в
 alternatives без изменения строковых enum-values модели. Exact delta:
 [join-type checkpoint](../superpowers/matrices/2026-08-07-join-type-constructor-checkpoint.md).
 
+`ТипКонтрольнойТочки` затем переведён на две constructor alternatives и
+explicit empty result без изменения totals model. Exact delta:
+[totals checkpoint-type checkpoint](../superpowers/matrices/2026-08-07-totals-checkpoint-type-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:
