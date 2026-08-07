@@ -55,6 +55,26 @@
   ненормативный baseline известного дефекта. Direct-LR migration обязана
   заменить его левым сворачиванием `((1 - 2) - 3)`.
 
+## Headless-контракты исполняемых представлений — 2026-08-07
+
+- Новый серверный модуль `КОНС_Обр_ИсполняемыеПредставления_МО` прошёл
+  focused-прогон **3/3 GREEN** и совместный прогон с ранее добавленными
+  Phase 2.5 модулями **219/219 GREEN**.
+- `C12`: сырой parser-source преобразуется через public API в исполняемое
+  представление; явный параметр `Отбор` делегируется в source, а остаточная
+  секция `ГДЕ` сохраняется.
+- `C13`: на модели `ИсполняемоеПредставление.Периоды` проверены предметные
+  фрагменты generated BSL и текста СКД, исходные query parameters и отсутствие
+  технического executable source в результате для СКД.
+- `C16`: универсальный отчёт добавляет декларацию временной таблицы, заменяет
+  executable source на `ИсточникДанныхВременнаяТаблица` и сохраняет имена
+  таблицы, псевдонима и выбранного поля.
+- Все три проверки выполнены через серверные public interfaces без форм и без
+  Vanessa; external blockers не обнаружены.
+- После object revalidation у нового модуля нет BSL-проблем; остаётся один
+  известный metadata marker `extension-md-object-prefix`, обусловленный
+  утверждённым проектным именем тестового модуля.
+
 ## Решения о покрытии
 
 | Contract ID | Consumer | Affected | Current automated evidence | Gap | Phase 2.5 test | Gate type |
@@ -70,11 +90,11 @@
 | C09 | SKD dereference visitor | Да: `ОбработчикРазыменованийДляСКДПосетитель/ObjectModule.bsl.УстановитьКонтекст`. | Fresh Task 3 run: `Справочник.Организации.Ссылка.Наименование` conversion checked on real metadata. | Закрыт для reference type/dereference output shape. | `ПосетительСКДПреобразуетРазыменованиеИТип`. | new-headless-test |
 | C10 | Model builder | Да: `ПостроительМоделиЗапроса/ObjectModule.bsl.ДобавитьИсточник`, `ДобавитьОтбор`, `ДобавитьУпорядочивание`, `ДобавитьКонтрольнуюТочкуИтогов`, `УстановитьПолучениеОбщихИтогов`. | Fresh Task 4 module run: 2/2 passed; mutation test checks state after every public operation. | Закрыт: source identity/alias, filter, ordering, totals point and general-totals flag protected headlessly. | `ПостроительМеняетИсточникиОтборСортировкуИИтогиПоШагам`. | new-headless-test |
 | C11 | Query/expression text generation | Да: `ГенерацияТекстовЗапросов/Module.bsl.ТекстПакетаЗапросов`, `ВыражениеВСтроку`. | Task 3 covers the real unknown-node error; fresh Task 4 module run 2/2 covers semantic model → text → model. | Закрыт: package/operator order, source, field, filter, order and totals projection survives generation and reparsing. | `НеизвестныйУзелВыраженияВызываетИсключениеГенератораТекста`; `ТекстПакетаПослеПовторногоРазбораСохраняетСемантику`. | new-headless-test |
-| C12 | Executable-view processing | Да: `ОбработкаПредставлениеЗапросов/Module.bsl.ОбработатьИсточникЗапроса`, `ИсполняемоеПредставлениеПоОписанию`. | Console execution features существуют, свежий запуск отсутствует. | Нет transform/delegation contract. | Executable-view filter transformation/delegation in headless fixture. | new-headless-test |
-| C13 | Executor/code/SKD generation | Да: `ИсполнительПредставлений/Module.bsl.ВыполнитьПакетЗапросов`, `ПолучитьИсполняемыйКод`, `ПолучитьТекстЗапросаДляСКД`. | Console execution/code feature suites существуют. | Нет focused headless snapshots/integration. | Executor/code-generation focused integration for representative model. | new-headless-test |
+| C12 | Executable-view processing | Да: `ОбработкаПредставлениеЗапросов/Module.bsl.ОбработатьИсточникЗапроса`, `ИсполняемоеПредставлениеПоОписанию`. | Fresh Task 5 module run: 3/3 passed; combined Phase 2.5 run: 219/219 passed. | Закрыт: transform/delegation projection проверяет provider-built identity, explicit `Отбор` и сохранение residual `ГДЕ`. | `ИсполняемоеПредставлениеПреобразуетИДелегируетОтбор`. | new-headless-test |
+| C13 | Executor/code/SKD generation | Да: `ИсполнительПредставлений/Module.bsl.ВыполнитьПакетЗапросов`, `ПолучитьИсполняемыйКод`, `ПолучитьТекстЗапросаДляСКД`. | Fresh Task 5 module run: 3/3 passed; generated BSL и СКД проходят общий executor traversal на parser-built модели. | Закрыт для code/SKD generation: проверены предметный generator call, ВТ identity, period parameters и удаление executable source из СКД-текста. | `ИсполнительФормируетКодИТекстСКДДляПредставительнойМодели`. | new-headless-test |
 | C14 | Query console underlying logic | Да: `КонсольЗапросов/ObjectModule.bsl.ВыполнитьЗапрос`, `ПреобразоватьВМетаданные`. | 42 execution/code features; fresh Vanessa отсутствует. | Object-module contract не изолирован от form workflow. | Direct headless object characterization of `ВыполнитьЗапрос` and `ПреобразоватьВМетаданные`; interactive flow only after headless gate. | new-headless-test |
 | C15 | Query Constructor underlying logic | Да: `КонструкторЗапросов/ObjectModule.bsl.AvailableTablesBeforeExpandAtServer`, `SourcesBeforeExpandAtServer`, `GetSchemaQuery`. | 42 constructor features; fresh Vanessa отсутствует. | Stable non-form chain ещё не доказана, но это не manual-only. | Query Constructor non-form dependencies: characterize public object calls and stable chain before final UI gate. | new-headless-test |
-| C16 | Universal report | Да: `УниверсальныйОтчетРасширенный/Module.bsl.ЗаменитьИсполняемыеПредставленияВременнымиТаблицами`. | Direct automated test не найден. | Common/object transformation contract отсутствует. | Universal-report non-form transformations. | new-headless-test |
+| C16 | Universal report | Да: `УниверсальныйОтчетРасширенный/Module.bsl.ЗаменитьИсполняемыеПредставленияВременнымиТаблицами`. | Fresh Task 5 module run: 3/3 passed; combined Phase 2.5 run: 219/219 passed. | Закрыт: проверены декларация ВТ, замена source и сохранение table/alias/column identities. | `УниверсальныйОтчетЗаменяетИсполняемыеПредставленияВременнымиТаблицами`. | new-headless-test |
 | C17 | Feature-generation helpers | Да: `ГенераторFeatureФайлов/ObjectModule.bsl.СценарийСозданияПакетаЗапросаВТекДок`. | Сгенерированные suites — downstream evidence. | Нет direct helper golden. | Model-to-feature golden with generated oracle content. | new-headless-test |
 | C18 | 15 `Представление*` manager consumers | Да: каждый direct consumer вызывает `МодельЗапросаУтилиты.СоздатьПостроительМодели(Модель)`; перечень путей — в impact matrix. | Соответствующие Vanessa workflows существуют. | Provider dispatch и infobase dependencies ещё не проверены фактическим runtime trace. | Для каждого из 15 managers проверить exports `Описание`, `Справка`, `ИмяПредставления`, `Исполнить`, `ИсполняемыйКод`, `ТекстЗапросаДляСКД`; каждый незапускаемый contract получает exact failing call/prerequisite blocker. | new-headless-test |
 
