@@ -73,6 +73,63 @@ class MigrationAuditUnitTests(unittest.TestCase):
         self.assertEqual(report["legacy"]["runtime_conflicts"], [])
         self.assertEqual(report["artifacts"]["changed"], [])
 
+
+class MigrationAuditProductionTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.report = audit_migration.build_migration_audit(
+            REPOSITORY_ROOT / "parsergen.toml"
+        )
+
+    def test_structural_baseline_is_explicit(self) -> None:
+        self.assertEqual(
+            self.report["structural"],
+            {
+                "productions": 124,
+                "alternatives": 281,
+                "epsilon_alternatives": 63,
+                "formal_parameters": 8,
+                "actual_arguments": 26,
+                "action_blocks": 398,
+                "statements": 431,
+                "constructor_statements": 102,
+                "collection_statements": 37,
+                "constant_statements": 33,
+                "structural_statements": 254,
+                "other_assignment_statements": 0,
+                "other_statements": 5,
+            },
+        )
+
+    def test_canonical_and_legacy_contracts_are_separate(self) -> None:
+        self.assertEqual(
+            self.report["canonical"]["conflicts"],
+            [
+                {
+                    "production": "ЛогическийОператор",
+                    "left_alternative": 2,
+                    "right_alternative": 5,
+                    "witness": ["ССЫЛКА", "АВТОУПОРЯДОЧИВАНИЕ"],
+                },
+                {
+                    "production": "ОперандВ",
+                    "left_alternative": 1,
+                    "right_alternative": 2,
+                    "witness": ["ВЫБРАТЬ", "*"],
+                },
+            ],
+        )
+        self.assertEqual(self.report["legacy"]["matcher_rows"], 11_273)
+        self.assertEqual(self.report["legacy"]["runtime_conflicts"], [])
+        self.assertEqual(self.report["artifacts"]["changed"], [])
+
+    def test_generated_shape_baseline_is_explicit(self) -> None:
+        self.assertEqual(self.report["generated"]["bsl_functions"], 135)
+        self.assertEqual(self.report["generated"]["bsl_loc"], 3394)
+        self.assertEqual(self.report["generated"]["constructor_names"], 79)
+
+
+class MigrationAuditCompatibilityTests(unittest.TestCase):
     def test_cli_returns_structured_json_for_missing_config(self) -> None:
         result = subprocess.run(
             [
