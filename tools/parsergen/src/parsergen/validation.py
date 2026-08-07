@@ -14,6 +14,7 @@ from .diagnostics import (
     SourcePosition,
     SourceSpan,
 )
+from .lowering import LoweredConstruct, LoweringResult
 from .model import Grammar, IdentifierDefinition, IdentifierRef, NonterminalCall
 from .resolver import (
     ResolvedAlternative,
@@ -52,6 +53,8 @@ def validate_grammar(
     analysis: AnalysisResult | None,
     entrypoints: Mapping[str, str],
     prior_diagnostics: Iterable[Diagnostic] = (),
+    *,
+    lowering: LoweringResult | None = None,
 ) -> ValidationReport:
     return _Validator(
         grammar,
@@ -59,6 +62,7 @@ def validate_grammar(
         analysis,
         entrypoints,
         prior_diagnostics,
+        lowering,
     ).run()
 
 
@@ -70,11 +74,13 @@ class _Validator:
         analysis: AnalysisResult | None,
         entrypoints: Mapping[str, str],
         prior_diagnostics: Iterable[Diagnostic],
+        lowering: LoweringResult | None,
     ) -> None:
         self.grammar = grammar
         self.resolved = resolved
         self.analysis = analysis
         self.entrypoints = entrypoints
+        self.lowering = lowering
         self.bag = DiagnosticBag(prior_diagnostics)
         self.productions = {
             production.name: production
@@ -205,6 +211,8 @@ class _Validator:
         for production in self.grammar.productions:
             if production.name in reachable:
                 continue
+            if self._lowered_construct(production.name) is not None:
+                continue
             self.bag.add(
                 self._diagnostic(
                     "VAL102",
@@ -325,22 +333,34 @@ class _Validator:
                 component,
                 key=self.production_order.__getitem__,
             )
+            source_names = tuple(
+                dict.fromkeys(
+                    self._source_production_name(name)
+                    for name in ordered
+                )
+            )
+            primary_source_name = self._source_production_name(primary_name)
             related = tuple(
                 RelatedLocation(
                     "this production is also nonproductive",
                     self.productions[name].span,
                 )
-                for name in ordered
-                if name != primary_name
+                for name in source_names
+                if name != primary_source_name
+                if name in self.productions
             )
             self.bag.add(
                 self._diagnostic(
                     "VAL200",
                     Severity.ERROR,
                     "production cannot derive a finite token sequence",
-                    self.productions[primary_name].span,
+                    (
+                        self.productions[primary_source_name].span
+                        if primary_source_name in self.productions
+                        else self.productions[primary_name].span
+                    ),
                     related=related,
-                    details={"productions": ordered},
+                    details={"productions": source_names},
                 )
             )
 
@@ -542,9 +562,28 @@ class _Validator:
                     message,
                     cycle.edges[0].span,
                     related=tuple(related),
-                    details={"path": cycle.path},
+                    details={
+                        "path": self._source_cycle_path(cycle.path)
+                    },
                 )
             )
+
+    def _source_cycle_path(
+        self,
+        path: tuple[str, ...],
+    ) -> tuple[str, ...]:
+        collapsed: list[str] = []
+        for name in path:
+            source_name = self._source_production_name(name)
+            if not collapsed or collapsed[-1] != source_name:
+                collapsed.append(source_name)
+        if not collapsed:
+            return ()
+        if len(collapsed) == 1:
+            collapsed.append(collapsed[0])
+        elif collapsed[-1] != collapsed[0]:
+            collapsed.append(collapsed[0])
+        return tuple(collapsed)
 
     def _shortest_cycle(
         self,
@@ -630,7 +669,9 @@ class _Validator:
                         "reachable alternative has an empty SELECT set",
                         alternative.source.span,
                         details={
-                            "production": production_name,
+                            "production": self._source_production_name(
+                                production_name
+                            ),
                             "alternative": number,
                             "k": self.analysis.k,
                         },
@@ -651,21 +692,42 @@ class _Validator:
             )
             if len(epsilon_alternatives) > 1:
                 first, *others = epsilon_alternatives
+                construct = self._lowered_construct(production_name)
                 self.bag.add(
                     self._diagnostic(
                         "LLK201",
                         Severity.ERROR,
                         "production has multiple epsilon alternatives",
-                        first.source.span,
-                        related=tuple(
-                            RelatedLocation(
-                                "another epsilon alternative",
-                                alternative.source.span,
+                        (
+                            construct.source_span
+                            if construct is not None
+                            else first.source.span
+                        ),
+                        related=(
+                            tuple(
+                                RelatedLocation(
+                                    "nullable source alternative",
+                                    self._source_alternative_span(
+                                        production_name,
+                                        alternative.index,
+                                        alternative.source.span,
+                                    ),
+                                )
+                                for alternative in epsilon_alternatives
                             )
-                            for alternative in others
+                            if construct is not None
+                            else tuple(
+                                RelatedLocation(
+                                    "another epsilon alternative",
+                                    alternative.source.span,
+                                )
+                                for alternative in others
+                            )
                         ),
                         details={
-                            "production": production_name,
+                            "production": self._source_production_name(
+                                production_name
+                            ),
                             "alternatives": tuple(
                                 alternative.index + 1
                                 for alternative in epsilon_alternatives
@@ -693,17 +755,43 @@ class _Validator:
             alternatives = self.resolved.productions[conflict.production]
             left = alternatives[conflict.left_alternative - 1]
             right = alternatives[conflict.right_alternative - 1]
+            construct = self._lowered_construct(conflict.production)
             self.bag.add(
                 self._diagnostic(
                     "LLK202",
                     Severity.ERROR,
                     "alternatives have overlapping SELECT sets",
-                    left.source.span,
+                    (
+                        construct.source_span
+                        if construct is not None
+                        else left.source.span
+                    ),
                     related=(
-                        RelatedLocation(
-                            "conflicting alternative",
-                            right.source.span,
-                        ),
+                        (
+                            RelatedLocation(
+                                "first conflicting source alternative",
+                                self._source_alternative_span(
+                                    conflict.production,
+                                    conflict.left_alternative - 1,
+                                    left.source.span,
+                                ),
+                            ),
+                            RelatedLocation(
+                                "second conflicting source alternative",
+                                self._source_alternative_span(
+                                    conflict.production,
+                                    conflict.right_alternative - 1,
+                                    right.source.span,
+                                ),
+                            ),
+                        )
+                        if construct is not None
+                        else (
+                            RelatedLocation(
+                                "conflicting alternative",
+                                right.source.span,
+                            ),
+                        )
                     ),
                     details={
                         "witness": conflict.witness,
@@ -711,6 +799,43 @@ class _Validator:
                     },
                 )
             )
+
+    def _lowered_construct(
+        self,
+        production: str,
+    ) -> LoweredConstruct | None:
+        if self.lowering is None:
+            return None
+        return next(
+            (
+                construct
+                for construct in self.lowering.constructs
+                if production
+                in (construct.production, construct.tail_production)
+            ),
+            None,
+        )
+
+    def _source_production_name(self, production: str) -> str:
+        construct = self._lowered_construct(production)
+        return (
+            construct.source_production
+            if construct is not None
+            else production
+        )
+
+    def _source_alternative_span(
+        self,
+        production: str,
+        alternative: int,
+        fallback: SourceSpan,
+    ) -> SourceSpan:
+        if self.lowering is None:
+            return fallback
+        return self.lowering.alternative_origins.get(
+            (production, alternative),
+            fallback,
+        )
 
     def _invalid_lookahead_alternatives(
         self,

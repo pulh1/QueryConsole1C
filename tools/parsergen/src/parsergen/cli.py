@@ -70,6 +70,7 @@ def compile_from_config(config: ParsergenConfig) -> Compilation:
         analysis,
         config.entrypoints,
         (*parsed.diagnostics, *resolved_result.diagnostics),
+        lowering=parsed.lowering,
     )
     return Compilation(
         parsed.grammar,
