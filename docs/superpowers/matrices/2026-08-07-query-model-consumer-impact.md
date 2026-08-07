@@ -1,50 +1,71 @@
 # Матрица влияния потребителей модели запроса
 
-Состояние: `feature/grammar-optimization`, HEAD `d4ca830`.
-Обозначения: **[Факт]** — подтверждено EDT-MCP/Serena/поиском; **[Вывод]** — будущий test requirement; **[Динамика]** — вызов обработки требует runtime trace.
+Состояние: ветка `feature/grammar-optimization`; `d4ca830` — baseline/source snapshot, а не текущий HEAD. Обозначения: **[Факт]** — подтверждено живым проектом; **[Вывод]** — требование будущего test; **[Динамика]** — путь требует runtime trace.
 
 ## Реестр доказательств
 
-- EDT-MCP: extension `QueryConsoleZUP` готов, содержит 103 BSL-модуля. API: `CommonModules/ЭлементыМоделиЗапроса/Module.bsl`, `ОбработкаМоделиЗапроса/Module.bsl`, `МодельЗапросаУтилиты/Module.bsl`, `ОбходМоделиЯзыкаВыражений/Module.bsl`, `МодельЗапросаТипы/Module.bsl`.
-- `ЭлементыМоделиЗапроса` экспортирует 91 factory, включая `НовыйЭлементМоделиЗапроса`, `НовыйПакетЗапросов`, `НовыйВыражениеМоделиЗапроса`, `НовыйИсполняемоеПредставление`.
-- `rg` по production `src/**/*.bsl` пяти API: 43 файла, 752 совпадения (509/23, 53/15, 152/30, 9/7, 29/12 соответственно). Baseline содержит 751; `git diff d4ca830..HEAD --` для этих API пуст: source commit/diff не найден, значит расходится зафиксированная методика подсчёта, не текущий код.
-- Template visitor содержит 59 callbacks. Сравнение с semantic/filter/SKD concrete visitors: 0 missing и 0 extra; lifecycle/helper: 5, 12 и 4.
-- Existing YAxUnit code: `yaxunit/src/CommonModules/КОНС_Обр_ЛексическийАнализатор_МО/Module.bsl`, `КОНС_Обр_Парсер_МО/Module.bsl`, `КОНС_Обр_ПарсерЗапросов_МО/Module.bsl`, `КОНС_ОМ_ОбработкаМоделиЗапроса/Module.bsl`. Это source evidence, не свежий run.
+- [Факт] EDT-MCP видит ready extension `QueryConsoleZUP` и 103 BSL-модуля. Central API: `CommonModules/ЭлементыМоделиЗапроса/Module.bsl`, `ОбработкаМоделиЗапроса/Module.bsl`, `МодельЗапросаУтилиты/Module.bsl`, `ОбходМоделиЯзыкаВыражений/Module.bsl`, `МодельЗапросаТипы/Module.bsl`.
+- [Факт] `ЭлементыМоделиЗапроса` экспортирует 91 factory. `rg` по production `src/**/*.bsl` пяти API: 43 файла, 752 совпадения (509/23, 53/15, 152/30, 9/7, 29/12). В baseline записано 751; `git diff d4ca830..533d387 --` для пяти API пуст, поэтому source diff, объясняющий число 752, отсутствует.
+- [Факт] Template содержит 59 callbacks; три concrete visitors имеют callback parity 59/59, без missing/extra callback. Методика extra counts: из export methods каждого concrete module исключены 59 callback, включая `ПосетитьВложенныйЗапрос`; остаётся 3 semantic, 7 filter, 1 SKD export.
+- [Факт] Existing YAxUnit source: `yaxunit/src/CommonModules/КОНС_Обр_ЛексическийАнализатор_МО/Module.bsl`, `КОНС_Обр_Парсер_МО/Module.bsl`, `КОНС_Обр_ПарсерЗапросов_МО/Module.bsl`, `КОНС_ОМ_ОбработкаМоделиЗапроса/Module.bsl`; это не fresh run.
+
+## 15 direct Представление* consumers
+
+[Факт] `rg` пяти central API в 19 обнаруженных manager modules нашёл ровно 15 direct consumers: в каждом строка вызывает `МодельЗапросаУтилиты.СоздатьПостроительМодели(Модель)`.
+
+| Concrete manager path | Public entrypoints |
+|---|---|
+| `DataProcessors/ПредставлениеДанныеПозицийШтатногоРасписания/ManagerModule.bsl` | `Описание`, `Справка`, `ИмяПредставления`, `Исполнить`, `ИсполняемыйКод`, `ТекстЗапросаДляСКД` |
+| `DataProcessors/ПредставлениеДанныеСотрудников/ManagerModule.bsl` | `Описание`, `Справка`, `ИмяПредставления`, `Исполнить`, `ИсполняемыйКод`, `ТекстЗапросаДляСКД` |
+| `DataProcessors/ПредставлениеДанныеУчетаВремениСотрудников/ManagerModule.bsl` | `Описание`, `Справка`, `ИмяПредставления`, `Исполнить`, `ИсполняемыйКод`, `ТекстЗапросаДляСКД` |
+| `DataProcessors/ПредставлениеДанныеФизическихЛиц/ManagerModule.bsl` | `Описание`, `Справка`, `ИмяПредставления`, `Исполнить`, `ИсполняемыйКод`, `ТекстЗапросаДляСКД` |
+| `DataProcessors/ПредставлениеНачисленияУдержанияВыплаты/ManagerModule.bsl` | `Описание`, `Справка`, `ИмяПредставления`, `Исполнить`, `ИсполняемыйКод`, `ТекстЗапросаДляСКД` |
+| `DataProcessors/ПредставлениеНачисленияУдержанияВыплатыАвансом/ManagerModule.bsl` | `Описание`, `Справка`, `ИмяПредставления`, `Исполнить`, `ИсполняемыйКод`, `ТекстЗапросаДляСКД` |
+| `DataProcessors/ПредставлениеОстаткиОтпусков/ManagerModule.bsl` | `Описание`, `Справка`, `ИмяПредставления`, `Исполнить`, `ИсполняемыйКод`, `ТекстЗапросаДляСКД` |
+| `DataProcessors/ПредставлениеПериоды/ManagerModule.bsl` | `Описание`, `Справка`, `ИмяПредставления`, `Исполнить`, `ИсполняемыйКод`, `ТекстЗапросаДляСКД` |
+| `DataProcessors/ПредставлениеПлановоеВремяСотрудников/ManagerModule.bsl` | `Описание`, `Справка`, `ИмяПредставления`, `Исполнить`, `ИсполняемыйКод`, `ТекстЗапросаДляСКД` |
+| `DataProcessors/ПредставлениеРабочиеМестаСотрудников/ManagerModule.bsl` | `Описание`, `Справка`, `ИмяПредставления`, `Исполнить`, `ИсполняемыйКод`, `ТекстЗапросаДляСКД` |
+| `DataProcessors/ПредставлениеРегистрСведенийЗаписи/ManagerModule.bsl` | `Описание(ИмяРегистра)`, `Справка`, `ИмяПредставления`, `Исполнить`, `ИсполняемыйКод`, `ТекстЗапросаДляСКД` |
+| `DataProcessors/ПредставлениеРегистрСведенийСрезПоследних/ManagerModule.bsl` | `Описание(ИмяРегистра)`, `Справка`, `ИмяПредставления`, `Исполнить`, `ИсполняемыйКод`, `ТекстЗапросаДляСКД` |
+| `DataProcessors/ПредставлениеСотрудникиОрганизации/ManagerModule.bsl` | `Описание`, `Справка`, `ИмяПредставления`, `Исполнить`, `ИсполняемыйКод`, `ТекстЗапросаДляСКД` |
+| `DataProcessors/ПредставлениеСтажиФизическихЛиц/ManagerModule.bsl` | `Описание`, `Справка`, `ИмяПредставления`, `Исполнить`, `ИсполняемыйКод`, `ТекстЗапросаДляСКД` |
+| `DataProcessors/ПредставлениеФактическиеОтпускаСотрудников/ManagerModule.bsl` | `Описание`, `Справка`, `ИмяПредставления`, `Исполнить`, `ИсполняемыйКод`, `ТекстЗапросаДляСКД` |
+
+[Факт] Direct non-consumer exclusions (в их manager modules `rg` пяти API не нашёл): `DataProcessors/ПредставлениеОплаченноеВремя/ManagerModule.bsl`, `ПредставлениеРегистрНакопленияНарастающийИтог/ManagerModule.bsl`, `ПредставлениеРегистрРасчетаБаза/ManagerModule.bsl`, `ПредставлениеРегистрСведенийПериоды/ManagerModule.bsl`. Это не утверждает отсутствие косвенной динамики.
 
 | Component | Model types/properties | Model ingress | Observable output | Existing automated test | Coverage gap | Required Phase 2.5 test |
 |---|---|---|---|---|---|---|
-| AST factories | [Факт] пакет, запрос, оператор, источник, выражение, исполняемое представление | `CommonModules/ЭлементыМоделиЗапроса/Module.bsl`: `Новый*` | BSL structures, properties, collections | Косвенно parser/semantic YAxUnit | Нет factory-property contract | Headless representative factory-per-family contract |
-| Lexer | Токен: тип, лексема, значение, координаты | `DataProcessors/ЛексическийАнализатор/ObjectModule.bsl`: `Инициализировать`, `УстановитьОбрабатываемыйТекст`, `СледующийТокен` | Tokens/error | `КОНС_Обр_ЛексическийАнализатор_МО.ИсполняемыеСценарии` | Нет fresh runtime baseline | Headless token/EOF/error characterization |
-| Expression parser | Expression AST: value, operation, arguments, flags | `DataProcessors/Парсер/ObjectModule.bsl`: `РазобратьВыражение` | Tree/error | `КОНС_Обр_Парсер_МО.ИсполняемыеСценарии` | Нет contract каждого изменяемого binding | Parser-to-AST cases per migrated property |
-| Full-query parser | Package/query/operator/sources/fields/filters/order/totals/SKD | `DataProcessors/Парсер/ObjectModule.bsl`: `Разобрать` | Package/error | `КОНС_Обр_ПарсерЗапросов_МО.ИсполняемыеСценарии` | Нет full property-level corpus | 12 curated + representative QueryExamples AST contracts |
-| Semantic analyzer | `ТипЗначения`, sources, aliases, aggregate/condition flags | `CommonModules/ОбработкаМоделиЗапроса/Module.bsl`: `ОбработатьМодельЗапроса`, `ОбработатьВыражение`, `ОбработатьУсловие` | Enriched model/error | `КОНС_ОМ_ОбработкаМоделиЗапроса` semantic cases | Нет source/metadata/parser lanes | Headless pure, synthetic, metadata, parser-to-semantic lanes |
-| Expression dispatcher/template | 29 expression kinds; 59 callbacks | `CommonModules/ОбходМоделиЯзыкаВыражений/Module.bsl`: `ОбойтиДерево`; `DataProcessors/Шаблон_ПосетительМоделиВыражений/ObjectModule.bsl` | Enter/exit traversal | Direct test not found | Callbacks not exercised as full set | One 59-callback order contract |
-| Semantic visitor | Nodes, semantic context, `ТипЗначения` | `DataProcessors/СемантическийАнализВыраженийПосетитель/ObjectModule.bsl`: `УстановитьКонтекст` | Semantic expression | Indirect semantic module | No direct visitor characterization | Public-object representative-node contract |
-| Filter applicability visitor | Filter tree, source id, filter description | `DataProcessors/ПроверкаПрименимостиОтбораПосетитель/ObjectModule.bsl`: `УстановитьИдентификаторИсточникаПредставления`, `УстановитьОписаниеОтбора`, `ВыделитьИМодифицироватьОтбор` | Delegated/residual filter | Console/constructor Vanessa workflows | No headless public contract | Delegatable, mixed, prohibited filter cases |
-| SKD dereference visitor | Dereference, type conversion, expression types | `DataProcessors/ОбработчикРазыменованийДляСКДПосетитель/ObjectModule.bsl`: `УстановитьКонтекст` | Transformed SKD expression | Direct test not found | No output-shape contract | Dereference/type-reference headless contract |
-| Model builder | Package/operator/sources/fields/filter/group/order/totals | `DataProcessors/ПостроительМоделиЗапроса/ObjectModule.bsl`: `Инициализировать`, `ПолучитьМодель`, `ДобавитьИсточник`, `ДобавитьОтбор` | Edited valid model | Direct test not found | Object module uncharacterized outside form | Create/mutate/remove source and filter/order/totals sequence |
-| Query/expression text generation | Operator/source/expression, alias/filter/source properties | `CommonModules/ГенерацияТекстовЗапросов/Module.bsl`: `ТекстПакетаЗапросов`, `ТекстЗапросаВыбора`, `ВыражениеВСтроку` | Query/expression text | Feature output evidence | No headless goldens | AST-to-text golden corpus, nested source/filter/SKD |
-| Executable-view processing | Executable view, parameters, filters, temporary tables | `CommonModules/ОбработкаПредставлениеЗапросов/Module.bsl`: `ОбработатьИсточникЗапроса`, `ИсполняемоеПредставлениеПоОписанию` | Execution model | `features/ВыполнениеЗапросовВКонсоли/*.feature` | Transformations not isolated | Description-to-executable-view model contract |
-| Executor/code/SKD generation | Package/source/field/filter/executable views | `CommonModules/ИсполнительПредставлений/Module.bsl`: `ВыполнитьПакетЗапросов`, `ПолучитьИсполняемыйКод`, `ПолучитьТекстЗапросаДляСКД`; `DataProcessors/ГенераторКодаИсполняемыхПредставлений/ObjectModule.bsl`: `ИсполняемыйКод` | Query result, BSL code, SKD | Console execution/code-generation features | No headless snapshots | Representative execution/code/SKD snapshots |
-| Query console underlying logic | Text, parsed package, execution result | `DataProcessors/КонсольЗапросов/ObjectModule.bsl`: `ВыполнитьЗапрос`, `ПреобразоватьВМетаданные` | Result/plan metadata | `features/ВыполнениеЗапросовВКонсоли/*.feature`, `features/ГенерацияКодаВКонсоли/*.feature` | Object contract not characterized | Direct object-module test; retain end-of-migration Vanessa workflow |
-| Query Constructor underlying logic | Available table/source tree and schema query | `DataProcessors/КонструкторЗапросов/ObjectModule.bsl`: `AvailableTablesBeforeExpandAtServer`, `SourcesBeforeExpandAtServer`, `GetSchemaQuery` | Available sources and DCS query | `features/СозданиеЗапросовВКонструкторе/*.feature` | Stable non-form chain needs proof; not manual-only | Characterize these public object calls and any stable common-module path; end UI gate |
-| Universal report | Package/source/filter/SKD adaptation | `Reports/УниверсальныйОтчетРасширенный/ObjectModule.bsl`: `ПриСозданииНаСервере`; `CommonModules/УниверсальныйОтчетРасширенный/Module.bsl`: `ЗаменитьИсполняемыеПредставленияВременнымиТаблицами` | Adapted report query/SKD | Direct test not found | No headless report contract | Common/object-module adaptation characterization |
-| Feature-generation helpers | Query model/text/expected files | `DataProcessors/ГенераторFeatureФайлов/ObjectModule.bsl`: `УстановитьГенераторТекстовВыражений`, `УстановитьТекстовыйДокумент`, `СценарийСозданияПакетаЗапросаВТекДок` | Feature and oracle content | Generated feature suites are downstream only | No helper contract | Model-to-feature fixture golden test |
-| Представление* manager consumers (19 live; brief says 15) | Description/query/code/execution parameters | [Факт] `DataProcessors/Представление*/ManagerModule.bsl`: `Описание`, `Исполнить`, `ИсполняемыйКод`, `ТекстЗапросаДляСКД` where exported | Query result/BSL/SKD | Corresponding console/constructor/code-generation Vanessa scenarios | [Динамика] provider dispatch and infobase dependencies; live count 19 | Per-manager stable exported-function characterization plus representative Vanessa workflows |
+| AST factories | [Факт] package/query/operator/source/expression/executable-view structures | [Факт] `ЭлементыМоделиЗапроса/Module.bsl`: `Новый*` | [Факт] BSL structures/properties/collections | [Факт] indirect parser/semantic YAxUnit | [Факт] no factory-property contract | [Вывод] factory-per-family contract |
+| Lexer | [Факт] token type/lexeme/value/position | [Факт] `ЛексическийАнализатор/ObjectModule.bsl`: `Инициализировать`, `УстановитьОбрабатываемыйТекст`, `СледующийТокен` | [Факт] tokens/error | [Факт] `КОНС_Обр_ЛексическийАнализатор_МО.ИсполняемыеСценарии` | [Факт] no fresh baseline | [Вывод] token/EOF/error characterization |
+| Expression parser | [Факт] expression AST | [Факт] `Парсер/ObjectModule.bsl`: `РазобратьВыражение` | [Факт] tree/error | [Факт] `КОНС_Обр_Парсер_МО.ИсполняемыеСценарии` | [Факт] binding properties uncovered | [Вывод] parser-to-AST cases |
+| Full-query parser | [Факт] package/query/operator/source/field/filter/order/totals/SKD | [Факт] `Парсер/ObjectModule.bsl`: `Разобрать` | [Факт] package/error | [Факт] `КОНС_Обр_ПарсерЗапросов_МО.ИсполняемыеСценарии` | [Факт] no property corpus | [Вывод] curated + QueryExamples contracts |
+| Semantic analyzer | [Факт] `ТипЗначения`, sources, aliases, flags | [Факт] `ОбработкаМоделиЗапроса/Module.bsl`: `ОбработатьМодельЗапроса`, `ОбработатьВыражение`, `ОбработатьУсловие` | [Факт] enriched model/error | [Факт] `КОНС_ОМ_ОбработкаМоделиЗапроса` | [Факт] source/metadata/parser lanes absent | [Вывод] four headless lanes |
+| Expression dispatcher/template | [Факт] 29 kinds, 59 callbacks | [Факт] `ОбходМоделиЯзыкаВыражений/Module.bsl`: `ОбойтиДерево`; template object module | [Факт] enter/exit traversal | [Факт] direct test not found | [Факт] full set unexercised | [Вывод] 59-callback order contract |
+| Semantic visitor | [Факт] nodes/context/`ТипЗначения` | [Факт] `СемантическийАнализВыраженийПосетитель/ObjectModule.bsl`: `УстановитьКонтекст` | [Факт] semantic expression | [Факт] indirect semantic module | [Факт] direct characterization absent | [Вывод] public-object node contract |
+| Filter applicability visitor | [Факт] filter/source id/description | [Факт] `ПроверкаПрименимостиОтбораПосетитель/ObjectModule.bsl`: `УстановитьОписаниеОтбора`, `ВыделитьИМодифицироватьОтбор` | [Факт] delegated/residual filter | [Факт] console/constructor Vanessa workflows | [Факт] direct contract absent | [Вывод] delegatable/mixed/prohibited cases |
+| SKD dereference visitor | [Факт] dereference/type conversion | [Факт] `ОбработчикРазыменованийДляСКДПосетитель/ObjectModule.bsl`: `УстановитьКонтекст` | [Факт] transformed expression | [Факт] direct test not found | [Факт] output-shape contract absent | [Вывод] dereference/type cases |
+| Model builder | [Факт] package/operator/source/filter/order/totals | [Факт] `ПостроительМоделиЗапроса/ObjectModule.bsl`: `Инициализировать`, `ПолучитьМодель`, `ДобавитьИсточник`, `ДобавитьОтбор` | [Факт] edited model | [Факт] direct test not found | [Факт] object module uncharacterized | [Вывод] mutation sequence |
+| Query/expression text generation | [Факт] operator/source/expression/filter | [Факт] `ГенерацияТекстовЗапросов/Module.bsl`: `ТекстПакетаЗапросов`, `ТекстЗапросаВыбора`, `ВыражениеВСтроку` | [Факт] query/expression text | [Факт] feature output evidence | [Факт] headless goldens absent | [Вывод] AST-to-text goldens |
+| Executable-view processing | [Факт] executable view/parameters/filters/VT | [Факт] `ОбработкаПредставлениеЗапросов/Module.bsl`: `ОбработатьИсточникЗапроса`, `ИсполняемоеПредставлениеПоОписанию` | [Факт] execution model | [Факт] console execution features | [Факт] transform contract absent | [Вывод] description-to-model cases |
+| Executor/code/SKD generation | [Факт] package/source/field/filter/view | [Факт] `ИсполнительПредставлений/Module.bsl`: `ВыполнитьПакетЗапросов`, `ПолучитьИсполняемыйКод`, `ПолучитьТекстЗапросаДляСКД`; code generator: `ИсполняемыйКод` | [Факт] query result/BSL/SKD | [Факт] console execution/code features | [Факт] headless snapshots absent | [Вывод] representative snapshots |
+| Query console underlying logic | [Факт] text/package/result | [Факт] `КонсольЗапросов/ObjectModule.bsl`: `ВыполнитьЗапрос`, `ПреобразоватьВМетаданные` | [Факт] result/plan metadata | [Факт] execution/code features | [Факт] object contract absent | [Вывод] direct object characterization + Vanessa workflow |
+| Query Constructor underlying logic | [Факт] available table/source tree/schema query | [Факт] `КонструкторЗапросов/ObjectModule.bsl`: `AvailableTablesBeforeExpandAtServer`, `SourcesBeforeExpandAtServer`, `GetSchemaQuery` | [Факт] sources/DCS query | [Факт] constructor features | [Динамика] stable non-form chain unproven; not manual-only | [Вывод] characterize public object calls and stable chain; UI gate last |
+| Universal report | [Факт] package/source/filter/SKD adaptation | [Факт] report object `ПриСозданииНаСервере`; `УниверсальныйОтчетРасширенный/Module.bsl`: `ЗаменитьИсполняемыеПредставленияВременнымиТаблицами` | [Факт] adapted query/SKD | [Факт] direct test not found | [Факт] report contract absent | [Вывод] common/object characterization |
+| Feature-generation helpers | [Факт] model/text/feature document | [Факт] `ГенераторFeatureФайлов/ObjectModule.bsl`: `УстановитьГенераторТекстовВыражений`, `УстановитьТекстовыйДокумент`, `СценарийСозданияПакетаЗапросаВТекДок` | [Факт] feature/oracle content | [Факт] generated suites downstream only | [Факт] helper contract absent | [Вывод] model-to-feature golden |
+| 15 Представление* manager consumers | [Факт] model via `СоздатьПостроительМодели(Модель)` | [Факт] 15 concrete paths/exports above | [Факт] query result/BSL/SKD through listed exports | [Факт] corresponding Vanessa workflows | [Динамика] provider dispatch/infobase dependencies not traced | [Вывод] per-manager exported-function characterization + representative Vanessa |
 
-### Факты
+## Факты
 
-EDT-MCP подтвердил paths и public entrypoints из матрицы. Serena подтвердил active BSL EDT project. Form modules не являются unit-test target, но их callable common/object dependencies входят в headless scope. Vanessa suites есть для console execution/code generation и Query Constructor, но не заменяют headless characterization.
+[Факт] Form modules are not unit-test targets; callable common/object-module dependencies remain headless scope. [Факт] Query Constructor имеет Vanessa workflow coverage, но это не доказывает manual-only status.
 
-### Гипотезы
+## Гипотезы
 
-Отсутствуют: **[Вывод]** в таблице ограничен будущим test requirement и не утверждает текущее runtime-поведение.
+Нет.
 
-### Пробелы
+## Пробелы
 
-1. Fresh YAxUnit/Vanessa run требует launch configuration и не выполнялся.
-2. [Динамика] `Обработки.*.Создать()` и provider dispatch требуют runtime trace.
-3. Live EDT modules дают 19 `Представление*` managers; значение 15 из brief нельзя переносить в migration backlog без отдельной сверки.
+- [Динамика] `Обработки.*.Создать()` и provider dispatch требуют runtime trace.
+- [Факт] Fresh YAxUnit/Vanessa run требует launch configuration и здесь не запускался.
 
 ## Change protocol
 
@@ -59,4 +80,5 @@ dependencies remain in headless scope. A workflow is manual/Vanessa-only only
 after its entrypoint analysis proves that no stable non-form contract can be
 invoked.
 
-Для Query Constructor такого доказательства нет: Vanessa scenarios — workflow coverage, не доказательство manual-only. Интерактивный UI gate — в конце миграции.
+Для Query Constructor такого доказательства нет: Vanessa scenarios — workflow
+coverage, не доказательство manual-only. Интерактивный UI gate — в конце миграции.
