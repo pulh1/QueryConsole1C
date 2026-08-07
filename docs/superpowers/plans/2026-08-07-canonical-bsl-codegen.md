@@ -171,15 +171,15 @@
 - Document the production-ready canonical backend API without switching production config.
 - Record exact test counts and repository audit metrics.
 
-- [ ] Run the complete parsergen suite and record pass/skip/subtest counts.
-- [ ] Run `validate`, `analyze`, `generate --check` read-only; preserve two canonical `LLK202` and exit code `1` baseline.
-- [ ] Run migration audit and require `124/281`, `63` epsilon, `11273` legacy rows, `runtime_conflicts == []` and `artifacts.changed == []`.
-- [ ] Run exact legacy BSL renderer/reference artifact tests after the neutral helper extraction.
-- [ ] Generate representative canonical modules for star/plus/optional/bindings and machine-check absence of legacy matcher and synthetic function names.
-- [ ] Use EDT read-only structure/source evidence to document the unchanged production parser baseline and future cutover boundary.
-- [ ] Update architecture documentation with canonical template, inline predicate semantics, explicit errors, loop/optional shapes and remaining runtime-test limitation.
-- [ ] Run `git diff --check`; confirm no production grammar/query model/BSL/form diff.
-- [ ] Commit and push as `Документировать canonical BSL codegen`.
+- [x] Run the complete parsergen suite and record pass/skip/subtest counts.
+- [x] Run `validate`, `analyze`, `generate --check` read-only; preserve two canonical `LLK202` and exit code `1` baseline.
+- [x] Run migration audit and require `124/281`, `63` epsilon, `11273` legacy rows, `runtime_conflicts == []` and `artifacts.changed == []`.
+- [x] Run exact legacy BSL renderer/reference artifact tests after the neutral helper extraction.
+- [x] Generate representative canonical modules for star/plus/optional/bindings and machine-check absence of legacy matcher and synthetic function names.
+- [x] Use EDT read-only structure/source evidence to document the unchanged production parser baseline and future cutover boundary.
+- [x] Update architecture documentation with canonical template, inline predicate semantics, explicit errors, loop/optional shapes and remaining runtime-test limitation.
+- [x] Run `git diff --check`; confirm no production grammar/query model/BSL/form diff.
+- [x] Commit and push as `Документировать canonical BSL codegen`.
 
 ---
 
