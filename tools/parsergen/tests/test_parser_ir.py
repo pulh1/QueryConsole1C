@@ -103,6 +103,30 @@ class ParserIrTests(unittest.TestCase):
                 analysis,
             )
 
+    def test_rejects_unbound_repeated_semantic_value_before_codegen(self) -> None:
+        for operator in ("*", "+"):
+            with self.subTest(operator=operator):
+                parsed = parse_grammar(
+                    f"<S> ::= <A>{operator}\n<A> ::= ITEM"
+                )
+                assert parsed.grammar is not None
+                assert parsed.source_grammar is not None
+                assert parsed.lowering is not None
+                resolved = resolve_grammar(parsed.grammar)
+                assert resolved.grammar is not None
+                analysis = compute_analysis(resolved.grammar, 1, ("S",))
+
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "repeated semantic value requires collection binding",
+                ):
+                    build_parser_ir(
+                        parsed.source_grammar,
+                        parsed.lowering,
+                        resolved.grammar,
+                        analysis,
+                    )
+
     def test_separator_star_becomes_repeat_loop_without_synthetic_function(
         self,
     ) -> None:

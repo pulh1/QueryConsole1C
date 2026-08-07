@@ -125,15 +125,15 @@
 - `OptionalBranch` renders consuming alternatives, exit condition and exit operations.
 - `RepeatLoop` renders one BSL `Пока` with consuming union and post-loop exit validation.
 
-- [ ] Write RED code-shape tests for empty/single/many `*`, `+`, separator repeat, nested repeat/optional and `k=3` decisions.
-- [ ] Render `Dispatch` through the canonical condition renderer and return its explicit branch value when `BranchIr.result_index` is set.
-- [ ] Render `OptionalBranch` with explicit exit `ИначеЕсли`; render `exit_operations` only for the exit alternative and throw for tokens outside all SELECT rows.
-- [ ] Render `RepeatLoop` with the OR-union of consuming alternatives in `Пока`; when several branches exist, dispatch inside the body using the same disjoint conditions.
-- [ ] After loop termination, require the canonical exit condition; emit no append or parse operation for exit.
-- [ ] Prove generated module contains one loop, no function named from `__parsergen_ebnf__`, no recursive synthetic call and no legacy dispatch name.
-- [ ] Add a long-list grammar test whose generated function count and loop count are constant as the conceptual item count grows.
-- [ ] Run EBNF codegen, Parser IR, analysis oracle and diagnostics suites GREEN.
-- [ ] Commit and push as `Генерировать BSL loops для EBNF`.
+- [x] Write RED code-shape tests for empty/single/many `*`, `+`, separator repeat, nested repeat/optional and `k=3` decisions.
+- [x] Render `Dispatch` through the canonical condition renderer and return its explicit branch value when `BranchIr.result_index` is set.
+- [x] Render `OptionalBranch` with explicit exit `ИначеЕсли`; render `exit_operations` only for the exit alternative and throw for tokens outside all SELECT rows.
+- [x] Render `RepeatLoop` with the OR-union of consuming alternatives in `Пока`; when several branches exist, dispatch inside the body using the same disjoint conditions.
+- [x] After loop termination, require the canonical exit condition; emit no append or parse operation for exit.
+- [x] Prove generated module contains one loop, no function named from `__parsergen_ebnf__`, no recursive synthetic call and no legacy dispatch name.
+- [x] Add a long-list grammar test whose generated function count and loop count are constant as the conceptual item count grows.
+- [x] Run EBNF codegen, Parser IR, analysis oracle and diagnostics suites GREEN.
+- [x] Commit and push as `Генерировать BSL loops для EBNF`.
 
 ---
 

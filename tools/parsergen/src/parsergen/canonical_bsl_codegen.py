@@ -19,7 +19,17 @@ from .model import (
     SyntaxSymbol,
     Terminal,
 )
-from .parser_ir import AlternativeIr, ParseSymbol, ParserIr, ProductionIr
+from .parser_ir import (
+    AlternativeIr,
+    BranchIr,
+    Dispatch,
+    Operation,
+    OptionalBranch,
+    ParseSymbol,
+    ParserIr,
+    ProductionIr,
+    RepeatLoop,
+)
 from .source_model import SourceGrammar
 from .value_table_codec import ColumnKind, ValueColumn, ValueTable
 
@@ -216,7 +226,11 @@ class _CanonicalBslGenerator:
         ]
         if production.decision is None:
             lines.extend(
-                self._render_alternative(production.alternatives[0], "\t")
+                self._render_alternative(
+                    production.alternatives[0],
+                    "\t",
+                    production.name,
+                )
             )
         else:
             for position, alternative in enumerate(production.alternatives):
@@ -226,7 +240,13 @@ class _CanonicalBslGenerator:
                     alternative.index + 1,
                 )
                 lines.append(f"\t{keyword} {condition} Тогда")
-                lines.extend(self._render_alternative(alternative, "\t\t"))
+                lines.extend(
+                    self._render_alternative(
+                        alternative,
+                        "\t\t",
+                        production.name,
+                    )
+                )
             lines.extend(
                 (
                     "\tИначе",
@@ -242,26 +262,242 @@ class _CanonicalBslGenerator:
         self,
         alternative: AlternativeIr,
         indent: str,
+        error_label: str,
     ) -> list[str]:
-        values: list[str | None] = []
-        lines: list[str] = []
-        for operation in alternative.operations:
-            if not isinstance(operation, ParseSymbol):
-                raise ValueError(
-                    f"unsupported canonical operation {type(operation).__name__}"
-                )
-            self._temporary += 1
-            temporary = f"Значение{self._temporary}"
-            lines.append(
-                f"{indent}{temporary} = {_symbol_call(operation.symbol)};"
-            )
-            values.append(temporary)
+        lines, values = self._render_operations(
+            alternative.operations,
+            indent,
+            error_label,
+        )
         if alternative.result_index is not None:
             value = values[alternative.result_index]
             if value is None:
                 raise ValueError("transparent result operation has no value")
             lines.append(f"{indent}РезультатПродукции = {value};")
         return lines
+
+    def _render_operations(
+        self,
+        operations: tuple[Operation, ...],
+        indent: str,
+        error_label: str,
+    ) -> tuple[list[str], list[str | None]]:
+        lines: list[str] = []
+        values: list[str | None] = []
+        for operation in operations:
+            rendered, value = self._render_operation(
+                operation,
+                indent,
+                error_label,
+            )
+            lines.extend(rendered)
+            values.append(value)
+        return lines, values
+
+    def _render_operation(
+        self,
+        operation: Operation,
+        indent: str,
+        error_label: str,
+    ) -> tuple[list[str], str | None]:
+        if isinstance(operation, ParseSymbol):
+            temporary = self._new_temporary()
+            return (
+                [
+                    f"{indent}{temporary} = "
+                    f"{_symbol_call(operation.symbol)};"
+                ],
+                temporary,
+            )
+        if isinstance(operation, Dispatch):
+            return self._render_dispatch(
+                operation,
+                indent,
+                error_label,
+            )
+        if isinstance(operation, OptionalBranch):
+            return self._render_optional(
+                operation,
+                indent,
+                error_label,
+            )
+        if isinstance(operation, RepeatLoop):
+            return self._render_repeat(
+                operation,
+                indent,
+                error_label,
+            )
+        raise ValueError(
+            f"unsupported canonical operation {type(operation).__name__}"
+        )
+
+    def _render_dispatch(
+        self,
+        dispatch: Dispatch,
+        indent: str,
+        error_label: str,
+    ) -> tuple[list[str], str | None]:
+        result = self._branch_result_temporary(dispatch.branches)
+        lines: list[str] = []
+        for position, branch in enumerate(dispatch.branches):
+            keyword = "Если" if position == 0 else "ИначеЕсли"
+            condition = self._conditions.for_alternative(
+                dispatch.decision,
+                branch.alternative,
+            )
+            lines.append(f"{indent}{keyword} {condition} Тогда")
+            branch_lines, values = self._render_operations(
+                branch.operations,
+                indent + "\t",
+                error_label,
+            )
+            lines.extend(branch_lines)
+            if result is not None:
+                assert branch.result_index is not None
+                value = values[branch.result_index]
+                if value is None:
+                    raise ValueError("dispatch branch result has no value")
+                lines.append(f"{indent}\t{result} = {value};")
+        lines.extend(
+            (
+                f"{indent}Иначе",
+                self._syntax_error_line(indent + "\t", error_label),
+                f"{indent}КонецЕсли;",
+            )
+        )
+        return lines, result
+
+    def _render_optional(
+        self,
+        optional: OptionalBranch,
+        indent: str,
+        error_label: str,
+    ) -> tuple[list[str], str | None]:
+        result = self._branch_result_temporary(optional.branches)
+        lines: list[str] = []
+        for position, branch in enumerate(optional.branches):
+            keyword = "Если" if position == 0 else "ИначеЕсли"
+            condition = self._conditions.for_alternative(
+                optional.decision,
+                branch.alternative,
+            )
+            lines.append(f"{indent}{keyword} {condition} Тогда")
+            branch_lines, values = self._render_operations(
+                branch.operations,
+                indent + "\t",
+                error_label,
+            )
+            lines.extend(branch_lines)
+            if result is not None:
+                assert branch.result_index is not None
+                value = values[branch.result_index]
+                if value is None:
+                    raise ValueError("optional branch result has no value")
+                lines.append(f"{indent}\t{result} = {value};")
+        exit_condition = self._conditions.for_alternative(
+            optional.decision,
+            optional.exit_alternative,
+        )
+        lines.append(f"{indent}ИначеЕсли {exit_condition} Тогда")
+        exit_lines, _ = self._render_operations(
+            optional.exit_operations,
+            indent + "\t",
+            error_label,
+        )
+        lines.extend(exit_lines)
+        if result is not None:
+            lines.append(f"{indent}\t{result} = Неопределено;")
+        lines.extend(
+            (
+                f"{indent}Иначе",
+                self._syntax_error_line(indent + "\t", error_label),
+                f"{indent}КонецЕсли;",
+            )
+        )
+        return lines, result
+
+    def _render_repeat(
+        self,
+        repeat: RepeatLoop,
+        indent: str,
+        error_label: str,
+    ) -> tuple[list[str], None]:
+        alternatives = tuple(
+            branch.alternative
+            for branch in repeat.branches
+        )
+        consume_condition = self._conditions.for_alternatives(
+            repeat.decision,
+            alternatives,
+        )
+        lines = [f"{indent}Пока {consume_condition} Цикл"]
+        if len(repeat.branches) == 1:
+            body, _ = self._render_operations(
+                repeat.branches[0].operations,
+                indent + "\t",
+                error_label,
+            )
+            lines.extend(body)
+        else:
+            for position, branch in enumerate(repeat.branches):
+                keyword = "Если" if position == 0 else "ИначеЕсли"
+                condition = self._conditions.for_alternative(
+                    repeat.decision,
+                    branch.alternative,
+                )
+                lines.append(
+                    f"{indent}\t{keyword} {condition} Тогда"
+                )
+                body, _ = self._render_operations(
+                    branch.operations,
+                    indent + "\t\t",
+                    error_label,
+                )
+                lines.extend(body)
+            lines.extend(
+                (
+                    f"{indent}\tИначе",
+                    self._syntax_error_line(indent + "\t\t", error_label),
+                    f"{indent}\tКонецЕсли;",
+                )
+            )
+        lines.append(f"{indent}КонецЦикла;")
+        exit_condition = self._conditions.for_alternative(
+            repeat.decision,
+            repeat.exit_alternative,
+        )
+        lines.extend(
+            (
+                f"{indent}Если Не {exit_condition} Тогда",
+                self._syntax_error_line(indent + "\t", error_label),
+                f"{indent}КонецЕсли;",
+            )
+        )
+        return lines, None
+
+    def _branch_result_temporary(
+        self,
+        branches: tuple[BranchIr, ...],
+    ) -> str | None:
+        has_result = tuple(
+            branch.result_index is not None
+            for branch in branches
+        )
+        if any(has_result) and not all(has_result):
+            raise ValueError(
+                "control-flow branches have inconsistent semantic results"
+            )
+        return self._new_temporary() if all(has_result) else None
+
+    def _new_temporary(self) -> str:
+        self._temporary += 1
+        return f"Значение{self._temporary}"
+
+    def _syntax_error_line(self, indent: str, label: str) -> str:
+        return (
+            f"{indent}ВызватьИсключениеСинтаксическаяОшибка("
+            f"{bsl_string(label)});"
+        )
 
 
 def _load_template() -> str:

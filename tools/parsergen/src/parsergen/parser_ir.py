@@ -388,6 +388,13 @@ class _ParserIrBuilder:
             if binding is not None
             else self._primary_branches(repeat.body)
         )
+        if binding is None and any(
+            branch.result_index is not None
+            for branch in branches
+        ):
+            raise ValueError(
+                "repeated semantic value requires collection binding"
+            )
         result: list[Operation] = []
         decision_production = construct.production
         if kind is LoweredConstructKind.PLUS:
