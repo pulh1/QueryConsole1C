@@ -14,6 +14,9 @@ from .model import (
     Terminal,
 )
 from .source_model import (
+    SourceBinding,
+    SourceConstantBinding,
+    SourceConstructor,
     SourceAlternative,
     SourceGrammar,
     SourceGroup,
@@ -208,6 +211,10 @@ def _item_facts(
         # call as consuming here so a derived progress error cannot mask the
         # primary resolver error once canonical lowering is available.
         return production_facts.get(item.name, _TOKEN)
+    if isinstance(item, SourceBinding):
+        return _item_facts(item.value, production_facts)
+    if isinstance(item, (SourceConstructor, SourceConstantBinding)):
+        return _EPSILON
     if isinstance(item, Action):
         return _EPSILON
     if isinstance(item, SourceGroup):
@@ -244,6 +251,14 @@ def _validate_sequence(
                         item.span,
                     )
                 )
+            continue
+        if isinstance(item, SourceBinding):
+            _validate_sequence(
+                SourceSequence((item.value,), item.value.span),
+                production_facts,
+                bag,
+                inside_construct=inside_construct,
+            )
             continue
         if isinstance(item, SourceGroup):
             _validate_group(

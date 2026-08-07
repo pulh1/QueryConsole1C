@@ -112,6 +112,19 @@ class SourceValidationTests(unittest.TestCase):
         self.assertIsNone(result.grammar)
         self.assertIsNotNone(result.source_grammar)
 
+    def test_binding_does_not_hide_nullable_repeat_body(self) -> None:
+        parsed = parse_source_grammar(
+            "<S> ::= @НовыйУзел Элементы += <N>*\n<N> ::= ПУСТО"
+        )
+        assert parsed.grammar is not None
+
+        report = validate_source_grammar(parsed.grammar)
+
+        self.assertEqual(
+            [item.code for item in report.diagnostics],
+            ["EBNF201"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import re
 
+from .binding_validation import validate_bindings
 from .diagnostics import Diagnostic, DiagnosticBag, Severity, SourcePosition, SourceSpan
 from .lowering import LoweringResult, lower_source_grammar
 from .model import (
@@ -90,6 +91,16 @@ _BINDING_CONSTANT = re.compile(
 def parse_grammar(text: str, path: str = "<memory>") -> ParseResult:
     source_result = parse_source_grammar(text, path)
     diagnostics = DiagnosticBag(source_result.diagnostics)
+    if (
+        source_result.grammar is not None
+        and not diagnostics.has_errors
+    ):
+        diagnostics.extend(
+            validate_source_grammar(source_result.grammar).diagnostics
+        )
+        diagnostics.extend(
+            validate_bindings(source_result.grammar).diagnostics
+        )
     first_binding = _first_binding_span(source_result.grammar)
     if first_binding is not None and not diagnostics.has_errors:
         _error(
@@ -97,13 +108,6 @@ def parse_grammar(text: str, path: str = "<memory>") -> ParseResult:
             "BIND100",
             "declarative binding lowering is not available yet",
             first_binding,
-        )
-    if (
-        source_result.grammar is not None
-        and not diagnostics.has_errors
-    ):
-        diagnostics.extend(
-            validate_source_grammar(source_result.grammar).diagnostics
         )
     lowering = None
     if source_result.grammar is not None and not diagnostics.has_errors:
