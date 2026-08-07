@@ -430,6 +430,18 @@ family получает RED YAxUnit expectation левой ассоциатив�
   после точки и после `КАК`, запрещённого bare keyword и недопустимых alias/type
   group; её выполнение на платформе остаётся финальным YAxUnit/Vanessa gate.
 
+## First production direct-LR checkpoint
+
+Production config явно перевёл `АрифметическоеВыражение` и
+`Слагаемое` в canonical ownership. Две continuation-productions удалены
+из source grammar, а generated functions реализуют iterative left fold
+без self-recursion и `НомерВариантаПродукции`.
+
+CLI, read-only audit и reference test выбирают backend через общий
+`generate_from_compilation`; full legacy matcher остаётся отдельным audit
+contract. Exact metrics, tests и remaining gates зафиксированы в
+[production checkpoint](../superpowers/matrices/2026-08-07-arithmetic-direct-lr-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:

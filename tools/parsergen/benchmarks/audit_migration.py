@@ -18,8 +18,7 @@ from parsergen.analysis import (
     find_canonical_select_conflicts,
 )
 from parsergen.artifacts import compare_artifacts, render_artifacts
-from parsergen.bsl_codegen import generate_parser
-from parsergen.cli import compile_from_config
+from parsergen.cli import compile_from_config, generate_from_compilation
 from parsergen.config import load_config
 from parsergen.model import NonterminalCall
 from parsergen.semantic_actions import (
@@ -144,22 +143,19 @@ def build_migration_audit(
         compilation.grammar is None
         or compilation.resolved is None
         or compilation.analysis is None
+        or compilation.source_grammar is None
     ):
         raise ValueError("production grammar did not produce a complete analysis")
 
     grammar = compilation.grammar
+    source_grammar = compilation.source_grammar
     resolved = compilation.resolved
     analysis = compilation.analysis
     legacy_artifact = build_legacy_matcher_artifact(
         analysis,
         max_rows=max_matcher_rows,
     )
-    generated = generate_parser(
-        grammar,
-        resolved,
-        analysis,
-        config.entrypoints,
-    )
+    generated = generate_from_compilation(config, compilation)
     rendered = render_artifacts(generated)
     comparison = compare_artifacts(config.target, rendered)
     actions = classify_semantic_actions(grammar)
@@ -180,8 +176,13 @@ def build_migration_audit(
             "target": str(config.target.relative_to(config_path.parent)),
             "lookahead": config.lookahead,
             "entrypoints": dict(config.entrypoints),
+            "canonical_productions": list(config.canonical_productions),
         },
         "structural": {
+            "source_productions": len(source_grammar.productions),
+            "source_alternatives": sum(
+                len(item.alternatives) for item in source_grammar.productions
+            ),
             "productions": len(grammar.productions),
             "alternatives": sum(
                 len(item.alternatives) for item in grammar.productions

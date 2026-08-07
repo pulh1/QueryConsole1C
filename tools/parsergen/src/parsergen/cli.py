@@ -14,7 +14,7 @@ from .analysis import (
     compute_analysis,
 )
 from .artifacts import compare_artifacts, render_artifacts, replace_artifacts
-from .bsl_codegen import generate_parser
+from .bsl_codegen import GeneratedParser, generate_parser
 from .config import ParsergenConfig, load_config
 from .diagnostics import Diagnostic, Severity
 from .grammar_parser import parse_grammar
@@ -84,6 +84,44 @@ def compile_from_config(config: ParsergenConfig) -> Compilation:
     )
 
 
+def generate_from_compilation(
+    config: ParsergenConfig,
+    compilation: Compilation,
+) -> GeneratedParser:
+    if (
+        compilation.grammar is None
+        or compilation.resolved is None
+        or compilation.analysis is None
+    ):
+        raise ValueError("grammar did not produce a complete analysis")
+    if not config.canonical_productions:
+        return generate_parser(
+            compilation.grammar,
+            compilation.resolved,
+            compilation.analysis,
+            config.entrypoints,
+        )
+    if compilation.source_grammar is None or compilation.lowering is None:
+        raise ValueError("canonical migration requires source grammar lowering")
+    parser_ir = build_parser_ir(
+        compilation.source_grammar,
+        compilation.lowering,
+        compilation.resolved,
+        compilation.analysis,
+        production_names=config.canonical_productions,
+    )
+    return generate_hybrid_parser(
+        compilation.source_grammar,
+        compilation.lowering,
+        compilation.grammar,
+        compilation.resolved,
+        compilation.analysis,
+        parser_ir,
+        canonical_productions=config.canonical_productions,
+        entrypoints=config.entrypoints,
+    )
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     _configure_console_encoding()
     try:
@@ -109,36 +147,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 sys.stdout.write(_analysis_text(compilation.analysis))
         elif arguments.command == "generate":
             try:
-                assert compilation.grammar is not None
-                assert compilation.resolved is not None
-                assert compilation.analysis is not None
-                if config.canonical_productions:
-                    assert compilation.source_grammar is not None
-                    assert compilation.lowering is not None
-                    parser_ir = build_parser_ir(
-                        compilation.source_grammar,
-                        compilation.lowering,
-                        compilation.resolved,
-                        compilation.analysis,
-                        production_names=config.canonical_productions,
-                    )
-                    generated = generate_hybrid_parser(
-                        compilation.source_grammar,
-                        compilation.lowering,
-                        compilation.grammar,
-                        compilation.resolved,
-                        compilation.analysis,
-                        parser_ir,
-                        canonical_productions=config.canonical_productions,
-                        entrypoints=config.entrypoints,
-                    )
-                else:
-                    generated = generate_parser(
-                        compilation.grammar,
-                        compilation.resolved,
-                        compilation.analysis,
-                        config.entrypoints,
-                    )
+                generated = generate_from_compilation(config, compilation)
                 artifacts = render_artifacts(
                     generated
                 )

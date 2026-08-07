@@ -35,7 +35,10 @@ class ConfigTests(unittest.TestCase):
             (repository_root / "QueryConsoleZUP/src/DataProcessors/Парсер").resolve(),
         )
         self.assertEqual(config.lookahead, 2)
-        self.assertEqual(config.canonical_productions, ())
+        self.assertEqual(
+            config.canonical_productions,
+            ("АрифметическоеВыражение", "Слагаемое"),
+        )
         self.assertEqual(
             list(config.entrypoints.items()),
             [

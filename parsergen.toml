@@ -2,6 +2,9 @@ grammar = "tools/parsergen/grammar/query-language.grammar"
 target = "QueryConsoleZUP/src/DataProcessors/Парсер"
 lookahead = 2
 
+[migration]
+canonical_productions = ["АрифметическоеВыражение", "Слагаемое"]
+
 [entrypoints]
 "Разобрать" = "ПакетЗапросов"
 "РазобратьВыражение" = "Выражение"

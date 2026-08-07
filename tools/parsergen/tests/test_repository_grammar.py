@@ -7,11 +7,18 @@ from parsergen.analysis import (
     find_select_conflicts,
 )
 from parsergen.grammar_parser import parse_grammar
+from parsergen.hybrid_bsl_codegen import generate_hybrid_parser
+from parsergen.parser_ir import LeftFold, build_parser_ir
 from parsergen.resolver import resolve_grammar
 
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY_GRAMMAR = PACKAGE_ROOT / "grammar/query-language.grammar"
+
+
+def _generated_function(module: str, production: str) -> str:
+    marker = f"Функция НеТерминал{production}("
+    return module.split(marker, 1)[1].split("КонецФункции", 1)[0]
 
 
 class RepositoryGrammarCompatibilityTests(unittest.TestCase):
@@ -21,7 +28,9 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             str(REPOSITORY_GRAMMAR),
         )
         self.assertEqual(parsed.diagnostics, ())
+        assert parsed.source_grammar is not None
         assert parsed.grammar is not None
+        self.assertEqual(len(parsed.source_grammar.productions), 122)
         self.assertEqual(len(parsed.grammar.productions), 124)
 
         resolution = resolve_grammar(parsed.grammar)
@@ -86,6 +95,102 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(stats["public_select_expansions"], 0)
         self.assertEqual(stats["select_cartesian_materializations"], 0)
         self.assertEqual(stats["select_packed_product_rows"], 0)
+
+    def test_arithmetic_families_lower_to_canonical_left_folds(self) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=("АрифметическоеВыражение", "Слагаемое"),
+        )
+
+        self.assertEqual(
+            tuple(production.name for production in parser_ir.productions),
+            ("АрифметическоеВыражение", "Слагаемое"),
+        )
+        for production in parser_ir.productions:
+            with self.subTest(production=production.name):
+                self.assertEqual(len(production.alternatives), 1)
+                self.assertIsInstance(
+                    production.alternatives[0].operations[0],
+                    LeftFold,
+                )
+
+    def test_arithmetic_families_generate_iterative_left_folds(self) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        canonical = ("АрифметическоеВыражение", "Слагаемое")
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=canonical,
+        )
+
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=canonical,
+            entrypoints={
+                "РазобратьПакетЗапросов": "ПакетЗапросов",
+                "РазобратьВыражение": "Выражение",
+            },
+        )
+
+        module = generated.module_text
+        self.assertNotIn("Функция НеТерминалАрифметическаяОперация(", module)
+        self.assertNotIn("Функция НеТерминалОперацияУмножения(", module)
+        expected = {
+            "АрифметическоеВыражение": (2, "НеТерминалСлагаемое()"),
+            "Слагаемое": (3, "НеТерминалМножитель()"),
+        }
+        for production, (branches, base_call) in expected.items():
+            with self.subTest(production=production):
+                function = _generated_function(module, production)
+                self.assertEqual(function.count("Пока "), 1)
+                self.assertNotIn(f"НеТерминал{production}(", function)
+                self.assertNotIn("НомерВариантаПродукции", function)
+                self.assertIn(base_call, function)
+                self.assertEqual(
+                    function.count("ЭлементыМоделиЗапроса.НовыйБинарнаяОперация("),
+                    branches,
+                )
+                self.assertEqual(function.count("ЭтотУзел.ЛеваяЧасть ="), branches)
+                self.assertEqual(function.count("ЭтотУзел.Операция ="), branches)
+                self.assertEqual(function.count("ЭтотУзел.ПраваяЧасть ="), branches)
 
 
 if __name__ == "__main__":
