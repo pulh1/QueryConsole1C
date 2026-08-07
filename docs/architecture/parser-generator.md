@@ -543,6 +543,11 @@ scalar/collection bindings. `ДАТАВРЕМЯ` lowered в loop, optional path 
 Exact delta:
 [function checkpoint](../superpowers/matrices/2026-08-07-function-binding-checkpoint.md).
 
+`Операнд` затем стал transparent canonical choice для шести предметных child
+types. Шесть structural propagation actions удалены без изменения query model;
+legacy `Поле` пока вызывается через hybrid ABI. Exact delta:
+[operand checkpoint](../superpowers/matrices/2026-08-07-operand-transparent-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:

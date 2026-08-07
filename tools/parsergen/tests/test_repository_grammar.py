@@ -29,6 +29,7 @@ MIGRATED_PRODUCTIONS = (
     "АрифметическоеВыражение",
     "Слагаемое",
     "УнарнаяОперация",
+    "Операнд",
     "СписокВыражений",
     "СписокВыраженийМодели",
     "Выбор",
@@ -406,6 +407,64 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertIn("Значение2 = НеТерминалЗапросУничтожения();", function)
         self.assertIn("РезультатПродукции = Значение1;", function)
         self.assertIn("РезультатПродукции = Значение2;", function)
+        self.assertNotIn("ТекущийЭлемент", function)
+        self.assertNotIn("НомерВариантаПродукции", function)
+
+    def test_operand_alternatives_return_their_single_child(self) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        canonical = MIGRATED_PRODUCTIONS
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=canonical,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=canonical,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        function = _generated_function(generated.module_text, "Операнд")
+        for index, child in enumerate(
+            (
+                "Выбор",
+                "Поле",
+                "Константа",
+                "Параметр",
+                "АгрегатнаяФункция",
+                "Функция",
+            ),
+            start=1,
+        ):
+            with self.subTest(child=child):
+                self.assertIn(
+                    f"Значение{index} = НеТерминал{child}();",
+                    function,
+                )
+                self.assertIn(
+                    f"РезультатПродукции = Значение{index};",
+                    function,
+                )
         self.assertNotIn("ТекущийЭлемент", function)
         self.assertNotIn("НомерВариантаПродукции", function)
 
