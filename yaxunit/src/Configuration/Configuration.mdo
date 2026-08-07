@@ -63,6 +63,7 @@
   <commonTemplates>CommonTemplate.ЮТИнформацияОбОшибке</commonTemplates>
   <commonTemplates>CommonTemplate.ЮТОписаниеМетаданных</commonTemplates>
   <commonModules>CommonModule.КОНС_Обр_ЛексическийАнализатор_МО</commonModules>
+  <commonModules>CommonModule.КОНС_Обр_МодельВыражений_МО</commonModules>
   <commonModules>CommonModule.КОНС_Обр_Парсер_МО</commonModules>
   <commonModules>CommonModule.КОНС_Обр_ПарсерБудущаяГрамматика_МО</commonModules>
   <commonModules>CommonModule.КОНС_Обр_ПарсерЗапросов_МО</commonModules>

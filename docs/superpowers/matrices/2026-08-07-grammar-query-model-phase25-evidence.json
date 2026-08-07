@@ -60,10 +60,224 @@
           "errors": 0,
           "skipped": 0
         }
+      },
+      {
+        "purpose": "Task 3 focused factory, dispatcher, visitor and text-error gate",
+        "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+        "module_filters": [
+          "КОНС_Обр_МодельВыражений_МО",
+          "КОНС_Обр_Парсер_МО"
+        ],
+        "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________20b0c6dfb_ab7363625af9457ee11412005a9f4af946b47218\\report.md",
+        "junit": {
+          "total": 97,
+          "passed": 97,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      },
+      {
+        "purpose": "Task 3 parser and semantic regression",
+        "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+        "module_filters": [
+          "КОНС_Обр_МодельВыражений_МО",
+          "КОНС_Обр_Парсер_МО",
+          "КОНС_Обр_ПарсерЗапросов_МО",
+          "КОНС_ОМ_ОбработкаМоделиЗапроса"
+        ],
+        "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________64b1530b6_d9decbea611298fcbafa90e91b535e52d0a13436\\report.md",
+        "junit": {
+          "total": 214,
+          "passed": 214,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0
+        }
       }
     ]
   },
   "contracts": [
+    {
+      "contract_id": "C01",
+      "component": "AST factories",
+      "status": "green",
+      "date": "2026-08-07",
+      "inventory": {
+        "factory_exports": 91,
+        "inventory_rows": 91,
+        "unique_inventory_rows": 91,
+        "families": {
+          "expressions": 51,
+          "query_package_source": 35,
+          "remaining_types_and_executable_views": 5
+        }
+      },
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_МодельВыражений_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_МодельВыражений_МО",
+            "КОНС_Обр_Парсер_МО"
+          ],
+          "test_or_tag": "ФабрикиВыраженийСоздаютОжидаемыеСвойства; ФабрикиПакетаЗапросаИИсточниковСоздаютОжидаемыеСвойства; ОстальныеФабрикиТиповИИсполняемыхПредставленийСоздаютОжидаемыеСвойства",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________20b0c6dfb_ab7363625af9457ee11412005a9f4af946b47218\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 97,
+            "passed": 97,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C06",
+      "component": "Expression dispatcher/template",
+      "status": "green",
+      "date": "2026-08-07",
+      "callback_count": 59,
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_МодельВыражений_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_МодельВыражений_МО",
+            "КОНС_Обр_Парсер_МО"
+          ],
+          "test_or_tag": "ДиспетчерВызываетВсе59КолбэковВПорядкеОбхода",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________20b0c6dfb_ab7363625af9457ee11412005a9f4af946b47218\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 97,
+            "passed": 97,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C07",
+      "component": "Semantic visitor",
+      "status": "green",
+      "date": "2026-08-07",
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_МодельВыражений_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_МодельВыражений_МО",
+            "КОНС_Обр_Парсер_МО"
+          ],
+          "test_or_tag": "СемантическийПосетительСохраняетТипыИАгрегаты",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________20b0c6dfb_ab7363625af9457ee11412005a9f4af946b47218\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 97,
+            "passed": 97,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C08",
+      "component": "Filter applicability visitor",
+      "status": "green",
+      "date": "2026-08-07",
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_МодельВыражений_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_МодельВыражений_МО",
+            "КОНС_Обр_Парсер_МО"
+          ],
+          "test_or_tag": "ПосетительОтбораРазделяетДелегируемыеСмешанныеИНедопустимыеУсловия",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________20b0c6dfb_ab7363625af9457ee11412005a9f4af946b47218\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 97,
+            "passed": 97,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C09",
+      "component": "SKD dereference visitor",
+      "status": "green",
+      "date": "2026-08-07",
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_МодельВыражений_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_МодельВыражений_МО",
+            "КОНС_Обр_Парсер_МО"
+          ],
+          "test_or_tag": "ПосетительСКДПреобразуетРазыменованиеИТип",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________20b0c6dfb_ab7363625af9457ee11412005a9f4af946b47218\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 97,
+            "passed": 97,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C11",
+      "component": "Query/expression text generation",
+      "status": "partial",
+      "date": "2026-08-07",
+      "remaining_required_evidence": "Task 4 must add the model-to-text-to-model semantic round-trip before C11 can become green.",
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_Парсер_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_МодельВыражений_МО",
+            "КОНС_Обр_Парсер_МО"
+          ],
+          "test_or_tag": "НеизвестныйУзелВыраженияВызываетИсключениеГенератораТекста",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________20b0c6dfb_ab7363625af9457ee11412005a9f4af946b47218\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 97,
+            "passed": 97,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
     {
       "contract_id": "C02",
       "component": "Lexer",
