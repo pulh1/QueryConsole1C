@@ -490,6 +490,10 @@ BSL `Null`. Exact delta зафиксирован в
 обеспечивают бесконфликтную production grammar при `k=2`. Exact delta:
 [reference-type checkpoint](../superpowers/matrices/2026-08-07-reference-type-binding-checkpoint.md).
 
+Top-level `ЗапросУничтожения` затем переведён на constructor и declarative
+table-name token binding. Exact delta зафиксирован в
+[destroy-query checkpoint](../superpowers/matrices/2026-08-07-destroy-query-binding-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:

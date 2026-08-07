@@ -15,6 +15,7 @@ from parsergen.resolver import resolve_grammar
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY_GRAMMAR = PACKAGE_ROOT / "grammar/query-language.grammar"
 MIGRATED_PRODUCTIONS = (
+    "ЗапросУничтожения",
     "Выражение",
     "ЛогическоеСлагаемое",
     "ТипСсылочногоПоля",
@@ -36,6 +37,50 @@ def _generated_function(module: str, production: str) -> str:
 
 
 class RepositoryGrammarCompatibilityTests(unittest.TestCase):
+    def test_destroy_query_generates_canonical_table_name_binding(self) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=MIGRATED_PRODUCTIONS,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=MIGRATED_PRODUCTIONS,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        function = _generated_function(generated.module_text, "ЗапросУничтожения")
+        self.assertEqual(
+            function.count("ЭлементыМоделиЗапроса.НовыйЗапросУничтожения("),
+            1,
+        )
+        self.assertIn('Терминал("УНИЧТОЖИТЬ");', function)
+        self.assertIn('Значение1 = Идентификатор("ID_ИмяТаблицы");', function)
+        self.assertIn("ЭтотУзел.ИмяТаблицы = Значение1;", function)
+        self.assertNotIn("ТекущийЭлемент", function)
+        self.assertNotIn("НомерВариантаПродукции", function)
+
     def test_repository_grammar_parses_and_resolves_without_diagnostics(self) -> None:
         parsed = parse_grammar(
             REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
@@ -228,8 +273,13 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             production_names=MIGRATED_PRODUCTIONS,
         )
 
-        for production in parser_ir.productions[:2]:
-            with self.subTest(ir=production.name):
+        productions = {
+            production.name: production
+            for production in parser_ir.productions
+        }
+        for name in ("Выражение", "ЛогическоеСлагаемое"):
+            with self.subTest(ir=name):
+                production = productions[name]
                 self.assertEqual(len(production.alternatives), 1)
                 self.assertIsInstance(
                     production.alternatives[0].operations[0],

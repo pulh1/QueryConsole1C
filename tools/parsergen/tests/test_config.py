@@ -38,6 +38,7 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(
             config.canonical_productions,
             (
+                "ЗапросУничтожения",
                 "Выражение",
                 "ЛогическоеСлагаемое",
                 "ТипСсылочногоПоля",

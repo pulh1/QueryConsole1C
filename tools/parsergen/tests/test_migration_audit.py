@@ -75,6 +75,7 @@ class MigrationAuditUnitTests(unittest.TestCase):
         self.assertEqual(
             report["config"]["canonical_productions"],
             [
+                "ЗапросУничтожения",
                 "Выражение",
                 "ЛогическоеСлагаемое",
                 "ТипСсылочногоПоля",
@@ -112,12 +113,12 @@ class MigrationAuditProductionTests(unittest.TestCase):
                 "epsilon_alternatives": 63,
                 "formal_parameters": 8,
                 "actual_arguments": 26,
-                "action_blocks": 317,
-                "statements": 342,
-                "constructor_statements": 81,
+                "action_blocks": 315,
+                "statements": 340,
+                "constructor_statements": 80,
                 "collection_statements": 29,
                 "constant_statements": 22,
-                "structural_statements": 206,
+                "structural_statements": 205,
                 "other_assignment_statements": 0,
                 "other_statements": 4,
             },
@@ -172,9 +173,9 @@ class MigrationAuditProductionTests(unittest.TestCase):
             self.report["generated"],
             {
                 "bsl_functions": 124,
-                "bsl_loc": 3155,
+                "bsl_loc": 3151,
                 "constructor_names": 78,
-                "select_rows": 6_718,
+                "select_rows": 6_700,
                 "identifier_rows": 276,
             },
         )
@@ -234,7 +235,7 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 'target = "Parser"\n'
                 "lookahead = 2\n\n"
                 "[migration]\n"
-                'canonical_productions = ["Выражение", '
+                'canonical_productions = ["ЗапросУничтожения", "Выражение", '
                 '"ЛогическоеСлагаемое", '
                 '"ТипСсылочногоПоля", '
                 '"АрифметическоеВыражение", "Слагаемое", '
