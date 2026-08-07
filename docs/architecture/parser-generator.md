@@ -485,6 +485,11 @@ scalar binding, а keyword alternatives — explicit constant binding, вклю�
 BSL `Null`. Exact delta зафиксирован в
 [constant checkpoint](../superpowers/matrices/2026-08-07-constant-binding-checkpoint.md).
 
+`ТипСсылочногоПоля` затем переведён на два declarative identifier bindings,
+сохранив точные классы `#ID_ГруппаТипаСсылки` и `#ID_ИмяТипа`, которые
+обеспечивают бесконфликтную production grammar при `k=2`. Exact delta:
+[reference-type checkpoint](../superpowers/matrices/2026-08-07-reference-type-binding-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:

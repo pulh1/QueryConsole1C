@@ -17,6 +17,7 @@ REPOSITORY_GRAMMAR = PACKAGE_ROOT / "grammar/query-language.grammar"
 MIGRATED_PRODUCTIONS = (
     "Выражение",
     "ЛогическоеСлагаемое",
+    "ТипСсылочногоПоля",
     "АрифметическоеВыражение",
     "Слагаемое",
     "УнарнаяОперация",
@@ -621,6 +622,55 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             with self.subTest(keyword=keyword):
                 self.assertIn(f'Терминал("{keyword}");', function)
                 self.assertIn(f"ЭтотУзел.Значение = {value};", function)
+        self.assertNotIn("ТекущийЭлемент", function)
+        self.assertNotIn("НомерВариантаПродукции", function)
+
+    def test_reference_type_generates_two_identifier_bindings(self) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=MIGRATED_PRODUCTIONS,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=MIGRATED_PRODUCTIONS,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        function = _generated_function(generated.module_text, "ТипСсылочногоПоля")
+        self.assertEqual(
+            function.count("ЭлементыМоделиЗапроса.НовыйТипСсылочногоПоля("),
+            1,
+        )
+        self.assertIn(
+            'Значение1 = Идентификатор("ID_ГруппаТипаСсылки");',
+            function,
+        )
+        self.assertIn("ЭтотУзел.Группа = Значение1;", function)
+        self.assertIn('Лексема(".");', function)
+        self.assertIn('Значение2 = Идентификатор("ID_ИмяТипа");', function)
+        self.assertIn("ЭтотУзел.Таблица = Значение2;", function)
         self.assertNotIn("ТекущийЭлемент", function)
         self.assertNotIn("НомерВариантаПродукции", function)
 

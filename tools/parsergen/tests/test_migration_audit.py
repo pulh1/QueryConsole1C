@@ -77,6 +77,7 @@ class MigrationAuditUnitTests(unittest.TestCase):
             [
                 "Выражение",
                 "ЛогическоеСлагаемое",
+                "ТипСсылочногоПоля",
                 "АрифметическоеВыражение",
                 "Слагаемое",
                 "УнарнаяОперация",
@@ -111,14 +112,14 @@ class MigrationAuditProductionTests(unittest.TestCase):
                 "epsilon_alternatives": 63,
                 "formal_parameters": 8,
                 "actual_arguments": 26,
-                "action_blocks": 320,
-                "statements": 346,
-                "constructor_statements": 82,
+                "action_blocks": 317,
+                "statements": 342,
+                "constructor_statements": 81,
                 "collection_statements": 29,
                 "constant_statements": 22,
-                "structural_statements": 208,
+                "structural_statements": 206,
                 "other_assignment_statements": 0,
-                "other_statements": 5,
+                "other_statements": 4,
             },
         )
 
@@ -171,9 +172,9 @@ class MigrationAuditProductionTests(unittest.TestCase):
             self.report["generated"],
             {
                 "bsl_functions": 124,
-                "bsl_loc": 3162,
+                "bsl_loc": 3155,
                 "constructor_names": 78,
-                "select_rows": 6_719,
+                "select_rows": 6_718,
                 "identifier_rows": 276,
             },
         )
@@ -235,6 +236,7 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 "[migration]\n"
                 'canonical_productions = ["Выражение", '
                 '"ЛогическоеСлагаемое", '
+                '"ТипСсылочногоПоля", '
                 '"АрифметическоеВыражение", "Слагаемое", '
                 '"УнарнаяОперация", '
                 '"СписокВыражений", '
