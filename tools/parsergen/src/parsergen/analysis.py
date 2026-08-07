@@ -249,11 +249,12 @@ def build_select_matcher_artifact(
     return analysis._compressed.build_matcher_artifact(max_rows=max_rows)
 
 
-def compatible_lookahead(left: LookaheadWord, right: LookaheadWord) -> bool:
-    # Legacy compatibility: canonical LL(k) treats prefix-compatible words as
-    # overlapping. The reference runtime searches exact row lengths from k
-    # down to 1, so only equal concrete words compete at a given lookup.
+def runtime_rows_overlap(left: LookaheadWord, right: LookaheadWord) -> bool:
     return left == right
+
+
+def compatible_lookahead(left: LookaheadWord, right: LookaheadWord) -> bool:
+    return runtime_rows_overlap(left, right)
 
 
 def find_canonical_select_conflicts(
@@ -296,47 +297,32 @@ def find_select_conflicts(
     grammar: ResolvedGrammar,
     analysis: AnalysisResult,
 ) -> tuple[SelectConflict, ...]:
-    if analysis._compressed is not None:
-        conflicts: list[SelectConflict] = []
-        compressed = analysis._compressed
-        for production_name in grammar.production_order:
-            alternatives = grammar.productions[production_name]
-            for left_position, _ in enumerate(alternatives):
-                left_number = left_position + 1
-                left_key = (production_name, left_number)
-                packed_left = compressed._select_index[left_key]
-                for right_position in range(
-                    left_position + 1,
-                    len(alternatives),
-                ):
-                    right_number = right_position + 1
-                    right_key = (production_name, right_number)
-                    packed_right = compressed._select_index[right_key]
-                    witness = compressed.conflict_witness(
-                        packed_left,
-                        packed_right,
-                    )
-                    if witness is not None:
-                        conflicts.append(
-                            SelectConflict(
-                                production_name,
-                                left_number,
-                                right_number,
-                                witness,
-                            )
-                        )
-        return tuple(conflicts)
+    return find_canonical_select_conflicts(grammar, analysis)
+
+
+def find_runtime_dispatch_conflicts(
+    grammar: ResolvedGrammar,
+    analysis: AnalysisResult,
+) -> tuple[SelectConflict, ...]:
+    if analysis._compressed is None:
+        raise ValueError("compressed analysis is required for runtime dispatch")
 
     conflicts: list[SelectConflict] = []
+    compressed = analysis._compressed
     for production_name in grammar.production_order:
         alternatives = grammar.productions[production_name]
         for left_position, _ in enumerate(alternatives):
             left_number = left_position + 1
-            left_select = analysis.select[(production_name, left_number)]
+            left_key = (production_name, left_number)
+            packed_left = compressed._select_index[left_key]
             for right_position in range(left_position + 1, len(alternatives)):
                 right_number = right_position + 1
-                right_select = analysis.select[(production_name, right_number)]
-                witness = _select_conflict_witness(left_select, right_select)
+                right_key = (production_name, right_number)
+                packed_right = compressed._select_index[right_key]
+                witness = compressed.runtime_dispatch_conflict_witness(
+                    packed_left,
+                    packed_right,
+                )
                 if witness is not None:
                     conflicts.append(
                         SelectConflict(
@@ -346,20 +332,7 @@ def find_select_conflicts(
                             witness,
                         )
                     )
-
-    production_positions = {
-        name: position for position, name in enumerate(grammar.production_order)
-    }
-    return tuple(
-        sorted(
-            conflicts,
-            key=lambda conflict: (
-                production_positions[conflict.production],
-                conflict.left_alternative,
-                conflict.right_alternative,
-            ),
-        )
-    )
+    return tuple(conflicts)
 
 
 def _compute_nullable(grammar: ResolvedGrammar) -> frozenset[str]:
@@ -1588,7 +1561,7 @@ class _CompressedAnalysis:
             self._matcher_intersections[key] = cached
         return cached
 
-    def conflict_witness(
+    def runtime_dispatch_conflict_witness(
         self,
         left_position: int,
         right_position: int,

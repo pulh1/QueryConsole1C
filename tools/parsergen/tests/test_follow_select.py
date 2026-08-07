@@ -16,8 +16,10 @@ from parsergen.analysis import (
     compatible_lookahead,
     compute_analysis,
     find_canonical_select_conflicts,
+    find_runtime_dispatch_conflicts,
     find_select_conflicts,
     materialize_lookahead,
+    runtime_rows_overlap,
 )
 from tests.grammar_factory import generated_resolved_grammar
 from tests.grammar_cases import CONFLICT_DEPTH_CASES, FOLLOW_CASES
@@ -306,25 +308,35 @@ class SelectAnalysisTests(unittest.TestCase):
             find_canonical_select_conflicts(grammar, materialized),
         )
 
-    def test_first_follow_overlap_uses_nullable_runtime_fallback(self) -> None:
+    def test_nullable_fallback_is_canonical_conflict_but_runtime_clean(
+        self,
+    ) -> None:
         grammar = resolved("<S> ::= <A> a\n<A> ::= a | ПУСТО")
         result = compute_analysis(grammar, 1, ("S",))
-        self.assertEqual(find_select_conflicts(grammar, result), ())
+        self.assertEqual(
+            find_select_conflicts(grammar, result),
+            (SelectConflict("A", 1, 2, ("a",)),),
+        )
+        self.assertEqual(find_runtime_dispatch_conflicts(grammar, result), ())
 
-    def test_short_runtime_row_shadows_its_longer_same_alternative_rows(
+    def test_runtime_shadowing_is_not_used_as_canonical_semantics(
         self,
     ) -> None:
         grammar = resolved("<S> ::= <A> | a b\n<A> ::= a | a b")
         result = compute_analysis(grammar, 2, ("S",))
 
-        self.assertEqual(find_select_conflicts(grammar, result), ())
+        self.assertEqual(
+            find_select_conflicts(grammar, result),
+            (SelectConflict("S", 1, 2, ("a", "b")),),
+        )
+        self.assertEqual(find_runtime_dispatch_conflicts(grammar, result), ())
 
     def test_two_epsilon_alternatives_conflict_at_end(self) -> None:
         grammar = resolved("<S> ::= ПУСТО | ПУСТО")
         result = compute_analysis(grammar, 3, ("S",))
         self.assertEqual(
             find_select_conflicts(grammar, result),
-            (SelectConflict("S", 1, 2, ()),),
+            (SelectConflict("S", 1, 2, (END,)),),
         )
 
     def test_duplicate_alternatives_conflict_on_complete_prefix(self) -> None:
@@ -591,10 +603,10 @@ print(repr(tuple(
         )
 
 
-class LookaheadCompatibilityTests(unittest.TestCase):
-    def test_longest_runtime_row_disambiguates_a_strict_prefix(self) -> None:
-        self.assertFalse(compatible_lookahead(("a",), ("a", "b")))
-        self.assertFalse(compatible_lookahead(("a", "b"), ("a",)))
+class RuntimeRowCompatibilityTests(unittest.TestCase):
+    def test_strict_prefix_rows_are_distinct_exact_rows(self) -> None:
+        self.assertFalse(runtime_rows_overlap(("a",), ("a", "b")))
+        self.assertFalse(runtime_rows_overlap(("a", "b"), ("a",)))
 
     def test_only_equal_runtime_rows_conflict(self) -> None:
         self.assertTrue(compatible_lookahead(("a", "b"), ("a", "b")))
@@ -602,7 +614,9 @@ class LookaheadCompatibilityTests(unittest.TestCase):
         self.assertFalse(compatible_lookahead(("a",), ("a", END)))
         self.assertFalse(compatible_lookahead(("a", "b"), ("a", "c")))
 
-    def test_conflict_finder_allows_a_strict_prefix(self) -> None:
+    def test_materialized_canonical_scan_uses_exact_word_intersection(
+        self,
+    ) -> None:
         grammar = resolved("<S> ::= a | b")
         analysis = AnalysisResult(
             k=2,
