@@ -494,6 +494,12 @@ Top-level `ЗапросУничтожения` затем переведён н�
 table-name token binding. Exact delta зафиксирован в
 [destroy-query checkpoint](../superpowers/matrices/2026-08-07-destroy-query-binding-checkpoint.md).
 
+`ПакетЗапросов` затем переведён на collection repeat с optional завершающей
+точкой с запятой. Recursive `ПродолжениеПакетаЗапросов` удалена, generated BSL
+использует один loop, а query-model contract `ПакетЗапросов.Элементы` сохранён.
+Exact delta зафиксирован в
+[query-package checkpoint](../superpowers/matrices/2026-08-07-query-package-ebnf-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:

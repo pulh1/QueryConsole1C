@@ -15,6 +15,7 @@ from parsergen.resolver import resolve_grammar
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY_GRAMMAR = PACKAGE_ROOT / "grammar/query-language.grammar"
 MIGRATED_PRODUCTIONS = (
+    "ПакетЗапросов",
     "ЗапросУничтожения",
     "Выражение",
     "ЛогическоеСлагаемое",
@@ -37,6 +38,59 @@ def _generated_function(module: str, production: str) -> str:
 
 
 class RepositoryGrammarCompatibilityTests(unittest.TestCase):
+    def test_query_package_generates_collection_loop_and_optional_terminator(
+        self,
+    ) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        canonical = MIGRATED_PRODUCTIONS
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=canonical,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=canonical,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        module = generated.module_text
+        self.assertNotIn(
+            "Функция НеТерминалПродолжениеПакетаЗапросов(",
+            module,
+        )
+        function = _generated_function(module, "ПакетЗапросов")
+        self.assertEqual(function.count("Пока "), 1)
+        self.assertEqual(
+            function.count("ЭлементыМоделиЗапроса.НовыйПакетЗапросов("),
+            1,
+        )
+        self.assertEqual(function.count("НеТерминалЗапросПакета()"), 2)
+        self.assertEqual(function.count("ЭтотУзел.Элементы.Добавить("), 2)
+        self.assertEqual(function.count('Лексема(";")'), 2)
+        self.assertNotIn("НомерВариантаПродукции", function)
+        self.assertNotIn("ТекущийЭлемент", function)
+
     def test_destroy_query_generates_canonical_table_name_binding(self) -> None:
         parsed = parse_grammar(
             REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
@@ -89,8 +143,8 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 112)
-        self.assertEqual(len(parsed.grammar.productions), 124)
+        self.assertEqual(len(parsed.source_grammar.productions), 111)
+        self.assertEqual(len(parsed.grammar.productions), 125)
 
         resolution = resolve_grammar(parsed.grammar)
         self.assertEqual(resolution.diagnostics, ())
