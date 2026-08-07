@@ -26,7 +26,7 @@ from parsergen.value_table_codec import ColumnKind, ValueTable
 from tests.helpers import compiled
 
 
-def _legacy_choice(
+def _acyclic_audit_legacy_choice(
     table: ValueTable,
     production: str,
     tokens: tuple[str, ...],
@@ -46,7 +46,7 @@ def _legacy_choice(
     return None
 
 
-def _legacy_generated_accepts(
+def _acyclic_audit_legacy_generated_accepts(
     grammar: ResolvedGrammar,
     table: ValueTable,
     start: str,
@@ -54,7 +54,13 @@ def _legacy_generated_accepts(
     k: int,
 ) -> bool:
     def parse(production: str, position: int) -> int | None:
-        alternative = _legacy_choice(table, production, tokens, position, k)
+        alternative = _acyclic_audit_legacy_choice(
+            table,
+            production,
+            tokens,
+            position,
+            k,
+        )
         if alternative is None:
             return None
         current = position
@@ -74,7 +80,7 @@ def _legacy_generated_accepts(
     return parse(start, 0) == len(tokens)
 
 
-def _cfg_accepts(
+def _acyclic_audit_cfg_accepts(
     grammar: ResolvedGrammar,
     start: str,
     tokens: tuple[str, ...],
@@ -141,11 +147,17 @@ class BslCodegenTests(unittest.TestCase):
         tokens = ("a", "b", "c")
 
         self.assertEqual(
-            _legacy_choice(generated.select_table, "A", tokens, 0, 2),
+            _acyclic_audit_legacy_choice(
+                generated.select_table,
+                "A",
+                tokens,
+                0,
+                2,
+            ),
             2,
         )
         self.assertFalse(
-            _legacy_generated_accepts(
+            _acyclic_audit_legacy_generated_accepts(
                 grammar,
                 generated.select_table,
                 "S",
@@ -153,7 +165,7 @@ class BslCodegenTests(unittest.TestCase):
                 2,
             )
         )
-        self.assertTrue(_cfg_accepts(grammar, "S", tokens))
+        self.assertTrue(_acyclic_audit_cfg_accepts(grammar, "S", tokens))
 
     def test_generates_parameters_actions_and_configured_lookahead(self) -> None:
         entrypoints = {"Разобрать": "S"}

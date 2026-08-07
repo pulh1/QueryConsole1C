@@ -625,6 +625,26 @@ print(repr(tuple(
 
 
 class RuntimeRowCompatibilityTests(unittest.TestCase):
+    def test_runtime_conflicts_include_legacy_cycle_prefix_rows(self) -> None:
+        grammar = resolved("<S> ::= a <S> | a")
+        analysis = compute_analysis(grammar, 2, ("S",))
+
+        self.assertEqual(
+            find_runtime_dispatch_conflicts(grammar, analysis),
+            (SelectConflict("S", 1, 2, ("a",)),),
+        )
+
+    def test_runtime_conflicts_apply_per_alternative_shadowing(self) -> None:
+        grammar = resolved(
+            "#ID_Short ::= a\n"
+            "#ID_Wide ::= a | b\n"
+            "<S> ::= <A> | a b\n"
+            "<A> ::= #ID_Short | #ID_Wide b"
+        )
+        analysis = compute_analysis(grammar, 2, ("S",))
+
+        self.assertEqual(find_runtime_dispatch_conflicts(grammar, analysis), ())
+
     def test_strict_prefix_rows_are_distinct_exact_rows(self) -> None:
         self.assertFalse(runtime_rows_overlap(("a",), ("a", "b")))
         self.assertFalse(runtime_rows_overlap(("a", "b"), ("a",)))
