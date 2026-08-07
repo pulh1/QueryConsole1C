@@ -94,6 +94,40 @@
           "errors": 0,
           "skipped": 0
         }
+      },
+      {
+        "purpose": "Task 4 builder and semantic round-trip focused gate",
+        "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПостроениеИГенерацияЗапросов_МО\"], timeout: 120, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+        "module_filters": [
+          "КОНС_Обр_ПостроениеИГенерацияЗапросов_МО"
+        ],
+        "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________cfe76e884_313367d132001080e19625ca130375b01632bbec\\report.md",
+        "junit": {
+          "total": 2,
+          "passed": 2,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      },
+      {
+        "purpose": "Task 4 parser, semantic, expression-model and round-trip regression",
+        "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПостроениеИГенерацияЗапросов_МО\", \"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\"], timeout: 180, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+        "module_filters": [
+          "КОНС_Обр_ПостроениеИГенерацияЗапросов_МО",
+          "КОНС_Обр_МодельВыражений_МО",
+          "КОНС_Обр_Парсер_МО",
+          "КОНС_Обр_ПарсерЗапросов_МО",
+          "КОНС_ОМ_ОбработкаМоделиЗапроса"
+        ],
+        "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________d8a50c7a7_5798aa2094f1d3dbbdf40cdce58da47403158c97\\report.md",
+        "junit": {
+          "total": 216,
+          "passed": 216,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0
+        }
       }
     ]
   },
@@ -250,11 +284,37 @@
       ]
     },
     {
+      "contract_id": "C10",
+      "component": "Model builder",
+      "status": "green",
+      "date": "2026-08-07",
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_ПостроениеИГенерацияЗапросов_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ПостроениеИГенерацияЗапросов_МО"
+          ],
+          "test_or_tag": "ПостроительМеняетИсточникиОтборСортировкуИИтогиПоШагам",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПостроениеИГенерацияЗапросов_МО\"], timeout: 120, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________cfe76e884_313367d132001080e19625ca130375b01632bbec\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 2,
+            "passed": 2,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
       "contract_id": "C11",
       "component": "Query/expression text generation",
-      "status": "partial",
+      "status": "green",
       "date": "2026-08-07",
-      "remaining_required_evidence": "Task 4 must add the model-to-text-to-model semantic round-trip before C11 can become green.",
       "evidence": [
         {
           "kind": "test-run",
@@ -271,6 +331,25 @@
           "junit": {
             "total": 97,
             "passed": 97,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_ПостроениеИГенерацияЗапросов_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ПостроениеИГенерацияЗапросов_МО"
+          ],
+          "test_or_tag": "ТекстПакетаПослеПовторногоРазбораСохраняетСемантику",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПостроениеИГенерацияЗапросов_МО\"], timeout: 120, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________cfe76e884_313367d132001080e19625ca130375b01632bbec\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 2,
+            "passed": 2,
             "failed": 0,
             "errors": 0,
             "skipped": 0
