@@ -7,11 +7,11 @@
   теста. Число 227 из первоначального brief устарело. Оно также не противоречит
   актуальному результату полного suite, зафиксированному как 234 passed +
   1 skipped: collect-only включает skipped test в инвентарь.
-- YAxUnit: EDT-MCP прочитал статические структуры в проекте `yaxunit`:
-  лексер — 18 процедур; parser expression — 30 процедур и 1 функция; parser
-  query — 31 процедура и 3 функции; parser future grammar — 5 процедур;
-  обработка модели — 12 процедур и 6 функций. Это регистрация исходных
-  тестовых процедур, а не результат свежего запуска.
+- YAxUnit: после добавления контрактов выполнен свежий совместный runtime-прогон
+  модулей lexer, expression parser, full-query parser и semantic analyzer:
+  **347 total / 347 passed / 0 failed / 0 errors / 0 skipped**. Отдельный полный
+  прогон lexer дал **141/141**. Точные команды и пути отчётов находятся в
+  `2026-08-07-grammar-query-model-phase25-evidence.json`.
 - Корпус: `QueryExamples` — 42 `.q1c`; в каждом из наборов `ВыполнениеЗапросовВКонсоли`,
   `ГенерацияКодаВКонсоли` и `СозданиеЗапросовВКонструкторе` — по 42 `.feature`.
   Всего прикладных Vanessa-сценариев в этих трёх наборах — 126. До Phase 2.5
@@ -37,15 +37,33 @@
   это не подменяется предположением. EDT-MCP: `2026.1.2.2`; compatibility mode
   целевой конфигурации: `8.3.24`.
 
+## Headless-контракты parser → semantic — 2026-08-07
+
+- `C02`: полный существующий lexer module — **141/141 GREEN**.
+- `C03`: пять semantic projection cases для выражений: ассоциативность,
+  приоритет, порядок разыменования, аргументов функции и ветвей условного
+  выражения.
+- `C04`: шесть focused full-query cases и фактический
+  `QueryExamples/ТестПакетЗапрсов.q1c`; проверены порядок пакета/UNION,
+  источники, псевдонимы, поля, LEFT JOIN и граница вложенного запроса.
+- `C05`: parser-to-semantic handshake вызывает реальный
+  `ОбработкаМоделиЗапроса.ОбработатьМодельЗапроса(ПакетЗапросов)` с одним
+  аргументом и проверяет разрешённый источник поля.
+- Совместный финальный прогон четырёх модулей — **347/347 GREEN**. Diagnostic
+  delta трёх изменённых модулей равна нулю: 92 сообщения до и после.
+- Текущая правая ассоциативность `1 - 2 - 3` зафиксирована только как временный,
+  ненормативный baseline известного дефекта. Direct-LR migration обязана
+  заменить его левым сворачиванием `((1 - 2) - 3)`.
+
 ## Решения о покрытии
 
 | Contract ID | Consumer | Affected | Current automated evidence | Gap | Phase 2.5 test | Gate type |
 |---|---|---|---|---|---|---|
 | C01 | AST factories | Да: 91 `Новый*` factory из `ЭлементыМоделиЗапроса/Module.bsl` создают структуры query model. | Косвенно: parser/semantic YAxUnit. | Нет contract factory→свойства/коллекции. | Factory contracts по семействам AST; factory-dispatcher-template completeness. | new-headless-test |
-| C02 | Lexer | Да: `ЛексическийАнализатор/ObjectModule.bsl` производит токены для parser. | Static `КОНС_Обр_ЛексическийАнализатор_МО`: 18 процедур, включая `ИсполняемыеСценарии`; fresh run отсутствует. | Исходный token/EOF/error regression не прогонялся в актуальной incremental базе. | Выполнить полный существующий тег `Лексер` свежим runtime run и сохранить command/exit/result evidence. | existing-automated |
-| C03 | Expression parser | Да: `Парсер/ObjectModule.bsl.РазобратьВыражение` строит expression AST. | Static `КОНС_Обр_Парсер_МО`: 30 процедур, 1 функция; fresh module run 2026-08-07: 84/84 passed. | Binding properties и semantic contracts не выделены. | Добавить expression AST semantic cases и включить существующий YAxUnit module. | new-headless-test |
-| C04 | Full-query parser | Да: `Парсер/ObjectModule.bsl.Разобрать` строит package/query/source/field/filter model. | Static `КОНС_Обр_ПарсерЗапросов_МО`: 31 процедура, 3 функции; 42 QueryExamples. | Нет закреплённого property corpus. | Semantic sources/aliases/joins/fields/nested/union на curated QueryExamples; full-query parser regression. | new-headless-test |
-| C05 | Semantic analyzer | Да: `ОбработкаМоделиЗапроса/Module.bsl.ОбработатьМодельЗапроса`, `ОбработатьВыражение`, `ОбработатьУсловие`. | Static `КОНС_ОМ_ОбработкаМоделиЗапроса`: 12 процедур, 6 функций. | Источники/metadata/parser lanes не характеризованы end-to-end. | Semantic sources/aliases/joins/fields/nested/union с явными model assertions. | new-headless-test |
+| C02 | Lexer | Да: `ЛексическийАнализатор/ObjectModule.bsl` производит токены для parser. | Fresh full-module runtime run 2026-08-07: 141/141 passed. | Закрыт для текущего token/EOF/error baseline. | Полный существующий lexer module; evidence manifest содержит command/result/report. | existing-automated |
+| C03 | Expression parser | Да: `Парсер/ObjectModule.bsl.РазобратьВыражение` строит expression AST. | Fresh combined run 2026-08-07: 347/347; пять semantic projection cases. | Закрыт для выбранной проекции; правая ассоциативность вычитания помечена ненормативным defect baseline. | Exact operand/operator, precedence, dereference, arguments and conditional ordering. | new-headless-test |
+| C04 | Full-query parser | Да: `Парсер/ObjectModule.bsl.Разобрать` строит package/query/source/field/filter model. | Fresh combined run 2026-08-07: 347/347; шесть focused cases + фактический `ТестПакетЗапрсов.q1c`. | Закрыт для package/source/alias/field/join/nested/union projection. | Семантическая проекция и corpus assertion порядка трёх UNION-members. | new-headless-test |
+| C05 | Semantic analyzer | Да: `ОбработкаМоделиЗапроса/Module.bsl.ОбработатьМодельЗапроса`, `ОбработатьВыражение`, `ОбработатьУсловие`. | Fresh combined run 2026-08-07: 347/347; parser-to-semantic handshake. | Закрыт для source/alias/inferred field alias/resolved field source contract. | Реальный одноаргументный semantic entrypoint и explicit model assertions. | new-headless-test |
 | C06 | Expression dispatcher/template | Да: `ОбходМоделиЯзыкаВыражений/Module.bsl.ОбойтиДерево`, 59 template callbacks. | Direct automated test не найден. | Не проверены все node kinds и порядок callbacks. | Factory-dispatcher-template completeness: 59 callback order/coverage contract. | new-headless-test |
 | C07 | Semantic visitor | Да: `СемантическийАнализВыраженийПосетитель/ObjectModule.bsl.УстановитьКонтекст`. | Косвенно через static semantic YAxUnit. | Public object contract не изолирован. | Concrete visitor behavior contract №1: semantic types/aggregate flags. | new-headless-test |
 | C08 | Filter applicability visitor | Да: `ПроверкаПрименимостиОтбораПосетитель/ObjectModule.bsl.ВыделитьИМодифицироватьОтбор`. | Console/constructor Vanessa scenarios существуют, свежий запуск отсутствует. | Headless delegatable/mixed/prohibited contract отсутствует. | Concrete visitor behavior contract №2: executable-view filter transformation/delegation. | new-headless-test |

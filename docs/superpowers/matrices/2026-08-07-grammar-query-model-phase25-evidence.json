@@ -22,5 +22,83 @@
       "output_contract": "JUnit Markdown report; full report persisted by EDT-MCP in its temporary report directory"
     }
   },
-  "contracts": []
+  "contracts": [
+    {
+      "id": "C02",
+      "status": "green",
+      "date": "2026-08-07",
+      "consumer": "Lexer",
+      "module_filter": "КОНС_Обр_ЛексическийАнализатор_МО",
+      "test_contract": "Полный существующий модуль лексера: tokens, EOF and syntax-error behavior",
+      "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ЛексическийАнализатор_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+      "result": {
+        "total": 141,
+        "passed": 141,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "report": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________1f15b44f3_b2c06897646187031cb4f17dd398113c28997056\\report.md"
+    },
+    {
+      "id": "C03",
+      "status": "green",
+      "date": "2026-08-07",
+      "consumer": "Expression parser",
+      "module_filter": "КОНС_Обр_Парсер_МО",
+      "test_contract": "ПроверяетсяСемантическаяПроекцияВыражения: current subtraction associativity, precedence, dereference order, function argument order, conditional alternatives/result",
+      "cases": 5,
+      "suite_result": {
+        "total": 347,
+        "passed": 347,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "report": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________89fbc7bb7_3a8fdb4e66dc47e2790da4331afb515197924971\\report.md",
+      "known_non_normative_behavior": "1 - 2 - 3 currently parses as 1 - (2 - 3); direct-LR migration must replace this baseline with left fold ((1 - 2) - 3)."
+    },
+    {
+      "id": "C04",
+      "status": "green",
+      "date": "2026-08-07",
+      "consumer": "Full-query parser",
+      "module_filter": "КОНС_Обр_ПарсерЗапросов_МО",
+      "test_contract": "ПроверяетсяСемантическаяПроекцияПолногоЗапроса plus the actual QueryExamples/ТестПакетЗапрсов.q1c corpus row: package/query order, sources, aliases, fields, LEFT JOIN condition, nested query and UNION member order",
+      "focused_cases": 6,
+      "corpus_paths": [
+        "QueryExamples/ТестВТПериоды.q1c",
+        "QueryExamples/ТестЗапросОстаткиОтпусков.q1c",
+        "QueryExamples/ТестСотрудникиОрганизацииПоВТФизлица.q1c",
+        "QueryExamples/ТестИндексыИПсевдониымПолей.q1c",
+        "QueryExamples/СрезСОтборами.q1c",
+        "QueryExamples/ТестПакетЗапрсов.q1c"
+      ],
+      "suite_result": {
+        "total": 347,
+        "passed": 347,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "report": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________89fbc7bb7_3a8fdb4e66dc47e2790da4331afb515197924971\\report.md"
+    },
+    {
+      "id": "C05",
+      "status": "green",
+      "date": "2026-08-07",
+      "consumer": "Semantic analyzer",
+      "module_filter": "КОНС_ОМ_ОбработкаМоделиЗапроса",
+      "test_contract": "СемантикаИсточниковПакетаСогласованаСПарсером: real one-argument semantic analysis preserves source identity, explicit alias and resolved field source",
+      "cases": 1,
+      "suite_result": {
+        "total": 347,
+        "passed": 347,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "report": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________89fbc7bb7_3a8fdb4e66dc47e2790da4331afb515197924971\\report.md"
+    }
+  ]
 }
