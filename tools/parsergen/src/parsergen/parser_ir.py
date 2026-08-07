@@ -179,6 +179,7 @@ class ParserIr:
     productions: tuple[ProductionIr, ...]
     matcher_definitions: tuple[MatcherDefinition, ...]
     lookahead: int
+    source_grammar: SourceGrammar
 
 
 def build_parser_ir(
@@ -236,6 +237,7 @@ class _ParserIrBuilder:
             productions,
             self._matcher_definitions,
             self._lookahead,
+            self._source,
         )
 
     def _production(self, production: SourceProduction) -> ProductionIr:

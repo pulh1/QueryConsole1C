@@ -102,15 +102,15 @@
 - Produce `generate_canonical_parser(source: SourceGrammar, parser_ir: ParserIr, entrypoints: Mapping[str, str]) -> CanonicalGeneratedParser`.
 - Canonical template provides `ТипТокенаПросмотра(Смещение)` and no legacy matcher globals/functions.
 
-- [ ] Write RED tests for module markers, entrypoint order, `lookahead=3`, identifier table, single production, multi-alternative dispatch and explicit syntax-error fallback.
-- [ ] Create the canonical template with lexer initialization, token buffer, terminal/lexeme/identifier/constant helpers, entry markers and simplified syntax-error helpers.
-- [ ] Verify the template contains neither `ТаблицаПервыхСимволовВариантов` nor `НомерВариантаПродукции`.
-- [ ] Validate source/IR production and parameter identity, entrypoints, BSL identifiers, generated symbol collisions and reserved `$`.
-- [ ] Render canonical `ParseSymbol`; nonterminal calls pass only `symbol.arguments`.
-- [ ] Render `ProductionIr.decision` with `CanonicalConditionRenderer`; every uncovered input reaches the syntax-error helper.
-- [ ] Render transparent results using `AlternativeIr.result_index`; syntax-only production returns `Неопределено`.
-- [ ] Run module-shell/code-shape tests and confirm imports contain no legacy matcher API names.
-- [ ] Commit and push as `Добавить canonical BSL runtime shell`.
+- [x] Write RED tests for module markers, entrypoint order, `lookahead=3`, identifier table, single production, multi-alternative dispatch and explicit syntax-error fallback.
+- [x] Create the canonical template with lexer initialization, token buffer, terminal/lexeme/identifier/constant helpers, entry markers and simplified syntax-error helpers.
+- [x] Verify the template contains neither `ТаблицаПервыхСимволовВариантов` nor `НомерВариантаПродукции`.
+- [x] Validate source/IR production and parameter identity, entrypoints, BSL identifiers, generated symbol collisions and reserved `$`.
+- [x] Render canonical `ParseSymbol`; nonterminal calls pass only `symbol.arguments`.
+- [x] Render `ProductionIr.decision` with `CanonicalConditionRenderer`; every uncovered input reaches the syntax-error helper.
+- [x] Render transparent results using `AlternativeIr.result_index`; syntax-only production returns `Неопределено`.
+- [x] Run module-shell/code-shape tests and confirm imports contain no legacy matcher API names.
+- [x] Commit and push as `Добавить canonical BSL runtime shell`.
 
 ---
 
