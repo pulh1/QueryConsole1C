@@ -21,7 +21,7 @@ EDT-обработка `QueryConsoleZUP/src/DataProcessors/Парсер` вла�
 5. `resolver.py` разрешает нетерминалы, терминалы, классы идентификаторов и типы констант только в canonical CFG.
 6. `analysis.py` вычисляет nullable, FIRST(k), FOLLOW(k) и SELECT(k), затем ищет пересечения SELECT alternatives.
 7. `validation.py` объединяет диагностики разбора, разрешения, анализа и проверки точек входа и отображает synthetic diagnostics обратно на source spans. Левая рекурсия в текущей версии диагностируется как неподдерживаемая.
-8. `parser_ir.py` после успешной canonical validation строит runtime IR с `Dispatch`, `RepeatLoop` и `OptionalBranch`, не включая synthetic productions в список runtime functions.
+8. `parser_ir.py` после успешной canonical validation строит runtime IR с `Dispatch`, `RepeatLoop`, `OptionalBranch` и declarative AST operations, не включая synthetic productions в список runtime functions.
 9. `semantic_actions.py` и `bsl_codegen.py` пока обслуживают только legacy BNF path и существующие встроенные BSL-действия.
 10. `value_table_codec.py` сериализует таблицы в формат, читаемый 1С через `ЗначениеИзСтрокиВнутр`.
 11. `artifacts.py` сравнивает или транзакционно заменяет только три разрешённых файла.
@@ -54,8 +54,9 @@ X?   optional
 construct три факта: `productive`, `nullable`, `min_consumed_tokens`.
 Body `*` и `+` обязан быть productive и иметь
 `min_consumed_tokens >= 1`; nullable/non-consuming body отклоняется. Body `?`
-не может уже быть nullable. Arbitrary BSL action внутри group/quantifier не
-переходит в canonical path: до declarative AST binding он является ошибкой.
+не может уже быть nullable. Arbitrary BSL action внутри group/quantifier
+не переходит в canonical path: structural semantics задаётся declarative
+bindings.
 
 Lowering использует reserved prefix `__parsergen_ebnf__` и стабильные tree
 coordinates. Synthetic CFG создаётся только для analysis:
@@ -87,6 +88,48 @@ BNF path. Legacy backend явно отклоняет grammar с synthetic EBNF p
 чтобы они случайно не превратились в recursive BSL functions.
 
 В production-грамматике сейчас зафиксированы две канонические диагностики LLK202: для `ЛогическийОператор` между альтернативами 2 и 5 со свидетелем `ССЫЛКА/АВТОУПОРЯДОЧИВАНИЕ`, а также для `ОперандВ` между альтернативами 1 и 2 со свидетелем `ВЫБРАТЬ/*`. Исправление грамматики и сохранение языка runtime-парсера относятся к отдельной задаче.
+
+## Declarative AST binding
+
+Canonical source grammar поддерживает минимальный binding DSL:
+
+```text
+@Constructor
+Property = value
+Property += value
+Property := constant
+```
+
+`=` задаёт scalar или optional property; отсутствующий optional в
+Parser IR явно присваивает `Неопределено`. `+=` добавляет каждое
+фактически parsed value в collection. `:=` не потребляет input и
+принимает `Истина`, `Ложь`, `Неопределено` или dotted symbolic constant.
+Терминал, identifier class и constant token могут быть semantic value.
+
+High-level validation до lowering доказывает:
+
+- все bindings имеют preceding constructor в той же alternative;
+- scalar property присваивается не более одного раза на execution path и не
+  исполняется в repeat;
+- одна property не смешивает scalar и collection modes;
+- scalar RHS имеет cardinality `0..1` или `1..1`;
+- alternative с canonical directives не содержит legacy `Action`;
+- transparent alternative имеет ровно один semantic child.
+
+Constructor, constant assignment и binding wrapper исчезают из lowered CFG:
+nullable/FIRST/FOLLOW/SELECT видят только grammar value. Oracle tests сравнивают
+bound и unbound grammar при `k=1..3`. Origin sidecar сохраняет source
+production, alternative, tree path и span для runtime IR.
+
+Parser IR публикует `ConstructNode`, `BindScalar`, `AppendCollection` и
+`AssignConstant`. `RepeatLoop` содержит append только в consuming
+branches; exit не меняет AST. `OptionalBranch` имеет явные exit
+operations. Grouped value хранит index конкретной value-producing operation,
+поэтому будущий codegen не зависит от неявного «последнего temporary».
+
+Optimized BSL emission для этих operations остаётся следующим этапом.
+Production grammar, query model и legacy generated artifacts на этом checkpoint не
+изменялись.
 
 ## Граница canonical и legacy API
 

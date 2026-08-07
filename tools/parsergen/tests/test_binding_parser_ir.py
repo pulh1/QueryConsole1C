@@ -128,6 +128,22 @@ class BindingParserIrTests(unittest.TestCase):
         )
         self.assertIsInstance(loop.branches[0].operations[0].value, ParseSymbol)
 
+    def test_binding_wrapped_plus_appends_first_and_then_loops(self) -> None:
+        parser_ir = _build("<S> ::= @НовыйСписок Элементы += ITEM+")
+
+        operations = parser_ir.productions[0].alternatives[0].operations
+        self.assertEqual(
+            [type(item) for item in operations],
+            [ConstructNode, AppendCollection, RepeatLoop],
+        )
+        self.assertIsInstance(operations[1].value, ParseSymbol)
+        loop = operations[2]
+        assert isinstance(loop, RepeatLoop)
+        self.assertEqual(
+            [type(item) for item in loop.branches[0].operations],
+            [AppendCollection],
+        )
+
     def test_grouped_optional_records_the_exact_branch_result(self) -> None:
         parser_ir = _build(
             "<S> ::= @НовыйУзел Значение = (<A> | <B>)?\n"

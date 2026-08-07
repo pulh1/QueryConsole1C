@@ -8,6 +8,11 @@
 
 **Tech Stack:** Python 3.11+, frozen dataclasses, existing EBNF Source AST/lowering/Parser IR, `unittest`/`pytest`.
 
+**Status:** completed on 2026-08-07. Final gate: `322 passed, 1 skipped,
+4051 subtests`; repository audit preserved `124/281`, `63` epsilon
+alternatives, `11273` legacy matcher rows, two known canonical `LLK202`, zero
+legacy runtime conflicts and `artifacts.changed == []`.
+
 ## Global Constraints
 
 - Утверждённый DSL: `@Constructor`, `Property = value`, `Property += value`, `Property := constant`.
@@ -51,14 +56,14 @@
 - Produce `BindingMode.SCALAR`, `BindingMode.APPEND`.
 - Produce `SourceConstructor(name, span)`, `SourceBinding(property, mode, value, span, operator_span)`, `SourceConstantBinding(property, value, span, operator_span)`.
 
-- [ ] Write RED tests for `@НовыйУзел`, scalar nonterminal, optional scalar, repeated append, terminal/identifier capture and dotted constant.
-- [ ] Verify collection fails because source binding types/parser support do not exist.
-- [ ] Parse a binding RHS as exactly one primary plus optional postfix; preserve its original span and make the binding span cover property through RHS.
-- [ ] Parse `:=` RHS as one allowed lexical constant candidate; semantic validity remains Task 2.
-- [ ] Preserve quoted `@`, `=`, `+=`, `:=` as lexeme content when inside quotes and preserve every delimiter inside legacy `{...}` actions.
-- [ ] Report `GP010` for missing constructor name, missing property, missing RHS, unknown binding operator and malformed dotted constant tokenization.
-- [ ] Run focused parser tests plus all existing source/legacy grammar parser tests GREEN.
-- [ ] Commit and push as `Добавить syntax declarative AST binding`.
+- [x] Write RED tests for `@НовыйУзел`, scalar nonterminal, optional scalar, repeated append, terminal/identifier capture and dotted constant.
+- [x] Verify collection fails because source binding types/parser support do not exist.
+- [x] Parse a binding RHS as exactly one primary plus optional postfix; preserve its original span and make the binding span cover property through RHS.
+- [x] Parse `:=` RHS as one allowed lexical constant candidate; semantic validity remains Task 2.
+- [x] Preserve quoted `@`, `=`, `+=`, `:=` as lexeme content when inside quotes and preserve every delimiter inside legacy `{...}` actions.
+- [x] Report `GP010` for missing constructor name, missing property, missing RHS, unknown binding operator and malformed dotted constant tokenization.
+- [x] Run focused parser tests plus all existing source/legacy grammar parser tests GREEN.
+- [x] Commit and push as `Добавить syntax declarative AST binding`.
 
 Representative contract:
 
@@ -86,15 +91,15 @@ assert alternative.body.items[1].mode is BindingMode.APPEND
 - Produce `validate_bindings(grammar: SourceGrammar) -> BindingValidationReport`.
 - Merge binding diagnostics into `parse_grammar` before lowering.
 
-- [ ] Write RED tests for missing/duplicate constructor, binding before/without constructor scope, mixed modes, duplicate scalar, scalar inside repeat, scalar wrapping `*`/`+`, invalid constant and action/directive mixing.
-- [ ] Add GREEN cases for optional scalar, first-item append plus repeated append, same scalar property in mutually exclusive source alternatives, token capture and constants.
-- [ ] Compute value cardinality structurally: atom `1..1`, optional `0..1`, star `0..*`, plus `1..*`, group choice min/max, sequence binding value from its wrapped node only.
-- [ ] Use stable diagnostics: `BIND200` constructor scope, `BIND201` binding without constructor, `BIND202` conflicting modes, `BIND203` repeated/multi-valued scalar, `BIND204` invalid constant, `BIND205` action mixed with canonical directives, `BIND206` ambiguous transparent alternative.
-- [ ] Validate properties by control-flow branch: mutually exclusive alternatives may assign the same scalar once; a single execution path may not assign it twice.
-- [ ] Treat constructor/constant directives as productive nullable zero-token nodes; SourceBinding inherits facts from its value.
-- [ ] Ensure unknown nonterminal errors remain owned by resolver and are not masked by cardinality diagnostics.
-- [ ] Run binding/source/validation suites GREEN.
-- [ ] Commit and push as `Проверять declarative AST bindings`.
+- [x] Write RED tests for missing/duplicate constructor, binding before/without constructor scope, mixed modes, duplicate scalar, scalar inside repeat, scalar wrapping `*`/`+`, invalid constant and action/directive mixing.
+- [x] Add GREEN cases for optional scalar, first-item append plus repeated append, same scalar property in mutually exclusive source alternatives, token capture and constants.
+- [x] Compute value cardinality structurally: atom `1..1`, optional `0..1`, star `0..*`, plus `1..*`, group choice min/max, sequence binding value from its wrapped node only.
+- [x] Use stable diagnostics: `BIND200` constructor scope, `BIND201` binding without constructor, `BIND202` conflicting modes, `BIND203` repeated/multi-valued scalar, `BIND204` invalid constant, `BIND205` action mixed with canonical directives, `BIND206` ambiguous transparent alternative.
+- [x] Validate properties by control-flow branch: mutually exclusive alternatives may assign the same scalar once; a single execution path may not assign it twice.
+- [x] Treat constructor/constant directives as productive nullable zero-token nodes; SourceBinding inherits facts from its value.
+- [x] Ensure unknown nonterminal errors remain owned by resolver and are not masked by cardinality diagnostics.
+- [x] Run binding/source/validation suites GREEN.
+- [x] Commit and push as `Проверять declarative AST bindings`.
 
 ---
 
@@ -109,13 +114,13 @@ assert alternative.body.items[1].mode is BindingMode.APPEND
 - `LoweringResult` adds immutable binding origins keyed by source production/alternative/path.
 - Canonical CFG contains no constructor/binding nodes.
 
-- [ ] Write RED tests proving constructor and constant directives disappear and scalar/append bindings lower to exactly their grammar values.
-- [ ] Prove binding-wrapped `?`, `*`, `+` keep the same deterministic synthetic shape and SELECT as unbound EBNF.
-- [ ] Preserve binding source path/origin for Parser IR; never reconstruct binding from synthetic names.
-- [ ] Verify BNF identity and repository `124/281` counts remain unchanged.
-- [ ] Compare nullable/FIRST/FOLLOW/SELECT for bound grammar against the equivalent unbound grammar at `k=1..3`.
-- [ ] Run lowering/oracle/repository/reference artifact tests GREEN.
-- [ ] Commit and push as `Lowered AST bindings без изменения grammar semantics`.
+- [x] Write RED tests proving constructor and constant directives disappear and scalar/append bindings lower to exactly their grammar values.
+- [x] Prove binding-wrapped `?`, `*`, `+` keep the same deterministic synthetic shape and SELECT as unbound EBNF.
+- [x] Preserve binding source path/origin for Parser IR; never reconstruct binding from synthetic names.
+- [x] Verify BNF identity and repository `124/281` counts remain unchanged.
+- [x] Compare nullable/FIRST/FOLLOW/SELECT for bound grammar against the equivalent unbound grammar at `k=1..3`.
+- [x] Run lowering/oracle/repository/reference artifact tests GREEN.
+- [x] Commit and push as `Lowered AST bindings без изменения grammar semantics`.
 
 ---
 
@@ -133,14 +138,14 @@ assert alternative.body.items[1].mode is BindingMode.APPEND
 - Produce `AssignConstant(property, value, source_span)`.
 - Preserve `RepeatLoop`/`OptionalBranch` as the control-flow owner of nested binding operations.
 
-- [ ] Write RED IR tests for constructor + scalar, optional scalar, append in separator repeat, token capture and constant assignment.
-- [ ] Define bound value as one explicit nested parse/control-flow operation, not an implicit “last temporary” convention.
-- [ ] For scalar optional, represent absent result explicitly so codegen assigns `Неопределено` deterministically.
-- [ ] For append in repeat, place `AppendCollection` inside each consuming loop branch; exit performs no append.
-- [ ] Reject legacy `Action` in a production containing semantic IR directives.
-- [ ] Verify Parser IR contains no synthetic productions and no legacy artifact references.
-- [ ] Run Parser IR and canonical decision tests GREEN.
-- [ ] Commit and push as `Добавить semantic operations в Parser IR`.
+- [x] Write RED IR tests for constructor + scalar, optional scalar, append in separator repeat, token capture and constant assignment.
+- [x] Define bound value as one explicit nested parse/control-flow operation, not an implicit “last temporary” convention.
+- [x] For scalar optional, represent absent result explicitly so codegen assigns `Неопределено` deterministically.
+- [x] For append in repeat, place `AppendCollection` inside each consuming loop branch; exit performs no append.
+- [x] Reject legacy `Action` in a production containing semantic IR directives.
+- [x] Verify Parser IR contains no synthetic productions and no legacy artifact references.
+- [x] Run Parser IR and canonical decision tests GREEN.
+- [x] Commit and push as `Добавить semantic operations в Parser IR`.
 
 ---
 
@@ -151,12 +156,12 @@ assert alternative.body.items[1].mode is BindingMode.APPEND
 - Modify: this plan status markers.
 - Test: all `tools/parsergen/tests`.
 
-- [ ] Run full parsergen suite and record exact pass/skip/subtest counts.
-- [ ] Run repository `validate`, `analyze`, `generate --check` read-only; preserve two known canonical `LLK202` and code `1` baseline.
-- [ ] Run migration audit; require `124/281`, unchanged structural metrics, `11273` legacy rows and `artifacts.changed == []`.
-- [ ] Document binding syntax, validation/cardinality, analysis neutrality and Parser IR semantics.
-- [ ] Run `git diff --check`, inspect changed paths and confirm no production grammar/BSL/form changes.
-- [ ] Commit and push as `Документировать declarative AST binding`.
+- [x] Run full parsergen suite and record exact pass/skip/subtest counts.
+- [x] Run repository `validate`, `analyze`, `generate --check` read-only; preserve two known canonical `LLK202` and code `1` baseline.
+- [x] Run migration audit; require `124/281`, unchanged structural metrics, `11273` legacy rows and `artifacts.changed == []`.
+- [x] Document binding syntax, validation/cardinality, analysis neutrality and Parser IR semantics.
+- [x] Run `git diff --check`, inspect changed paths and confirm no production grammar/BSL/form changes.
+- [x] Commit and push as `Документировать declarative AST binding`.
 
 ---
 

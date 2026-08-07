@@ -52,6 +52,67 @@ def _assert_mapped_analysis_equal(
 
 
 class EbnfAnalysisEquivalenceTests(unittest.TestCase):
+    def test_bindings_are_analysis_neutral_at_k_1_to_3(self) -> None:
+        bound = (
+            "<S> ::= @НовыйУзел Заголовок = HEAD? "
+            "Элементы += ITEM (',' Элементы += ITEM)* END"
+        )
+        unbound = "<S> ::= HEAD? ITEM (',' ITEM)* END"
+        for k in (1, 2, 3):
+            with self.subTest(k=k):
+                actual = _analyze(bound, k)
+                expected = _analyze(unbound, k)
+                actual_constructs = {
+                    item.kind: item
+                    for item in actual[0].lowering.constructs
+                }
+                expected_constructs = {
+                    item.kind: item
+                    for item in expected[0].lowering.constructs
+                }
+                _assert_mapped_analysis_equal(
+                    self,
+                    actual,
+                    expected,
+                    {
+                        "S": "S",
+                        actual_constructs[
+                            LoweredConstructKind.OPTIONAL
+                        ].production: expected_constructs[
+                            LoweredConstructKind.OPTIONAL
+                        ].production,
+                        actual_constructs[
+                            LoweredConstructKind.STAR
+                        ].production: expected_constructs[
+                            LoweredConstructKind.STAR
+                        ].production,
+                    },
+                )
+
+    def test_plus_binding_is_analysis_neutral_at_k_1_to_3(self) -> None:
+        bound = "<S> ::= @НовыйСписок Элементы += ITEM+ END"
+        unbound = "<S> ::= ITEM+ END"
+        for k in (1, 2, 3):
+            with self.subTest(k=k):
+                actual = _analyze(bound, k)
+                expected = _analyze(unbound, k)
+                actual_construct = actual[0].lowering.constructs[0]
+                expected_construct = expected[0].lowering.constructs[0]
+                _assert_mapped_analysis_equal(
+                    self,
+                    actual,
+                    expected,
+                    {
+                        "S": "S",
+                        actual_construct.production: (
+                            expected_construct.production
+                        ),
+                        actual_construct.tail_production: (
+                            expected_construct.tail_production
+                        ),
+                    },
+                )
+
     def test_separator_star_matches_handwritten_bnf_at_k_1_to_3(self) -> None:
         ebnf = "<S> ::= start (',' item)* end"
         bnf = (
