@@ -31,7 +31,7 @@
 | `DataProcessors/ПредставлениеСтажиФизическихЛиц/ManagerModule.bsl` | `Описание`, `Справка`, `ИмяПредставления`, `Исполнить`, `ИсполняемыйКод`, `ТекстЗапросаДляСКД` |
 | `DataProcessors/ПредставлениеФактическиеОтпускаСотрудников/ManagerModule.bsl` | `Описание`, `Справка`, `ИмяПредставления`, `Исполнить`, `ИсполняемыйКод`, `ТекстЗапросаДляСКД` |
 
-[Факт] Direct non-consumer exclusions (в их manager modules `rg` пяти API не нашёл): `DataProcessors/ПредставлениеОплаченноеВремя/ManagerModule.bsl`, `ПредставлениеРегистрНакопленияНарастающийИтог/ManagerModule.bsl`, `ПредставлениеРегистрРасчетаБаза/ManagerModule.bsl`, `ПредставлениеРегистрСведенийПериоды/ManagerModule.bsl`. Это не утверждает отсутствие косвенной динамики.
+[Факт] Direct non-consumer exclusions (в их manager modules `rg` пяти API не нашёл): `QueryConsoleZUP/src/DataProcessors/ПредставлениеОплаченноеВремя/ManagerModule.bsl`, `QueryConsoleZUP/src/DataProcessors/ПредставлениеРегистрНакопленияНарастающийИтог/ManagerModule.bsl`, `QueryConsoleZUP/src/DataProcessors/ПредставлениеРегистрРасчетаБаза/ManagerModule.bsl`, `QueryConsoleZUP/src/DataProcessors/ПредставлениеРегистрСведенийПериоды/ManagerModule.bsl`. Это не утверждает отсутствие косвенной динамики.
 
 | Component | Model types/properties | Model ingress | Observable output | Existing automated test | Coverage gap | Required Phase 2.5 test |
 |---|---|---|---|---|---|---|
