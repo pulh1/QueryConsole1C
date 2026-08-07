@@ -735,6 +735,7 @@
             "КОНС_Обр_ПрикладныеПотребителиЗапроса_МО"
           ],
           "test_or_tag": "СхемаЗапросаВозвращаетсяДляВложеннойПозиции",
+          "fixture": "Outer query has two nested sources; positions [0, 1] select the second nested query with one catalog source, while the first nested query has zero sources.",
           "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО\"], tests: [\"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО.СхемаЗапросаВозвращаетсяДляВложеннойПозиции\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
           "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________a3d020982_8837c349f1ae21f53a5af5a10913cfd592719a71\\report.md",
           "exit_code": null,
@@ -765,6 +766,20 @@
             "errors": 0,
             "skipped": 2
           }
+        }
+      ],
+      "mutation_proof": [
+        {
+          "mutation": "Nested source position [0, 1] changed to [0, 0] without changing expectations.",
+          "observed_failure": "Expected returned nested source count 1, observed 0 at Module.bsl:110.",
+          "junit": {
+            "total": 1,
+            "passed": 0,
+            "failed": 1,
+            "errors": 0,
+            "skipped": 0
+          },
+          "result_ref_unavailable_reason": "EDT-MCP reuses the report directory for an identical filter; the required final GREEN rerun replaced the temporary mutation report."
         }
       ]
     },
