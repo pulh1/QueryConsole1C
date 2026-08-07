@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Collection
 from dataclasses import dataclass
 
 from .analysis import (
@@ -214,6 +215,8 @@ def build_parser_ir(
     lowering: LoweringResult,
     resolved: ResolvedGrammar,
     analysis: AnalysisResult,
+    *,
+    production_names: Collection[str] | None = None,
 ) -> ParserIr:
     if any(
         item.severity is Severity.ERROR
@@ -227,7 +230,16 @@ def build_parser_ir(
         raise ValueError("lowered grammar does not match resolved grammar")
     if analysis._resolved_grammar is not resolved:
         raise ValueError("analysis is not bound to the resolved grammar")
-    conflicts = find_canonical_select_conflicts(resolved, analysis)
+    selected_names = _selected_production_names(source, production_names)
+    required_decisions = _required_decision_productions(
+        lowering,
+        frozenset(selected_names),
+    )
+    conflicts = tuple(
+        conflict
+        for conflict in find_canonical_select_conflicts(resolved, analysis)
+        if conflict.production in required_decisions
+    )
     if conflicts:
         raise ValueError("overlapping canonical SELECT prevents Parser IR")
     artifact = build_canonical_decision_artifact(analysis)
@@ -237,7 +249,43 @@ def build_parser_ir(
         artifact.rows,
         artifact.matcher_definitions,
         analysis.k,
+        frozenset(selected_names),
     ).build()
+
+
+def _selected_production_names(
+    source: SourceGrammar,
+    production_names: Collection[str] | None,
+) -> tuple[str, ...]:
+    source_order = tuple(production.name for production in source.productions)
+    if production_names is None:
+        return source_order
+    requested_values = tuple(production_names)
+    requested = frozenset(requested_values)
+    if len(requested) != len(requested_values):
+        raise ValueError("duplicate Parser IR production")
+    unknown = requested.difference(source_order)
+    if unknown:
+        formatted = ", ".join(repr(item) for item in sorted(unknown))
+        raise ValueError(f"unknown Parser IR production: {formatted}")
+    return tuple(name for name in source_order if name in requested)
+
+
+def _required_decision_productions(
+    lowering: LoweringResult,
+    selected_names: frozenset[str],
+) -> frozenset[str]:
+    required = set(selected_names)
+    for construct in lowering.constructs:
+        if construct.source_production not in selected_names:
+            continue
+        required.add(construct.production)
+        if construct.tail_production is not None:
+            required.add(construct.tail_production)
+    for recursion in lowering.left_recursions:
+        if recursion.production in selected_names:
+            required.add(recursion.tail_production)
+    return frozenset(required)
 
 
 class _ParserIrBuilder:
@@ -248,12 +296,14 @@ class _ParserIrBuilder:
         rows: tuple[CanonicalDecisionRow, ...],
         matcher_definitions: tuple[MatcherDefinition, ...],
         lookahead: int,
+        selected_names: frozenset[str],
     ) -> None:
         self._source = source
         self._lowering = lowering
         self._rows = rows
         self._matcher_definitions = matcher_definitions
         self._lookahead = lookahead
+        self._selected_names = selected_names
         self._lowered_left_recursions = {
             item.production: item
             for item in lowering.left_recursions
@@ -264,6 +314,7 @@ class _ParserIrBuilder:
         productions = tuple(
             self._production(production)
             for production in self._source.productions
+            if production.name in self._selected_names
         )
         return ParserIr(
             productions,
