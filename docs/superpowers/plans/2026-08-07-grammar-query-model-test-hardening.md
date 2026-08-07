@@ -148,14 +148,24 @@ $exports = Select-String -Path $factory -Pattern '^Функция\s+(Новый\
 "factory_exports=$($exports.Count)"; $exports
 $template = 'QueryConsoleZUP/src/DataProcessors/Шаблон_ПосетительМоделиВыражений/ObjectModule.bsl'
 $templateCallbacks = Select-String -Path $template -Pattern '^Процедура\s+(\S+)\(.*\)\s+Экспорт' | ForEach-Object { $_.Matches[0].Groups[1].Value }
-$visitorFiles = @('QueryConsoleZUP/src/DataProcessors/СемантическийАнализВыраженийПосетитель/ObjectModule.bsl','QueryConsoleZUP/src/DataProcessors/ПроверкаПрименимостиОтбораПосетитель/ObjectModule.bsl','QueryConsoleZUP/src/DataProcessors/ОбработчикРазыменованийДляСКДПосетитель/ObjectModule.bsl')
-foreach ($visitor in $visitorFiles) { $exports = Select-String -Path $visitor -Pattern '^(Процедура|Функция)\s+(\S+)\(.*\)\s+Экспорт' | ForEach-Object { $_.Matches[0].Groups[2].Value }; "visitor=$visitor"; Compare-Object $templateCallbacks $exports; "lifecycle_extras="; $exports | Where-Object { $_ -notin $templateCallbacks } }
+$expectedVisitorExtras = @{
+  'QueryConsoleZUP/src/DataProcessors/СемантическийАнализВыраженийПосетитель/ObjectModule.bsl' = @('ЗавершитьОбходВыражения','УстановитьКонтекст','УстановитьРассчитываемыеСвойства')
+  'QueryConsoleZUP/src/DataProcessors/ПроверкаПрименимостиОтбораПосетитель/ObjectModule.bsl' = @('ВыделитьИМодифицироватьОтбор','ЗавершитьОбходВыражения','МожноДелегироватьВесьОтбор','УстановитьИдентификаторИсточникаПредставления','УстановитьИмяПредставления','УстановитьОписаниеОтбора','УстановитьРежимВалидации')
+  'QueryConsoleZUP/src/DataProcessors/ОбработчикРазыменованийДляСКДПосетитель/ObjectModule.bsl' = @('УстановитьКонтекст')
+}
+foreach ($visitor in $expectedVisitorExtras.Keys) {
+  $exports = Select-String -Path $visitor -Pattern '^(Процедура|Функция)\s+(\S+)\(.*\)\s+Экспорт' | ForEach-Object { $_.Matches[0].Groups[2].Value } | Sort-Object -Unique
+  $callbacks = $exports | Where-Object { $_ -in $templateCallbacks }
+  $extras = $exports | Where-Object { $_ -notin $templateCallbacks }
+  "visitor=$visitor callbacks="; Compare-Object $templateCallbacks $callbacks
+  "visitor=$visitor lifecycle_or_helper_exports="; Compare-Object ($expectedVisitorExtras[$visitor] | Sort-Object) $extras
+}
 $dispatcherCalls = Select-String -Path 'QueryConsoleZUP/src/CommonModules/ОбходМоделиЯзыкаВыражений/Module.bsl' -Pattern 'Посетитель\.(\S+)\(' | ForEach-Object { $_.Matches[0].Groups[1].Value } | Sort-Object -Unique
 "dispatcher_callback_targets=$($dispatcherCalls.Count)"; Compare-Object $templateCallbacks $dispatcherCalls
 rg -n "СоздатьГенераторТекстовВыражений|ВыражениеВСтроку|УстановитьКонтекст|ВыделитьИМодифицироватьОтбор" QueryConsoleZUP/src/CommonModules/ГенерацияТекстовЗапросов/Module.bsl QueryConsoleZUP/src/DataProcessors/СемантическийАнализВыраженийПосетитель/ObjectModule.bsl QueryConsoleZUP/src/DataProcessors/ПроверкаПрименимостиОтбораПосетитель/ObjectModule.bsl QueryConsoleZUP/src/DataProcessors/ОбработчикРазыменованийДляСКДПосетитель/ObjectModule.bsl
 ```
 
-Expected: exactly 91 factory exports; the first is the documented base helper and the remaining 90 are concrete factories. Exact set comparisons distinguish 59 template callbacks from each visitor's lifecycle exports; the dispatcher is compared by its `Посетитель.<callback>` targets because it exports only `ОбойтиДерево`.
+Expected: exactly 91 factory exports; the first is the documented base helper and the remaining 90 are concrete factories. For every visitor, comparison 1 fails on a missing or unexpected callback in its callback subset; comparison 2 fails on a missing or unexpected lifecycle/helper export in its explicitly enumerated allowed extras. The plan deliberately does not compare the complete visitor export set directly with the template. The dispatcher is compared by its `Посетитель.<callback>` targets because it exports only `ОбойтиДерево`.
 
 - [ ] **Step 2: Add RED contracts as one expression vertical slice**
 
