@@ -497,13 +497,13 @@
             "КОНС_Обр_ИсполняемыеПредставления_МО"
           ],
           "test_or_tag": "ИсполняемоеПредставлениеПреобразуетИДелегируетОтбор",
-          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ИсполняемыеПредставления_МО\"], timeout: 120, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
-          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________42260b44c_44ec70c3ebc2ddc549f170056b93c7ea2a793a7d\\report.md",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ИсполняемыеПредставления_МО\"], tests: [\"КОНС_Обр_ИсполняемыеПредставления_МО.ИсполняемоеПредставлениеПреобразуетИДелегируетОтбор\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________60a8a4331_0ce5e48bc569cc128c6704fca352b568811eeb96\\report.md",
           "exit_code": null,
           "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
           "junit": {
-            "total": 3,
-            "passed": 3,
+            "total": 1,
+            "passed": 1,
             "failed": 0,
             "errors": 0,
             "skipped": 0
@@ -520,7 +520,7 @@
             "КОНС_ОМ_ОбработкаМоделиЗапроса",
             "КОНС_Обр_ИсполняемыеПредставления_МО"
           ],
-          "test_or_tag": "combined Phase 2.5 regression including ИсполняемоеПредставлениеПреобразуетИДелегируетОтбор",
+          "test_or_tag": "ИсполняемыеПредставления",
           "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПостроениеИГенерацияЗапросов_МО\", \"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\", \"КОНС_Обр_ИсполняемыеПредставления_МО\"], timeout: 120, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
           "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________a0c95fab2_d2e51d7e035d254ff4c4fa931dd7feecb55260ac\\report.md",
           "exit_code": null,
@@ -572,7 +572,7 @@
             "КОНС_ОМ_ОбработкаМоделиЗапроса",
             "КОНС_Обр_ИсполняемыеПредставления_МО"
           ],
-          "test_or_tag": "combined Phase 2.5 regression including ИсполнительФормируетКодИТекстСКДДляПредставительнойМодели",
+          "test_or_tag": "ИсполняемыеПредставления",
           "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПостроениеИГенерацияЗапросов_МО\", \"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\", \"КОНС_Обр_ИсполняемыеПредставления_МО\"], timeout: 120, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
           "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________a0c95fab2_d2e51d7e035d254ff4c4fa931dd7feecb55260ac\\report.md",
           "exit_code": null,
@@ -624,7 +624,7 @@
             "КОНС_ОМ_ОбработкаМоделиЗапроса",
             "КОНС_Обр_ИсполняемыеПредставления_МО"
           ],
-          "test_or_tag": "combined Phase 2.5 regression including УниверсальныйОтчетЗаменяетИсполняемыеПредставленияВременнымиТаблицами",
+          "test_or_tag": "ИсполняемыеПредставления",
           "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПостроениеИГенерацияЗапросов_МО\", \"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\", \"КОНС_Обр_ИсполняемыеПредставления_МО\"], timeout: 120, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
           "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________a0c95fab2_d2e51d7e035d254ff4c4fa931dd7feecb55260ac\\report.md",
           "exit_code": null,
