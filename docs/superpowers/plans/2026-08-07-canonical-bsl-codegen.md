@@ -36,12 +36,12 @@
 - Produce `normalize_newlines(text: str) -> str`.
 - Legacy `generate_parser(...)` output remains byte-identical.
 
-- [ ] Write tests for Cyrillic/Latin identifiers, every existing reserved-keyword category, quote escaping and CR/LF normalization.
-- [ ] Run the new tests RED because `bsl_rendering` does not exist.
-- [ ] Move the existing keyword sets and three pure helpers without changing their messages or output.
-- [ ] Make legacy `bsl_codegen.py` import the neutral helpers and remove only their duplicate definitions.
-- [ ] Run `test_bsl_rendering.py`, full `test_bsl_codegen.py`, reference renderer/artifact tests and verify exact production artifact parity.
-- [ ] Commit and push as `Выделить общие BSL rendering helpers`.
+- [x] Write tests for Cyrillic/Latin identifiers, every existing reserved-keyword category, quote escaping and CR/LF normalization.
+- [x] Run the new tests RED because `bsl_rendering` does not exist.
+- [x] Move the existing keyword sets and three pure helpers without changing their messages or output.
+- [x] Make legacy `bsl_codegen.py` import the neutral helpers and remove only their duplicate definitions.
+- [x] Run `test_bsl_rendering.py`, full `test_bsl_codegen.py`, reference renderer/artifact tests and verify exact production artifact parity.
+- [x] Commit and push as `Выделить общие BSL rendering helpers`.
 
 ---
 

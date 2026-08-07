@@ -10,6 +10,11 @@ from .analysis import (
     SelectMatcherArtifact,
     build_legacy_matcher_artifact,
 )
+from .bsl_rendering import (
+    bsl_string as _bsl_string,
+    normalize_newlines as _normalize_newlines,
+    validate_bsl_identifier as _validate_bsl_identifier,
+)
 from .model import (
     Action,
     Alternative,
@@ -45,80 +50,12 @@ _LEGACY_ALTERNATIVE_NUMBERING = {
     "ПервыеРазличныеОпционально": (3, 1, 2),
 }
 
-_BSL_IDENTIFIER = re.compile(
-    r"[A-Za-zА-Яа-яЁё_][0-9A-Za-zА-Яа-яЁё_]*\Z"
-)
 _BSL_DECLARATION = re.compile(
     r"^(?:Функция|Процедура)\s+"
     r"([A-Za-zА-Яа-яЁё_][0-9A-Za-zА-Яа-яЁё_]*)\s*\(",
     re.MULTILINE | re.IGNORECASE,
 )
 
-# 1C:Enterprise Developer Guide, "Reserved words", defines the classic
-# bilingual language core. The grouped additions below cover the current
-# exception, handler, async, literal, and preprocessor constructs which may
-# also occur in generated modules. Keep the categories explicit: this is a
-# code-generation safety boundary, not a convenient sample of common words.
-_BSL_CONTROL_KEYWORDS = (
-    "Если", "If",
-    "Тогда", "Then",
-    "ИначеЕсли", "ElsIf",
-    "Иначе", "Else",
-    "КонецЕсли", "EndIf",
-    "Для", "For",
-    "Каждого", "Each",
-    "Из", "In",
-    "По", "To",
-    "Пока", "While",
-    "Цикл", "Do",
-    "КонецЦикла", "EndDo",
-    "Попытка", "Try",
-    "Исключение", "Except",
-    "КонецПопытки", "EndTry",
-    "ВызватьИсключение", "Raise",
-    "Перейти", "Goto",
-    "Возврат", "Return",
-    "Продолжить", "Continue",
-    "Прервать", "Break",
-)
-_BSL_DECLARATION_KEYWORDS = (
-    "Процедура", "Procedure",
-    "КонецПроцедуры", "EndProcedure",
-    "Функция", "Function",
-    "КонецФункции", "EndFunction",
-    "Перем", "Var",
-    "Экспорт", "Export",
-    "Знач", "Val",
-    "Асинх", "Async",
-)
-_BSL_OPERATOR_AND_LITERAL_KEYWORDS = (
-    "И", "And",
-    "Или", "Or",
-    "Не", "Not",
-    "Новый", "New",
-    "Выполнить", "Execute",
-    "Ждать", "Await",
-    "ДобавитьОбработчик", "AddHandler",
-    "УдалитьОбработчик", "RemoveHandler",
-    "Истина", "True",
-    "Ложь", "False",
-    "Неопределено", "Undefined",
-    "Null",
-)
-_BSL_PREPROCESSOR_KEYWORDS = (
-    "Область", "Region",
-    "КонецОбласти", "EndRegion",
-)
-_BSL_RESERVED_KEYWORDS = frozenset(
-    keyword.casefold()
-    for category in (
-        _BSL_CONTROL_KEYWORDS,
-        _BSL_DECLARATION_KEYWORDS,
-        _BSL_OPERATOR_AND_LITERAL_KEYWORDS,
-        _BSL_PREPROCESSOR_KEYWORDS,
-    )
-    for keyword in category
-)
 _IMPLICIT_PRODUCTION_PARAMETERS = ("Родитель", "ЛевыйЭлемент")
 _GENERATED_PRODUCTION_LOCALS = (
     "ЭтотУзел",
@@ -130,17 +67,6 @@ _GENERATED_PRODUCTION_RUNTIME_NAMES = (
     "ЭлементыМоделиЗапроса",
     "ПоследняяПродукция",
 )
-
-
-def _validate_bsl_identifier(name: str, origin: str) -> None:
-    if _BSL_IDENTIFIER.fullmatch(name) is None:
-        raise ValueError(
-            f"{origin} {name!r} is not a valid BSL identifier"
-        )
-    if name.casefold() in _BSL_RESERVED_KEYWORDS:
-        raise ValueError(
-            f"{origin} {name!r} is a reserved BSL keyword"
-        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -701,16 +627,3 @@ def _entry_result_name(entrypoint: str) -> str:
         "РазобратьВыражение": "РезультатРазбораВыражения",
     }
     return established.get(entrypoint, f"Результат{entrypoint}")
-
-
-def _bsl_string(value: str) -> str:
-    escaped = value.replace('"', '""')
-    return f'"{escaped}"'
-
-
-def _normalize_newlines(text: str) -> str:
-    return (
-        text.replace("\r\n", "\n")
-        .replace("\r", "\n")
-        .replace("\n", "\r\n")
-    )
