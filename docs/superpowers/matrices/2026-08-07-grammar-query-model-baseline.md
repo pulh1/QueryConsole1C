@@ -4,6 +4,11 @@
 
 `python tools/parsergen/benchmarks/audit_migration.py --config parsergen.toml`
 
+Команда печатает canonical JSON schema version 1 и только сравнивает три
+production artifacts с результатом генерации. Exact regression выполняет её
+также над заведомо изменённым временным target и подтверждает неизменность
+bytes и mtime всех трёх файлов.
+
 ## Structural
 
 - productions: 124
@@ -16,29 +21,40 @@
 
 ## Canonical analysis
 
-- packed FIRST rows: 10 758
-- packed FOLLOW rows: 42 545
-- direct SELECT facts: 10 438
-- short complete SELECT prefixes: 320
-- packed SELECT upper bound with FOLLOW projections: 32 050
-- public SELECT expansions: 0
-- SELECT Cartesian materializations: 0
-- LLK202 `ЛогическийОператор` 2/5: `ССЫЛКА АВТОУПОРЯДОЧИВАНИЕ`
-- LLK202 `ОперандВ` 1/2: `ВЫБРАТЬ *`
+Секция `canonical.stats` команды audit воспроизводит все exact поля:
+
+- `packed_first_rows`: 10 758
+- `packed_follow_rows`: 42 545
+- `select_descriptors`: 281
+- `select_direct_facts`: 10 438
+- `select_short_complete_prefixes`: 320
+- `packed_select_upper_bound`: 32 050
+- `conflict_work_items`: 531
+- `public_select_expansions`: 0
+- `select_cartesian_materializations`: 0
+
+Последние два нулевых счётчика подтверждают, что публикация этих метрик не
+материализует public SELECT или Cartesian SELECT. `canonical.diagnostics`
+содержит ровно две `VAL102` severity `warning` и две `LLK202` severity `error`.
+`canonical.conflicts` содержит ровно:
+
+- `LLK202` `ЛогическийОператор` 2/5: `ССЫЛКА АВТОУПОРЯДОЧИВАНИЕ`
+- `LLK202` `ОперандВ` 1/2: `ВЫБРАТЬ *`
 
 ## Legacy compatibility
 
-- normalized matcher rows: 11 273
-- runtime conflicts: 0
-- artifact comparison changes: 0
+- `legacy.matcher_rows`: 11 273
+- `legacy.matcher_definitions`: 0
+- `legacy.runtime_conflicts`: 0
+- `artifacts.changed`: 0
 
 ## Generated parser
 
-- BSL functions: 135
-- BSL LOC: 3394
-- constructor names: 79
-- SELECT ValueTable rows: 11 273
-- identifier ValueTable rows: 227
+- `generated.bsl_functions`: 135
+- `generated.bsl_loc`: 3394
+- `generated.constructor_names`: 79
+- `generated.select_rows`: 11 273
+- `generated.identifier_rows`: 227
 
 ## Runtime parser baseline gap
 
@@ -55,7 +71,8 @@ change. Python analysis timings are not a substitute for BSL runtime timings.
 - approved architecture:
   [grammar/query-model optimization design](../specs/2026-08-07-grammar-query-model-optimization-design.md)
 - pre-change Python baseline: 226 passed, 1 skipped, 4011 subtests passed
-- current Python suite after audit tests: 233 passed, 1 skipped; 234 collected
+- current Python suite after final audit tests: 234 passed, 1 skipped,
+  4011 subtests passed; 235 collected
 - current YAxUnit status: static inventory only; fresh incremental run belongs
   to Phase 2.5
 - production grammar/model/artifacts changed: no

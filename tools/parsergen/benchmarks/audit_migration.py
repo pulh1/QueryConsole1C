@@ -217,6 +217,13 @@ def build_migration_audit(
                     len(value) for value in compressed.follow
                 ),
                 "select_descriptors": stats["select_descriptors"],
+                "select_direct_facts": stats["select_direct_facts"],
+                "select_short_complete_prefixes": stats[
+                    "select_short_complete_prefixes"
+                ],
+                "packed_select_upper_bound": (
+                    compressed.packed_select_upper_bound()
+                ),
                 "conflict_work_items": stats["conflict_work_items"],
                 "public_select_expansions": stats["public_select_expansions"],
                 "select_cartesian_materializations": stats[

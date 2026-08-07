@@ -351,6 +351,13 @@ def build_migration_audit(
                     len(value) for value in compressed.follow
                 ),
                 "select_descriptors": stats["select_descriptors"],
+                "select_direct_facts": stats["select_direct_facts"],
+                "select_short_complete_prefixes": stats[
+                    "select_short_complete_prefixes"
+                ],
+                "packed_select_upper_bound": (
+                    compressed.packed_select_upper_bound()
+                ),
                 "conflict_work_items": stats["conflict_work_items"],
                 "public_select_expansions": stats["public_select_expansions"],
                 "select_cartesian_materializations": stats[
@@ -435,6 +442,13 @@ if __name__ == "__main__":
 Add a subprocess test asserting a missing config returns code 2, valid UTF-8
 JSON and no traceback.
 
+Add a no-write regression that copies the production grammar and all three
+target artifacts to a temporary config/target, deliberately changes one target
+artifact so the comparison is non-clean, snapshots bytes plus `st_mtime_ns`,
+runs `build_migration_audit`, and asserts all three snapshots are unchanged.
+This makes an accidental replacement of `compare_artifacts` by the write path
+observable without touching live repository artifacts.
+
 - [ ] **Step 9: Run focused tests**
 
 ```powershell
@@ -498,9 +512,9 @@ class MigrationAuditProductionTests(unittest.TestCase):
                 "statements": 431,
                 "constructor_statements": 102,
                 "collection_statements": 37,
-                "constant_statements": 32,
-                "structural_statements": 245,
-                "other_assignment_statements": 10,
+                "constant_statements": 33,
+                "structural_statements": 254,
+                "other_assignment_statements": 0,
                 "other_statements": 5,
             },
         )
@@ -536,6 +550,13 @@ class MigrationAuditProductionTests(unittest.TestCase):
 If Task 1's mutually exclusive classifier yields a different exact split,
 inspect every difference and correct either the classifier or this expected
 baseline. Do not weaken the test to `greater than zero` assertions.
+
+The as-built final regression asserts the complete `canonical`, `legacy` and
+`generated` dictionaries, including exactly two `VAL102` plus two `LLK202`,
+`select_direct_facts = 10_438`, `select_short_complete_prefixes = 320`,
+`packed_select_upper_bound = 32_050`, `matcher_definitions = 0`, generated
+`select_rows = 11_273` and `identifier_rows = 227`. This whole-section
+assertion rejects silently added, removed or renamed published fields.
 
 - [ ] **Step 3: Run the production regression test**
 
@@ -897,9 +918,9 @@ Append:
 ## Foundation Phase 0–2 status
 
 - impact matrix:
-  [query-model consumer impact](2026-08-07-query-model-consumer-impact.md)
+  [query-model consumer impact](../matrices/2026-08-07-query-model-consumer-impact.md)
 - coverage matrix:
-  [grammar/query-model coverage](2026-08-07-grammar-query-model-coverage.md)
+  [grammar/query-model coverage](../matrices/2026-08-07-grammar-query-model-coverage.md)
 - approved architecture:
   [grammar/query-model optimization design](../specs/2026-08-07-grammar-query-model-optimization-design.md)
 - Python baseline: 226 passed, 1 skipped, 4011 subtests passed

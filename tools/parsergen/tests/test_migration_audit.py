@@ -1,11 +1,14 @@
 from importlib.util import module_from_spec, spec_from_file_location
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 from unittest.mock import patch
 
+from parsergen.artifacts import artifact_paths
 from parsergen.grammar_parser import parse_grammar
 
 
@@ -103,30 +106,82 @@ class MigrationAuditProductionTests(unittest.TestCase):
 
     def test_canonical_and_legacy_contracts_are_separate(self) -> None:
         self.assertEqual(
-            self.report["canonical"]["conflicts"],
-            [
-                {
-                    "production": "ЛогическийОператор",
-                    "left_alternative": 2,
-                    "right_alternative": 5,
-                    "witness": ["ССЫЛКА", "АВТОУПОРЯДОЧИВАНИЕ"],
+            self.report["canonical"],
+            {
+                "conflicts": [
+                    {
+                        "production": "ЛогическийОператор",
+                        "left_alternative": 2,
+                        "right_alternative": 5,
+                        "witness": ["ССЫЛКА", "АВТОУПОРЯДОЧИВАНИЕ"],
+                    },
+                    {
+                        "production": "ОперандВ",
+                        "left_alternative": 1,
+                        "right_alternative": 2,
+                        "witness": ["ВЫБРАТЬ", "*"],
+                    },
+                ],
+                "diagnostics": [
+                    {
+                        "code": "VAL102",
+                        "severity": "warning",
+                        "message": (
+                            "production is unreachable from every entry point"
+                        ),
+                    },
+                    {
+                        "code": "VAL102",
+                        "severity": "warning",
+                        "message": (
+                            "production is unreachable from every entry point"
+                        ),
+                    },
+                    {
+                        "code": "LLK202",
+                        "severity": "error",
+                        "message": "alternatives have overlapping SELECT sets",
+                    },
+                    {
+                        "code": "LLK202",
+                        "severity": "error",
+                        "message": "alternatives have overlapping SELECT sets",
+                    },
+                ],
+                "stats": {
+                    "packed_first_rows": 10_758,
+                    "packed_follow_rows": 42_545,
+                    "select_descriptors": 281,
+                    "select_direct_facts": 10_438,
+                    "select_short_complete_prefixes": 320,
+                    "packed_select_upper_bound": 32_050,
+                    "conflict_work_items": 531,
+                    "public_select_expansions": 0,
+                    "select_cartesian_materializations": 0,
                 },
-                {
-                    "production": "ОперандВ",
-                    "left_alternative": 1,
-                    "right_alternative": 2,
-                    "witness": ["ВЫБРАТЬ", "*"],
-                },
-            ],
+            },
         )
-        self.assertEqual(self.report["legacy"]["matcher_rows"], 11_273)
-        self.assertEqual(self.report["legacy"]["runtime_conflicts"], [])
+        self.assertEqual(
+            self.report["legacy"],
+            {
+                "matcher_rows": 11_273,
+                "matcher_definitions": 0,
+                "runtime_conflicts": [],
+            },
+        )
         self.assertEqual(self.report["artifacts"]["changed"], [])
 
     def test_generated_shape_baseline_is_explicit(self) -> None:
-        self.assertEqual(self.report["generated"]["bsl_functions"], 135)
-        self.assertEqual(self.report["generated"]["bsl_loc"], 3394)
-        self.assertEqual(self.report["generated"]["constructor_names"], 79)
+        self.assertEqual(
+            self.report["generated"],
+            {
+                "bsl_functions": 135,
+                "bsl_loc": 3394,
+                "constructor_names": 79,
+                "select_rows": 11_273,
+                "identifier_rows": 227,
+            },
+        )
 
 
 class MigrationAuditCompatibilityTests(unittest.TestCase):
@@ -163,3 +218,49 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
             )
 
         self.assertEqual(report["legacy"]["runtime_conflicts"], [])
+
+    def test_audit_does_not_write_changed_target_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            grammar = temporary_root / "query-language.grammar"
+            target = temporary_root / "Parser"
+            config = temporary_root / "parsergen.toml"
+            shutil.copy2(
+                PACKAGE_ROOT / "grammar/query-language.grammar",
+                grammar,
+            )
+            shutil.copytree(
+                REPOSITORY_ROOT / "QueryConsoleZUP/src/DataProcessors/Парсер",
+                target,
+            )
+            config.write_text(
+                'grammar = "query-language.grammar"\n'
+                'target = "Parser"\n'
+                "lookahead = 2\n\n"
+                "[entrypoints]\n"
+                '"Разобрать" = "ПакетЗапросов"\n'
+                '"РазобратьВыражение" = "Выражение"\n',
+                encoding="utf-8",
+            )
+            object_module, _, _ = artifact_paths(target)
+            object_module.write_bytes(
+                object_module.read_bytes() + b"\n// deliberately changed\n"
+            )
+            before = {
+                path: (path.read_bytes(), path.stat().st_mtime_ns)
+                for path in artifact_paths(target)
+            }
+
+            report = audit_migration.build_migration_audit(config)
+
+            self.assertEqual(
+                report["artifacts"]["changed"],
+                [str(Path("Parser") / "ObjectModule.bsl")],
+            )
+            self.assertEqual(
+                {
+                    path: (path.read_bytes(), path.stat().st_mtime_ns)
+                    for path in artifact_paths(target)
+                },
+                before,
+            )
