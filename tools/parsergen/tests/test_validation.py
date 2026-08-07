@@ -219,10 +219,11 @@ class LookaheadValidationTests(unittest.TestCase):
         self.assertEqual(len(conflicts), 1)
         self.assertEqual(conflicts[0].details["witness"], ("a",))
 
-    def test_follow_continuation_conflict_has_alternative_spans(self) -> None:
+    def test_follow_derived_conflict_reaches_validation(self) -> None:
         report = validate_text(
             "<S> ::= <A>\n"
-            "<A> ::= a <B> | a b d\n"
+            "<A> ::= a <B>\n"
+            "<A> ::= a b d\n"
             "<B> ::= ПУСТО | b c",
             {"Разобрать": "S"},
             k=2,
@@ -234,7 +235,7 @@ class LookaheadValidationTests(unittest.TestCase):
         self.assertEqual(len(conflicts), 1)
         self.assertEqual(conflicts[0].details["witness"], ("a", "b"))
         self.assertEqual(conflicts[0].span.start.line, 2)
-        self.assertEqual(conflicts[0].related[0].span.start.line, 2)
+        self.assertEqual(conflicts[0].related[0].span.start.line, 3)
 
     def test_reports_every_conflict_with_witness_and_related_span(self) -> None:
         report = validate_text(
