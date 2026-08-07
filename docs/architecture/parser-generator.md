@@ -537,6 +537,12 @@ dispatch; query-model properties специализированных функц
 Exact delta:
 [period-type checkpoint](../superpowers/matrices/2026-08-07-period-type-transparent-checkpoint.md).
 
+Все alternatives `Функция` затем получили constructors и declarative
+scalar/collection bindings. `ДАТАВРЕМЯ` lowered в loop, optional path функции
+`ЗНАЧЕНИЕ` — в conditional parse; три recursive/helper productions удалены.
+Exact delta:
+[function checkpoint](../superpowers/matrices/2026-08-07-function-binding-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:

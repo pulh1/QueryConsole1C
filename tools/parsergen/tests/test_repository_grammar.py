@@ -36,6 +36,7 @@ MIGRATED_PRODUCTIONS = (
     "Константа",
     "Параметр",
     "АгрегатнаяФункция",
+    "Функция",
     "ТипПериода",
 )
 
@@ -513,8 +514,8 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 109)
-        self.assertEqual(len(parsed.grammar.productions), 127)
+        self.assertEqual(len(parsed.source_grammar.productions), 106)
+        self.assertEqual(len(parsed.grammar.productions), 126)
 
         resolution = resolve_grammar(parsed.grammar)
         self.assertEqual(resolution.diagnostics, ())
@@ -1103,6 +1104,62 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(function.count("ЭтотУзел.Различные = Истина;"), 1)
         self.assertNotIn("ЭтотУзел.Различные = Неопределено;", function)
         self.assertEqual(function.count('Лексема("*")'), 1)
+        self.assertNotIn("ТекущийЭлемент", function)
+        self.assertNotIn("НомерВариантаПродукции", function)
+
+    def test_functions_generate_declarative_scalar_and_collection_bindings(
+        self,
+    ) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        canonical = MIGRATED_PRODUCTIONS
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=canonical,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=canonical,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        module = generated.module_text
+        for helper in (
+            "СписокАргументовДатаВремя",
+            "ПродолжениеАргументовДатаВремя",
+            "ОпциональноеПродолжениеАргументаЗначение",
+        ):
+            with self.subTest(helper=helper):
+                self.assertNotIn(f"Функция НеТерминал{helper}(", module)
+        function = _generated_function(module, "Функция")
+        self.assertEqual(
+            function.count("ЭлементыМоделиЗапроса.НовыйФункция"),
+            22,
+        )
+        self.assertEqual(function.count("ЭтотУзел.Аргументы.Добавить("), 2)
+        self.assertEqual(function.count("ЭтотУзел.ЧастиПути.Добавить("), 3)
+        self.assertEqual(function.count("ЭтотУзел.ТипПериода ="), 4)
+        self.assertEqual(function.count("Пока "), 1)
         self.assertNotIn("ТекущийЭлемент", function)
         self.assertNotIn("НомерВариантаПродукции", function)
 
