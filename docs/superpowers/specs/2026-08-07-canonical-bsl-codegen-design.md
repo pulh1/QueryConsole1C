@@ -46,8 +46,9 @@ entrypoint mapping. Он не импортирует и не вызывает
 `build_legacy_matcher_artifact`, `find_runtime_dispatch_conflicts`, legacy
 normalization, shadowing и cycle-prefix logic.
 
-Legacy `bsl_codegen.py` и `parser_module.bsl` не меняются, поэтому
-checked-in production artifacts остаются byte/semantic-identical. Canonical
+Legacy `parser_module.bsl`, generator behavior и output не меняются;
+`bsl_codegen.py` может только импортировать вынесенные neutral lexical/string
+safety helpers. Checked-in production artifacts остаются byte/semantic-identical. Canonical
 backend использует отдельный `canonical_parser_module.bsl` без
 `ТаблицаПервыхСимволовВариантов` и `НомерВариантаПродукции`.
 
