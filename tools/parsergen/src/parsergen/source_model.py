@@ -13,6 +13,11 @@ class QuantifierKind(StrEnum):
     ONE_OR_MORE = "plus"
 
 
+class BindingMode(StrEnum):
+    SCALAR = "scalar"
+    APPEND = "append"
+
+
 @dataclass(frozen=True, slots=True)
 class SourceSequence:
     items: tuple[SourceItem, ...]
@@ -47,8 +52,41 @@ class SourceOptional:
     operator_span: SourceSpan
 
 
+@dataclass(frozen=True, slots=True)
+class SourceConstructor:
+    name: str
+    span: SourceSpan
+
+
+@dataclass(frozen=True, slots=True)
+class SourceBinding:
+    property: str
+    mode: BindingMode
+    value: SourceValue
+    span: SourceSpan
+    operator_span: SourceSpan
+
+
+@dataclass(frozen=True, slots=True)
+class SourceConstantBinding:
+    property: str
+    value: str
+    span: SourceSpan
+    operator_span: SourceSpan
+
+
 SourcePrimary: TypeAlias = SyntaxSymbol | SourceGroup
-SourceItem: TypeAlias = SyntaxSymbol | Action | SourceGroup | SourceRepeat | SourceOptional
+SourceValue: TypeAlias = SourcePrimary | SourceRepeat | SourceOptional
+SourceItem: TypeAlias = (
+    SyntaxSymbol
+    | Action
+    | SourceGroup
+    | SourceRepeat
+    | SourceOptional
+    | SourceConstructor
+    | SourceBinding
+    | SourceConstantBinding
+)
 
 
 @dataclass(frozen=True, slots=True)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 
 from .diagnostics import Diagnostic, DiagnosticBag, Severity, SourcePosition, SourceSpan
 from .lowering import LoweringResult, lower_source_grammar
@@ -17,8 +18,12 @@ from .model import (
     Terminal,
 )
 from .source_model import (
+    BindingMode,
     QuantifierKind,
     SourceAlternative,
+    SourceBinding,
+    SourceConstantBinding,
+    SourceConstructor,
     SourceGrammar,
     SourceGroup,
     SourceItem,
@@ -73,10 +78,30 @@ class Cursor:
         return char
 
 
+_BINDING_IDENTIFIER = re.compile(
+    r"[A-Za-zА-Яа-яЁё_][0-9A-Za-zА-Яа-яЁё_]*"
+)
+_BINDING_CONSTANT = re.compile(
+    r"[A-Za-zА-Яа-яЁё_][0-9A-Za-zА-Яа-яЁё_]*"
+    r"(?:\.[A-Za-zА-Яа-яЁё_][0-9A-Za-zА-Яа-яЁё_]*)*"
+)
+
+
 def parse_grammar(text: str, path: str = "<memory>") -> ParseResult:
     source_result = parse_source_grammar(text, path)
     diagnostics = DiagnosticBag(source_result.diagnostics)
-    if source_result.grammar is not None and not diagnostics.has_errors:
+    first_binding = _first_binding_span(source_result.grammar)
+    if first_binding is not None and not diagnostics.has_errors:
+        _error(
+            diagnostics,
+            "BIND100",
+            "declarative binding lowering is not available yet",
+            first_binding,
+        )
+    if (
+        source_result.grammar is not None
+        and not diagnostics.has_errors
+    ):
         diagnostics.extend(
             validate_source_grammar(source_result.grammar).diagnostics
         )
@@ -163,7 +188,14 @@ def _flatten_bnf_source(
                     for item in alternative.body.items
                     if isinstance(
                         item,
-                        (SourceGroup, SourceRepeat, SourceOptional),
+                        (
+                            SourceGroup,
+                            SourceRepeat,
+                            SourceOptional,
+                            SourceConstructor,
+                            SourceBinding,
+                            SourceConstantBinding,
+                        ),
                     )
                 ),
                 None,
@@ -194,6 +226,44 @@ def _flatten_bnf_source(
         ),
         None,
     )
+
+
+def _first_binding_span(
+    grammar: SourceGrammar | None,
+) -> SourceSpan | None:
+    if grammar is None:
+        return None
+    for production in grammar.productions:
+        for alternative in production.alternatives:
+            found = _first_binding_in_sequence(alternative.body)
+            if found is not None:
+                return found
+    return None
+
+
+def _first_binding_in_sequence(
+    sequence: SourceSequence,
+) -> SourceSpan | None:
+    for item in sequence.items:
+        if isinstance(
+            item,
+            (SourceConstructor, SourceBinding, SourceConstantBinding),
+        ):
+            return item.span
+        if isinstance(item, SourceGroup):
+            for alternative in item.alternatives:
+                found = _first_binding_in_sequence(alternative.body)
+                if found is not None:
+                    return found
+        if isinstance(item, (SourceRepeat, SourceOptional)) and isinstance(
+            item.body,
+            SourceGroup,
+        ):
+            for alternative in item.body.alternatives:
+                found = _first_binding_in_sequence(alternative.body)
+                if found is not None:
+                    return found
+    return None
 
 
 def _logical_declarations(text: str, path: str, bag: DiagnosticBag) -> tuple[LogicalDeclaration, ...]:
@@ -407,6 +477,12 @@ def _parse_source_sequence(
 ) -> SourceSequence:
     items: list[SourceItem] = []
     epsilon_seen = False
+    pending_binding: tuple[
+        str,
+        BindingMode,
+        int,
+        SourceSpan,
+    ] | None = None
     index = 0
     while index < len(body):
         if body[index].isspace():
@@ -414,6 +490,126 @@ def _parse_source_sequence(
             continue
         symbol_start = index
         char = body[index]
+        if char == "@":
+            if pending_binding is not None:
+                _error(
+                    bag,
+                    "GP010",
+                    "binding value is missing",
+                    pending_binding[3],
+                )
+                pending_binding = None
+            matched = _BINDING_IDENTIFIER.match(body, index + 1)
+            if matched is None:
+                _error(
+                    bag,
+                    "GP010",
+                    "constructor name is missing",
+                    _span(
+                        text,
+                        path,
+                        start_offset + index,
+                        start_offset + index + 1,
+                    ),
+                )
+                index += 1
+                continue
+            items.append(
+                SourceConstructor(
+                    matched.group(0),
+                    _span(
+                        text,
+                        path,
+                        start_offset + index,
+                        start_offset + matched.end(),
+                    ),
+                )
+            )
+            index = matched.end()
+            continue
+
+        binding_prefix = (
+            _binding_prefix(body, index)
+            if pending_binding is None
+            else None
+        )
+        if binding_prefix is not None:
+            property_name, operator, operator_start, operator_end = (
+                binding_prefix
+            )
+            operator_span = _span(
+                text,
+                path,
+                start_offset + operator_start,
+                start_offset + operator_end,
+            )
+            index = operator_end
+            if operator == ":=":
+                value_start = _next_nonspace(body, index)
+                if value_start is None:
+                    _error(
+                        bag,
+                        "GP010",
+                        "constant binding value is missing",
+                        operator_span,
+                    )
+                    index = len(body)
+                    continue
+                matched = _BINDING_CONSTANT.match(body, value_start)
+                if matched is None or (
+                    matched.end() < len(body)
+                    and body[matched.end()] == "."
+                ):
+                    _error(
+                        bag,
+                        "GP010",
+                        "constant binding value is malformed",
+                        _span(
+                            text,
+                            path,
+                            start_offset + value_start,
+                            start_offset + min(value_start + 1, len(body)),
+                        ),
+                    )
+                    index = _next_token_boundary(body, value_start)
+                    continue
+                end = matched.end()
+                items.append(
+                    SourceConstantBinding(
+                        property_name,
+                        matched.group(0),
+                        _span(
+                            text,
+                            path,
+                            start_offset + symbol_start,
+                            start_offset + end,
+                        ),
+                        operator_span,
+                    )
+                )
+                index = end
+                continue
+            pending_binding = (
+                property_name,
+                (
+                    BindingMode.APPEND
+                    if operator == "+="
+                    else BindingMode.SCALAR
+                ),
+                symbol_start,
+                operator_span,
+            )
+            continue
+
+        if char in "=:":
+            _error(
+                bag,
+                "GP010",
+                "binding operator has no property",
+                _span(text, path, start_offset + index, start_offset + index + 1),
+            )
+            index += 1
+            continue
         if char in "*+?":
             _error(
                 bag,
@@ -424,19 +620,21 @@ def _parse_source_sequence(
             index += 1
             continue
         if char == "{":
+            if pending_binding is not None:
+                _error(
+                    bag,
+                    "GP010",
+                    "binding value is missing",
+                    pending_binding[3],
+                )
+                pending_binding = None
             end = _matching_action(body, index)
             if end is None:
                 break
             items.append(
                 Action(
                     body[index + 1 : end].strip(),
-                    len(
-                        [
-                            item
-                            for item in items
-                            if not isinstance(item, Action)
-                        ]
-                    ),
+                    _syntax_boundary(items),
                     _span(
                         text,
                         path,
@@ -529,11 +727,19 @@ def _parse_source_sequence(
             while (
                 index < len(body)
                 and not body[index].isspace()
-                and body[index] not in "{'<#&()*+?|"
+                and body[index] not in "{'<#&()*+?|@=:"
             ):
                 index += 1
             token = body[symbol_start:index]
             if token == "ПУСТО":
+                if pending_binding is not None:
+                    _error(
+                        bag,
+                        "GP010",
+                        "binding value cannot be ПУСТО",
+                        pending_binding[3],
+                    )
+                    pending_binding = None
                 epsilon_seen = True
                 continue
             span = _span(
@@ -611,9 +817,37 @@ def _parse_source_sequence(
                 ):
                     repeated_index += 1
                 index = repeated_index
+        if pending_binding is not None:
+            property_name, mode, binding_start, operator_span = (
+                pending_binding
+            )
+            primary = SourceBinding(
+                property_name,
+                mode,
+                primary,
+                SourceSpan(
+                    primary.span.path,
+                    _span(
+                        text,
+                        path,
+                        start_offset + binding_start,
+                        start_offset + binding_start + 1,
+                    ).start,
+                    primary.span.end,
+                ),
+                operator_span,
+            )
+            pending_binding = None
         items.append(primary)
 
-    if epsilon_seen and any(not isinstance(item, Action) for item in items):
+    if pending_binding is not None:
+        _error(
+            bag,
+            "GP010",
+            "binding value is missing",
+            pending_binding[3],
+        )
+    if epsilon_seen and any(_is_syntax_item(item) for item in items):
         _error(
             bag,
             "GR004",
@@ -627,6 +861,45 @@ def _parse_source_sequence(
         start_offset + len(body),
     )
     return SourceSequence(tuple(items), sequence_span)
+
+
+def _binding_prefix(
+    text: str,
+    start: int,
+) -> tuple[str, str, int, int] | None:
+    matched = _BINDING_IDENTIFIER.match(text, start)
+    if matched is None:
+        return None
+    operator_start = matched.end()
+    while operator_start < len(text) and text[operator_start].isspace():
+        operator_start += 1
+    for operator in ("+=", ":=", "="):
+        if text.startswith(operator, operator_start):
+            return (
+                matched.group(0),
+                operator,
+                operator_start,
+                operator_start + len(operator),
+            )
+    return None
+
+
+def _next_token_boundary(text: str, start: int) -> int:
+    position = start
+    while position < len(text) and not text[position].isspace():
+        position += 1
+    return position
+
+
+def _is_syntax_item(item: SourceItem) -> bool:
+    return not isinstance(
+        item,
+        (Action, SourceConstructor, SourceConstantBinding),
+    )
+
+
+def _syntax_boundary(items: list[SourceItem]) -> int:
+    return sum(1 for item in items if _is_syntax_item(item))
 
 
 @dataclass(slots=True)
@@ -946,3 +1219,6 @@ def _span(text: str, path: str, start: int, end: int) -> SourceSpan:
 
 def _error(bag: DiagnosticBag, code: str, message: str, span: SourceSpan) -> None:
     bag.add(Diagnostic(code, Severity.ERROR, message, span))
+    SourceBinding,
+    SourceConstantBinding,
+    SourceConstructor,
