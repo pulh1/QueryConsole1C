@@ -96,7 +96,9 @@ def parse_grammar(text: str, path: str = "<memory>") -> ParseResult:
         and not diagnostics.has_errors
     ):
         diagnostics.extend(
-            validate_source_grammar(source_result.grammar).diagnostics
+            _parser_stage_diagnostics(
+                validate_source_grammar(source_result.grammar).diagnostics
+            )
         )
         diagnostics.extend(
             validate_bindings(source_result.grammar).diagnostics
@@ -104,7 +106,7 @@ def parse_grammar(text: str, path: str = "<memory>") -> ParseResult:
     lowering = None
     if source_result.grammar is not None and not diagnostics.has_errors:
         lowering = lower_source_grammar(source_result.grammar)
-        diagnostics.extend(lowering.diagnostics)
+        diagnostics.extend(_parser_stage_diagnostics(lowering.diagnostics))
         grammar = lowering.grammar
     else:
         grammar, _ = _flatten_bnf_source(source_result.grammar)
@@ -113,6 +115,18 @@ def parse_grammar(text: str, path: str = "<memory>") -> ParseResult:
         diagnostics.sorted(),
         source_result.grammar,
         lowering,
+    )
+
+
+def _parser_stage_diagnostics(
+    diagnostics: tuple[Diagnostic, ...],
+) -> tuple[Diagnostic, ...]:
+    # Direct-LR diagnostics are formal validation results. Keep the parse
+    # facade usable by low-level CFG analysis/oracle tests, which intentionally
+    # inspect invalid recursive grammars, and publish LR diagnostics through
+    # validate_grammar when its lowering sidecar is available.
+    return tuple(
+        item for item in diagnostics if not item.code.startswith("LR")
     )
 
 

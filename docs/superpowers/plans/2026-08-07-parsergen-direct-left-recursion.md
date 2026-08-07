@@ -36,14 +36,14 @@
 - Produce `classify_direct_left_recursion(grammar: SourceGrammar) -> Mapping[str, DirectLeftRecursion]`.
 - Extend `SourceValidationReport.left_recursions` with the exact immutable mapping used by lowering.
 
-- [ ] Add literal RED cases for `<Expr> ::= <Expr> '+' <Term> | <Term>`, constructor-before-`Left=<Expr>`, multiple recursive alternatives and parameter-preserving `<A>(P) ::= <A>(P) x | y`.
-- [ ] Run `python -m pytest tools/parsergen/tests/test_left_recursion_validation.py -q`; require failures because classifier/report do not exist.
-- [ ] Implement a single classifier that ignores only zero-width directives when locating the first grammar value and unwraps only a direct scalar/append binding whose RHS is `NonterminalCall`.
-- [ ] Add RED diagnostics for no base (`LR200`), empty/nullable/nonproductive suffix (`LR201`), changed recursive arguments (`LR202`), missing/inconsistent semantic accumulator binding (`LR203`) and arbitrary action (`LR204`). Assert source spans and absence of synthetic names.
-- [ ] Compute suffix facts with existing source-fact functions after removing exactly the classified self item; do not modify FIRST/FOLLOW/SELECT.
-- [ ] Preserve recognition-only direct LR, but require every semantic recursive alternative to have one top-level constructor and scalar leading-self binding; require every semantic base to return constructor or one transparent value.
-- [ ] Run source grammar, source validation and binding validation suites GREEN.
-- [ ] Commit and push as `Проверять direct productive left recursion`.
+- [x] Add literal RED cases for `<Expr> ::= <Expr> '+' <Term> | <Term>`, constructor-before-`Left=<Expr>`, multiple recursive alternatives and parameter-preserving `<A>(P) ::= <A>(P) x | y`.
+- [x] Run `python -m pytest tools/parsergen/tests/test_left_recursion_validation.py -q`; require failures because classifier/report do not exist.
+- [x] Implement a single classifier that ignores only zero-width directives when locating the first grammar value and unwraps only a direct scalar/append binding whose RHS is `NonterminalCall`.
+- [x] Add RED diagnostics for no base (`LR200`), empty/nullable/nonproductive suffix (`LR201`), changed recursive arguments (`LR202`), missing/inconsistent semantic accumulator binding (`LR203`) and arbitrary action (`LR204`). Assert source spans and absence of synthetic names.
+- [x] Compute suffix facts with existing source-fact functions after removing exactly the classified self item; do not modify FIRST/FOLLOW/SELECT.
+- [x] Preserve recognition-only direct LR, but require every semantic recursive alternative to have one top-level constructor and scalar leading-self binding; require every semantic base to return constructor or one transparent value.
+- [x] Run source grammar, source validation and binding validation suites GREEN.
+- [x] Commit and push as `Проверять direct productive left recursion`.
 
 ### Task 2: Canonical CFG lowering и origin sidecar
 

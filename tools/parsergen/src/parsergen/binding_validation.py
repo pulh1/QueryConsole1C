@@ -160,7 +160,7 @@ class _BindingValidator:
         self._validate_paths(sequence, [frozenset()], repeated=False)
 
         if not constructors and not bindings:
-            semantic_counts = _semantic_child_counts(sequence)
+            semantic_counts = semantic_child_counts(sequence)
             if any(count > 1 for count in semantic_counts):
                 self._add(
                     "BIND206",
@@ -343,7 +343,7 @@ def _valid_constant(value: str) -> bool:
     return value in {"Истина", "Ложь", "Неопределено"} or "." in value
 
 
-def _semantic_child_counts(sequence: SourceSequence) -> tuple[int, ...]:
+def semantic_child_counts(sequence: SourceSequence) -> tuple[int, ...]:
     counts = (0,)
     for item in sequence.items:
         if isinstance(item, (NonterminalCall, IdentifierRef, Constant)):
@@ -353,7 +353,7 @@ def _semantic_child_counts(sequence: SourceSequence) -> tuple[int, ...]:
                 base + branch
                 for base in counts
                 for alternative in item.alternatives
-                for branch in _semantic_child_counts(alternative.body)
+                for branch in semantic_child_counts(alternative.body)
             )
         elif isinstance(item, SourceOptional):
             nested = _value_semantic_counts(item.body)
@@ -374,7 +374,7 @@ def _value_semantic_counts(value: SourceValue) -> tuple[int, ...]:
         return tuple(
             count
             for alternative in value.alternatives
-            for count in _semantic_child_counts(alternative.body)
+            for count in semantic_child_counts(alternative.body)
         )
     if isinstance(value, (NonterminalCall, IdentifierRef, Constant)):
         return (1,)

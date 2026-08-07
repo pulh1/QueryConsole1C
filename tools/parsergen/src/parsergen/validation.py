@@ -82,6 +82,12 @@ class _Validator:
         self.entrypoints = entrypoints
         self.lowering = lowering
         self.bag = DiagnosticBag(prior_diagnostics)
+        if lowering is not None:
+            self.bag.extend(
+                item
+                for item in lowering.diagnostics
+                if item.code.startswith("LR")
+            )
         self.productions = {
             production.name: production
             for production in grammar.productions

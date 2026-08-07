@@ -4,7 +4,13 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Mapping
 
+from .binding_validation import semantic_child_counts
 from .diagnostics import Diagnostic, DiagnosticBag, Severity
+from .left_recursion import (
+    DirectLeftRecursion,
+    DirectRecursiveAlternative,
+    classify_direct_left_recursion,
+)
 from .model import (
     Action,
     Constant,
@@ -14,6 +20,7 @@ from .model import (
     Terminal,
 )
 from .source_model import (
+    BindingMode,
     SourceBinding,
     SourceConstantBinding,
     SourceConstructor,
@@ -23,6 +30,7 @@ from .source_model import (
     SourceItem,
     SourceOptional,
     SourcePrimary,
+    SourceProduction,
     SourceRepeat,
     SourceSequence,
 )
@@ -43,6 +51,7 @@ class SourceValidationReport:
     diagnostics: tuple[Diagnostic, ...]
     production_facts: Mapping[str, SourceFacts]
     node_facts: Mapping[object, SourceFacts]
+    left_recursions: Mapping[str, DirectLeftRecursion]
 
 
 _NONPRODUCTIVE = SourceFacts(False, False, None)
@@ -52,6 +61,7 @@ _TOKEN = SourceFacts(True, False, 1)
 
 def validate_source_grammar(grammar: SourceGrammar) -> SourceValidationReport:
     production_facts = _compute_production_facts(grammar)
+    left_recursions = classify_direct_left_recursion(grammar)
     node_facts: dict[object, SourceFacts] = {}
     for production in grammar.productions:
         for alternative in production.alternatives:
@@ -81,11 +91,20 @@ def validate_source_grammar(grammar: SourceGrammar) -> SourceValidationReport:
                 bag,
                 inside_construct=False,
             )
+        recursion = left_recursions.get(production.name)
+        if recursion is not None:
+            _validate_direct_left_recursion(
+                production,
+                recursion,
+                production_facts,
+                bag,
+            )
 
     return SourceValidationReport(
         bag.sorted(),
         MappingProxyType(dict(production_facts)),
         MappingProxyType(node_facts),
+        left_recursions,
     )
 
 
@@ -341,3 +360,211 @@ def _add_body_error(
             item.operator_span,
         )
     )
+
+
+def _validate_direct_left_recursion(
+    production: SourceProduction,
+    recursion: DirectLeftRecursion,
+    production_facts: Mapping[str, SourceFacts],
+    bag: DiagnosticBag,
+) -> None:
+    recursive_by_index = {
+        item.alternative: item
+        for item in recursion.recursive_alternatives
+    }
+    if not recursion.base_alternatives:
+        reference = recursion.recursive_alternatives[0].self_reference
+        bag.add(
+            Diagnostic(
+                "LR200",
+                Severity.ERROR,
+                "direct left recursion requires a base alternative",
+                reference.source_span,
+            )
+        )
+
+    for alternative in production.alternatives:
+        recursive = recursive_by_index.get(alternative.index)
+        if recursive is None:
+            continue
+        _validate_recursive_suffix(
+            alternative.body,
+            recursive,
+            production_facts,
+            bag,
+        )
+        reference = recursive.self_reference
+        if reference.call.arguments != production.parameters:
+            bag.add(
+                Diagnostic(
+                    "LR202",
+                    Severity.ERROR,
+                    "direct recursive arguments must preserve formal parameters",
+                    reference.call.span,
+                    details={
+                        "production": production.name,
+                        "expected_arguments": production.parameters,
+                        "actual_arguments": reference.call.arguments,
+                    },
+                )
+            )
+
+    action = _first_nested_action(production)
+    if action is not None:
+        bag.add(
+            Diagnostic(
+                "LR204",
+                Severity.ERROR,
+                "arbitrary action in direct left recursion is unsupported",
+                action.span,
+            )
+        )
+
+    semantic = any(
+        _has_declarative_directive(
+            production.alternatives[item.alternative].body
+        )
+        for item in recursion.recursive_alternatives
+    )
+    if not semantic:
+        return
+
+    invalid_recursive = next(
+        (
+            item
+            for item in recursion.recursive_alternatives
+            if not _valid_semantic_recursive_alternative(
+                production.alternatives[item.alternative],
+                item,
+            )
+        ),
+        None,
+    )
+    if invalid_recursive is not None:
+        bag.add(
+            Diagnostic(
+                "LR203",
+                Severity.ERROR,
+                "semantic left recursion requires constructor and scalar accumulator binding",
+                invalid_recursive.self_reference.source_span,
+            )
+        )
+        return
+
+    invalid_base = next(
+        (
+            production.alternatives[index]
+            for index in recursion.base_alternatives
+            if not _base_returns_one_value(production.alternatives[index])
+        ),
+        None,
+    )
+    if invalid_base is not None:
+        bag.add(
+            Diagnostic(
+                "LR203",
+                Severity.ERROR,
+                "semantic left recursion requires one value from every base alternative",
+                invalid_base.span,
+            )
+        )
+
+
+def _validate_recursive_suffix(
+    sequence: SourceSequence,
+    recursive: DirectRecursiveAlternative,
+    production_facts: Mapping[str, SourceFacts],
+    bag: DiagnosticBag,
+) -> None:
+    index = recursive.self_reference.item_index
+    suffix = SourceSequence(
+        (*sequence.items[:index], *sequence.items[index + 1 :]),
+        sequence.span,
+    )
+    facts = _sequence_facts(suffix, production_facts)
+    if facts.productive and not facts.nullable:
+        if (facts.min_consumed_tokens or 0) >= 1:
+            return
+    bag.add(
+        Diagnostic(
+            "LR201",
+            Severity.ERROR,
+            "direct recursive suffix does not guarantee input consumption",
+            recursive.self_reference.source_span,
+        )
+    )
+
+
+def _has_declarative_directive(sequence: SourceSequence) -> bool:
+    return any(
+        isinstance(
+            item,
+            (SourceConstructor, SourceBinding, SourceConstantBinding),
+        )
+        for item in sequence.items
+    )
+
+
+def _valid_semantic_recursive_alternative(
+    alternative: SourceAlternative,
+    recursive: DirectRecursiveAlternative,
+) -> bool:
+    constructors = tuple(
+        item
+        for item in alternative.body.items
+        if isinstance(item, SourceConstructor)
+    )
+    reference = recursive.self_reference
+    return (
+        len(constructors) == 1
+        and reference.property is not None
+        and reference.binding_mode is BindingMode.SCALAR
+    )
+
+
+def _base_returns_one_value(alternative: SourceAlternative) -> bool:
+    if any(
+        isinstance(item, SourceConstructor)
+        for item in alternative.body.items
+    ):
+        return True
+    return semantic_child_counts(alternative.body) == (1,)
+
+
+def _first_nested_action(production: SourceProduction) -> Action | None:
+    for alternative in production.alternatives:
+        action = _first_action_in_sequence(alternative.body)
+        if action is not None:
+            return action
+    return None
+
+
+def _first_action_in_sequence(sequence: SourceSequence) -> Action | None:
+    for item in sequence.items:
+        if isinstance(item, Action):
+            return item
+        if isinstance(item, SourceBinding):
+            action = _first_action_in_value(item.value)
+            if action is not None:
+                return action
+        elif isinstance(item, SourceGroup):
+            for alternative in item.alternatives:
+                action = _first_action_in_sequence(alternative.body)
+                if action is not None:
+                    return action
+        elif isinstance(item, (SourceRepeat, SourceOptional)):
+            action = _first_action_in_value(item.body)
+            if action is not None:
+                return action
+    return None
+
+
+def _first_action_in_value(value) -> Action | None:
+    if isinstance(value, SourceGroup):
+        for alternative in value.alternatives:
+            action = _first_action_in_sequence(alternative.body)
+            if action is not None:
+                return action
+    if isinstance(value, (SourceRepeat, SourceOptional)):
+        return _first_action_in_value(value.body)
+    return None
