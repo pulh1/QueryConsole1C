@@ -14,8 +14,28 @@
   тестовых процедур, а не результат свежего запуска.
 - Корпус: `QueryExamples` — 42 `.q1c`; в каждом из наборов `ВыполнениеЗапросовВКонсоли`,
   `ГенерацияКодаВКонсоли` и `СозданиеЗапросовВКонструкторе` — по 42 `.feature`.
-  Всего прикладных Vanessa-сценариев в этих трёх наборах — 126. Vanessa и
-  YAxUnit в этой задаче не запускались.
+  Всего прикладных Vanessa-сценариев в этих трёх наборах — 126. До Phase 2.5
+  Task 1 Vanessa и YAxUnit в этой задаче не запускались.
+
+## Граница headless-запуска — 2026-08-07
+
+- EDT-MCP обнаружил runtime-client launch configuration `QueryConsoleZUP Тонкий
+  клиент` (не запущена), связанный с проектом
+  `База_разработки_исполняемых_представлений_демо_ЗУП`. Его infobase:
+  `База разработки исполняемых представлений (демо ЗУП)`, исходное состояние
+  обновления — `INCREMENTAL_UPDATE_REQUIRED`.
+- Фактический runner: `mcp__edt_mcp__run_yaxunit_tests` с
+  `launchConfigurationName="QueryConsoleZUP Тонкий клиент"`,
+  `extensions=["YAXUNIT"]`, `modules=["КОНС_Обр_Парсер_МО"]`,
+  `timeout=60`, `updateBeforeLaunch=true`,
+  `updateScope="extension:yaxunit"`. В модуле зарегистрирован тег `Парсер`;
+  runner поддерживает module filter, поэтому точечный запуск выбран по модулю.
+- После завершения incremental pre-launch запуск дал JUnit-отчёт: **84 total /
+  84 passed / 0 failed / 0 errors / 0 skipped**. Полный отчёт сохранён EDT-MCP
+  во временном каталоге; контракт успешного вывода — JUnit Markdown report.
+- Исполняемый путь/точная версия thin client не раскрываются EDT launch metadata;
+  это не подменяется предположением. EDT-MCP: `2026.1.2.2`; compatibility mode
+  целевой конфигурации: `8.3.24`.
 
 ## Решения о покрытии
 

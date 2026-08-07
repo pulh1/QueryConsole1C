@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "runner": {
+    "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_Парсер_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+    "executable": "EDT-MCP run_yaxunit_tests; it launches the configured 1C:Enterprise thin client, whose executable path is not exposed by launch metadata",
+    "version": "EDT-MCP 2026.1.2.2; target configuration compatibility mode 8.3.24 (thin-client executable version is not exposed)",
+    "infobase": "База разработки исполняемых представлений (демо ЗУП)",
+    "update_state": "INCREMENTAL_UPDATE_REQUIRED before the runner auto-chain",
+    "launch_configuration": "QueryConsoleZUP Тонкий клиент",
+    "project": "База_разработки_исполняемых_представлений_демо_ЗУП",
+    "extension": "YAXUNIT",
+    "selected_tag": "Парсер",
+    "module_filter": "КОНС_Обр_Парсер_МО",
+    "update_before_launch": true,
+    "update_scope": "extension:yaxunit",
+    "result": {
+      "total": 84,
+      "passed": 84,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "output_contract": "JUnit Markdown report; full report persisted by EDT-MCP in its temporary report directory"
+    }
+  },
+  "contracts": []
+}
