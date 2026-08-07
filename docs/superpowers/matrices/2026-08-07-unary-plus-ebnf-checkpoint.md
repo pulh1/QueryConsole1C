@@ -17,7 +17,7 @@ properties не изменялись: `Знаки` остаётся упоряд
 - Production `lookahead` остался `k=2`; canonical SELECT conflicts: `0`.
 - Full legacy matcher artifact остался `9 078` rows и используется только
   compatibility-аудитом.
-- Characterization `--1` перенесён из opt-in future grammar suite в основной
+- Characterization `+-1` перенесён из opt-in future grammar suite в основной
   expression regression: проверяются порядок знаков и operand.
 
 ## Structural delta
