@@ -234,12 +234,15 @@ Python tests до production migration покрывают:
 - constructor once per iteration и explicit left binding;
 - generated `Пока`, post-loop exit check и syntax-error branches;
 - отсутствие self-call и synthetic tail function в generated BSL;
-- code shape для `a+b`, `a+b+c`, `a-b-c`, `a+b*c`, `(a+b)*c`;
-- very long same-precedence chain без proportional parser recursion.
+- structural operation order for `+`/`-` left associativity and separate
+  `Expr -> Term -> Factor` precedence calls;
+- absence of a same-production self-call in generated loop, which statically
+  prevents proportional parser recursion for an arbitrary same-level chain.
 
 Фактическое выполнение generated BSL и построение query-model AST проверяются
-после production expression slice через YAxUnit/Vanessa. Формы для Phase 6 не
-нужны.
+после production expression slice через YAxUnit/Vanessa. Там же выполняются
+cases `a+b`, `a+b+c`, `a-b-c`, `a+b*c`, `(a+b)*c` и 10,000-operator chain.
+Формы для Phase 6 не нужны.
 
 ## Legacy boundary
 
