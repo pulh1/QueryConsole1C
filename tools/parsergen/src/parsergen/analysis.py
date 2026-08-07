@@ -18,6 +18,7 @@ LookaheadSet: TypeAlias = frozenset[LookaheadWord]
 EPSILON: LookaheadWord = ()
 END = "$"
 DEFAULT_MATERIALIZE_ROWS = 10_000
+DEFAULT_RUNTIME_DISPATCH_ROWS = 100_000
 
 
 class LookaheadMaterializationError(RuntimeError):
@@ -110,6 +111,13 @@ class _FollowTransform:
     parent_id: int
     referenced_id: int
     prefix: _PackedPrefix
+
+
+@dataclass(slots=True)
+class _FollowTransformGroup:
+    needed: int
+    transforms: list[_FollowTransform] = field(default_factory=list)
+    seen_projections: set[_PackedPrefix] = field(default_factory=set)
 
 
 def concat_words(
@@ -232,7 +240,7 @@ def materialize_lookahead(
     return value
 
 
-def build_select_matcher_artifact(
+def build_legacy_matcher_artifact(
     analysis: AnalysisResult,
     *,
     max_rows: int,
@@ -242,58 +250,46 @@ def build_select_matcher_artifact(
     return analysis._compressed.build_matcher_artifact(max_rows=max_rows)
 
 
-def compatible_lookahead(left: LookaheadWord, right: LookaheadWord) -> bool:
-    # Legacy compatibility: canonical LL(k) treats prefix-compatible words as
-    # overlapping. The reference runtime searches exact row lengths from k
-    # down to 1, so only equal concrete words compete at a given lookup.
+def build_select_matcher_artifact(
+    analysis: AnalysisResult,
+    *,
+    max_rows: int,
+) -> SelectMatcherArtifact:
+    return build_legacy_matcher_artifact(analysis, max_rows=max_rows)
+
+
+def runtime_rows_overlap(left: LookaheadWord, right: LookaheadWord) -> bool:
     return left == right
 
 
-def find_select_conflicts(
+def compatible_lookahead(left: LookaheadWord, right: LookaheadWord) -> bool:
+    return runtime_rows_overlap(left, right)
+
+
+def find_canonical_select_conflicts(
     grammar: ResolvedGrammar,
     analysis: AnalysisResult,
 ) -> tuple[SelectConflict, ...]:
-    if analysis._compressed is not None:
-        conflicts: list[SelectConflict] = []
-        compressed = analysis._compressed
-        for production_name in grammar.production_order:
-            alternatives = grammar.productions[production_name]
-            for left_position, _ in enumerate(alternatives):
-                left_number = left_position + 1
-                left_key = (production_name, left_number)
-                packed_left = compressed._select_index[left_key]
-                for right_position in range(
-                    left_position + 1,
-                    len(alternatives),
-                ):
-                    right_number = right_position + 1
-                    right_key = (production_name, right_number)
-                    packed_right = compressed._select_index[right_key]
-                    witness = compressed.conflict_witness(
-                        packed_left,
-                        packed_right,
-                    )
-                    if witness is not None:
-                        conflicts.append(
-                            SelectConflict(
-                                production_name,
-                                left_number,
-                                right_number,
-                                witness,
-                            )
-                        )
-        return tuple(conflicts)
-
     conflicts: list[SelectConflict] = []
+    compressed = analysis._compressed
     for production_name in grammar.production_order:
         alternatives = grammar.productions[production_name]
         for left_position, _ in enumerate(alternatives):
             left_number = left_position + 1
-            left_select = analysis.select[(production_name, left_number)]
+            left_key = (production_name, left_number)
             for right_position in range(left_position + 1, len(alternatives)):
                 right_number = right_position + 1
-                right_select = analysis.select[(production_name, right_number)]
-                witness = _select_conflict_witness(left_select, right_select)
+                right_key = (production_name, right_number)
+                if compressed is not None:
+                    witness = compressed.canonical_conflict_witness(
+                        compressed._select_index[left_key],
+                        compressed._select_index[right_key],
+                    )
+                else:
+                    witness = _select_conflict_witness(
+                        analysis.select[left_key],
+                        analysis.select[right_key],
+                    )
                 if witness is not None:
                     conflicts.append(
                         SelectConflict(
@@ -303,20 +299,65 @@ def find_select_conflicts(
                             witness,
                         )
                     )
+    return tuple(conflicts)
 
-    production_positions = {
-        name: position for position, name in enumerate(grammar.production_order)
-    }
-    return tuple(
-        sorted(
-            conflicts,
-            key=lambda conflict: (
-                production_positions[conflict.production],
-                conflict.left_alternative,
-                conflict.right_alternative,
-            ),
-        )
-    )
+
+def find_select_conflicts(
+    grammar: ResolvedGrammar,
+    analysis: AnalysisResult,
+) -> tuple[SelectConflict, ...]:
+    return find_canonical_select_conflicts(grammar, analysis)
+
+
+def find_runtime_dispatch_conflicts(
+    grammar: ResolvedGrammar,
+    analysis: AnalysisResult,
+    *,
+    max_rows: int = DEFAULT_RUNTIME_DISPATCH_ROWS,
+) -> tuple[SelectConflict, ...]:
+    # Runtime collisions are defined by the normalized concrete rows consumed
+    # by the legacy BSL table: cycle prefixes are included and longer rows
+    # shadowed within an alternative have already been removed. This differs
+    # from canonical SELECT intersections, which are FOLLOW-derived exact
+    # lookahead words and remain symbolic in the canonical scanner.
+    artifact = build_legacy_matcher_artifact(analysis, max_rows=max_rows)
+    alternatives_by_word: dict[tuple[str, LookaheadWord], set[int]] = {}
+    for row in artifact.select_rows:
+        alternatives_by_word.setdefault(
+            (row.production, row.matchers), set()
+        ).add(row.alternative)
+
+    witnesses_by_pair: dict[tuple[str, int, int], LookaheadWord] = {}
+    for (production, word), alternatives in alternatives_by_word.items():
+        ordered_alternatives = sorted(alternatives)
+        for left_index, left_number in enumerate(ordered_alternatives):
+            for right_number in ordered_alternatives[left_index + 1 :]:
+                key = (production, left_number, right_number)
+                previous = witnesses_by_pair.get(key)
+                if previous is None or (len(word), word) < (
+                    len(previous),
+                    previous,
+                ):
+                    witnesses_by_pair[key] = word
+
+    conflicts: list[SelectConflict] = []
+    for production_name in grammar.production_order:
+        alternatives = grammar.productions[production_name]
+        for left_number in range(1, len(alternatives) + 1):
+            for right_number in range(left_number + 1, len(alternatives) + 1):
+                witness = witnesses_by_pair.get(
+                    (production_name, left_number, right_number)
+                )
+                if witness is not None:
+                    conflicts.append(
+                        SelectConflict(
+                            production_name,
+                            left_number,
+                            right_number,
+                            witness,
+                        )
+                    )
+    return tuple(conflicts)
 
 
 def _compute_nullable(grammar: ResolvedGrammar) -> frozenset[str]:
@@ -362,6 +403,10 @@ def _compute_nullable(grammar: ResolvedGrammar) -> frozenset[str]:
 
 _PackedPrefix: TypeAlias = tuple[int, int]
 _PackedLanguage: TypeAlias = frozenset[_PackedPrefix]
+# The boolean is semantically meaningful only while length < budget: True
+# means the variant may finish at this short fact, so an outer RHS may resume.
+# At length == budget it is deliberately ignored and may remain False even
+# when a complete derivation exists with the same saturated k-prefix.
 _PackedFact: TypeAlias = tuple[int, int, bool]
 _PackedFacts: TypeAlias = tuple[_PackedFact, ...]
 
@@ -1205,7 +1250,7 @@ class _CompressedAnalysis:
         self._state_terminal: dict[_FactorState, bool] = {}
         self._strict_non_end: dict[tuple[_FactorState, int], bool] = {}
         self._conflict_memo: dict[
-            tuple[_FactorState, _FactorState, bool, int],
+            tuple[_FactorState, _FactorState, int],
             LookaheadWord | None,
         ] = {}
         self._matcher_intersections: dict[
@@ -1545,81 +1590,50 @@ class _CompressedAnalysis:
             self._matcher_intersections[key] = cached
         return cached
 
-    def conflict_witness(
+    def canonical_conflict_witness(
         self,
         left_position: int,
         right_position: int,
     ) -> LookaheadWord | None:
-        # Legacy compatibility: validate the raw FIRST rows consumed by the
-        # reference runtime. Canonical SELECT conflict detection would also
-        # expand FOLLOW for nullable alternatives and flag strict prefixes.
-        left_trie = self._runtime_trie(left_position)
-        right_trie = self._runtime_trie(right_position)
-        memo: dict[tuple[int, int, int], LookaheadWord | None] = {}
-
         def visit(
-            left_node: int,
-            right_node: int,
+            left: _FactorState,
+            right: _FactorState,
             remaining: int,
         ) -> LookaheadWord | None:
-            key = (left_node, right_node, remaining)
-            if key in memo:
-                return memo[key]
+            if right < left:
+                left, right = right, left
+            key = (left, right, remaining)
+            if key in self._conflict_memo:
+                return self._conflict_memo[key]
             self._stats["conflict_work_items"] += 1
 
-            if remaining == 0:
-                memo[key] = EPSILON
-                return EPSILON
-            if (
-                left_trie.terminal[left_node]
-                and right_trie.terminal[right_node]
+            if remaining == 0 or (
+                self._terminal(left) and self._terminal(right)
             ):
-                memo[key] = EPSILON
-                return EPSILON
-            if (
-                left_trie.terminal[left_node]
-                or right_trie.terminal[right_node]
-            ):
-                memo[key] = None
-                return None
-            candidates: list[LookaheadWord] = []
-            for left_matcher, left_child in left_trie.children[
-                left_node
-            ].items():
-                for right_matcher, right_child in right_trie.children[
-                    right_node
-                ].items():
-                    intersection = self._intersection(
-                        left_matcher,
-                        right_matcher,
-                    )
-                    if not intersection:
-                        continue
-                    token_candidates = []
-                    non_end = tuple(
-                        token for token in intersection if token != END
-                    )
-                    if non_end:
-                        token_candidates.append(non_end[0])
-                    if END in intersection:
-                        token_candidates.append(END)
-                    for token in token_candidates:
-                        suffix = visit(
-                            left_child,
-                            right_child,
-                            remaining - 1,
-                        )
+                result: LookaheadWord | None = EPSILON
+            else:
+                candidates: list[LookaheadWord] = []
+                for left_matcher, left_child in self._children(left):
+                    for right_matcher, right_child in self._children(right):
+                        tokens = self._intersection(left_matcher, right_matcher)
+                        if not tokens:
+                            continue
+                        suffix = visit(left_child, right_child, remaining - 1)
                         if suffix is not None:
-                            candidates.append((token, *suffix))
-            result = min(
-                candidates,
-                key=lambda word: (len(word), word),
-                default=None,
-            )
-            memo[key] = result
+                            candidates.append((tokens[0], *suffix))
+                result = min(
+                    candidates,
+                    key=lambda word: (len(word), word),
+                    default=None,
+                )
+            self._conflict_memo[key] = result
             return result
 
-        return visit(0, 0, self.k)
+        return visit(
+            self._descriptor_state(left_position),
+            self._descriptor_state(right_position),
+            self.k,
+        )
 
     def _runtime_trie(self, position: int) -> _PackedTrie:
         cached = self._runtime_tries[position]
@@ -1869,6 +1883,16 @@ def _packed_concat(
     )
 
 
+def _packed_project(
+    value: _PackedPrefix,
+    max_length: int,
+    solver: _ContinuationFirst,
+) -> _PackedPrefix:
+    length, packed = value
+    taken = min(length, max_length)
+    return taken, packed & solver.prefix_masks[taken]
+
+
 def _compute_packed_follow(
     solver: _ContinuationFirst,
     start_productions: tuple[str, ...],
@@ -1876,8 +1900,8 @@ def _compute_packed_follow(
     follow: list[set[_PackedPrefix]] = [
         set() for _ in solver.production_names
     ]
-    outgoing: list[list[_FollowTransform]] = [
-        [] for _ in solver.production_names
+    outgoing: list[dict[int, _FollowTransformGroup]] = [
+        {} for _ in solver.production_names
     ]
     transform_keys: set[tuple[int, int, _PackedPrefix]] = set()
     direct: list[tuple[int, _PackedPrefix]] = []
@@ -1909,9 +1933,13 @@ def _compute_packed_follow(
                 stats["duplicate_follow_transforms"] += 1
                 continue
             transform_keys.add(transform_key)
-            outgoing[occurrence.parent_id].append(
-                _FollowTransform(*transform_key)
-            )
+            transform = _FollowTransform(*transform_key)
+            needed = solver.k - prefix[0]
+            group = outgoing[occurrence.parent_id].get(needed)
+            if group is None:
+                group = _FollowTransformGroup(needed)
+                outgoing[occurrence.parent_id][needed] = group
+            group.transforms.append(transform)
 
     delta_queues: list[deque[_PackedPrefix]] = [
         deque() for _ in solver.production_names
@@ -1946,12 +1974,19 @@ def _compute_packed_follow(
         while deltas:
             delta = deltas.popleft()
             stats["follow_work_items"] += 1
-            for transform in outgoing[parent_id]:
-                stats["follow_transform_applications"] += 1
-                publish(
-                    transform.referenced_id,
-                    _packed_concat(transform.prefix, delta, solver),
-                )
+            for group in outgoing[parent_id].values():
+                stats["follow_projection_checks"] += 1
+                projection = _packed_project(delta, group.needed, solver)
+                if projection in group.seen_projections:
+                    stats["duplicate_follow_projections"] += 1
+                    continue
+                group.seen_projections.add(projection)
+                for transform in group.transforms:
+                    stats["follow_transform_applications"] += 1
+                    publish(
+                        transform.referenced_id,
+                        _packed_concat(transform.prefix, projection, solver),
+                    )
         in_production_queue.remove(parent_id)
 
     packed = tuple(frozenset(items) for items in follow)
@@ -1968,6 +2003,8 @@ def _compute_packed_follow(
         "duplicate_follow_transforms",
         "duplicate_follow_facts",
         "follow_transform_applications",
+        "follow_projection_checks",
+        "duplicate_follow_projections",
     ):
         stats.setdefault(name, 0)
     return packed, dict(stats)
@@ -2044,15 +2081,8 @@ def _select_conflict_witness(
     left: LookaheadSet,
     right: LookaheadSet,
 ) -> LookaheadWord | None:
-    candidates: set[LookaheadWord] = set()
-    for left_word in left:
-        for right_word in right:
-            if not compatible_lookahead(left_word, right_word):
-                continue
-            candidates.add(
-                min(
-                    (left_word, right_word),
-                    key=lambda word: (len(word), word),
-                )
-            )
-    return min(candidates, key=lambda word: (len(word), word), default=None)
+    return min(
+        left.intersection(right),
+        key=lambda word: (len(word), word),
+        default=None,
+    )

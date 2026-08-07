@@ -15,8 +15,11 @@ from parsergen.analysis import (
     build_select_matcher_artifact,
     compatible_lookahead,
     compute_analysis,
+    find_canonical_select_conflicts,
+    find_runtime_dispatch_conflicts,
     find_select_conflicts,
     materialize_lookahead,
+    runtime_rows_overlap,
 )
 from tests.grammar_factory import generated_resolved_grammar
 from tests.grammar_cases import CONFLICT_DEPTH_CASES, FOLLOW_CASES
@@ -33,6 +36,27 @@ def _factorized_adversarial_grammar(size: int):
         f"<Prefix> ::= {prefixes}\n"
         f"<Tail> ::= {tails}"
     )
+
+
+def _materialized_conflicts(grammar, select) -> tuple[SelectConflict, ...]:
+    conflicts = []
+    for production in grammar.production_order:
+        alternatives = grammar.productions[production]
+        for left in range(1, len(alternatives) + 1):
+            for right in range(left + 1, len(alternatives) + 1):
+                intersection = select[(production, left)].intersection(
+                    select[(production, right)]
+                )
+                witness = min(
+                    intersection,
+                    key=lambda word: (len(word), word),
+                    default=None,
+                )
+                if witness is not None:
+                    conflicts.append(
+                        SelectConflict(production, left, right, witness)
+                    )
+    return tuple(conflicts)
 
 
 class FollowAnalysisTests(unittest.TestCase):
@@ -120,6 +144,44 @@ class FollowAnalysisTests(unittest.TestCase):
         self.assertEqual(stats["follow_delta_facts"], 3)
         self.assertEqual(stats["follow_transform_applications"], 2)
         self.assertEqual(stats["follow_facts"], 3)
+
+    def test_follow_projection_deduplicates_irrelevant_delta_tails(self) -> None:
+        grammar = resolved(
+            "<S> ::= start\n"
+            "<Owner> ::= <Parent> x u z | <Parent> x v z\n"
+            "<Parent> ::= <A> p q\n"
+            "<A> ::= a"
+        )
+
+        result = compute_analysis(grammar, 3, ("S",))
+
+        self.assertEqual(
+            result.follow["Parent"],
+            frozenset({("x", "u", "z"), ("x", "v", "z")}),
+        )
+        self.assertEqual(result.follow["A"], frozenset({("p", "q", "x")}))
+        stats = result._compressed.stats
+        self.assertEqual(stats["follow_transform_applications"], 1)
+        self.assertEqual(stats["follow_projection_checks"], 2)
+        self.assertEqual(stats["duplicate_follow_projections"], 1)
+
+    def test_short_follow_delta_is_projected_at_its_own_length(self) -> None:
+        grammar = resolved(
+            "<S> ::= <Parent> x\n"
+            "<Other> ::= <Parent> x y z\n"
+            "<Parent> ::= <A>\n"
+            "<A> ::= a"
+        )
+
+        result = compute_analysis(grammar, 3, ("S",))
+
+        expected = frozenset({("x", END), ("x", "y", "z")})
+        self.assertEqual(result.follow["Parent"], expected)
+        self.assertEqual(result.follow["A"], expected)
+        stats = result._compressed.stats
+        self.assertEqual(stats["follow_transform_applications"], 3)
+        self.assertEqual(stats["follow_projection_checks"], 3)
+        self.assertEqual(stats["duplicate_follow_projections"], 0)
 
     def test_public_follow_mapping_is_lazy_cached_and_immutable(self) -> None:
         result = compute_analysis(
@@ -223,25 +285,79 @@ class SelectAnalysisTests(unittest.TestCase):
                 clean = compute_analysis(resolved_grammar, clean_at, ("S",))
                 self.assertEqual(find_select_conflicts(resolved_grammar, clean), ())
 
-    def test_first_follow_overlap_uses_nullable_runtime_fallback(self) -> None:
+    def test_canonical_conflict_includes_follow_continuation(self) -> None:
+        grammar = resolved(
+            "<S> ::= <A>\n"
+            "<A> ::= a <B> | a b d\n"
+            "<B> ::= ПУСТО | b c"
+        )
+        result = compute_analysis(grammar, 2, ("S",))
+
+        self.assertEqual(
+            result.select[("A", 1)],
+            frozenset({("a", END), ("a", "b")}),
+        )
+        self.assertEqual(
+            result.select[("A", 2)],
+            frozenset({("a", "b")}),
+        )
+        self.assertEqual(
+            find_canonical_select_conflicts(grammar, result),
+            (SelectConflict("A", 1, 2, ("a", "b")),),
+        )
+
+    def test_canonical_conflicts_do_not_depend_on_analysis_representation(
+        self,
+    ) -> None:
+        grammar = resolved(
+            "<S> ::= <A>\n"
+            "<A> ::= a <B> | a b d\n"
+            "<B> ::= ПУСТО | b c"
+        )
+        compressed = compute_analysis(grammar, 2, ("S",))
+        materialized = AnalysisResult(
+            k=compressed.k,
+            nullable=compressed.nullable,
+            first=MappingProxyType(dict(compressed.first.items())),
+            follow=MappingProxyType(dict(compressed.follow.items())),
+            select=MappingProxyType(dict(compressed.select.items())),
+            updates=compressed.updates,
+        )
+
+        self.assertEqual(
+            find_canonical_select_conflicts(grammar, compressed),
+            find_canonical_select_conflicts(grammar, materialized),
+        )
+
+    def test_nullable_fallback_is_canonical_conflict_but_runtime_clean(
+        self,
+    ) -> None:
         grammar = resolved("<S> ::= <A> a\n<A> ::= a | ПУСТО")
         result = compute_analysis(grammar, 1, ("S",))
-        self.assertEqual(find_select_conflicts(grammar, result), ())
+        self.assertEqual(
+            find_select_conflicts(grammar, result),
+            (SelectConflict("A", 1, 2, ("a",)),),
+        )
+        self.assertEqual(find_runtime_dispatch_conflicts(grammar, result), ())
 
-    def test_short_runtime_row_shadows_its_longer_same_alternative_rows(
+    def test_runtime_shadowing_is_not_used_as_canonical_semantics(
         self,
     ) -> None:
         grammar = resolved("<S> ::= <A> | a b\n<A> ::= a | a b")
         result = compute_analysis(grammar, 2, ("S",))
 
-        self.assertEqual(find_select_conflicts(grammar, result), ())
+        self.assertEqual(
+            find_select_conflicts(grammar, result),
+            (SelectConflict("S", 1, 2, ("a", "b")),),
+        )
+        self.assertEqual(find_runtime_dispatch_conflicts(grammar, result), ())
 
     def test_two_epsilon_alternatives_conflict_at_end(self) -> None:
         grammar = resolved("<S> ::= ПУСТО | ПУСТО")
         result = compute_analysis(grammar, 3, ("S",))
         self.assertEqual(
             find_select_conflicts(grammar, result),
-            (SelectConflict("S", 1, 2, ()),),
+            (SelectConflict("S", 1, 2, (END,)),),
         )
 
     def test_duplicate_alternatives_conflict_on_complete_prefix(self) -> None:
@@ -508,10 +624,30 @@ print(repr(tuple(
         )
 
 
-class LookaheadCompatibilityTests(unittest.TestCase):
-    def test_longest_runtime_row_disambiguates_a_strict_prefix(self) -> None:
-        self.assertFalse(compatible_lookahead(("a",), ("a", "b")))
-        self.assertFalse(compatible_lookahead(("a", "b"), ("a",)))
+class RuntimeRowCompatibilityTests(unittest.TestCase):
+    def test_runtime_conflicts_include_legacy_cycle_prefix_rows(self) -> None:
+        grammar = resolved("<S> ::= a <S> | a")
+        analysis = compute_analysis(grammar, 2, ("S",))
+
+        self.assertEqual(
+            find_runtime_dispatch_conflicts(grammar, analysis),
+            (SelectConflict("S", 1, 2, ("a",)),),
+        )
+
+    def test_runtime_conflicts_apply_per_alternative_shadowing(self) -> None:
+        grammar = resolved(
+            "#ID_Short ::= a\n"
+            "#ID_Wide ::= a | b\n"
+            "<S> ::= <A> | a b\n"
+            "<A> ::= #ID_Short | #ID_Wide b"
+        )
+        analysis = compute_analysis(grammar, 2, ("S",))
+
+        self.assertEqual(find_runtime_dispatch_conflicts(grammar, analysis), ())
+
+    def test_strict_prefix_rows_are_distinct_exact_rows(self) -> None:
+        self.assertFalse(runtime_rows_overlap(("a",), ("a", "b")))
+        self.assertFalse(runtime_rows_overlap(("a", "b"), ("a",)))
 
     def test_only_equal_runtime_rows_conflict(self) -> None:
         self.assertTrue(compatible_lookahead(("a", "b"), ("a", "b")))
@@ -519,7 +655,9 @@ class LookaheadCompatibilityTests(unittest.TestCase):
         self.assertFalse(compatible_lookahead(("a",), ("a", END)))
         self.assertFalse(compatible_lookahead(("a", "b"), ("a", "c")))
 
-    def test_conflict_finder_allows_a_strict_prefix(self) -> None:
+    def test_materialized_canonical_scan_uses_exact_word_intersection(
+        self,
+    ) -> None:
         grammar = resolved("<S> ::= a | b")
         analysis = AnalysisResult(
             k=2,
@@ -555,6 +693,10 @@ class GeneratedFollowSelectTests(unittest.TestCase):
                     self.assertEqual(optimized.first, oracle_first)
                     self.assertEqual(optimized.follow, oracle_follow)
                     self.assertEqual(optimized.select, oracle_select)
+                    self.assertEqual(
+                        find_select_conflicts(grammar, optimized),
+                        _materialized_conflicts(grammar, oracle_select),
+                    )
                     for languages in (optimized.follow, optimized.select):
                         self.assertTrue(
                             all(

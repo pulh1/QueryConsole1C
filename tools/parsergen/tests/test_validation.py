@@ -204,17 +204,38 @@ class GraphValidationTests(unittest.TestCase):
 
 
 class LookaheadValidationTests(unittest.TestCase):
-    def test_consuming_alternative_precedes_nullable_fallback(self) -> None:
+    def test_nullable_runtime_fallback_does_not_hide_canonical_conflict(
+        self,
+    ) -> None:
         report = validate_text(
             "<S> ::= <A> a\n<A> ::= a | ПУСТО",
             {"Разобрать": "S"},
             k=1,
         )
 
-        self.assertNotIn(
-            "LLK202",
-            [item.code for item in report.diagnostics],
+        conflicts = [
+            item for item in report.diagnostics if item.code == "LLK202"
+        ]
+        self.assertEqual(len(conflicts), 1)
+        self.assertEqual(conflicts[0].details["witness"], ("a",))
+
+    def test_follow_derived_conflict_reaches_validation(self) -> None:
+        report = validate_text(
+            "<S> ::= <A>\n"
+            "<A> ::= a <B>\n"
+            "<A> ::= a b d\n"
+            "<B> ::= ПУСТО | b c",
+            {"Разобрать": "S"},
+            k=2,
         )
+
+        conflicts = [
+            item for item in report.diagnostics if item.code == "LLK202"
+        ]
+        self.assertEqual(len(conflicts), 1)
+        self.assertEqual(conflicts[0].details["witness"], ("a", "b"))
+        self.assertEqual(conflicts[0].span.start.line, 2)
+        self.assertEqual(conflicts[0].related[0].span.start.line, 3)
 
     def test_reports_every_conflict_with_witness_and_related_span(self) -> None:
         report = validate_text(

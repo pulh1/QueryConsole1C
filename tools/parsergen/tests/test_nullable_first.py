@@ -8,6 +8,8 @@ import unittest
 
 from parsergen.analysis import (
     EPSILON,
+    _ContinuationFirst,
+    compute_analysis,
     compute_prefix_analysis,
     concat_languages,
     concat_words,
@@ -59,6 +61,23 @@ class LanguageOperationTests(unittest.TestCase):
 
 
 class PrefixAnalysisTests(unittest.TestCase):
+    def test_saturated_complete_flag_is_only_meaningful_for_short_facts(
+        self,
+    ) -> None:
+        grammar = resolved("<X> ::= a <N>\n<N> ::= ПУСТО")
+        solver = _ContinuationFirst(grammar, 1)
+        solver.run_core()
+        x_variant = solver.alternative_variant_ids[0]
+
+        self.assertEqual(len(solver.variant_facts[x_variant]), 1)
+        length, _, complete = solver.variant_facts[x_variant][0]
+        self.assertEqual(length, 1)
+        self.assertFalse(complete)
+
+        result = compute_analysis(grammar, 1, ("X",))
+        self.assertEqual(result.first["X"], frozenset({("a",)}))
+        self.assertEqual(result.select[("X", 1)], frozenset({("a",)}))
+
     def test_nullable_cases(self) -> None:
         for name, grammar, nullable in NULLABLE_CASES:
             with self.subTest(name=name):

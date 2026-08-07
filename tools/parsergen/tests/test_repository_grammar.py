@@ -1,7 +1,12 @@
 from pathlib import Path
 import unittest
 
-from parsergen.analysis import compute_analysis, find_select_conflicts
+from parsergen.analysis import (
+    SelectConflict,
+    compute_analysis,
+    find_runtime_dispatch_conflicts,
+    find_select_conflicts,
+)
 from parsergen.grammar_parser import parse_grammar
 from parsergen.resolver import resolve_grammar
 
@@ -53,7 +58,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         analysis = compute_analysis(
             grammar,
             2,
-            (grammar.production_order[0],),
+            ("ПакетЗапросов", "Выражение"),
         )
         stats = analysis._compressed.stats
         self.assertGreater(stats["follow_delta_facts"], 0)
@@ -71,8 +76,22 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(stats["public_follow_expansions"], 0)
         self.assertEqual(stats["public_select_expansions"], 0)
 
-        self.assertEqual(find_select_conflicts(grammar, analysis), ())
+        self.assertEqual(
+            find_select_conflicts(grammar, analysis),
+            (
+                SelectConflict(
+                    "ЛогическийОператор",
+                    2,
+                    5,
+                    ("ССЫЛКА", "АВТОУПОРЯДОЧИВАНИЕ"),
+                ),
+                SelectConflict("ОперандВ", 1, 2, ("ВЫБРАТЬ", "*")),
+            ),
+        )
+        self.assertEqual(find_runtime_dispatch_conflicts(grammar, analysis), ())
         self.assertEqual(stats["public_select_expansions"], 0)
+        self.assertEqual(stats["select_cartesian_materializations"], 0)
+        self.assertEqual(stats["select_packed_product_rows"], 0)
 
 
 if __name__ == "__main__":

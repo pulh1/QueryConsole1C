@@ -9,7 +9,6 @@ from parsergen.artifacts import render_artifacts
 from parsergen.bsl_codegen import generate_parser
 from parsergen.grammar_parser import parse_grammar
 from parsergen.resolver import resolve_grammar
-from parsergen.validation import validate_grammar
 from parsergen.value_table_codec import (
     ColumnKind,
     ValueColumn,
@@ -91,15 +90,6 @@ class ReferenceParserTests(unittest.TestCase):
             2,
             tuple(ENTRYPOINTS.values()),
         )
-        report = validate_grammar(
-            parsed.grammar,
-            resolved_result.grammar,
-            analysis,
-            ENTRYPOINTS,
-            (*parsed.diagnostics, *resolved_result.diagnostics),
-        )
-        self.assertFalse(report.has_errors, report.diagnostics)
-
         generated = generate_parser(
             parsed.grammar,
             resolved_result.grammar,

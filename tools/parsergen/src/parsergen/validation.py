@@ -693,18 +693,6 @@ class _Validator:
             alternatives = self.resolved.productions[conflict.production]
             left = alternatives[conflict.left_alternative - 1]
             right = alternatives[conflict.right_alternative - 1]
-            # Legacy compatibility: the reference parser treats a single
-            # nullable alternative as the zero-length fallback after all
-            # consuming rows fail. Canonical LL(k) SELECT includes FOLLOW and
-            # may report this pair as a conflict.
-            if self._resolved_alternative_nullable(
-                left,
-                nullable,
-            ) != self._resolved_alternative_nullable(
-                right,
-                nullable,
-            ):
-                continue
             self.bag.add(
                 self._diagnostic(
                     "LLK202",
