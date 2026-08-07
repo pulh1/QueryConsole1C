@@ -46,6 +46,7 @@ class ConfigTests(unittest.TestCase):
                 "СписокВыражений",
                 "СписокВыраженийМодели",
                 "Выбор",
+                "КогдаТогда",
             ),
         )
         self.assertEqual(

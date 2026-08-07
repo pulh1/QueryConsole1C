@@ -68,6 +68,7 @@
 
 ## Remaining
 
-`КогдаТогда` itself still uses legacy structural actions and will be migrated
-with other representative scalar-node productions. Remaining list/optional
-families and query-model normalization continue as separate vertical slices.
+`КогдаТогда` was migrated in the next
+[choice-alternative checkpoint](2026-08-07-choice-alternative-binding-checkpoint.md).
+Remaining list/optional families and query-model normalization continue as
+separate vertical slices.

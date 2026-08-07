@@ -23,6 +23,7 @@ MIGRATED_PRODUCTIONS = (
     "СписокВыражений",
     "СписокВыраженийМодели",
     "Выбор",
+    "КогдаТогда",
 )
 
 
@@ -470,6 +471,55 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertNotRegex(
             function,
             r'Значение\d+ = Терминал\("(?:ВЫБОР|ИНАЧЕ|КОНЕЦ)"\);',
+        )
+        self.assertNotIn("НомерВариантаПродукции", function)
+
+    def test_choice_alternative_generates_canonical_scalar_bindings(self) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=MIGRATED_PRODUCTIONS,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=MIGRATED_PRODUCTIONS,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        function = _generated_function(generated.module_text, "КогдаТогда")
+        self.assertEqual(
+            function.count("ЭлементыМоделиЗапроса.НовыйАльтернативаВыбора("),
+            1,
+        )
+        self.assertEqual(function.count("ЭтотУзел.Условие ="), 1)
+        self.assertEqual(function.count("ЭтотУзел.Действие ="), 1)
+        self.assertIn('Терминал("КОГДА");', function)
+        self.assertIn('Терминал("ТОГДА");', function)
+        self.assertNotIn("ТекущийЭлемент", function)
+        self.assertNotRegex(
+            function,
+            r'Значение\d+ = Терминал\("(?:КОГДА|ТОГДА)"\);',
         )
         self.assertNotIn("НомерВариантаПродукции", function)
 

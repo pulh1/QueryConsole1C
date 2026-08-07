@@ -471,6 +471,10 @@ CASE/`ВЫБОР` затем переведён на direct optional/repeated bi
 зафиксирован в
 [choice checkpoint](../superpowers/matrices/2026-08-07-choice-ebnf-checkpoint.md).
 
+Вложенная production `КогдаТогда` после этого переведена на constructor и два
+declarative scalar bindings без изменения query model. Exact delta зафиксирован
+в [choice-alternative checkpoint](../superpowers/matrices/2026-08-07-choice-alternative-binding-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:
