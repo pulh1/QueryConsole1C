@@ -228,6 +228,53 @@ differential production corpus являются gate следующих migratio
 Production grammar, query model, BSL module, forms и legacy artifacts на этом
 checkpoint не изменялись.
 
+### Hybrid assembly для постепенной миграции
+
+Production cutover имеет явный opt-in в конфигурации:
+
+```toml
+[migration]
+canonical_productions = ["Expr", "Term"]
+```
+
+При отсутствии секции CLI вызывает прежний `generate_parser` без изменения
+legacy artifacts. При непустом списке pipeline строит projection
+`build_parser_ir(..., production_names=...)` и передаёт её в
+`generate_hybrid_parser`.
+
+Projection сохраняет полную lowered CFG и общий canonical analysis, но
+создаёт runtime IR только для перечисленных source productions. Arbitrary BSL
+actions и canonical SELECT conflicts проверяются только для выбранной family
+и принадлежащих ей synthetic decisions. Полная команда `validate` при этом
+остаётся строгой для всей grammar: hybrid route не подавляет `LLK202` и не
+использует порядок `Если` как разрешение конфликта.
+
+`generate_canonical_functions` отдаёт production fragments без отдельного
+runtime template. Hybrid linker добавляет к их сигнатурам optional ABI
+`Родитель, ЛевыйЭлемент`, чтобы существующие legacy callers могли вызвать
+migrated function; сами canonical calls эти accumulator arguments не
+передают. Вызов в обратную сторону использует общий контракт
+`НеТерминалX(...) → semantic result`.
+
+Synthetic productions direct-LR/EBNF остаются только в analysis. Linker
+исключает их из BSL и отклоняет migration, если synthetic construct всё ещё
+принадлежит legacy island. Canonical functions используют inline predicates
+`ТипТокенаПросмотра`, а не `НомерВариантаПродукции`.
+
+Legacy SELECT table строится в прежнем порядке:
+
+```text
+build_legacy_matcher_artifact
+    → окончательно normalized rows
+    → filter по legacy production ownership
+    → ValueTable runtime artifact
+```
+
+То есть linker не вводит trie или параллельную approximation runtime
+semantics. Rows migrated productions и analysis-synthetic productions в
+legacy table не попадают. Canonical Parser IR по-прежнему ничего не знает об
+этом artifact.
+
 EDT read-only снимок production parser: `DataProcessors/Парсер/ObjectModule.bsl`
 содержит 6 procedures, 135 functions и 3394 строки. В нём по-прежнему есть
 `НомерВариантаПродукции`, параметры `Родитель`/`ЛевыйЭлемент` и recursive
@@ -244,6 +291,13 @@ Canonical API:
 - `build_canonical_decision_artifact`;
 - `build_parser_ir`;
 - `generate_canonical_parser`.
+- `generate_canonical_functions`.
+
+Hybrid migration API:
+
+- `generate_hybrid_parser` — assembly boundary, единственный компонент,
+  одновременно знающий canonical function fragments и legacy module/artifact
+  plumbing.
 
 Legacy API:
 
@@ -322,6 +376,34 @@ Python tests доказывают lowering, IR и форму generated BSL, но
 на платформе 1С. Фактические AST для `a+b`, `a+b+c`, `a-b-c`, `a+b*c`,
 `(a+b)*c`, syntax errors и цепочки из 10 000 операторов остаются обязательным
 YAxUnit/Vanessa gate после миграции первого production expression slice.
+
+## Hybrid infrastructure verification checkpoint
+
+Hybrid infrastructure проверена без opt-in production config и без изменения
+production grammar/query model/generated BSL:
+
+- complete Python suite: `404 passed`, `1 skipped`, `4082 subtests passed`;
+- projected Parser IR пропускает arbitrary actions и conflicts только в
+  явно оставленных legacy islands, но сохраняет strict validation выбранных
+  decisions;
+- canonical fragments имеют explicit optional legacy-call ABI и не содержат
+  runtime template или соседние production functions;
+- mixed test graph `legacy S → canonical Expr → legacy Term` собирается в один
+  module с одним iterative left-fold loop;
+- synthetic runtime functions отсутствуют;
+- legacy SELECT ValueTable не содержит migrated/synthetic rows и получена
+  фильтрацией фактического normalized matcher artifact;
+- existing legacy/reference/artifact tests остаются GREEN;
+- production `validate` и `generate --check` по-прежнему дают exit `1` на тех
+  же двух `LLK202`; artifacts не записывались;
+- repository `parsergen.toml` не содержит `[migration]`, поэтому production
+  generation остаётся на прежнем legacy backend.
+
+До первого production slice необходимо структурно устранить конфликты
+`ЛогическийОператор` alternatives 2/5 и `ОперандВ` alternatives 1/2. Они не
+будут разрешаться порядком ветвей или legacy fallback. После этого arithmetic
+family получает RED YAxUnit expectation левой ассоциативности и только затем
+может быть добавлена в `canonical_productions`.
 
 ## CLI
 
