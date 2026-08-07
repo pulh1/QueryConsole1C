@@ -77,15 +77,15 @@
 - Produce `LeftFold(base_decision: CanonicalDecision | None, base_branches: tuple[BranchIr, ...], recursive_decision: CanonicalDecision, recursive_branches: tuple[BranchIr, ...], exit_alternative: int, source_span: SourceSpan)` as a value-producing `Operation`.
 - A direct-LR `ProductionIr` contains one runtime alternative with one `LeftFold`; synthetic tail is absent from `ParserIr.productions`.
 
-- [ ] Write RED IR tests for one base, several bases, two recursive alternatives, recognition-only form and declarative `Left=<Expr>` form.
-- [ ] Assert recursive runtime operations contain no `ParseSymbol(Expr)`; the leading scalar binding contains `FoldLeftValue`; constructor and suffix bindings preserve source order.
-- [ ] Run the focused IR test and verify failure because `LeftFold` is absent.
-- [ ] Teach `_ParserIrBuilder._production` to find the matching `LoweredLeftRecursion` and build base/tail canonical decisions using the sidecar alternative mapping.
-- [ ] Transform only the classified leading self operation: remove an unbound self parse or replace its scalar bound value with `FoldLeftValue`. Reject sidecar/operation mismatches instead of guessing.
-- [ ] Mark `LeftFold` value-producing so the enclosing alternative returns its accumulator.
-- [ ] Add IR guard tests for forged/mismatched lowering, overlapping SELECT and missing semantic base result.
-- [ ] Run Parser IR, binding IR and canonical condition suites GREEN.
-- [ ] Commit and push as `Добавить LeftFold в canonical Parser IR`.
+- [x] Write RED IR tests for one base, several bases, two recursive alternatives, recognition-only form and declarative `Left=<Expr>` form.
+- [x] Assert recursive runtime operations contain no `ParseSymbol(Expr)`; the leading scalar binding contains `FoldLeftValue`; constructor and suffix bindings preserve source order.
+- [x] Run the focused IR test and verify failure because `LeftFold` is absent.
+- [x] Teach `_ParserIrBuilder._production` to find the matching `LoweredLeftRecursion` and build base/tail canonical decisions using the sidecar alternative mapping.
+- [x] Transform only the classified leading self operation: remove an unbound self parse or replace its scalar bound value with `FoldLeftValue`. Reject sidecar/operation mismatches instead of guessing.
+- [x] Mark `LeftFold` value-producing so the enclosing alternative returns its accumulator.
+- [x] Add IR guard tests for forged/mismatched lowering, overlapping SELECT and missing semantic base result.
+- [x] Run Parser IR, binding IR and canonical condition suites GREEN.
+- [x] Commit and push as `Добавить LeftFold в canonical Parser IR`.
 
 ### Task 4: Iterative BSL left-fold codegen
 

@@ -15,8 +15,13 @@ from .lowering import (
     BindingOriginKind,
     LoweredConstruct,
     LoweredConstructKind,
+    LoweredLeftRecursion,
     LoweringResult,
     lower_source_grammar,
+)
+from .left_recursion import (
+    DirectRecursiveAlternative,
+    classify_direct_left_recursion,
 )
 from .model import (
     Action,
@@ -59,6 +64,11 @@ class ParseSymbol:
 @dataclass(frozen=True, slots=True)
 class UndefinedValue:
     value: str
+    source_span: SourceSpan
+
+
+@dataclass(frozen=True, slots=True)
+class FoldLeftValue:
     source_span: SourceSpan
 
 
@@ -115,7 +125,23 @@ class OptionalBranch:
     source_span: SourceSpan
 
 
-BoundValue = ParseSymbol | DispatchValue | ParseBranchValue | UndefinedValue
+@dataclass(frozen=True, slots=True)
+class LeftFold:
+    base_decision: CanonicalDecision | None
+    base_branches: tuple[BranchIr, ...]
+    recursive_decision: CanonicalDecision
+    recursive_branches: tuple[BranchIr, ...]
+    exit_alternative: int
+    source_span: SourceSpan
+
+
+BoundValue = (
+    ParseSymbol
+    | DispatchValue
+    | ParseBranchValue
+    | UndefinedValue
+    | FoldLeftValue
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -154,6 +180,7 @@ Operation = (
     | BindScalar
     | AppendCollection
     | AssignConstant
+    | LeftFold
 )
 
 
@@ -227,6 +254,11 @@ class _ParserIrBuilder:
         self._rows = rows
         self._matcher_definitions = matcher_definitions
         self._lookahead = lookahead
+        self._lowered_left_recursions = {
+            item.production: item
+            for item in lowering.left_recursions
+        }
+        self._source_left_recursions = classify_direct_left_recursion(source)
 
     def build(self) -> ParserIr:
         productions = tuple(
@@ -241,6 +273,9 @@ class _ParserIrBuilder:
         )
 
     def _production(self, production: SourceProduction) -> ProductionIr:
+        left_recursion = self._lowered_left_recursions.get(production.name)
+        if left_recursion is not None:
+            return self._left_fold_production(production, left_recursion)
         alternatives = tuple(
             self._alternative_ir(alternative)
             for alternative in production.alternatives
@@ -256,6 +291,149 @@ class _ParserIrBuilder:
             alternatives,
             decision,
             production.span,
+        )
+
+    def _left_fold_production(
+        self,
+        production: SourceProduction,
+        lowered: LoweredLeftRecursion,
+    ) -> ProductionIr:
+        source = self._source_left_recursions.get(production.name)
+        if source is None:
+            raise ValueError(
+                "left-recursion lowering has no matching source descriptor"
+            )
+        if (
+            source.base_alternatives != lowered.base_alternatives
+            or tuple(
+                item.alternative for item in source.recursive_alternatives
+            )
+            != lowered.recursive_alternatives
+        ):
+            raise ValueError(
+                "left-recursion source and lowering alternatives differ"
+            )
+
+        base_branches = tuple(
+            self._source_branch(
+                production.alternatives[source_index],
+                canonical_index + 1,
+            )
+            for canonical_index, source_index in enumerate(
+                lowered.base_alternatives
+            )
+        )
+        recursive_by_index = {
+            item.alternative: item
+            for item in source.recursive_alternatives
+        }
+        recursive_branches = tuple(
+            self._recursive_left_fold_branch(
+                production,
+                production.alternatives[source_index],
+                recursive_by_index[source_index],
+                canonical_index + 1,
+            )
+            for canonical_index, source_index in enumerate(
+                lowered.recursive_alternatives
+            )
+        )
+        operation = LeftFold(
+            (
+                self._decision(production.name)
+                if len(base_branches) > 1
+                else None
+            ),
+            base_branches,
+            self._decision(lowered.tail_production),
+            recursive_branches,
+            len(recursive_branches) + 1,
+            production.span,
+        )
+        alternative = AlternativeIr(
+            0,
+            (operation,),
+            0,
+            production.span,
+        )
+        return ProductionIr(
+            production.name,
+            production.parameters,
+            (alternative,),
+            None,
+            production.span,
+        )
+
+    def _source_branch(
+        self,
+        alternative: SourceAlternative,
+        canonical_alternative: int,
+    ) -> BranchIr:
+        operations = self._sequence(alternative.body)
+        return BranchIr(
+            canonical_alternative,
+            operations,
+            self._result_index(operations),
+            alternative.span,
+        )
+
+    def _recursive_left_fold_branch(
+        self,
+        production: SourceProduction,
+        alternative: SourceAlternative,
+        recursive: DirectRecursiveAlternative,
+        canonical_alternative: int,
+    ) -> BranchIr:
+        operations = list(self._sequence(alternative.body))
+        reference = recursive.self_reference
+        if reference.property is None:
+            matching = tuple(
+                index
+                for index, operation in enumerate(operations)
+                if isinstance(operation, ParseSymbol)
+                and isinstance(operation.symbol, NonterminalCall)
+                and operation.symbol.name == production.name
+                and operation.source_span == reference.call.span
+            )
+            if len(matching) != 1:
+                raise ValueError(
+                    "left-fold operations do not identify the self-call"
+                )
+            del operations[matching[0]]
+        else:
+            matching = tuple(
+                index
+                for index, operation in enumerate(operations)
+                if isinstance(operation, BindScalar)
+                and operation.property == reference.property
+                and operation.source_span == reference.source_span
+            )
+            if len(matching) != 1:
+                raise ValueError(
+                    "left-fold operations do not identify the accumulator binding"
+                )
+            index = matching[0]
+            binding = operations[index]
+            assert isinstance(binding, BindScalar)
+            if (
+                not isinstance(binding.value, ParseSymbol)
+                or not isinstance(binding.value.symbol, NonterminalCall)
+                or binding.value.symbol.name != production.name
+            ):
+                raise ValueError(
+                    "left-fold accumulator binding does not contain self-call"
+                )
+            operations[index] = BindScalar(
+                binding.property,
+                FoldLeftValue(reference.call.span),
+                binding.source_span,
+            )
+        result = tuple(operations)
+        return BranchIr(
+            canonical_alternative,
+            result,
+            self._result_index(result),
+            alternative.span,
         )
 
     def _alternative_ir(
@@ -616,6 +794,8 @@ class _ParserIrBuilder:
 
 
 def _produces_transparent_value(operation: Operation) -> bool:
+    if isinstance(operation, LeftFold):
+        return True
     if isinstance(operation, ParseSymbol):
         return isinstance(
             operation.symbol,
