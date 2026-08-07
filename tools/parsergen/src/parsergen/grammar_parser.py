@@ -15,11 +15,30 @@ from .model import (
     Production,
     Terminal,
 )
+from .source_model import (
+    QuantifierKind,
+    SourceAlternative,
+    SourceGrammar,
+    SourceGroup,
+    SourceItem,
+    SourceOptional,
+    SourceProduction,
+    SourceRepeat,
+    SourceSequence,
+)
 
 
 @dataclass(frozen=True, slots=True)
 class ParseResult:
     grammar: Grammar | None
+    diagnostics: tuple[Diagnostic, ...]
+    source_grammar: SourceGrammar | None = None
+    lowering: object | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class SourceParseResult:
+    grammar: SourceGrammar | None
     diagnostics: tuple[Diagnostic, ...]
 
 
@@ -53,9 +72,31 @@ class Cursor:
 
 
 def parse_grammar(text: str, path: str = "<memory>") -> ParseResult:
+    source_result = parse_source_grammar(text, path)
+    grammar, first_ebnf = _flatten_bnf_source(source_result.grammar)
+    diagnostics = DiagnosticBag(source_result.diagnostics)
+    if first_ebnf is not None and not diagnostics.has_errors:
+        _error(
+            diagnostics,
+            "EBNF100",
+            "EBNF lowering is not available yet",
+            first_ebnf,
+        )
+    return ParseResult(
+        grammar,
+        diagnostics.sorted(),
+        source_result.grammar,
+        None,
+    )
+
+
+def parse_source_grammar(
+    text: str,
+    path: str = "<memory>",
+) -> SourceParseResult:
     bag = DiagnosticBag()
     declarations = _logical_declarations(text, path, bag)
-    production_builders: dict[str, _ProductionBuilder] = {}
+    production_builders: dict[str, _SourceProductionBuilder] = {}
     identifiers: list[IdentifierDefinition] = []
     production_order = 0
     identifier_order = 0
@@ -78,17 +119,76 @@ def parse_grammar(text: str, path: str = "<memory>") -> ParseResult:
         if parsed_header is None:
             continue
         name, parameters = parsed_header
-        alternatives = _parse_alternatives(body, body_start_offset, text, path, bag)
+        alternatives = _parse_source_alternatives(
+            body,
+            body_start_offset,
+            text,
+            path,
+            bag,
+        )
         builder = production_builders.get(name)
         if builder is None:
-            builder = _ProductionBuilder(name, parameters, production_order, header_span)
+            builder = _SourceProductionBuilder(
+                name,
+                parameters,
+                production_order,
+                header_span,
+            )
             production_builders[name] = builder
             production_order += 1
         builder.add_declaration(parameters, alternatives, header_span, bag)
 
     productions = tuple(builder.build() for builder in production_builders.values())
-    grammar = Grammar(productions, tuple(identifiers), path)
-    return ParseResult(grammar, bag.sorted())
+    grammar = SourceGrammar(productions, tuple(identifiers), path)
+    return SourceParseResult(grammar, bag.sorted())
+
+
+def _flatten_bnf_source(
+    grammar: SourceGrammar | None,
+) -> tuple[Grammar | None, SourceSpan | None]:
+    if grammar is None:
+        return None, None
+    productions: list[Production] = []
+    for production in grammar.productions:
+        alternatives: list[Alternative] = []
+        for alternative in production.alternatives:
+            first_ebnf = next(
+                (
+                    item.span
+                    for item in alternative.body.items
+                    if isinstance(
+                        item,
+                        (SourceGroup, SourceRepeat, SourceOptional),
+                    )
+                ),
+                None,
+            )
+            if first_ebnf is not None:
+                return None, first_ebnf
+            alternatives.append(
+                Alternative(
+                    alternative.index,
+                    tuple(alternative.body.items),
+                    alternative.span,
+                )
+            )
+        productions.append(
+            Production(
+                production.name,
+                production.parameters,
+                tuple(alternatives),
+                production.order,
+                production.span,
+            )
+        )
+    return (
+        Grammar(
+            tuple(productions),
+            grammar.identifier_definitions,
+            grammar.path,
+        ),
+        None,
+    )
 
 
 def _logical_declarations(text: str, path: str, bag: DiagnosticBag) -> tuple[LogicalDeclaration, ...]:
@@ -267,14 +367,14 @@ def _parse_production_header(
     return name, parameters
 
 
-def _parse_alternatives(
+def _parse_source_alternatives(
     body: str,
     body_start_offset: int,
     text: str,
     path: str,
     bag: DiagnosticBag,
-) -> tuple[Alternative, ...]:
-    alternatives: list[Alternative] = []
+) -> tuple[SourceAlternative, ...]:
+    alternatives: list[SourceAlternative] = []
     consumed = 0
     for index, raw in enumerate(_split_top_level(body, "|")):
         stripped = raw.strip()
@@ -282,15 +382,25 @@ def _parse_alternatives(
         span = _span(text, path, start, start + len(stripped))
         if not stripped:
             _error(bag, "GP007", "alternative is empty", span)
-        alternatives.append(Alternative(index, _parse_elements(stripped, text, path, start, bag), span))
+        alternatives.append(
+            SourceAlternative(
+                index,
+                _parse_source_sequence(stripped, text, path, start, bag),
+                span,
+            )
+        )
         consumed += len(raw) + 1
     return tuple(alternatives)
 
 
-def _parse_elements(
-    body: str, text: str, path: str, start_offset: int, bag: DiagnosticBag
-) -> tuple[Action | Constant | IdentifierRef | Lexeme | NonterminalCall | Terminal, ...]:
-    elements: list[Action | Constant | IdentifierRef | Lexeme | NonterminalCall | Terminal] = []
+def _parse_source_sequence(
+    body: str,
+    text: str,
+    path: str,
+    start_offset: int,
+    bag: DiagnosticBag,
+) -> SourceSequence:
+    items: list[SourceItem] = []
     epsilon_seen = False
     index = 0
     while index < len(body):
@@ -298,27 +408,73 @@ def _parse_elements(
             index += 1
             continue
         symbol_start = index
-        if body[index] == "{":
+        char = body[index]
+        if char in "*+?":
+            _error(
+                bag,
+                "GP008",
+                "postfix operator has no operand",
+                _span(text, path, start_offset + index, start_offset + index + 1),
+            )
+            index += 1
+            continue
+        if char == "{":
             end = _matching_action(body, index)
             if end is None:
                 break
-            elements.append(Action(body[index + 1 : end].strip(), len([item for item in elements if not isinstance(item, Action)]), _span(text, path, start_offset + index, start_offset + end + 1)))
+            items.append(
+                Action(
+                    body[index + 1 : end].strip(),
+                    len(
+                        [
+                            item
+                            for item in items
+                            if not isinstance(item, Action)
+                        ]
+                    ),
+                    _span(
+                        text,
+                        path,
+                        start_offset + index,
+                        start_offset + end + 1,
+                    ),
+                )
+            )
             index = end + 1
             continue
-        if body[index] == "'":
+
+        primary: SourceItem | None = None
+        if char == "'":
             end = _quoted_end(body, index)
             if end is None:
                 break
-            elements.append(Lexeme(body[index + 1 : end].replace("''", "'"), _span(text, path, start_offset + index, start_offset + end + 1)))
+            primary = Lexeme(
+                body[index + 1 : end].replace("''", "'"),
+                _span(
+                    text,
+                    path,
+                    start_offset + index,
+                    start_offset + end + 1,
+                ),
+            )
             index = end + 1
-            continue
-        if body[index] == "<":
+        elif char == "<":
             end = body.find(">", index + 1)
             if end < 0:
                 break
             name = body[index + 1 : end].strip()
             if not name:
-                _error(bag, "GP007", "invalid symbol", _span(text, path, start_offset + index, start_offset + end + 1))
+                _error(
+                    bag,
+                    "GP007",
+                    "invalid symbol",
+                    _span(
+                        text,
+                        path,
+                        start_offset + index,
+                        start_offset + end + 1,
+                    ),
+                )
                 index = end + 1
                 continue
             index = end + 1
@@ -329,50 +485,167 @@ def _parse_elements(
                     break
                 arguments = _split_arguments(body[index + 1 : argument_end])
                 index = argument_end + 1
-            elements.append(NonterminalCall(name, arguments, _span(text, path, start_offset + symbol_start, start_offset + index)))
-            continue
-        index += 1
-        while (
-            index < len(body)
-            and not body[index].isspace()
-            and body[index] not in "{'<#&"
-        ):
-            index += 1
-        token = body[symbol_start:index]
-        if token == "ПУСТО":
-            epsilon_seen = True
-            continue
-        span = _span(text, path, start_offset + symbol_start, start_offset + index)
-        if token.startswith("#"):
-            if len(token) == 1:
-                _error(bag, "GP007", "invalid symbol", span)
+            primary = NonterminalCall(
+                name,
+                arguments,
+                _span(
+                    text,
+                    path,
+                    start_offset + symbol_start,
+                    start_offset + index,
+                ),
+            )
+        elif char == "(":
+            end = _matching_grammar_group(body, index)
+            if end is None:
+                break
+            content = body[index + 1 : end]
+            group_span = _span(
+                text,
+                path,
+                start_offset + index,
+                start_offset + end + 1,
+            )
+            if not content.strip():
+                _error(bag, "GP009", "group is empty", group_span)
+                alternatives: tuple[SourceAlternative, ...] = ()
             else:
-                elements.append(IdentifierRef(token[1:], span))
-        elif token.startswith("&"):
-            if len(token) == 1:
-                _error(bag, "GP007", "invalid symbol", span)
-            else:
-                elements.append(Constant(token[1:], span))
+                alternatives = _parse_source_alternatives(
+                    content,
+                    start_offset + index + 1,
+                    text,
+                    path,
+                    bag,
+                )
+            primary = SourceGroup(alternatives, group_span)
+            index = end + 1
         else:
-            elements.append(Terminal(token, span))
-    if epsilon_seen and any(not isinstance(item, Action) for item in elements):
-        _error(bag, "GR004", "ПУСТО cannot be mixed with a syntax symbol", _span(text, path, start_offset, start_offset + len(body)))
-    return tuple(elements)
+            index += 1
+            while (
+                index < len(body)
+                and not body[index].isspace()
+                and body[index] not in "{'<#&()*+?|"
+            ):
+                index += 1
+            token = body[symbol_start:index]
+            if token == "ПУСТО":
+                epsilon_seen = True
+                continue
+            span = _span(
+                text,
+                path,
+                start_offset + symbol_start,
+                start_offset + index,
+            )
+            if token.startswith("#"):
+                if len(token) == 1:
+                    _error(bag, "GP007", "invalid symbol", span)
+                else:
+                    primary = IdentifierRef(token[1:], span)
+            elif token.startswith("&"):
+                if len(token) == 1:
+                    _error(bag, "GP007", "invalid symbol", span)
+                else:
+                    primary = Constant(token[1:], span)
+            else:
+                primary = Terminal(token, span)
+
+        if primary is None:
+            continue
+        postfix_index = _next_nonspace(body, index)
+        if postfix_index is not None and body[postfix_index] in "*+?":
+            operator = body[postfix_index]
+            operator_span = _span(
+                text,
+                path,
+                start_offset + postfix_index,
+                start_offset + postfix_index + 1,
+            )
+            construct_span = SourceSpan(
+                primary.span.path,
+                primary.span.start,
+                operator_span.end,
+            )
+            if operator == "?":
+                primary = SourceOptional(
+                    primary,
+                    construct_span,
+                    operator_span,
+                )
+            else:
+                primary = SourceRepeat(
+                    primary,
+                    (
+                        QuantifierKind.ZERO_OR_MORE
+                        if operator == "*"
+                        else QuantifierKind.ONE_OR_MORE
+                    ),
+                    construct_span,
+                    operator_span,
+                )
+            index = postfix_index + 1
+            repeated_index = _next_nonspace(body, index)
+            if (
+                repeated_index is not None
+                and body[repeated_index] in "*+?"
+            ):
+                _error(
+                    bag,
+                    "EBNF203",
+                    "repeated postfix operator is not allowed",
+                    _span(
+                        text,
+                        path,
+                        start_offset + repeated_index,
+                        start_offset + repeated_index + 1,
+                    ),
+                )
+                while (
+                    repeated_index < len(body)
+                    and body[repeated_index] in "*+?"
+                ):
+                    repeated_index += 1
+                index = repeated_index
+        items.append(primary)
+
+    if epsilon_seen and any(not isinstance(item, Action) for item in items):
+        _error(
+            bag,
+            "GR004",
+            "ПУСТО cannot be mixed with a syntax symbol",
+            _span(text, path, start_offset, start_offset + len(body)),
+        )
+    sequence_span = _span(
+        text,
+        path,
+        start_offset,
+        start_offset + len(body),
+    )
+    return SourceSequence(tuple(items), sequence_span)
 
 
 @dataclass(slots=True)
-class _ProductionBuilder:
+class _SourceProductionBuilder:
     name: str
     parameters: tuple[str, ...]
     order: int
     span: SourceSpan
-    alternatives: list[Alternative] | None = None
+    alternatives: list[SourceAlternative] | None = None
 
     def add_declaration(
-        self, parameters: tuple[str, ...], alternatives: tuple[Alternative, ...], span: SourceSpan, bag: DiagnosticBag
+        self,
+        parameters: tuple[str, ...],
+        alternatives: tuple[SourceAlternative, ...],
+        span: SourceSpan,
+        bag: DiagnosticBag,
     ) -> None:
         if parameters and self.parameters and parameters != self.parameters:
-            _error(bag, "GR001", "incompatible repeated production parameters", span)
+            _error(
+                bag,
+                "GR001",
+                "incompatible repeated production parameters",
+                span,
+            )
             return
         if parameters and not self.parameters:
             self.parameters = parameters
@@ -380,12 +653,22 @@ class _ProductionBuilder:
             self.alternatives = []
         offset = len(self.alternatives)
         self.alternatives.extend(
-            Alternative(offset + alternative.index, alternative.elements, alternative.span)
+            SourceAlternative(
+                offset + alternative.index,
+                alternative.body,
+                alternative.span,
+            )
             for alternative in alternatives
         )
 
-    def build(self) -> Production:
-        return Production(self.name, self.parameters, tuple(self.alternatives or ()), self.order, self.span)
+    def build(self) -> SourceProduction:
+        return SourceProduction(
+            self.name,
+            self.parameters,
+            tuple(self.alternatives or ()),
+            self.order,
+            self.span,
+        )
 
 
 def _next_nonspace(text: str, index: int) -> int | None:
@@ -594,6 +877,44 @@ def _matching_parenthesis(text: str, start: int) -> int | None:
         elif char == '"':
             quote = True
         elif char == "(":
+            depth += 1
+        elif char == ")":
+            depth -= 1
+            if depth == 0:
+                return index
+        index += 1
+    return None
+
+
+def _matching_grammar_group(text: str, start: int) -> int | None:
+    depth = 0
+    index = start
+    while index < len(text):
+        char = text[index]
+        if char == "'":
+            end = _quoted_end(text, index)
+            if end is None:
+                return None
+            index = end + 1
+            continue
+        if char == "{":
+            end = _matching_action(text, index)
+            if end is None:
+                return None
+            index = end + 1
+            continue
+        if char == "<":
+            end = text.find(">", index + 1)
+            if end < 0:
+                return None
+            index = end + 1
+            if index < len(text) and text[index] == "(":
+                argument_end = _matching_parenthesis(text, index)
+                if argument_end is None:
+                    return None
+                index = argument_end + 1
+            continue
+        if char == "(":
             depth += 1
         elif char == ")":
             depth -= 1
