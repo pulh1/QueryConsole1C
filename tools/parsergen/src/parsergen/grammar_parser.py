@@ -26,6 +26,7 @@ from .source_model import (
     SourceRepeat,
     SourceSequence,
 )
+from .source_validation import validate_source_grammar
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,6 +76,10 @@ def parse_grammar(text: str, path: str = "<memory>") -> ParseResult:
     source_result = parse_source_grammar(text, path)
     grammar, first_ebnf = _flatten_bnf_source(source_result.grammar)
     diagnostics = DiagnosticBag(source_result.diagnostics)
+    if source_result.grammar is not None and not diagnostics.has_errors:
+        diagnostics.extend(
+            validate_source_grammar(source_result.grammar).diagnostics
+        )
     if first_ebnf is not None and not diagnostics.has_errors:
         _error(
             diagnostics,
