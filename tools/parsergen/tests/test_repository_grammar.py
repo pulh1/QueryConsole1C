@@ -2,7 +2,6 @@ from pathlib import Path
 import unittest
 
 from parsergen.analysis import (
-    SelectConflict,
     compute_analysis,
     find_runtime_dispatch_conflicts,
     find_select_conflicts,
@@ -40,6 +39,9 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
                 "ID_Псевдоним": 40,
                 "ID_ПсевдонимРасширенный": 45,
                 "ID_ПсевдонимКонтрольнойТочкиИтогов": 45,
+                "ID_ПолеБезРазыменования": 31,
+                "ID_ГруппаТипаСсылки": 1,
+                "ID_ИмяТипа": 17,
             },
         )
 
@@ -78,15 +80,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
 
         self.assertEqual(
             find_select_conflicts(grammar, analysis),
-            (
-                SelectConflict(
-                    "ЛогическийОператор",
-                    2,
-                    5,
-                    ("ССЫЛКА", "АВТОУПОРЯДОЧИВАНИЕ"),
-                ),
-                SelectConflict("ОперандВ", 1, 2, ("ВЫБРАТЬ", "*")),
-            ),
+            (),
         )
         self.assertEqual(find_runtime_dispatch_conflicts(grammar, analysis), ())
         self.assertEqual(stats["public_select_expansions"], 0)

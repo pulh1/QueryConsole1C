@@ -76,11 +76,11 @@ class ValueTableCodecTests(unittest.TestCase):
             [column.kind for column in identifiers.columns],
             [ColumnKind.STRING, ColumnKind.STRING],
         )
-        self.assertEqual(len(identifiers.rows), 227)
+        self.assertEqual(len(identifiers.rows), 276)
         self.assertEqual(identifiers.rows[0], ("ID_Полный", "ID"))
         self.assertEqual(
             identifiers.rows[-1],
-            ("ID_ПсевдонимКонтрольнойТочкиИтогов", "ПРАВОЕ"),
+            ("ID_ПолеБезРазыменования", "ССЫЛКА"),
         )
         self.assertEqual(
             [column.name for column in select.columns],
@@ -102,10 +102,10 @@ class ValueTableCodecTests(unittest.TestCase):
                 ColumnKind.NUMBER,
             ],
         )
-        self.assertEqual(len(select.rows), 11273)
+        self.assertEqual(len(select.rows), 9078)
         self.assertEqual(
             select.rows[0],
-            (2, "УНИЧТОЖИТЬ", "ID", "ПакетЗапросов", 1),
+            (2, "ВЫБРАТЬ", "&", "ПакетЗапросов", 1),
         )
         self.assertEqual(
             select.rows[-1],

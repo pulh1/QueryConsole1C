@@ -72,7 +72,7 @@ class MigrationAuditUnitTests(unittest.TestCase):
             "Разобрать": "ПакетЗапросов",
             "РазобратьВыражение": "Выражение",
         })
-        self.assertEqual(len(report["canonical"]["conflicts"]), 2)
+        self.assertEqual(report["canonical"]["conflicts"], [])
         self.assertEqual(report["legacy"]["runtime_conflicts"], [])
         self.assertEqual(report["artifacts"]["changed"], [])
 
@@ -108,20 +108,7 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["canonical"],
             {
-                "conflicts": [
-                    {
-                        "production": "ЛогическийОператор",
-                        "left_alternative": 2,
-                        "right_alternative": 5,
-                        "witness": ["ССЫЛКА", "АВТОУПОРЯДОЧИВАНИЕ"],
-                    },
-                    {
-                        "production": "ОперандВ",
-                        "left_alternative": 1,
-                        "right_alternative": 2,
-                        "witness": ["ВЫБРАТЬ", "*"],
-                    },
-                ],
+                "conflicts": [],
                 "diagnostics": [
                     {
                         "code": "VAL102",
@@ -137,16 +124,6 @@ class MigrationAuditProductionTests(unittest.TestCase):
                             "production is unreachable from every entry point"
                         ),
                     },
-                    {
-                        "code": "LLK202",
-                        "severity": "error",
-                        "message": "alternatives have overlapping SELECT sets",
-                    },
-                    {
-                        "code": "LLK202",
-                        "severity": "error",
-                        "message": "alternatives have overlapping SELECT sets",
-                    },
                 ],
                 "stats": {
                     "packed_first_rows": 10_758,
@@ -155,7 +132,7 @@ class MigrationAuditProductionTests(unittest.TestCase):
                     "select_direct_facts": 10_438,
                     "select_short_complete_prefixes": 320,
                     "packed_select_upper_bound": 32_050,
-                    "conflict_work_items": 531,
+                    "conflict_work_items": 511,
                     "public_select_expansions": 0,
                     "select_cartesian_materializations": 0,
                 },
@@ -164,7 +141,7 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["legacy"],
             {
-                "matcher_rows": 11_273,
+                "matcher_rows": 9_078,
                 "matcher_definitions": 0,
                 "runtime_conflicts": [],
             },
@@ -178,8 +155,8 @@ class MigrationAuditProductionTests(unittest.TestCase):
                 "bsl_functions": 135,
                 "bsl_loc": 3394,
                 "constructor_names": 79,
-                "select_rows": 11_273,
-                "identifier_rows": 227,
+                "select_rows": 9_078,
+                "identifier_rows": 276,
             },
         )
 
