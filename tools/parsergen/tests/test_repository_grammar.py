@@ -36,6 +36,7 @@ MIGRATED_PRODUCTIONS = (
     "Константа",
     "Параметр",
     "АгрегатнаяФункция",
+    "ТипПериода",
 )
 
 
@@ -319,6 +320,49 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         )
         self.assertIn("РезультатПродукции = Значение1;", function)
         self.assertIn("РезультатПродукции = Значение2;", function)
+        self.assertNotIn("ТекущийЭлемент", function)
+        self.assertNotIn("НомерВариантаПродукции", function)
+
+    def test_period_type_returns_its_identifier_value(self) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        canonical = MIGRATED_PRODUCTIONS
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=canonical,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=canonical,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        function = _generated_function(generated.module_text, "ТипПериода")
+        self.assertIn(
+            'Значение1 = Идентификатор("ID_Полный");',
+            function,
+        )
+        self.assertIn("РезультатПродукции = Значение1;", function)
         self.assertNotIn("ТекущийЭлемент", function)
         self.assertNotIn("НомерВариантаПродукции", function)
 

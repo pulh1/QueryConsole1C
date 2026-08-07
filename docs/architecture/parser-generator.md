@@ -531,6 +531,12 @@ factory-default `Ложь`. Shared `РазличныеОпционально` о
 Exact delta:
 [aggregate-function checkpoint](../superpowers/matrices/2026-08-07-aggregate-function-binding-checkpoint.md).
 
+`ТипПериода` после этого стал transparent canonical production над
+`#ID_Полный`. Значение identifier возвращается без structural action и legacy
+dispatch; query-model properties специализированных функций не менялись.
+Exact delta:
+[period-type checkpoint](../superpowers/matrices/2026-08-07-period-type-transparent-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:

@@ -96,6 +96,7 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "Константа",
                 "Параметр",
                 "АгрегатнаяФункция",
+                "ТипПериода",
             ],
         )
         self.assertEqual(report["canonical"]["conflicts"], [])
@@ -121,12 +122,12 @@ class MigrationAuditProductionTests(unittest.TestCase):
                 "epsilon_alternatives": 65,
                 "formal_parameters": 8,
                 "actual_arguments": 26,
-                "action_blocks": 280,
-                "statements": 301,
+                "action_blocks": 279,
+                "statements": 300,
                 "constructor_statements": 65,
                 "collection_statements": 27,
                 "constant_statements": 15,
-                "structural_statements": 190,
+                "structural_statements": 189,
                 "other_assignment_statements": 0,
                 "other_statements": 4,
             },
@@ -181,9 +182,9 @@ class MigrationAuditProductionTests(unittest.TestCase):
             self.report["generated"],
             {
                 "bsl_functions": 121,
-                "bsl_loc": 3056,
+                "bsl_loc": 3051,
                 "constructor_names": 78,
-                "select_rows": 5_973,
+                "select_rows": 5_895,
                 "identifier_rows": 276,
             },
         )
@@ -255,7 +256,7 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 '"СписокВыражений", '
                 '"СписокВыраженийМодели", '
                 '"Выбор", "КогдаТогда", "Константа", "Параметр", '
-                '"АгрегатнаяФункция"]\n\n'
+                '"АгрегатнаяФункция", "ТипПериода"]\n\n'
                 "[entrypoints]\n"
                 '"Разобрать" = "ПакетЗапросов"\n'
                 '"РазобратьВыражение" = "Выражение"\n',
