@@ -81,7 +81,7 @@ def test_canonical_conflict_includes_follow_continuation(self) -> None:
         frozenset({("a", "b")}),
     )
     self.assertEqual(
-        find_select_conflicts(grammar, result),
+        find_canonical_select_conflicts(grammar, result),
         (SelectConflict("A", 1, 2, ("a", "b")),),
     )
 ```
@@ -108,8 +108,8 @@ def test_canonical_conflicts_do_not_depend_on_analysis_representation(
     )
 
     self.assertEqual(
-        find_select_conflicts(grammar, compressed),
-        find_select_conflicts(grammar, materialized),
+        find_canonical_select_conflicts(grammar, compressed),
+        find_canonical_select_conflicts(grammar, materialized),
     )
 ```
 
@@ -119,7 +119,7 @@ def test_canonical_conflicts_do_not_depend_on_analysis_representation(
 python -m pytest tools/parsergen/tests/test_follow_select.py -k "canonical_conflict_includes_follow_continuation or canonical_conflicts_do_not_depend" -v
 ```
 
-Expected: FAIL; compressed scan returns no conflict while materialized scan returns witness `('a', 'b')`.
+Expected: FAIL because `find_canonical_select_conflicts` is not yet defined.
 
 - [ ] **Step 5: Implement exact symbolic canonical witness**
 
@@ -192,14 +192,11 @@ def _select_conflict_witness(
         key=lambda word: (len(word), word),
         default=None,
     )
-
-
-def find_select_conflicts(
-    grammar: ResolvedGrammar,
-    analysis: AnalysisResult,
-) -> tuple[SelectConflict, ...]:
-    return find_canonical_select_conflicts(grammar, analysis)
 ```
+
+Add `find_canonical_select_conflicts` to the test imports. Keep the existing
+`find_select_conflicts` behavior unchanged until Task 2 so every intermediate
+commit remains green.
 
 - [ ] **Step 7: Run focused tests**
 
@@ -207,7 +204,8 @@ def find_select_conflicts(
 python -m pytest tools/parsergen/tests/test_follow_select.py -k "conflict or identifier or factorized" -q
 ```
 
-Expected: the new tests PASS. Existing tests that intentionally assert legacy semantics may FAIL and are migrated in Task 2.
+Expected: PASS. New tests call the explicit canonical API; existing tests still
+exercise the unchanged legacy-compatible name until Task 2.
 
 - [ ] **Step 8: Commit the canonical scanner**
 
@@ -331,6 +329,16 @@ analysis explicitly:
 ```python
 if analysis._compressed is None:
     raise ValueError("compressed analysis is required for runtime dispatch")
+```
+
+Finally switch the historical public name atomically with the test migration:
+
+```python
+def find_select_conflicts(
+    grammar: ResolvedGrammar,
+    analysis: AnalysisResult,
+) -> tuple[SelectConflict, ...]:
+    return find_canonical_select_conflicts(grammar, analysis)
 ```
 
 - [ ] **Step 5: Run the focused and full follow/select modules**
