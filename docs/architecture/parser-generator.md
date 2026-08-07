@@ -15,14 +15,16 @@ EDT-обработка `QueryConsoleZUP/src/DataProcessors/Парсер` вла�
 ## Pipeline
 
 1. `config.py` читает TOML, разрешает пути относительно файла конфигурации и сохраняет порядок точек входа.
-2. `grammar_parser.py` разбирает расширенный формат грамматики и формирует синтаксическую модель.
-3. `resolver.py` разрешает нетерминалы, терминалы, классы идентификаторов и типы констант.
-4. `analysis.py` вычисляет nullable, FIRST(k), FOLLOW(k) и SELECT(k), затем ищет пересечения SELECT альтернатив.
-5. `validation.py` объединяет диагностики разбора, разрешения, анализа и проверки точек входа. Левая рекурсия в текущей версии диагностируется как неподдерживаемая.
-6. `semantic_actions.py` обрабатывает встроенные в грамматику BSL-действия.
-7. `bsl_codegen.py` строит модуль парсера и две логические таблицы.
-8. `value_table_codec.py` сериализует таблицы в формат, читаемый 1С через `ЗначениеИзСтрокиВнутр`.
-9. `artifacts.py` сравнивает или транзакционно заменяет только три разрешённых файла.
+2. `grammar_parser.py` разбирает source grammar в immutable high-level AST из `source_model.py`.
+3. `source_validation.py` до lowering доказывает productivity, nullability и минимальное потребление для EBNF-конструкций.
+4. `lowering.py` детерминированно преобразует source AST в прежнюю плоскую canonical CFG и сохраняет origin sidecar.
+5. `resolver.py` разрешает нетерминалы, терминалы, классы идентификаторов и типы констант только в canonical CFG.
+6. `analysis.py` вычисляет nullable, FIRST(k), FOLLOW(k) и SELECT(k), затем ищет пересечения SELECT alternatives.
+7. `validation.py` объединяет диагностики разбора, разрешения, анализа и проверки точек входа и отображает synthetic diagnostics обратно на source spans. Левая рекурсия в текущей версии диагностируется как неподдерживаемая.
+8. `parser_ir.py` после успешной canonical validation строит runtime IR с `Dispatch`, `RepeatLoop` и `OptionalBranch`, не включая synthetic productions в список runtime functions.
+9. `semantic_actions.py` и `bsl_codegen.py` пока обслуживают только legacy BNF path и существующие встроенные BSL-действия.
+10. `value_table_codec.py` сериализует таблицы в формат, читаемый 1С через `ЗначениеИзСтрокиВнутр`.
+11. `artifacts.py` сравнивает или транзакционно заменяет только три разрешённых файла.
 
 При сравнении `ObjectModule.bsl` окончания строк LF и CRLF считаются эквивалентными; остальной текст модуля должен совпадать. ValueTable сравниваются по колонкам и мультимножеству строк, поскольку штатный сериализатор 1С сохраняет внутренние идентификаторы и порядок строк, не относящиеся к семантике парсера.
 
@@ -34,6 +36,56 @@ Nullable/FIRST/FOLLOW/SELECT и диагностика LLK202 — канонич
 
 Сгенерированный BSL намеренно использует отдельно названный legacy-артефакт matcher: он выбирает самую длинную точную строку таблицы; nullable fallback применяется только при EOF, когда нет типизированных lookahead-токенов. Эта политика dispatch не является доказательством LL(k) и изолирована от канонической валидации.
 
+## Source EBNF и lowering
+
+Source grammar поддерживает grouping и postfix constructs:
+
+```text
+X*   zero or more
+X+   one or more
+X?   optional
+(...) grouping
+```
+
+Кавычки сохраняют символы как lexemes: `'*'`, `'+'`, `'?'`, `'('`, `')'` и
+`'|'` не являются EBNF-операторами. Повторный postfix вроде `X*?` запрещён.
+
+До canonical lowering validator вычисляет для каждого source production и
+construct три факта: `productive`, `nullable`, `min_consumed_tokens`.
+Body `*` и `+` обязан быть productive и иметь
+`min_consumed_tokens >= 1`; nullable/non-consuming body отклоняется. Body `?`
+не может уже быть nullable. Arbitrary BSL action внутри group/quantifier не
+переходит в canonical path: до declarative AST binding он является ошибкой.
+
+Lowering использует reserved prefix `__parsergen_ebnf__` и стабильные tree
+coordinates. Synthetic CFG создаётся только для analysis:
+
+```text
+X* -> R ::= X R | epsilon
+X? -> O ::= X | epsilon
+X+ -> P ::= X R
+      R ::= X R | epsilon
+```
+
+Origin sidecar связывает каждую synthetic production/alternative с исходным
+construct и source span. Поэтому canonical diagnostics не показывают reserved
+names. Для consume/body/exit alternatives действует тот же invariant, что и
+для обычной grammar:
+
+```text
+SELECT_k(alt_i) intersection SELECT_k(alt_j) = empty, i != j
+```
+
+Порядок generated `Если` никогда не разрешает пересечение.
+
+`build_canonical_decision_artifact` публикует factorized matcher rows и token
+set definitions без concrete Cartesian expansion, legacy normalization,
+shadowing, cycle-prefix injection и longest-prefix fallback. `parser_ir.py`
+использует только этот API. На текущем infrastructure checkpoint optimized BSL
+emission из Parser IR ещё не включён; production generation остаётся на legacy
+BNF path. Legacy backend явно отклоняет grammar с synthetic EBNF productions,
+чтобы они случайно не превратились в recursive BSL functions.
+
 В production-грамматике сейчас зафиксированы две канонические диагностики LLK202: для `ЛогическийОператор` между альтернативами 2 и 5 со свидетелем `ССЫЛКА/АВТОУПОРЯДОЧИВАНИЕ`, а также для `ОперандВ` между альтернативами 1 и 2 со свидетелем `ВЫБРАТЬ/*`. Исправление грамматики и сохранение языка runtime-парсера относятся к отдельной задаче.
 
 ## Граница canonical и legacy API
@@ -42,7 +94,9 @@ Canonical API:
 
 - `compute_analysis`;
 - `find_canonical_select_conflicts`;
-- `find_select_conflicts` — canonical compatibility alias.
+- `find_select_conflicts` — canonical compatibility alias;
+- `build_canonical_decision_artifact`;
+- `build_parser_ir`.
 
 Legacy API:
 

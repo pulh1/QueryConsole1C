@@ -41,6 +41,8 @@
 
 ### Task 1: Source Grammar model and backward-compatible parser facade
 
+**Status:** completed in `4f3159c`.
+
 **Files:**
 - Create: `tools/parsergen/src/parsergen/source_model.py`
 - Modify: `tools/parsergen/src/parsergen/grammar_parser.py`
@@ -112,6 +114,8 @@ git push
 
 ### Task 2: High-level progress validation
 
+**Status:** completed in `594cc14`.
+
 **Files:**
 - Create: `tools/parsergen/src/parsergen/source_validation.py`
 - Create: `tools/parsergen/tests/test_source_validation.py`
@@ -177,6 +181,8 @@ git push
 ---
 
 ### Task 3: Deterministic canonical CFG lowering and origin map
+
+**Status:** completed in `7ff38ce`.
 
 **Files:**
 - Create: `tools/parsergen/src/parsergen/lowering.py`
@@ -251,6 +257,8 @@ git push
 
 ### Task 4: Canonical oracle equivalence and source-mapped SELECT diagnostics
 
+**Status:** completed in `bf045f3`.
+
 **Files:**
 - Create: `tools/parsergen/tests/test_ebnf_analysis.py`
 - Modify: `tools/parsergen/src/parsergen/validation.py`
@@ -305,6 +313,8 @@ git push
 
 ### Task 5: Parser IR boundary and legacy backend guard
 
+**Status:** completed in `8f046c7`.
+
 **Files:**
 - Create: `tools/parsergen/src/parsergen/parser_ir.py`
 - Create: `tools/parsergen/tests/test_parser_ir.py`
@@ -354,6 +364,9 @@ git push
 ---
 
 ### Task 6: Phase 3 regression gate and documentation
+
+**Status:** completed on 2026-08-07; repository CLI preserved the documented
+two-`LLK202` baseline and migration audit reported no artifact changes.
 
 **Files:**
 - Modify: `docs/architecture/parser-generator.md`
@@ -415,4 +428,3 @@ git push
 - Deferred intentionally: declarative AST binding, optimized BSL emission, direct productive LR and production grammar migration remain separate coherent plans after this infrastructure gate.
 - Placeholder scan: no `TBD`, generic error-handling step or unnamed test action remains.
 - Type consistency: `SourceGrammar -> LoweringResult -> existing Grammar/ResolvedGrammar/AnalysisResult -> ParserIr` is used consistently; legacy `generate_parser` remains separate.
-
