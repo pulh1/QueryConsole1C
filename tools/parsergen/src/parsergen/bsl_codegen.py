@@ -196,6 +196,15 @@ class BslGenerator:
         )
 
     def _validate_inputs(self) -> None:
+        if any(
+            production.name.casefold().startswith(
+                "__parsergen_ebnf__".casefold()
+            )
+            for production in self._grammar.productions
+        ):
+            raise ValueError(
+                "canonical Parser IR/codegen is required for EBNF grammar"
+            )
         if _contains_reserved_end(self._grammar, self._resolved):
             raise ValueError(
                 "reserved END token '$' cannot be produced by grammar"

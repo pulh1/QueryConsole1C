@@ -100,6 +100,19 @@ class SelectMatcherArtifact:
 
 
 @dataclass(frozen=True, slots=True)
+class CanonicalDecisionRow:
+    production: str
+    alternative: int
+    matchers: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class CanonicalDecisionArtifact:
+    rows: tuple[CanonicalDecisionRow, ...]
+    matcher_definitions: tuple[MatcherDefinition, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class _FollowOccurrence:
     parent_id: int
     referenced_id: int
@@ -256,6 +269,55 @@ def build_select_matcher_artifact(
     max_rows: int,
 ) -> SelectMatcherArtifact:
     return build_legacy_matcher_artifact(analysis, max_rows=max_rows)
+
+
+def build_canonical_decision_artifact(
+    analysis: AnalysisResult,
+    *,
+    max_rows: int = DEFAULT_RUNTIME_DISPATCH_ROWS,
+) -> CanonicalDecisionArtifact:
+    compressed = analysis._compressed
+    if compressed is None:
+        raise ValueError(
+            "compressed analysis is required for canonical decisions"
+        )
+    if max_rows < 1:
+        raise LookaheadMaterializationError(
+            "canonical-decisions",
+            "all",
+            1,
+            max_rows,
+        )
+    rows: list[CanonicalDecisionRow] = []
+    for position, (production, alternative) in enumerate(
+        compressed.select_keys
+    ):
+        for matcher_ids in compressed.iter_matcher_rows(position):
+            if len(rows) >= max_rows:
+                raise LookaheadMaterializationError(
+                    "canonical-decisions",
+                    "all",
+                    len(rows) + 1,
+                    max_rows,
+                )
+            rows.append(
+                CanonicalDecisionRow(
+                    production,
+                    alternative,
+                    tuple(
+                        compressed.matcher_labels[matcher_id]
+                        for matcher_id in matcher_ids
+                    ),
+                )
+            )
+    definitions = tuple(
+        MatcherDefinition(
+            compressed.matcher_labels[matcher_id],
+            compressed.matcher_tokens[matcher_id],
+        )
+        for matcher_id in compressed.matcher_definition_order
+    )
+    return CanonicalDecisionArtifact(tuple(rows), definitions)
 
 
 def runtime_rows_overlap(left: LookaheadWord, right: LookaheadWord) -> bool:

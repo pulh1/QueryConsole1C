@@ -120,6 +120,24 @@ class _ForbiddenSelect(Mapping[tuple[str, int], object]):
 
 
 class BslCodegenTests(unittest.TestCase):
+    def test_legacy_backend_rejects_ebnf_synthetic_cfg(self) -> None:
+        parsed = parse_grammar("<S> ::= 'a'*")
+        assert parsed.grammar is not None
+        resolved = resolve_grammar(parsed.grammar)
+        assert resolved.grammar is not None
+        analysis = compute_analysis(resolved.grammar, 1, ("S",))
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "canonical Parser IR/codegen is required",
+        ):
+            generate_parser(
+                parsed.grammar,
+                resolved.grammar,
+                analysis,
+                {"Parse": "S"},
+            )
+
     def test_legacy_matcher_artifact_preserves_select_compatibility(self) -> None:
         entries = {"Разобрать": "S"}
         _, _, analysis = compiled("<S> ::= a | b", 1, entries)
