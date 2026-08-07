@@ -148,15 +148,15 @@
 - `BindScalar`, `AppendCollection`, `AssignConstant` render direct BSL mutations.
 - `ParseBranchValue` and `DispatchValue` return the explicitly indexed nested parse result.
 
-- [ ] Write RED tests for constructor + scalar, optional present/absent, repeated append, separator exclusion, terminal/identifier/constant capture, boolean/symbolic constants and grouped value dispatch.
-- [ ] Give every value-producing operation a deterministic generated temporary; never reuse an untracked `ТекущийЭлемент` convention.
-- [ ] Render `ParseBranchValue.operations` in order and select exactly `result_index`; render suffix operations even when they do not produce the bound value.
-- [ ] Render `DispatchValue` so every disjoint branch assigns one shared result temporary and invalid lookahead throws.
-- [ ] Render scalar optional exit as `ЭтотУзел.<property> = Неопределено`; render append only in consuming loop branches.
-- [ ] Validate property and constructor identifiers again at codegen boundary; collect constructor names in stable first-use order.
-- [ ] Verify canonical code contains zero arbitrary source actions, zero `Родитель`, zero `ЛевыйЭлемент` and zero synthetic function names.
-- [ ] Run binding codegen, binding IR, binding validation and full canonical codegen suites GREEN.
-- [ ] Commit and push as `Генерировать declarative AST operations в BSL`.
+- [x] Write RED tests for constructor + scalar, optional present/absent, repeated append, separator exclusion, terminal/identifier/constant capture, boolean/symbolic constants and grouped value dispatch.
+- [x] Give every value-producing operation a deterministic generated temporary; never reuse an untracked `ТекущийЭлемент` convention.
+- [x] Render `ParseBranchValue.operations` in order and select exactly `result_index`; render suffix operations even when they do not produce the bound value.
+- [x] Render `DispatchValue` so every disjoint branch assigns one shared result temporary and invalid lookahead throws.
+- [x] Render scalar optional exit as `ЭтотУзел.<property> = Неопределено`; render append only in consuming loop branches.
+- [x] Validate property and constructor identifiers again at codegen boundary; collect constructor names in stable first-use order.
+- [x] Verify canonical code contains zero arbitrary source actions, zero `Родитель`, zero `ЛевыйЭлемент` and zero synthetic function names.
+- [x] Run binding codegen, binding IR, binding validation and full canonical codegen suites GREEN.
+- [x] Commit and push as `Генерировать declarative AST operations в BSL`.
 
 ---
 

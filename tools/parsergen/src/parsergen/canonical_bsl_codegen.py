@@ -21,14 +21,22 @@ from .model import (
 )
 from .parser_ir import (
     AlternativeIr,
+    AppendCollection,
+    AssignConstant,
+    BindScalar,
+    BoundValue,
     BranchIr,
+    ConstructNode,
     Dispatch,
+    DispatchValue,
     Operation,
     OptionalBranch,
+    ParseBranchValue,
     ParseSymbol,
     ParserIr,
     ProductionIr,
     RepeatLoop,
+    UndefinedValue,
 )
 from .source_model import SourceGrammar
 from .value_table_codec import ColumnKind, ValueColumn, ValueTable
@@ -80,6 +88,8 @@ class _CanonicalBslGenerator:
             parser_ir.matcher_definitions
         )
         self._temporary = 0
+        self._constructors: list[str] = []
+        self._seen_constructors: set[str] = set()
 
     def generate(self) -> CanonicalGeneratedParser:
         self._validate_inputs()
@@ -93,7 +103,7 @@ class _CanonicalBslGenerator:
         return CanonicalGeneratedParser(
             module,
             _identifier_table(self._source),
-            (),
+            tuple(self._constructors),
         )
 
     def _validate_inputs(self) -> None:
@@ -269,7 +279,12 @@ class _CanonicalBslGenerator:
             indent,
             error_label,
         )
-        if alternative.result_index is not None:
+        if any(
+            isinstance(operation, ConstructNode)
+            for operation in alternative.operations
+        ):
+            lines.append(f"{indent}РезультатПродукции = ЭтотУзел;")
+        elif alternative.result_index is not None:
             value = values[alternative.result_index]
             if value is None:
                 raise ValueError("transparent result operation has no value")
@@ -309,6 +324,41 @@ class _CanonicalBslGenerator:
                 ],
                 temporary,
             )
+        if isinstance(operation, ConstructNode):
+            validate_bsl_identifier(operation.constructor, "constructor")
+            self._record_constructor(operation.constructor)
+            return (
+                [
+                    f"{indent}ЭтотУзел = ЭлементыМоделиЗапроса."
+                    f"{operation.constructor}(ТекущийТокен);"
+                ],
+                None,
+            )
+        if isinstance(operation, BindScalar):
+            return self._render_binding(
+                operation.property,
+                operation.value,
+                indent,
+                error_label,
+                append=False,
+            )
+        if isinstance(operation, AppendCollection):
+            return self._render_binding(
+                operation.property,
+                operation.value,
+                indent,
+                error_label,
+                append=True,
+            )
+        if isinstance(operation, AssignConstant):
+            validate_bsl_identifier(operation.property, "bound property")
+            return (
+                [
+                    f"{indent}ЭтотУзел.{operation.property} = "
+                    f"{operation.value};"
+                ],
+                None,
+            )
         if isinstance(operation, Dispatch):
             return self._render_dispatch(
                 operation,
@@ -330,6 +380,101 @@ class _CanonicalBslGenerator:
         raise ValueError(
             f"unsupported canonical operation {type(operation).__name__}"
         )
+
+    def _render_binding(
+        self,
+        property_name: str,
+        value: BoundValue,
+        indent: str,
+        error_label: str,
+        *,
+        append: bool,
+    ) -> tuple[list[str], None]:
+        validate_bsl_identifier(property_name, "bound property")
+        lines, expression = self._render_bound_value(
+            value,
+            indent,
+            error_label,
+        )
+        if append:
+            lines.append(
+                f"{indent}ЭтотУзел.{property_name}."
+                f"Добавить({expression});"
+            )
+        else:
+            lines.append(
+                f"{indent}ЭтотУзел.{property_name} = {expression};"
+            )
+        return lines, None
+
+    def _render_bound_value(
+        self,
+        value: BoundValue,
+        indent: str,
+        error_label: str,
+    ) -> tuple[list[str], str]:
+        if isinstance(value, ParseSymbol):
+            lines, result = self._render_operation(
+                value,
+                indent,
+                error_label,
+            )
+            assert result is not None
+            return lines, result
+        if isinstance(value, UndefinedValue):
+            return [], value.value
+        if isinstance(value, ParseBranchValue):
+            lines, values = self._render_operations(
+                value.operations,
+                indent,
+                error_label,
+            )
+            result = values[value.result_index]
+            if result is None:
+                raise ValueError("bound branch result has no value")
+            return lines, result
+        if isinstance(value, DispatchValue):
+            return self._render_dispatch_value(
+                value,
+                indent,
+                error_label,
+            )
+        raise TypeError(type(value))
+
+    def _render_dispatch_value(
+        self,
+        dispatch: DispatchValue,
+        indent: str,
+        error_label: str,
+    ) -> tuple[list[str], str]:
+        lines: list[str] = []
+        result: str | None = None
+        for position, branch in enumerate(dispatch.branches):
+            keyword = "Если" if position == 0 else "ИначеЕсли"
+            condition = self._conditions.for_alternative(
+                dispatch.decision,
+                branch.alternative,
+            )
+            branch_lines, branch_result = self._render_bound_value(
+                branch.value,
+                indent + "\t",
+                error_label,
+            )
+            if result is None:
+                result = self._new_temporary()
+            lines.append(f"{indent}{keyword} {condition} Тогда")
+            lines.extend(branch_lines)
+            lines.append(f"{indent}\t{result} = {branch_result};")
+        if result is None:
+            raise ValueError("value dispatch must have at least one branch")
+        lines.extend(
+            (
+                f"{indent}Иначе",
+                self._syntax_error_line(indent + "\t", error_label),
+                f"{indent}КонецЕсли;",
+            )
+        )
+        return lines, result
 
     def _render_dispatch(
         self,
@@ -492,6 +637,13 @@ class _CanonicalBslGenerator:
     def _new_temporary(self) -> str:
         self._temporary += 1
         return f"Значение{self._temporary}"
+
+    def _record_constructor(self, name: str) -> None:
+        key = name.casefold()
+        if key in self._seen_constructors:
+            return
+        self._seen_constructors.add(key)
+        self._constructors.append(name)
 
     def _syntax_error_line(self, indent: str, label: str) -> str:
         return (
