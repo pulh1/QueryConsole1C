@@ -148,6 +148,14 @@ $exports = Select-String -Path $factory -Pattern '^Функция\s+(Новый\
 "factory_exports=$($exports.Count)"; $exports
 $template = 'QueryConsoleZUP/src/DataProcessors/Шаблон_ПосетительМоделиВыражений/ObjectModule.bsl'
 $templateCallbacks = Select-String -Path $template -Pattern '^Процедура\s+(\S+)\(.*\)\s+Экспорт' | ForEach-Object { $_.Matches[0].Groups[1].Value }
+function Assert-ExactSet([string]$Name, [string[]]$Expected, [string[]]$Actual) {
+  $delta = Compare-Object ($Expected | Sort-Object -Unique) ($Actual | Sort-Object -Unique)
+  if ($null -ne $delta) {
+    $delta | Format-Table -AutoSize | Out-String | Write-Error
+    throw "set mismatch: $Name"
+  }
+  "set_contract=clean $Name"
+}
 $expectedVisitorExtras = @{
   'QueryConsoleZUP/src/DataProcessors/СемантическийАнализВыраженийПосетитель/ObjectModule.bsl' = @('ЗавершитьОбходВыражения','УстановитьКонтекст','УстановитьРассчитываемыеСвойства')
   'QueryConsoleZUP/src/DataProcessors/ПроверкаПрименимостиОтбораПосетитель/ObjectModule.bsl' = @('ВыделитьИМодифицироватьОтбор','ЗавершитьОбходВыражения','МожноДелегироватьВесьОтбор','УстановитьИдентификаторИсточникаПредставления','УстановитьИмяПредставления','УстановитьОписаниеОтбора','УстановитьРежимВалидации')
@@ -157,11 +165,11 @@ foreach ($visitor in $expectedVisitorExtras.Keys) {
   $exports = Select-String -Path $visitor -Pattern '^(Процедура|Функция)\s+(\S+)\(.*\)\s+Экспорт' | ForEach-Object { $_.Matches[0].Groups[2].Value } | Sort-Object -Unique
   $callbacks = $exports | Where-Object { $_ -in $templateCallbacks }
   $extras = $exports | Where-Object { $_ -notin $templateCallbacks }
-  "visitor=$visitor callbacks="; Compare-Object $templateCallbacks $callbacks
-  "visitor=$visitor lifecycle_or_helper_exports="; Compare-Object ($expectedVisitorExtras[$visitor] | Sort-Object) $extras
+  Assert-ExactSet "visitor callbacks: $visitor" $templateCallbacks $callbacks
+  Assert-ExactSet "visitor lifecycle/helper exports: $visitor" $expectedVisitorExtras[$visitor] $extras
 }
 $dispatcherCalls = Select-String -Path 'QueryConsoleZUP/src/CommonModules/ОбходМоделиЯзыкаВыражений/Module.bsl' -Pattern 'Посетитель\.(\S+)\(' | ForEach-Object { $_.Matches[0].Groups[1].Value } | Sort-Object -Unique
-"dispatcher_callback_targets=$($dispatcherCalls.Count)"; Compare-Object $templateCallbacks $dispatcherCalls
+Assert-ExactSet 'dispatcher callback targets' $templateCallbacks $dispatcherCalls
 rg -n "СоздатьГенераторТекстовВыражений|ВыражениеВСтроку|УстановитьКонтекст|ВыделитьИМодифицироватьОтбор" QueryConsoleZUP/src/CommonModules/ГенерацияТекстовЗапросов/Module.bsl QueryConsoleZUP/src/DataProcessors/СемантическийАнализВыраженийПосетитель/ObjectModule.bsl QueryConsoleZUP/src/DataProcessors/ПроверкаПрименимостиОтбораПосетитель/ObjectModule.bsl QueryConsoleZUP/src/DataProcessors/ОбработчикРазыменованийДляСКДПосетитель/ObjectModule.bsl
 ```
 
