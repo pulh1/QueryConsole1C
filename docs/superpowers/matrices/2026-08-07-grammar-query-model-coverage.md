@@ -52,7 +52,14 @@
 8. executor/code-generation focused integration.
 9. universal-report non-form transformations.
 10. Query Constructor non-form dependencies.
-11. runtime parser benchmark harness: median/p95, call count and recursion depth; Python analysis timing is insufficient.
+11. runtime parser benchmark harness — отдельный cross-cutting headless gate ниже;
+    Python analysis timing is insufficient.
+
+## Cross-cutting gate: runtime parser benchmark harness
+
+| Owner/runtime target | Current automated evidence | Observable artifact and required metrics | Corpus classes from approved design | Phase 2.5 test | Gate type |
+|---|---|---|---|---|---|
+| New test/benchmark harness owned by the production parser entrypoints `DataProcessors/Парсер/ObjectModule.bsl.Разобрать` and `РазобратьВыражение` | Нет runtime harness; baseline matrix records only static/analysis metrics. | Machine-readable benchmark result for every corpus class: warm-up parse wall-clock median/p95, production nonterminal calls, dispatch calls, maximum recursion depth and AST node/container allocation count. Test instrumentation only; no production counters. | 42 `QueryExamples`; большой пакетный запрос; synthetic long field list; synthetic JOIN chain; synthetic UNION/package chain; long arithmetic, logical and dereference chains. | runtime parser benchmark harness records the listed metrics before the first production grammar/model change; no launch command is specified until the harness exists. | new-headless-test |
 
 После выполнения headless backlog выполняется интерактивный/form Vanessa gate.
 Он не заменяет headless contracts и не переводит Query Constructor в manual-only:
