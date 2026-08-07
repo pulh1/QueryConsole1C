@@ -19,6 +19,7 @@ MIGRATED_PRODUCTIONS = (
     "ЗапросПакета",
     "ЗапросУничтожения",
     "Псевдоним",
+    "ТипСоединения",
     "Выражение",
     "ЛогическоеСлагаемое",
     "ТипСсылочногоПоля",
@@ -40,6 +41,59 @@ def _generated_function(module: str, production: str) -> str:
 
 
 class RepositoryGrammarCompatibilityTests(unittest.TestCase):
+    def test_join_type_generates_constructor_only_alternatives(self) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        canonical = MIGRATED_PRODUCTIONS
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=canonical,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=canonical,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        function = _generated_function(generated.module_text, "ТипСоединения")
+        expected = {
+            "ЛЕВОЕ": "НовыйТипСоединенияЛевое",
+            "ПРАВОЕ": "НовыйТипСоединенияПравое",
+            "ВНУТРЕННЕЕ": "НовыйТипСоединенияВнутреннее",
+            "ПОЛНОЕ": "НовыйТипСоединенияПолное",
+        }
+        for token, constructor in expected.items():
+            with self.subTest(token=token):
+                self.assertIn(f'Терминал("{token}");', function)
+                self.assertEqual(
+                    function.count(
+                        f"ЭлементыМоделиЗапроса.{constructor}("
+                    ),
+                    1,
+                )
+        self.assertNotIn("ТекущийЭлемент", function)
+        self.assertNotIn("НомерВариантаПродукции", function)
+
     def test_alias_alternatives_return_their_identifier_value(self) -> None:
         parsed = parse_grammar(
             REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),

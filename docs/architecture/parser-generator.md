@@ -509,6 +509,10 @@ Exact delta зафиксирован в
 разных identifier classes для формы с `КАК` и без него. Exact delta:
 [alias checkpoint](../superpowers/matrices/2026-08-07-alias-transparent-checkpoint.md).
 
+`ТипСоединения` затем переведён на четыре constructor-only canonical
+alternatives без изменения строковых enum-values модели. Exact delta:
+[join-type checkpoint](../superpowers/matrices/2026-08-07-join-type-constructor-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:
