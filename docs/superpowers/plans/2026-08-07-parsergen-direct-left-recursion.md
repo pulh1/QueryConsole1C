@@ -120,15 +120,15 @@
 - Document direct-LR source contract, analysis tail, `LeftFold`, associativity/precedence and unsupported forms.
 - Preserve production legacy artifacts and Phase 5 structural metrics.
 
-- [ ] Run the complete `tools/parsergen/tests` suite and record exact pass/skip/subtest counts.
-- [ ] Run current-checkout `validate`, `analyze` and `generate --check`; require the same two production `LLK202` and exit `1`.
-- [ ] Run migration audit; require `124/281/63`, 11273 legacy matcher rows, `runtime_conflicts == []` and `artifacts.changed == []`.
-- [ ] Run exact legacy BSL/reference/artifact subset GREEN.
-- [ ] Generate a representative arithmetic/logical precedence grammar with direct LR and machine-check: loops present, self-calls/synthetic functions/legacy matcher absent, constructors and left bindings ordered.
-- [ ] Use EDT read-only structure evidence to reconfirm production `ObjectModule.bsl` remains 135 functions / 3394 LOC before migration.
-- [ ] Document that Python proves lowering/code shape, while actual generated BSL execution, AST associativity and long-chain runtime behavior remain required YAxUnit/Vanessa gates after the first production expression slice.
-- [ ] Run `git diff --check`; confirm no production grammar/query model/BSL/form diff.
-- [ ] Commit and push as `Документировать direct left recursion`.
+- [x] Run the complete `tools/parsergen/tests` suite and record exact pass/skip/subtest counts.
+- [x] Run current-checkout `validate`, `analyze` and `generate --check`; require the same two production `LLK202` and exit `1`.
+- [x] Run migration audit; require `124/281/63`, 11273 legacy matcher rows, `runtime_conflicts == []` and `artifacts.changed == []`.
+- [x] Run exact legacy BSL/reference/artifact subset GREEN.
+- [x] Generate a representative arithmetic/logical precedence grammar with direct LR and machine-check: loops present, self-calls/synthetic functions/legacy matcher absent, constructors and left bindings ordered.
+- [x] Use EDT read-only structure evidence to reconfirm production `ObjectModule.bsl` remains 135 functions / 3394 LOC before migration.
+- [x] Document that Python proves lowering/code shape, while actual generated BSL execution, AST associativity and long-chain runtime behavior remain required YAxUnit/Vanessa gates after the first production expression slice.
+- [x] Run `git diff --check`; confirm no production grammar/query model/BSL/form diff.
+- [x] Commit and push as `Документировать direct left recursion`.
 
 ---
 

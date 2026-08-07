@@ -20,8 +20,8 @@ EDT-обработка `QueryConsoleZUP/src/DataProcessors/Парсер` вла�
 4. `lowering.py` детерминированно преобразует source AST в прежнюю плоскую canonical CFG и сохраняет origin sidecar.
 5. `resolver.py` разрешает нетерминалы, терминалы, классы идентификаторов и типы констант только в canonical CFG.
 6. `analysis.py` вычисляет nullable, FIRST(k), FOLLOW(k) и SELECT(k), затем ищет пересечения SELECT alternatives.
-7. `validation.py` объединяет диагностики разбора, разрешения, анализа и проверки точек входа и отображает synthetic diagnostics обратно на source spans. Левая рекурсия в текущей версии диагностируется как неподдерживаемая.
-8. `parser_ir.py` после успешной canonical validation строит runtime IR с `Dispatch`, `RepeatLoop`, `OptionalBranch` и declarative AST operations, не включая synthetic productions в список runtime functions.
+7. `validation.py` объединяет диагностики разбора, разрешения, анализа и проверки точек входа и отображает synthetic diagnostics обратно на source spans. Productive direct left recursion проходит отдельную source validation; indirect и nullable-prefix left recursion остаются неподдерживаемыми.
+8. `parser_ir.py` после успешной canonical validation строит runtime IR с `Dispatch`, `RepeatLoop`, `OptionalBranch`, `LeftFold` и declarative AST operations, не включая synthetic productions в список runtime functions.
 9. `canonical_bsl_conditions.py` превращает factorized canonical decision rows в inline BSL predicates, а `canonical_bsl_codegen.py` генерирует отдельный optimized runtime из Parser IR.
 10. `semantic_actions.py` и `bsl_codegen.py` обслуживают только legacy BNF path и существующие встроенные BSL-действия.
 11. `value_table_codec.py` сериализует таблицы в формат, читаемый 1С через `ЗначениеИзСтрокиВнутр`.
@@ -100,6 +100,53 @@ Legacy backend явно отклоняет grammar с synthetic EBNF productions
 случайно не превратились в recursive BSL functions.
 
 В production-грамматике сейчас зафиксированы две канонические диагностики LLK202: для `ЛогическийОператор` между альтернативами 2 и 5 со свидетелем `ССЫЛКА/АВТОУПОРЯДОЧИВАНИЕ`, а также для `ОперандВ` между альтернативами 1 и 2 со свидетелем `ВЫБРАТЬ/*`. Исправление грамматики и сохранение языка runtime-парсера относятся к отдельной задаче.
+
+## Direct productive left recursion
+
+Source grammar поддерживает естественную прямую форму:
+
+```text
+Expr ::= Expr '+' Term | Expr '-' Term | Term
+```
+
+Classifier выделяет leading self-reference, base alternatives и consuming
+suffix каждой recursive alternative. Direct LR допустима только при следующих
+условиях:
+
+- существует хотя бы одна base alternative (`LR200`);
+- каждый suffix productive и гарантированно потребляет хотя бы один token
+  (`LR201`);
+- recursive call передаёт formal parameters без изменения (`LR202`);
+- semantic alternative задаёт accumulator через declarative scalar binding,
+  а base возвращает constructor node или единственное transparent value
+  (`LR203`);
+- arbitrary BSL actions в direct-LR production отсутствуют (`LR204`).
+
+Indirect recursion и recursion через nullable prefix по-прежнему получают
+source-located `VAL202`. Generalized parsing и автоматический поиск минимального
+`k` не выполняются.
+
+Для canonical analysis direct LR lowering создаёт только внутреннюю CFG:
+
+```text
+Expr     ::= Base ExprTail
+ExprTail ::= Suffix ExprTail | epsilon
+```
+
+FIRST/FOLLOW/SELECT работают с ней без специальных изменений. SELECT base
+alternatives, recursive suffixes и exit проверяются при явно настроенном
+произвольном конечном `k`. Конфликт при `k = 2` означает только «не LL(2)»:
+после явного перехода на `k = 10` та же grammar принимается, если её
+`SELECT(10)` попарно disjoint. Порядок generated `Если` конфликт не разрешает.
+
+Parser IR восстанавливает high-level `LeftFold`, удаляет leading self-call и
+заменяет его semantic value на `FoldLeftValue`. Canonical BSL backend сначала
+разбирает base, затем выполняет один `Пока` по recursive SELECT. На каждой
+итерации прежний accumulator присваивается left property нового constructor,
+после разбора suffix новый узел становится accumulator. Это задаёт left
+associativity; precedence остаётся структурой отдельных productions, например
+`Expr -> Term -> Factor`. Synthetic tail не становится runtime function, а
+production не вызывает саму себя.
 
 ## Declarative AST binding
 
@@ -246,6 +293,35 @@ Legacy можно удалить только при одновременном 
 установлен console script, сначала переустановить package либо запускать
 `python -m parsergen` из `tools/parsergen/src`; иначе команда может загрузить
 устаревшую копию из `site-packages`.
+
+## Phase 6 verification checkpoint
+
+Infrastructure direct productive LR проверена без изменения production
+grammar/query model/generated artifacts:
+
+- complete Python suite: `390 passed`, `1 skipped`, `4077 subtests passed`;
+  skip относится к недоступному созданию symlink без Windows privilege;
+- source validation: `LR200`–`LR204`, source spans, parameters, semantic
+  accumulator и запрет non-consuming suffix;
+- canonical lowering: stable synthetic analysis tail, origin sidecar,
+  disjoint SELECT при достаточном configured finite `k`;
+- Parser IR: один high-level `LeftFold`, отсутствие leading self-call и
+  synthetic runtime production;
+- canonical BSL shape: base dispatch, iterative recursive loop, exit/error
+  check, корректный порядок constructor/left/right/accumulator;
+- representative precedence module: 2 left-fold loops, 0 synthetic runtime
+  functions, 0 legacy dispatch references, constructors и left bindings в
+  ожидаемом порядке;
+- legacy subset: `59 passed`, `1 skipped`, `42 subtests passed`;
+- production audit: 124 productions, 281 alternatives, 63 epsilon, две
+  ожидаемые `LLK202`, 11273 legacy matcher rows, zero runtime conflicts и
+  `artifacts.changed = []`;
+- EDT read-only snapshot: 6 procedures, 135 functions, 3394 lines.
+
+Python tests доказывают lowering, IR и форму generated BSL, но не исполняют BSL
+на платформе 1С. Фактические AST для `a+b`, `a+b+c`, `a-b-c`, `a+b*c`,
+`(a+b)*c`, syntax errors и цепочки из 10 000 операторов остаются обязательным
+YAxUnit/Vanessa gate после миграции первого production expression slice.
 
 ## CLI
 
