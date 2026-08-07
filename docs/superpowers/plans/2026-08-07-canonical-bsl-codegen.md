@@ -80,13 +80,13 @@
 - Produce `for_alternatives(decision: CanonicalDecision, alternatives: tuple[int, ...]) -> str`.
 - Conditions call `ТипТокенаПросмотра(offset)` with zero-based offsets.
 
-- [ ] Write RED tests for one token, identifier matcher with several token types, several rows joined by `Или`, `k=3`, short prefix and `$`/EOF.
-- [ ] Render every row as a parenthesized conjunction and every matcher token set as a parenthesized disjunction in stable artifact order.
-- [ ] Render `$` only as `ТипТокенаПросмотра(offset) = Неопределено`.
-- [ ] Reject unknown labels, empty matcher definitions, malformed `$` definitions, missing alternative rows and a requested position beyond `decision` rows.
-- [ ] Add a truth-table helper in tests proving every sampled lookahead word selects at most one alternative; do not encode branch order as precedence.
-- [ ] Run condition, analysis artifact, identifier matcher and canonical conflict tests GREEN.
-- [ ] Commit and push as `Рендерить canonical lookahead predicates`.
+- [x] Write RED tests for one token, identifier matcher with several token types, several rows joined by `Или`, `k=3`, short prefix and `$`/EOF.
+- [x] Render every row as a parenthesized conjunction and every matcher token set as a parenthesized disjunction in stable artifact order.
+- [x] Render `$` only as `ТипТокенаПросмотра(offset) = Неопределено`.
+- [x] Reject unknown labels, empty matcher definitions, malformed `$` definitions, missing alternative rows and a requested position beyond `decision` rows.
+- [x] Add a truth-table helper in tests proving every sampled lookahead word selects at most one alternative; do not encode branch order as precedence.
+- [x] Run condition, analysis artifact, identifier matcher and canonical conflict tests GREEN.
+- [x] Commit and push as `Рендерить canonical lookahead predicates`.
 
 ---
 
