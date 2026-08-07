@@ -42,6 +42,7 @@ class ConfigTests(unittest.TestCase):
                 "ЛогическоеСлагаемое",
                 "АрифметическоеВыражение",
                 "Слагаемое",
+                "СписокВыражений",
             ),
         )
         self.assertEqual(

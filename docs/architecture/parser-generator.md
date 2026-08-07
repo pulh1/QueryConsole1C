@@ -448,6 +448,12 @@ contract. Exact metrics, tests и remaining gates зафиксированы в
 Exact delta зафиксирован в
 [logical checkpoint](../superpowers/matrices/2026-08-07-logical-direct-lr-checkpoint.md).
 
+Первый production EBNF-срез перевёл `СписокВыражений` на
+declarative repeated binding. Helper-production
+`ОпциональноеПродолжениеСпискаВыражений` удалена, generated parser
+использует iterative BSL loop. Exact delta зафиксирован в
+[expression-list checkpoint](../superpowers/matrices/2026-08-07-expression-list-ebnf-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:
