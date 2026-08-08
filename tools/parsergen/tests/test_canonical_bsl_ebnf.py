@@ -4,20 +4,18 @@ from tests.test_canonical_bsl_codegen import _build, _function
 
 
 class CanonicalBslEbnfTests(unittest.TestCase):
-    def test_star_is_one_loop_and_leaves_invalid_exit_to_caller(self) -> None:
+    def test_star_uses_one_explicit_iteration_exit_error_decision(self) -> None:
         function = _function(
-            _build("<S> ::= ITEM*").module_text,
+            _build("<S> ::= ITEM* END").module_text,
             "НеТерминалS",
         )
 
-        self.assertEqual(function.count("Пока "), 1)
-        self.assertIn(
-            'Пока (ТипТокенаПросмотра(0) = "ITEM") Цикл',
-            function,
-        )
+        self.assertIn("Пока Истина Цикл", function)
+        self.assertIn("Прервать;", function)
+        self.assertIn("ВызватьИсключениеСинтаксическаяОшибка", function)
+        self.assertEqual(function.count("ТипТокенаПросмотра(0)"), 1)
         self.assertIn('Терминал("ITEM");', function)
         self.assertNotIn('= Терминал("ITEM");', function)
-        self.assertNotIn("Если Не (ТипТокенаПросмотра(0) = Неопределено) Тогда", function)
         self.assertNotIn("НеТерминал__parsergen_ebnf__", function)
 
     def test_plus_parses_first_item_and_then_uses_one_loop(self) -> None:
@@ -44,15 +42,15 @@ class CanonicalBslEbnfTests(unittest.TestCase):
         self.assertIn('Терминал("ITEM")', loop)
         self.assertLess(loop.index('Лексема(",")'), loop.index('Терминал("ITEM")'))
 
-    def test_optional_consumes_or_leaves_token_to_caller(self) -> None:
+    def test_optional_rejects_token_outside_body_and_canonical_exit(self) -> None:
         function = _function(
             _build("<S> ::= HEAD? END").module_text,
             "НеТерминалS",
         )
 
-        self.assertIn('Если (ТипТокенаПросмотра(0) = "HEAD") Тогда', function)
-        self.assertNotIn('ИначеЕсли (ТипТокенаПросмотра(0) = "END") Тогда', function)
-        self.assertNotIn('ВызватьИсключениеСинтаксическаяОшибка("S")', function)
+        self.assertIn('ТокенРешения0 = "HEAD"', function)
+        self.assertIn('ТокенРешения0 = "END"', function)
+        self.assertIn('ВызватьИсключениеСинтаксическаяОшибка("S")', function)
         self.assertIn('Терминал("END")', function)
 
     def test_repeat_with_multiple_branches_dispatches_inside_loop(self) -> None:
@@ -61,14 +59,11 @@ class CanonicalBslEbnfTests(unittest.TestCase):
             "НеТерминалS",
         )
 
-        self.assertIn(
-            'Пока (ТипТокенаПросмотра(0) = "A" Или '
-            'ТипТокенаПросмотра(0) = "B") Цикл',
-            function,
-        )
+        self.assertIn("Пока Истина Цикл", function)
         loop = function.split("Пока ", 1)[1].split("КонецЦикла;", 1)[0]
-        self.assertIn('Если (ТипТокенаПросмотра(0) = "A") Тогда', loop)
-        self.assertIn('ИначеЕсли (ТипТокенаПросмотра(0) = "B") Тогда', loop)
+        self.assertIn('ТокенРешения0 = "A"', loop)
+        self.assertIn('ТокенРешения0 = "B"', loop)
+        self.assertIn("Прервать;", loop)
 
     def test_nested_optional_repeat_and_k3_remain_iterative(self) -> None:
         module = _build(
