@@ -62,7 +62,7 @@
 **Interfaces:**
 - Consumes: repository root, local `refs/remotes/origin/old_parser`, remote `refs/heads/old_parser`, exact Git blobs and completed YAxUnit sidecars.
 - Produces commands `verify-ref`, `materialize`, `verify-source`, `current-hashes`, `validate-sidecars`, `publish`, and `validate-durable`.
-- Produces pure/effect-separated functions `verify_materialized_sources(repo)`, `validate_sidecar(document, component)`, `render_markdown(lexer_document, parser_document, lexer_json_sha256, parser_json_sha256)`, and `validate_durable(lexer_path, parser_path, report_path)`.
+- Produces pure/effect-separated functions `verify_materialized_sources(repo)`, `validate_artifact_rows(artifacts, component)`, `validate_sidecar(document, component)`, `render_markdown(lexer_document, parser_document, lexer_json_sha256, parser_json_sha256)`, and `validate_durable(lexer_path, parser_path, report_path)`.
 - Produces normalized source SHA-256 values and raw template SHA-256 values shown below.
 - Exit codes: `0` success, `2` provenance/materialization mismatch, `3` sidecar/evidence validation failure.
 
@@ -112,7 +112,11 @@ def _make_sidecar(component: str) -> dict[str, object]:
     artifacts = [
         {
             "role": "lexer",
+            "metadata_object": "DataProcessor.КОНС_СтарыйЛексическийАнализатор",
+            "path": "yaxunit/src/DataProcessors/КОНС_СтарыйЛексическийАнализатор/ObjectModule.bsl",
             "sha256": "434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20",
+            "hash_scope": "normalized_utf8_lf",
+            "source_path": "QueryConsoleZUP/src/DataProcessors/ЛексическийАнализатор/ObjectModule.bsl",
             "source_sha256": "434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20",
         },
     ]
@@ -120,18 +124,30 @@ def _make_sidecar(component: str) -> dict[str, object]:
         artifacts = [
             {
                 "role": "parser",
+                "metadata_object": "DataProcessor.КОНС_СтарыйПарсер",
+                "path": "yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/ObjectModule.bsl",
                 "sha256": "7319d0b0a2d0f551180e37fdabf3838ca718b2d4b8147199fe1ed4a26290f8bd",
+                "hash_scope": "normalized_utf8_lf",
+                "source_path": "QueryConsoleZUP/src/DataProcessors/Парсер/ObjectModule.bsl",
                 "source_sha256": "0c365e1e521322554b63e400379be47c0dc5ecaa7f60dd6951dc84bc7cccd084",
             },
             *artifacts,
             {
                 "role": "first_symbols_template",
+                "metadata_object": "DataProcessor.КОНС_СтарыйПарсер.Template.ТаблицаПервыхСимволовВариантов",
+                "path": "yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/Templates/ТаблицаПервыхСимволовВариантов/Template.txt",
                 "sha256": "4e3f87f15291de1a0d216773f2dc3d69144759d56796504473fdd8bfb74dc3ed",
+                "hash_scope": "original_bytes",
+                "source_path": "QueryConsoleZUP/src/DataProcessors/Парсер/Templates/ТаблицаПервыхСимволовВариантов/Template.txt",
                 "source_sha256": "4e3f87f15291de1a0d216773f2dc3d69144759d56796504473fdd8bfb74dc3ed",
             },
             {
                 "role": "identifiers_template",
+                "metadata_object": "DataProcessor.КОНС_СтарыйПарсер.Template.ОпределенияИдентификаторов",
+                "path": "yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/Templates/ОпределенияИдентификаторов/Template.txt",
                 "sha256": "7c08a5a520ab66c1b931a9e401f06c3acbd9f1652c3acefe101fc38181e58152",
+                "hash_scope": "original_bytes",
+                "source_path": "QueryConsoleZUP/src/DataProcessors/Парсер/Templates/ОпределенияИдентификаторов/Template.txt",
                 "source_sha256": "7c08a5a520ab66c1b931a9e401f06c3acbd9f1652c3acefe101fc38181e58152",
             },
         ]
@@ -251,7 +267,41 @@ class LegacyRuntimeBaselineTests(unittest.TestCase):
     def test_parser_sidecar_requires_parser_and_lexer_artifacts(self) -> None:
         sidecar = _make_sidecar("parser")
         sidecar["artifacts"] = [sidecar["artifacts"][0]]
-        with self.assertRaisesRegex(ValueError, "artifact roles"):
+        with self.assertRaisesRegex(ValueError, "artifact row count"):
+            baseline.validate_sidecar(sidecar, "parser")
+
+    def test_every_artifact_provenance_field_is_exact_for_every_role(self) -> None:
+        cases = (
+            ("lexer", 0, "lexer"),
+            ("parser", 0, "parser"),
+            ("parser", 1, "lexer"),
+            ("parser", 2, "first_symbols_template"),
+            ("parser", 3, "identifiers_template"),
+        )
+        replacements = {
+            "role": "wrong_role",
+            "metadata_object": "DataProcessor.Wrong",
+            "path": "wrong/target/path",
+            "sha256": "0" * 64,
+            "hash_scope": "wrong_scope",
+            "source_path": "wrong/source/path",
+            "source_sha256": "f" * 64,
+        }
+        for component, index, role in cases:
+            for field, replacement in replacements.items():
+                with self.subTest(component=component, role=role, field=field):
+                    sidecar = _make_sidecar(component)
+                    sidecar["artifacts"][index][field] = replacement
+                    with self.assertRaisesRegex(
+                        ValueError,
+                        rf"{component}\.artifacts\[{index}\]\.{field}",
+                    ):
+                        baseline.validate_sidecar(sidecar, component)
+
+    def test_artifact_row_rejects_extra_field(self) -> None:
+        sidecar = _make_sidecar("parser")
+        sidecar["artifacts"][2]["unapproved"] = True
+        with self.assertRaisesRegex(ValueError, r"parser\.artifacts\[2\] field set"):
             baseline.validate_sidecar(sidecar, "parser")
 
     def test_sidecar_identity_fields_are_exact(self) -> None:
@@ -303,6 +353,34 @@ class LegacyRuntimeBaselineTests(unittest.TestCase):
                 baseline,
                 "verify_materialized_sources",
                 side_effect=AssertionError("durable validation read target sources"),
+            ):
+                baseline.validate_durable(lexer_path, parser_path, report_path)
+
+    def test_validate_durable_reuses_strict_artifact_row_validator(self) -> None:
+        lexer = _make_sidecar("lexer")
+        parser = _make_sidecar("parser")
+        parser["artifacts"][3]["source_path"] = "wrong/source/path"
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            lexer_path = root / "lexer.json"
+            parser_path = root / "parser.json"
+            report_path = root / "report.md"
+            lexer_bytes = json.dumps(lexer, ensure_ascii=False).encode("utf-8")
+            parser_bytes = json.dumps(parser, ensure_ascii=False).encode("utf-8")
+            lexer_path.write_bytes(lexer_bytes)
+            parser_path.write_bytes(parser_bytes)
+            report_path.write_text(
+                baseline.render_markdown(
+                    lexer,
+                    parser,
+                    hashlib.sha256(lexer_bytes).hexdigest(),
+                    hashlib.sha256(parser_bytes).hexdigest(),
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(
+                ValueError,
+                r"parser\.artifacts\[3\]\.source_path",
             ):
                 baseline.validate_durable(lexer_path, parser_path, report_path)
 ```
@@ -462,31 +540,74 @@ EXPECTED_CORPUS_IDS = (
     "dereference_chain",
 )
 EXPECTED_CLOCK = "ТекущаяУниверсальнаяДатаВМиллисекундах"
-EXPECTED_ARTIFACT_HASHES = {
-    "lexer": {
-        "lexer": (
-            "434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20",
-            "434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20",
-        ),
-    },
-    "parser": {
-        "parser": (
-            "7319d0b0a2d0f551180e37fdabf3838ca718b2d4b8147199fe1ed4a26290f8bd",
-            "0c365e1e521322554b63e400379be47c0dc5ecaa7f60dd6951dc84bc7cccd084",
-        ),
-        "lexer": (
-            "434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20",
-            "434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20",
-        ),
-        "first_symbols_template": (
-            "4e3f87f15291de1a0d216773f2dc3d69144759d56796504473fdd8bfb74dc3ed",
-            "4e3f87f15291de1a0d216773f2dc3d69144759d56796504473fdd8bfb74dc3ed",
-        ),
-        "identifiers_template": (
-            "7c08a5a520ab66c1b931a9e401f06c3acbd9f1652c3acefe101fc38181e58152",
-            "7c08a5a520ab66c1b931a9e401f06c3acbd9f1652c3acefe101fc38181e58152",
-        ),
-    },
+EXPECTED_ARTIFACT_FIELDS = (
+    "role",
+    "metadata_object",
+    "path",
+    "sha256",
+    "hash_scope",
+    "source_path",
+    "source_sha256",
+)
+OLD_LEXER_ARTIFACT = {
+    "role": "lexer",
+    "metadata_object": "DataProcessor.КОНС_СтарыйЛексическийАнализатор",
+    "path": "yaxunit/src/DataProcessors/КОНС_СтарыйЛексическийАнализатор/ObjectModule.bsl",
+    "sha256": "434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20",
+    "hash_scope": "normalized_utf8_lf",
+    "source_path": "QueryConsoleZUP/src/DataProcessors/ЛексическийАнализатор/ObjectModule.bsl",
+    "source_sha256": "434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20",
+}
+EXPECTED_ARTIFACTS = {
+    "lexer": (OLD_LEXER_ARTIFACT,),
+    "parser": (
+        {
+            "role": "parser",
+            "metadata_object": "DataProcessor.КОНС_СтарыйПарсер",
+            "path": "yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/ObjectModule.bsl",
+            "sha256": "7319d0b0a2d0f551180e37fdabf3838ca718b2d4b8147199fe1ed4a26290f8bd",
+            "hash_scope": "normalized_utf8_lf",
+            "source_path": "QueryConsoleZUP/src/DataProcessors/Парсер/ObjectModule.bsl",
+            "source_sha256": "0c365e1e521322554b63e400379be47c0dc5ecaa7f60dd6951dc84bc7cccd084",
+        },
+        OLD_LEXER_ARTIFACT,
+        {
+            "role": "first_symbols_template",
+            "metadata_object": (
+                "DataProcessor.КОНС_СтарыйПарсер.Template."
+                "ТаблицаПервыхСимволовВариантов"
+            ),
+            "path": (
+                "yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/Templates/"
+                "ТаблицаПервыхСимволовВариантов/Template.txt"
+            ),
+            "sha256": "4e3f87f15291de1a0d216773f2dc3d69144759d56796504473fdd8bfb74dc3ed",
+            "hash_scope": "original_bytes",
+            "source_path": (
+                "QueryConsoleZUP/src/DataProcessors/Парсер/Templates/"
+                "ТаблицаПервыхСимволовВариантов/Template.txt"
+            ),
+            "source_sha256": "4e3f87f15291de1a0d216773f2dc3d69144759d56796504473fdd8bfb74dc3ed",
+        },
+        {
+            "role": "identifiers_template",
+            "metadata_object": (
+                "DataProcessor.КОНС_СтарыйПарсер.Template."
+                "ОпределенияИдентификаторов"
+            ),
+            "path": (
+                "yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/Templates/"
+                "ОпределенияИдентификаторов/Template.txt"
+            ),
+            "sha256": "7c08a5a520ab66c1b931a9e401f06c3acbd9f1652c3acefe101fc38181e58152",
+            "hash_scope": "original_bytes",
+            "source_path": (
+                "QueryConsoleZUP/src/DataProcessors/Парсер/Templates/"
+                "ОпределенияИдентификаторов/Template.txt"
+            ),
+            "source_sha256": "7c08a5a520ab66c1b931a9e401f06c3acbd9f1652c3acefe101fc38181e58152",
+        },
+    ),
 }
 EXPECTED_SIDECARS = {
     "lexer": {
@@ -500,7 +621,6 @@ EXPECTED_SIDECARS = {
         "metadata_object_names": (
             "DataProcessor.КОНС_СтарыйЛексическийАнализатор",
         ),
-        "artifact_roles": ("lexer",),
     },
     "parser": {
         "schema_version": 2,
@@ -515,17 +635,33 @@ EXPECTED_SIDECARS = {
             "DataProcessor.КОНС_СтарыйПарсер",
             "DataProcessor.КОНС_СтарыйЛексическийАнализатор",
         ),
-        "artifact_roles": (
-            "parser",
-            "lexer",
-            "first_symbols_template",
-            "identifiers_template",
-        ),
     },
 }
 ```
 
-For `validate_sidecar`, compare by equality rather than mere presence:
+Implement one pure strict artifact-row validator. It rejects wrong row count/order, missing or extra fields, and any value substitution; both sidecar commands reach this same function through `validate_sidecar`:
+
+```python
+def validate_artifact_rows(artifacts: object, component: str) -> None:
+    if not isinstance(artifacts, list):
+        raise ValueError(f"{component}.artifacts must be a list")
+    expected_rows = EXPECTED_ARTIFACTS[component]
+    if len(artifacts) != len(expected_rows):
+        raise ValueError(f"{component}.artifact row count mismatch")
+    for index, (artifact, expected_row) in enumerate(zip(artifacts, expected_rows)):
+        if not isinstance(artifact, dict):
+            raise ValueError(f"{component}.artifacts[{index}] must be an object")
+        if set(artifact) != set(EXPECTED_ARTIFACT_FIELDS):
+            raise ValueError(f"{component}.artifacts[{index}] field set mismatch")
+        for field in EXPECTED_ARTIFACT_FIELDS:
+            if artifact[field] != expected_row[field]:
+                raise ValueError(
+                    f"{component}.artifacts[{index}].{field}: "
+                    f"{artifact[field]!r} != {expected_row[field]!r}"
+                )
+```
+
+For the remaining `validate_sidecar` fields, compare by equality rather than mere presence, then delegate every artifact row to the pure validator:
 
 ```python
 expected = EXPECTED_SIDECARS[component]
@@ -542,22 +678,14 @@ if tuple(document["metadata_object_names"]) != expected["metadata_object_names"]
     raise ValueError(f"{component}.metadata_object_names mismatch")
 if document["clock"] != EXPECTED_CLOCK:
     raise ValueError(f"{component}.clock mismatch")
-roles = tuple(artifact["role"] for artifact in document["artifacts"])
-if roles != expected["artifact_roles"]:
-    raise ValueError(f"{component}.artifact roles mismatch: {roles!r}")
-for artifact in document["artifacts"]:
-    expected_hash, expected_source_hash = EXPECTED_ARTIFACT_HASHES[component][artifact["role"]]
-    if artifact["sha256"] != expected_hash:
-        raise ValueError(f"{component}.{artifact['role']}.sha256 mismatch")
-    if artifact["source_sha256"] != expected_source_hash:
-        raise ValueError(f"{component}.{artifact['role']}.source_sha256 mismatch")
+validate_artifact_rows(document["artifacts"], component)
 if component == "parser":
-    parser_artifact = document["artifacts"][roles.index("parser")]
+    parser_artifact = document["artifacts"][0]
     if document.get("parser_artifact") != parser_artifact:
         raise ValueError("parser.parser_artifact must equal parser-role artifact")
 ```
 
-Also require `source_ref == "origin/old_parser"`, the full expected commit, exact approved SHA-256 for every role, `warmup_count == 3`, `sample_count == 20`, calibration `25`, exact corpus order, 42 inputs in the first corpus, 20 positive samples and positive median/p95 in every corpus. Lexer requires positive per-input and aggregate `token_count`. No extra or duplicate artifact role, metadata object name or corpus is accepted. Keep `validate_sidecar(document, component)` pure for unit tests; the `validate-sidecars` and `publish` CLI handlers first run `verify-source` and then require artifact hashes in both documents to match its fresh result.
+Also require `source_ref == "origin/old_parser"`, the full expected commit, `warmup_count == 3`, `sample_count == 20`, calibration `25`, exact corpus order, 42 inputs in the first corpus, 20 positive samples and positive median/p95 in every corpus. Lexer requires positive per-input and aggregate `token_count`. No extra or duplicate artifact row, metadata object name or corpus is accepted. Keep both `validate_artifact_rows(artifacts, component)` and `validate_sidecar(document, component)` pure. The capture-time `validate-sidecars` handler first runs `verify-source`, then loads each JSON and calls `validate_sidecar`; `publish` delegates to that same capture validation before copying bytes. The post-cleanup `validate-durable` handler loads retained JSON and calls the same `validate_sidecar`/`validate_artifact_rows` chain, but never runs `verify-source` or reads a target path.
 
 `publish` performs capture-time validation first, copies sidecar bytes with `shutil.copyfile`, reads the copied JSON, and renders Markdown tables with columns `corpus`, `input_count`, `input_length`, `operation_count_per_iteration`, `median_ms`, and `p95_ms`. Its provenance section includes `lexer_json_sha256` and `parser_json_sha256`, computed from the exact copied bytes. The report contains no percentage or verdict.
 
@@ -1126,7 +1254,7 @@ If historical parser fails any corpus, stop Wave D. Preserve the failing JUnit r
 python tools/parsergen/benchmarks/legacy_runtime_baseline.py validate-sidecars --repo . --lexer $OLD_LEXER_SIDECAR --parser $OLD_PARSER_SIDECAR
 ```
 
-Expected: source provenance passes, exact corpus order matches, all 16 corpus rows have 20 positive samples and positive median/p95, lexer counts are positive, and parser artifacts contain both parser and lexer hashes.
+Expected: source provenance passes, exact corpus order matches, all 16 corpus rows have 20 positive samples and positive median/p95, lexer counts are positive, and all five lexer/parser artifact rows equal their full approved `role`/metadata/path/hash-scope/source-path/hash manifests.
 
 - [ ] **Step 5: Publish byte-identical JSON and render Markdown from them**
 
@@ -1234,7 +1362,7 @@ git commit -m "Удалить временный baseline старых lexer и 
 - [ ] Compare filtered EDT diagnostics to the recorded pre-change background and report newly introduced errors separately.
 - [ ] Record exact YAxUnit passed/failed/skipped counts and report paths for old lexer, old parser, current lexer/parser benchmarks and current lexer/parser unit modules.
 - [ ] Confirm exactly eight ordered corpus and 20 samples per corpus in both durable JSON.
-- [ ] Confirm positive token counts in lexer JSON and both parser+lexer artifact hashes in parser JSON.
+- [ ] Confirm positive token counts in lexer JSON and exact full provenance rows for lexer, parser and both templates in the durable JSON.
 - [ ] Confirm before cleanup that durable JSON hashes equal their actual sidecar hashes and Markdown contains no performance verdict.
 - [ ] After cleanup, run only `validate-durable` for retained evidence; require strict schema/provenance, embedded JSON-byte hashes and exact Markdown regeneration without temporary source files.
 - [ ] Run `git diff --check`, inspect `git diff --stat` and `git status --short`, and confirm production `QueryConsoleZUP/src/**` has no diff.
