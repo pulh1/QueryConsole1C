@@ -34,7 +34,10 @@ class CanonicalBslLeftFoldTests(unittest.TestCase):
             loop_body.split("КонецЦикла;", 1)[0],
         )
         self.assertNotIn("Если Не ", function)
-        self.assertNotIn("ВызватьИсключениеСинтаксическаяОшибка", function)
+        self.assertIn("Пока Истина Цикл", function)
+        self.assertIn("Прервать;", function)
+        self.assertIn("ВызватьИсключениеСинтаксическаяОшибка", function)
+        self.assertEqual(function.count("ТипТокенаПросмотра(0)"), 1)
 
     def test_semantic_fold_binds_left_then_replaces_accumulator(self) -> None:
         generated = _build(
@@ -67,6 +70,7 @@ class CanonicalBslLeftFoldTests(unittest.TestCase):
         self.assertLess(left_binding, operator_parse)
         self.assertLess(operator_parse, right_parse)
         self.assertLess(right_parse, replace_accumulator)
+        self.assertIn("Прервать;", function)
         self.assertEqual(
             generated.constructor_names,
             ("НовыйБинарный", "НовыйТерм"),
@@ -84,9 +88,9 @@ class CanonicalBslLeftFoldTests(unittest.TestCase):
         )
         loop = function.split("Пока ", 1)[1].split("КонецЦикла;", 1)[0]
 
-        self.assertIn('Если (ТипТокенаПросмотра(0) = "+") Тогда', loop)
+        self.assertIn('ТокенРешения0 = "+"', loop)
         self.assertIn(
-            'ИначеЕсли (ТипТокенаПросмотра(0) = "-") Тогда',
+            'ТокенРешения0 = "-"',
             loop,
         )
         self.assertIn("Иначе", loop)
@@ -121,9 +125,9 @@ class CanonicalBslLeftFoldTests(unittest.TestCase):
         )
         before_loop = function.split("Пока ", 1)[0]
 
-        self.assertIn('Если (ТипТокенаПросмотра(0) = "A") Тогда', before_loop)
+        self.assertIn('ТокенРешения0 = "A"', before_loop)
         self.assertIn(
-            'ИначеЕсли (ТипТокенаПросмотра(0) = "B") Тогда',
+            'ТокенРешения0 = "B"',
             before_loop,
         )
         self.assertIn("Иначе", before_loop)
