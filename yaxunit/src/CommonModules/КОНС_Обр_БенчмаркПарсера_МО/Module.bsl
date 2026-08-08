@@ -51,7 +51,7 @@
 
 	Результат = Новый Структура;
 	Результат.Вставить("schema_version", 1);
-	Результат.Вставить("benchmark_id", "runtime_parser_before_ebnf_lr");
+	Результат.Вставить("benchmark_id", "runtime_parser_after_grammar_optimization");
 	Результат.Вставить("captured_at_platform_ms", ТекущаяУниверсальнаяДатаВМиллисекундах());
 	Результат.Вставить("warmup_count", 3);
 	Результат.Вставить("sample_count", 20);
@@ -2027,12 +2027,12 @@
 
 	Результат = Новый Структура;
 	Результат.Вставить("path", "QueryConsoleZUP/src/DataProcessors/Парсер/ObjectModule.bsl");
-	Результат.Вставить("sha256", "0c365e1e521322554b63e400379be47c0dc5ecaa7f60dd6951dc84bc7cccd084");
-	Результат.Вставить("generated_bsl_loc", 3394);
-	Результат.Вставить("generated_bsl_function_count", 135);
-	Результат.Вставить("generated_bsl_procedure_count", 6);
-	Результат.Вставить("generated_bsl_routine_count", 141);
-	Результат.Вставить("generated_nonterminal_function_count", 124);
+	Результат.Вставить("sha256", "0e65de3faad9ae1d4a40e2b366d6e2baa9eb9c465df421805e26348f293db56f");
+	Результат.Вставить("generated_bsl_loc", 2105);
+	Результат.Вставить("generated_bsl_function_count", 78);
+	Результат.Вставить("generated_bsl_procedure_count", 5);
+	Результат.Вставить("generated_bsl_routine_count", 83);
+	Результат.Вставить("generated_nonterminal_function_count", 67);
 	Возврат Результат;
 
 КонецФункции
@@ -2042,8 +2042,7 @@
 	Результат = Новый Структура;
 	Результат.Вставить("nonterminal_calls", НедоступныйСчетчик(
 		"Generated НеТерминал* functions do not expose a test-only call counter; production edits are forbidden."));
-	Результат.Вставить("dispatch_calls", НедоступныйСчетчик(
-		"Private НомерВариантаПродукции has no exported counter/interception hook; production edits are forbidden."));
+	Результат.Вставить("dispatch_calls", ДоступныйСчетчик(0));
 	Результат.Вставить("maximum_recursion_depth", НедоступныйСчетчик(
 		"Generated parser exposes no test-only stack-depth hook; production edits are forbidden."));
 	Результат.Вставить("constructor_action_executions", НедоступныйСчетчик(
@@ -2057,6 +2056,12 @@
 Функция НедоступныйСчетчик(Причина)
 
 	Возврат Новый Структура("value,unavailable_reason", Неопределено, Причина);
+
+КонецФункции
+
+Функция ДоступныйСчетчик(Значение)
+
+	Возврат Новый Структура("value,unavailable_reason", Значение, Неопределено);
 
 КонецФункции
 
@@ -2088,7 +2093,7 @@
 		КаталогОтчета = ФайлОтчета.Путь;
 	КонецЕсли;
 
-	Возврат ЮТФайлы.ОбъединитьПути(КаталогОтчета, "runtime-parser-benchmark-before.json");
+	Возврат ЮТФайлы.ОбъединитьПути(КаталогОтчета, "runtime-parser-benchmark-after.json");
 
 КонецФункции
 
