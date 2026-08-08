@@ -83,9 +83,10 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "ВыражениеВсеПоля",
                 "Псевдоним",
                 "ТипСоединения",
-                "ИсточникДанных",
-                "ПрисоединяемаяТаблица",
-                "ИсточникДанныхВременнаяТаблица",
+            "ИсточникДанных",
+            "ПрисоединяемаяТаблица",
+            "ИсточникДанныхТаблицаЗначений",
+            "ИсточникДанныхВременнаяТаблица",
                 "ИсточникДанныхВложенныйЗапрос",
                 "СписокЭлементовУпорядочивания",
                 "ЭлементУпорядочивания",
@@ -138,19 +139,19 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["structural"],
             {
-                "source_productions": 98,
-                "source_alternatives": 226,
-                "productions": 138,
-                "alternatives": 302,
-                "epsilon_alternatives": 69,
+                "source_productions": 96,
+                "source_alternatives": 222,
+                "productions": 136,
+                "alternatives": 298,
+                "epsilon_alternatives": 67,
                 "formal_parameters": 7,
                 "actual_arguments": 22,
-                "action_blocks": 123,
-                "statements": 138,
-                "constructor_statements": 21,
+                "action_blocks": 120,
+                "statements": 135,
+                "constructor_statements": 20,
                 "collection_statements": 12,
                 "constant_statements": 14,
-                "structural_statements": 88,
+                "structural_statements": 86,
                 "other_assignment_statements": 0,
                 "other_statements": 3,
             },
@@ -161,30 +162,15 @@ class MigrationAuditProductionTests(unittest.TestCase):
             self.report["canonical"],
             {
                 "conflicts": [],
-                "diagnostics": [
-                    {
-                        "code": "VAL102",
-                        "severity": "warning",
-                        "message": (
-                            "production is unreachable from every entry point"
-                        ),
-                    },
-                    {
-                        "code": "VAL102",
-                        "severity": "warning",
-                        "message": (
-                            "production is unreachable from every entry point"
-                        ),
-                    },
-                ],
+                "diagnostics": [],
                 "stats": {
-                    "packed_first_rows": 11_312,
-                    "packed_follow_rows": 51_051,
-                    "select_descriptors": 302,
-                    "select_direct_facts": 10_973,
-                    "select_short_complete_prefixes": 339,
-                    "packed_select_upper_bound": 34_766,
-                    "conflict_work_items": 518,
+                    "packed_first_rows": 11_268,
+                    "packed_follow_rows": 51_047,
+                    "select_descriptors": 298,
+                    "select_direct_facts": 10_932,
+                    "select_short_complete_prefixes": 336,
+                    "packed_select_upper_bound": 34_725,
+                    "conflict_work_items": 516,
                     "public_select_expansions": 0,
                     "select_cartesian_materializations": 0,
                 },
@@ -193,7 +179,7 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["legacy"],
             {
-                "matcher_rows": 9_618,
+                "matcher_rows": 9_572,
                 "matcher_definitions": 0,
                 "runtime_conflicts": [],
             },
@@ -204,10 +190,10 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["generated"],
             {
-                "bsl_functions": 110,
-                "bsl_loc": 2595,
+                "bsl_functions": 108,
+                "bsl_loc": 2561,
                 "constructor_names": 78,
-                "select_rows": 3_014,
+                "select_rows": 2_890,
                 "identifier_rows": 276,
             },
         )
@@ -273,7 +259,8 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 '"Псевдоним", '
                 '"ТипСоединения", "ИсточникДанных", '
                 '"ПрисоединяемаяТаблица", '
-                '"ИсточникДанныхВременнаяТаблица", '
+                    '"ИсточникДанныхТаблицаЗначений", '
+                    '"ИсточникДанныхВременнаяТаблица", '
                 '"ИсточникДанныхВложенныйЗапрос", '
                 '"СписокЭлементовУпорядочивания", '
                 '"ЭлементУпорядочивания", '

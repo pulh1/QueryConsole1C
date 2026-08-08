@@ -25,6 +25,7 @@ MIGRATED_PRODUCTIONS = (
     "ТипСоединения",
     "ИсточникДанных",
     "ПрисоединяемаяТаблица",
+    "ИсточникДанныхТаблицаЗначений",
     "ИсточникДанныхВременнаяТаблица",
     "ИсточникДанныхВложенныйЗапрос",
     "СписокЭлементовУпорядочивания",
@@ -696,8 +697,16 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 98)
-        self.assertEqual(len(parsed.grammar.productions), 138)
+        self.assertEqual(len(parsed.source_grammar.productions), 96)
+        self.assertEqual(len(parsed.grammar.productions), 136)
+        self.assertNotIn(
+            "КакОпционально",
+            {item.name for item in parsed.source_grammar.productions},
+        )
+        self.assertNotIn(
+            "ВыражениеСКДПараметр",
+            {item.name for item in parsed.source_grammar.productions},
+        )
 
         resolution = resolve_grammar(parsed.grammar)
         self.assertEqual(resolution.diagnostics, ())
@@ -1616,6 +1625,11 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         )
 
         module = generated.module_text
+        self.assertNotIn("Функция НеТерминалКакОпционально(", module)
+        self.assertNotIn(
+            "Функция НеТерминалВыражениеСКДПараметр(",
+            module,
+        )
         source_data = _generated_function(module, "ИсточникДанных")
         for child in (
             "ИсточникДанныхТаблицаЗначений",
@@ -1670,6 +1684,24 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertIn("ЭтотУзел.ЗапросВыбора =", nested)
         self.assertIn("ЭтотУзел.Псевдоним =", nested)
         self.assertNotIn("ТекущийЭлемент", nested)
+
+        value_table = _generated_function(
+            module,
+            "ИсточникДанныхТаблицаЗначений",
+        )
+        self.assertEqual(
+            value_table.count(
+                "ЭлементыМоделиЗапроса."
+                "НовыйИсточникДанныхТаблицаЗначений("
+            ),
+            1,
+        )
+        self.assertIn('Идентификатор("ID_Полный")', value_table)
+        self.assertIn("ЭтотУзел.ИмяТаблицы =", value_table)
+        self.assertIn("ЭтотУзел.Псевдоним =", value_table)
+        self.assertNotIn("НеТерминалПараметр", value_table)
+        self.assertNotIn("ТекущийЭлемент", value_table)
+        self.assertNotIn("НомерВариантаПродукции", value_table)
 
     def test_logical_leaf_package_generates_values_without_actions(
         self,
