@@ -391,9 +391,11 @@ def validate_sidecar(document: object, component: str) -> None:
         raise ValueError(f"unsupported component: {component}")
     if not isinstance(document, dict):
         raise ValueError(f"{component} sidecar must be an object")
-    missing = REQUIRED_TOP_LEVEL - set(document)
-    if missing:
-        raise ValueError(f"{component} sidecar missing fields: {', '.join(sorted(missing))}")
+    expected_top_level = REQUIRED_TOP_LEVEL | (
+        {"parser_artifact"} if component == "parser" else set()
+    )
+    if set(document) != expected_top_level:
+        raise ValueError(f"{component} sidecar top-level field set mismatch")
     expected = EXPECTED_SIDECARS[component]
     for field in (
         "schema_version",

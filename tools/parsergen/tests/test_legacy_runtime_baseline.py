@@ -3,6 +3,7 @@ import io
 from pathlib import Path
 import hashlib
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -252,6 +253,59 @@ class LegacyRuntimeBaselineTests(unittest.TestCase):
         sidecar["metadata_object_names"] = 1
         with self.assertRaisesRegex(ValueError, "metadata_object_names"):
             baseline.validate_sidecar(sidecar, "lexer")
+
+    def test_lexer_sidecar_rejects_an_extra_top_level_field(self) -> None:
+        sidecar = _make_sidecar("lexer")
+        sidecar["unapproved_top_level"] = True
+        with self.assertRaisesRegex(ValueError, "top-level field set"):
+            baseline.validate_sidecar(sidecar, "lexer")
+
+    def test_parser_sidecar_rejects_an_extra_top_level_field(self) -> None:
+        sidecar = _make_sidecar("parser")
+        sidecar["unapproved_top_level"] = True
+        with self.assertRaisesRegex(ValueError, "top-level field set"):
+            baseline.validate_sidecar(sidecar, "parser")
+
+    def test_validate_durable_cli_returns_three_for_extra_top_level_field(self) -> None:
+        lexer = _make_sidecar("lexer")
+        lexer["unapproved_top_level"] = True
+        parser = _make_sidecar("parser")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            lexer_path = root / "lexer.json"
+            parser_path = root / "parser.json"
+            report_path = root / "report.md"
+            lexer_bytes = json.dumps(lexer, ensure_ascii=False).encode("utf-8")
+            parser_bytes = json.dumps(parser, ensure_ascii=False).encode("utf-8")
+            lexer_path.write_bytes(lexer_bytes)
+            parser_path.write_bytes(parser_bytes)
+            report_path.write_text(
+                baseline.render_markdown(
+                    lexer,
+                    parser,
+                    hashlib.sha256(lexer_bytes).hexdigest(),
+                    hashlib.sha256(parser_bytes).hexdigest(),
+                ),
+                encoding="utf-8",
+            )
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    str(BASELINE_PATH),
+                    "validate-durable",
+                    "--lexer",
+                    str(lexer_path),
+                    "--parser",
+                    str(parser_path),
+                    "--report",
+                    str(report_path),
+                ],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+            )
+        self.assertEqual(completed.returncode, 3, completed.stderr)
+        self.assertIn("top-level field set", completed.stderr)
 
     def test_json_output_supports_a_text_only_stdout(self) -> None:
         output = io.StringIO()
