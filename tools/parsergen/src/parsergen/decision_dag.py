@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import TypeAlias
@@ -362,6 +362,57 @@ def evaluate_decision(
             return ImmediateError(node.expected)
         node = dag.nodes[target]
     return node
+
+
+def emitted_predicate_token_sets(
+    dag: CanonicalDecisionDag,
+) -> tuple[tuple[str, ...], ...]:
+    result: list[tuple[str, ...]] = []
+
+    def visit(node_index: int) -> None:
+        node = dag.nodes[node_index]
+        if not isinstance(node, LookaheadDecision):
+            return
+        token_types_by_target: dict[int, set[str]] = defaultdict(set)
+        target_order: list[int] = []
+        for edge in node.edges:
+            if edge.target not in token_types_by_target:
+                target_order.append(edge.target)
+            token_types_by_target[edge.target].update(
+                edge.predicate.token_types
+            )
+        for target in target_order:
+            result.append(tuple(sorted(token_types_by_target[target])))
+            visit(target)
+
+    visit(dag.root)
+    return tuple(result)
+
+
+def aggregate_decision_dag_metrics(
+    dags: Iterable[CanonicalDecisionDag],
+) -> dict[str, int]:
+    unique: dict[int, CanonicalDecisionDag] = {}
+    for dag in dags:
+        unique.setdefault(id(dag), dag)
+    values = tuple(unique.values())
+    return {
+        "source_states": sum(
+            dag.stats["source_states"] for dag in values
+        ),
+        "dag_states": sum(dag.stats["dag_states"] for dag in values),
+        "shared_states": sum(
+            dag.stats["shared_states"] for dag in values
+        ),
+        "max_depth": max(
+            (dag.stats["max_depth"] for dag in values),
+            default=0,
+        ),
+        "decision_regions": len(values),
+        "emitted_predicates": sum(
+            len(emitted_predicate_token_sets(dag)) for dag in values
+        ),
+    }
 
 
 @dataclass(frozen=True, slots=True)

@@ -11,6 +11,7 @@ def _build(
     source: str,
     k: int = 1,
     entrypoints: dict[str, str] | None = None,
+    named_predicates: dict[tuple[str, ...], str] | None = None,
 ):
     entries = entrypoints or {"Разобрать": "S"}
     parsed = parse_grammar(source, "grammar.txt")
@@ -36,6 +37,7 @@ def _build(
         parsed.source_grammar,
         parser_ir,
         entries,
+        named_predicates=named_predicates,
     )
 
 
@@ -47,6 +49,23 @@ def _function(module: str, name: str) -> str:
 
 
 class CanonicalBslCodegenTests(unittest.TestCase):
+    def test_named_token_set_helper_uses_cached_token_only(self) -> None:
+        generated = _build(
+            "#ID_Large ::= A | B | C | D | E | F | G | H | I\n"
+            "<S> ::= #ID_Large | END",
+            named_predicates={tuple("ABCDEFGHI"): "ID_Large"},
+        )
+
+        helper = _function(
+            generated.module_text,
+            "ТокенПринадлежитКлассу(ТипТокена, ИмяКласса)",
+        )
+        self.assertIn(
+            "ОпределенияИдентификаторов.НайтиСтроки",
+            helper,
+        )
+        self.assertNotIn("ТипТокенаПросмотра", helper)
+
     def test_optional_collection_decorator_appends_seed_and_returns_wrapper(
         self,
     ) -> None:

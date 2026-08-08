@@ -22,6 +22,33 @@ SPEC.loader.exec_module(audit_migration)
 
 
 class MigrationAuditUnitTests(unittest.TestCase):
+    def test_predicate_strategy_benchmark_selects_measured_exact_policy(
+        self,
+    ) -> None:
+        comparison = audit_migration.benchmark_predicate_strategies(
+            REPOSITORY_ROOT / "parsergen.toml"
+        )
+
+        self.assertEqual(
+            set(comparison),
+            {"inline", "named", "eligible_named_sets", "selected"},
+        )
+        for policy in ("inline", "named"):
+            self.assertEqual(
+                set(comparison[policy]),
+                {
+                    "bsl_loc",
+                    "max_condition_chars",
+                    "helper_calls",
+                    "generation_seconds",
+                },
+            )
+            self.assertGreater(comparison[policy]["generation_seconds"], 0)
+        self.assertEqual(comparison["inline"]["helper_calls"], 0)
+        self.assertGreater(comparison["named"]["helper_calls"], 0)
+        self.assertGreater(comparison["eligible_named_sets"], 0)
+        self.assertEqual(comparison["selected"], "inline")
+
     def test_generated_bsl_metrics_count_decisions_and_lookahead_atoms(
         self,
     ) -> None:
@@ -253,26 +280,37 @@ class MigrationAuditProductionTests(unittest.TestCase):
                 "runtime_conflicts": [],
             },
         )
+        self.assertEqual(
+            self.report["decision_dag"],
+            {
+                "source_states": 33_718,
+                "dag_states": 415,
+                "shared_states": 89,
+                "max_depth": 2,
+                "decision_regions": 112,
+                "emitted_predicates": 316,
+            },
+        )
         self.assertEqual(self.report["artifacts"]["changed"], [])
 
     def test_generated_shape_baseline_is_explicit(self) -> None:
         self.assertEqual(
             self.report["generated"],
             {
-                "bsl_functions": 77,
-                "bsl_loc": 1954,
+                "bsl_functions": 74,
+                "bsl_loc": 2446,
                 "constructor_names": 79,
                 "select_rows": 0,
                 "identifier_rows": 276,
-                "lookahead_calls": 1_983,
-                "decision_lines": 243,
-                "predicate_atoms": 1_981,
-                "nonterminal_functions": 66,
-                "nonterminal_call_sites": 179,
-                "max_condition_chars": 6_407,
-                "max_condition_predicate_atoms": 170,
-                "max_condition_lookahead_calls": 170,
-                "max_condition_nesting": 8,
+                "lookahead_calls": 132,
+                "decision_lines": 374,
+                "predicate_atoms": 3_783,
+                "nonterminal_functions": 63,
+                "nonterminal_call_sites": 176,
+                "max_condition_chars": 2_551,
+                "max_condition_predicate_atoms": 88,
+                "max_condition_lookahead_calls": 1,
+                "max_condition_nesting": 2,
             },
         )
 

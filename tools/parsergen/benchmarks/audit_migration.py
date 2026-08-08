@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import fields, is_dataclass
 import json
 from pathlib import Path
 import re
 import sys
+from time import perf_counter
 
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
@@ -20,7 +22,13 @@ from parsergen.analysis import (
 from parsergen.artifacts import compare_artifacts, render_artifacts
 from parsergen.cli import compile_from_config, generate_from_compilation
 from parsergen.config import load_config
+from parsergen.decision_dag import (
+    aggregate_decision_dag_metrics,
+    emitted_predicate_token_sets,
+)
+from parsergen.hybrid_bsl_codegen import generate_hybrid_parser
 from parsergen.model import NonterminalCall
+from parsergen.parser_ir import CanonicalDecision, build_parser_ir
 from parsergen.semantic_actions import (
     CONSTRUCTOR,
     _normalize_newlines,
@@ -188,6 +196,140 @@ def _legacy_runtime_conflict_rows(select_rows) -> list[dict[str, object]]:
     ]
 
 
+def _decision_dag_metrics(parser_ir) -> dict[str, int]:
+    return aggregate_decision_dag_metrics(
+        decision.dag
+        for decision in _parser_ir_decisions(parser_ir, unique=True)
+    )
+
+
+def _parser_ir_decisions(
+    parser_ir,
+    *,
+    unique: bool = False,
+) -> tuple[CanonicalDecision, ...]:
+    decisions: list[CanonicalDecision] = []
+    seen: set[int] = set()
+
+    def visit(value) -> None:
+        if isinstance(value, CanonicalDecision):
+            if unique and id(value) in seen:
+                return
+            seen.add(id(value))
+            decisions.append(value)
+            return
+        if isinstance(value, (str, bytes, int, bool, type(None))):
+            return
+        if isinstance(value, (tuple, list, frozenset)):
+            for item in value:
+                visit(item)
+            return
+        if is_dataclass(value):
+            for field in fields(value):
+                if field.name in {"source_span", "span"}:
+                    continue
+                visit(getattr(value, field.name))
+
+    for production in parser_ir.productions:
+        visit(production)
+    return tuple(decisions)
+
+
+def _named_predicate_candidates(parser_ir) -> dict[tuple[str, ...], str]:
+    usage: dict[tuple[str, ...], int] = {}
+    for decision in _parser_ir_decisions(parser_ir):
+        for token_types in emitted_predicate_token_sets(decision.dag):
+            usage[token_types] = usage.get(token_types, 0) + 1
+    labels: dict[tuple[str, ...], list[str]] = {}
+    for definition in parser_ir.matcher_definitions:
+        labels.setdefault(definition.token_types, []).append(
+            definition.label
+        )
+    return {
+        token_types: sorted(labels[token_types])[0]
+        for token_types, count in usage.items()
+        if len(token_types) > 8
+        and count >= 3
+        and token_types in labels
+    }
+
+
+def _generate_strategy(config, compilation, parser_ir, named_predicates):
+    assert compilation.source_grammar is not None
+    assert compilation.lowering is not None
+    assert compilation.grammar is not None
+    assert compilation.resolved is not None
+    assert compilation.analysis is not None
+    started = perf_counter()
+    generated = generate_hybrid_parser(
+        compilation.source_grammar,
+        compilation.lowering,
+        compilation.grammar,
+        compilation.resolved,
+        compilation.analysis,
+        parser_ir,
+        canonical_productions=config.canonical_productions,
+        entrypoints=config.entrypoints,
+        named_predicates=named_predicates,
+    )
+    elapsed = perf_counter() - started
+    metrics = generated_bsl_metrics(generated.module_text)
+    helper_occurrences = generated.module_text.count(
+        "ТокенПринадлежитКлассу("
+    )
+    return {
+        "bsl_loc": len(generated.module_text.splitlines()),
+        "max_condition_chars": metrics["max_condition_chars"],
+        "helper_calls": max(
+            0,
+            helper_occurrences - (1 if named_predicates else 0),
+        ),
+        "generation_seconds": elapsed,
+    }
+
+
+def benchmark_predicate_strategies(
+    config_path: Path,
+) -> dict[str, object]:
+    config_path = Path(config_path).resolve()
+    config = load_config(config_path)
+    compilation = compile_from_config(config)
+    if (
+        compilation.source_grammar is None
+        or compilation.lowering is None
+        or compilation.resolved is None
+        or compilation.analysis is None
+    ):
+        raise ValueError("predicate benchmark requires canonical Parser IR")
+    parser_ir = build_parser_ir(
+        compilation.source_grammar,
+        compilation.lowering,
+        compilation.resolved,
+        compilation.analysis,
+        production_names=config.canonical_productions,
+        entrypoint_productions=config.entrypoints.values(),
+    )
+    named_predicates = _named_predicate_candidates(parser_ir)
+    inline = _generate_strategy(config, compilation, parser_ir, {})
+    named = _generate_strategy(
+        config,
+        compilation,
+        parser_ir,
+        named_predicates,
+    )
+    selected = (
+        "named"
+        if named_predicates and named["bsl_loc"] < inline["bsl_loc"]
+        else "inline"
+    )
+    return {
+        "inline": inline,
+        "named": named,
+        "eligible_named_sets": len(named_predicates),
+        "selected": selected,
+    }
+
+
 def build_migration_audit(
     config_path: Path,
     *,
@@ -213,6 +355,20 @@ def build_migration_audit(
         max_rows=max_matcher_rows,
     )
     generated = generate_from_compilation(config, compilation)
+    parser_ir = (
+        build_parser_ir(
+            compilation.source_grammar,
+            compilation.lowering,
+            resolved,
+            analysis,
+            production_names=config.canonical_productions,
+            entrypoint_productions=config.entrypoints.values(),
+        )
+        if config.canonical_productions
+        and compilation.source_grammar is not None
+        and compilation.lowering is not None
+        else None
+    )
     rendered = render_artifacts(generated)
     comparison = compare_artifacts(config.target, rendered)
     actions = classify_semantic_actions(grammar)
@@ -289,6 +445,11 @@ def build_migration_audit(
                 ],
             },
         },
+        "decision_dag": (
+            _decision_dag_metrics(parser_ir)
+            if parser_ir is not None
+            else aggregate_decision_dag_metrics(())
+        ),
         "legacy": {
             "matcher_rows": len(legacy_artifact.select_rows),
             "matcher_definitions": len(legacy_artifact.matcher_definitions),

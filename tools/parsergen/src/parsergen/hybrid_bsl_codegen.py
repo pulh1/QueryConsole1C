@@ -50,6 +50,7 @@ def generate_hybrid_parser(
     *,
     canonical_productions: Collection[str],
     entrypoints: Mapping[str, str],
+    named_predicates: Mapping[tuple[str, ...], str] | None = None,
 ) -> GeneratedParser:
     canonical_names = _canonical_names(canonical_productions)
     ir_names = tuple(production.name for production in parser_ir.productions)
@@ -92,6 +93,7 @@ def generate_hybrid_parser(
             source,
             parser_ir,
             entrypoints,
+            named_predicates=named_predicates,
         )
         return GeneratedParser(
             canonical.module_text,
@@ -105,6 +107,7 @@ def generate_hybrid_parser(
         parser_ir,
         abi_parameters=_LEGACY_ABI,
         call_argument_prefix=_LEGACY_CALL_PREFIX,
+        named_predicates=named_predicates,
     )
     overrides = _split_function_fragment(
         canonical.module_fragment.replace(

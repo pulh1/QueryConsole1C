@@ -67,6 +67,11 @@ _BSL_DECLARATION = re.compile(
 )
 _TEMPORARY = re.compile(r"Значение[1-9][0-9]*\Z", re.IGNORECASE)
 _DECISION_TOKEN = re.compile(r"ТокенРешения[0-9]+\Z", re.IGNORECASE)
+_TOKEN_CLASS_HELPER_NAME = "ТокенПринадлежитКлассу"
+_TOKEN_CLASS_HELPER = """Функция ТокенПринадлежитКлассу(ТипТокена, ИмяКласса)
+	СтруктураПоиска = Новый Структура("Тип, Идентификатор", ИмяКласса, ТипТокена);
+	Возврат ОпределенияИдентификаторов.НайтиСтроки(СтруктураПоиска).Количество() > 0;
+КонецФункции"""
 _GENERATED_LOCALS = frozenset(
     item.casefold()
     for item in ("РезультатПродукции", "ЭтотУзел")
@@ -90,8 +95,15 @@ def generate_canonical_parser(
     source: SourceGrammar,
     parser_ir: ParserIr,
     entrypoints: Mapping[str, str],
+    *,
+    named_predicates: Mapping[tuple[str, ...], str] | None = None,
 ) -> CanonicalGeneratedParser:
-    return _CanonicalBslGenerator(source, parser_ir, entrypoints).generate()
+    return _CanonicalBslGenerator(
+        source,
+        parser_ir,
+        entrypoints,
+        named_predicates=named_predicates,
+    ).generate()
 
 
 def generate_canonical_functions(
@@ -100,8 +112,14 @@ def generate_canonical_functions(
     *,
     abi_parameters: tuple[str, ...] = (),
     call_argument_prefix: tuple[str, ...] = (),
+    named_predicates: Mapping[tuple[str, ...], str] | None = None,
 ) -> CanonicalGeneratedFunctions:
-    return _CanonicalBslGenerator(source, parser_ir, {}).generate_functions(
+    return _CanonicalBslGenerator(
+        source,
+        parser_ir,
+        {},
+        named_predicates=named_predicates,
+    ).generate_functions(
         abi_parameters,
         call_argument_prefix,
     )
@@ -113,12 +131,16 @@ class _CanonicalBslGenerator:
         source: SourceGrammar,
         parser_ir: ParserIr,
         entrypoints: Mapping[str, str],
+        *,
+        named_predicates: Mapping[tuple[str, ...], str] | None = None,
     ) -> None:
         self._source = source
         self._ir = parser_ir
         self._entrypoints = entrypoints
+        self._named_predicates = dict(named_predicates or {})
         self._decisions = CanonicalDecisionRenderer(
-            parser_ir.matcher_definitions
+            parser_ir.matcher_definitions,
+            named_predicates=self._named_predicates,
         )
         self._temporary = 0
         self._constructors: list[str] = []
@@ -272,6 +294,10 @@ class _CanonicalBslGenerator:
         include_entrypoints: bool,
     ) -> None:
         symbols: list[tuple[str, str]] = []
+        if self._named_predicates:
+            symbols.append(
+                (_TOKEN_CLASS_HELPER_NAME, "named token-set helper")
+            )
         if include_template:
             symbols.extend(
                 (matched.group(1), "canonical template helper")
@@ -325,10 +351,13 @@ class _CanonicalBslGenerator:
         )
 
     def _render_productions(self) -> str:
-        return "\r\n\r\n".join(
+        productions = "\r\n\r\n".join(
             self._render_production(production)
             for production in self._ir.productions
         )
+        if not self._named_predicates:
+            return productions
+        return normalize_newlines(_TOKEN_CLASS_HELPER) + "\r\n\r\n" + productions
 
     def _render_production(self, production: ProductionIr) -> str:
         self._temporary = 0

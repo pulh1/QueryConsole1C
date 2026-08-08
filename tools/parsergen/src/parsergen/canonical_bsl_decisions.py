@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 
 from .analysis import MatcherDefinition
 from .bsl_rendering import bsl_string
@@ -37,6 +37,8 @@ class CanonicalDecisionRenderer:
     def __init__(
         self,
         matcher_definitions: tuple[MatcherDefinition, ...],
+        *,
+        named_predicates: Mapping[tuple[str, ...], str] | None = None,
     ) -> None:
         self._definitions = matcher_definitions
         self._labels_by_token_types: dict[tuple[str, ...], tuple[str, ...]] = {}
@@ -67,6 +69,12 @@ class CanonicalDecisionRenderer:
             token_types: tuple(names)
             for token_types, names in labels.items()
         }
+        self._named_predicates = dict(named_predicates or {})
+        for token_types, label in self._named_predicates.items():
+            if label not in self._labels_by_token_types.get(token_types, ()):
+                raise ValueError(
+                    "named predicate must reference an exact matcher set"
+                )
 
     def render(
         self,
@@ -116,9 +124,12 @@ class CanonicalDecisionRenderer:
             )
         for position, target in enumerate(target_order):
             keyword = "Если" if position == 0 else "ИначеЕсли"
-            predicate = _predicate(
-                variable,
-                tuple(sorted(token_types_by_target[target])),
+            token_types = tuple(sorted(token_types_by_target[target]))
+            label = self._named_predicates.get(token_types)
+            predicate = (
+                f"ТокенПринадлежитКлассу({variable}, {bsl_string(label)})"
+                if label is not None
+                else _predicate(variable, token_types)
             )
             lines.append(f"{indent}{keyword} {predicate} Тогда")
             lines.extend(
