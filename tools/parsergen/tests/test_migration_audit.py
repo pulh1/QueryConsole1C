@@ -22,6 +22,31 @@ SPEC.loader.exec_module(audit_migration)
 
 
 class MigrationAuditUnitTests(unittest.TestCase):
+    def test_generated_bsl_metrics_count_decisions_and_lookahead_atoms(
+        self,
+    ) -> None:
+        module = (
+            'Функция НеТерминалS()\n'
+            'Если ТипТокенаПросмотра(0) = "A" Или '
+            'ТипТокенаПросмотра(1) = "B" Тогда\n'
+            'КонецЕсли;\n'
+            'КонецФункции\n'
+        )
+        self.assertEqual(
+            audit_migration.generated_bsl_metrics(module),
+            {
+                "lookahead_calls": 2,
+                "decision_lines": 1,
+                "predicate_atoms": 2,
+                "nonterminal_functions": 1,
+                "nonterminal_call_sites": 0,
+                "max_condition_chars": 70,
+                "max_condition_predicate_atoms": 2,
+                "max_condition_lookahead_calls": 2,
+                "max_condition_nesting": 1,
+            },
+        )
+
     def test_classifies_constructor_structural_collection_and_constant_actions(
         self,
     ) -> None:
@@ -215,6 +240,15 @@ class MigrationAuditProductionTests(unittest.TestCase):
                 "constructor_names": 79,
                 "select_rows": 0,
                 "identifier_rows": 276,
+                "lookahead_calls": 1_983,
+                "decision_lines": 243,
+                "predicate_atoms": 1_981,
+                "nonterminal_functions": 66,
+                "nonterminal_call_sites": 179,
+                "max_condition_chars": 6_407,
+                "max_condition_predicate_atoms": 170,
+                "max_condition_lookahead_calls": 170,
+                "max_condition_nesting": 8,
             },
         )
 

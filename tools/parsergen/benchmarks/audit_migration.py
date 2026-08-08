@@ -39,6 +39,63 @@ STRUCTURAL_NAMES = (
     "Родитель",
     "ЛевыйЭлемент",
 )
+DECISION_LINE = re.compile(r"^\s*(?:Если|ИначеЕсли|Пока)\b", re.IGNORECASE)
+NONTERMINAL_FUNCTION = re.compile(
+    r"^\s*Функция\s+НеТерминал", re.IGNORECASE
+)
+NONTERMINAL_REFERENCE = re.compile(
+    r"\bНеТерминал[A-Za-zА-Яа-яЁё_][0-9A-Za-zА-Яа-яЁё_]*\s*\(",
+    re.IGNORECASE,
+)
+PREDICATE_ATOM = re.compile(
+    r"(?:ТипТокенаПросмотра\(\d+\)|ТокенРешения\d+)\s*(?:=|<>)",
+    re.IGNORECASE,
+)
+
+
+def _parenthesis_depth(value: str) -> int:
+    depth = 0
+    maximum = 0
+    for char in value:
+        if char == "(":
+            depth += 1
+            maximum = max(maximum, depth)
+        elif char == ")":
+            depth = max(0, depth - 1)
+    return maximum
+
+
+def generated_bsl_metrics(module_text: str) -> dict[str, int]:
+    lines = module_text.splitlines()
+    decisions = [line.strip() for line in lines if DECISION_LINE.match(line)]
+    return {
+        "lookahead_calls": module_text.count("ТипТокенаПросмотра("),
+        "decision_lines": len(decisions),
+        "predicate_atoms": sum(
+            len(PREDICATE_ATOM.findall(line)) for line in decisions
+        ),
+        "nonterminal_functions": sum(
+            NONTERMINAL_FUNCTION.match(line) is not None for line in lines
+        ),
+        "nonterminal_call_sites": max(
+            0,
+            len(NONTERMINAL_REFERENCE.findall(module_text))
+            - sum(NONTERMINAL_FUNCTION.match(line) is not None for line in lines),
+        ),
+        "max_condition_chars": max(map(len, decisions), default=0),
+        "max_condition_predicate_atoms": max(
+            (len(PREDICATE_ATOM.findall(line)) for line in decisions),
+            default=0,
+        ),
+        "max_condition_lookahead_calls": max(
+            (line.count("ТипТокенаПросмотра(") for line in decisions),
+            default=0,
+        ),
+        "max_condition_nesting": max(
+            (_parenthesis_depth(line) for line in decisions),
+            default=0,
+        ),
+    }
 
 
 def classify_semantic_actions(grammar: Grammar) -> dict[str, int]:
@@ -248,6 +305,7 @@ def build_migration_audit(
             "constructor_names": len(generated.constructor_names),
             "select_rows": len(generated.select_table.rows),
             "identifier_rows": len(generated.identifier_table.rows),
+            **generated_bsl_metrics(generated.module_text),
         },
         "artifacts": {
             "changed": [
