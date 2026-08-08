@@ -208,13 +208,14 @@ class CanonicalBslBindingTests(unittest.TestCase):
             "НеТерминалS",
         )
 
-        self.assertIn('Если (ТипТокенаПросмотра(0) = "A") Тогда', function)
-        self.assertIn('ИначеЕсли (ТипТокенаПросмотра(0) = "B") Тогда', function)
-        self.assertIn("Значение1 = НеТерминалA();", function)
-        self.assertIn("Значение2 = Значение1;", function)
+        self.assertEqual(function.count("ТипТокенаПросмотра(0)"), 1)
+        self.assertIn('ТокенРешения0 = "A"', function)
+        self.assertIn('ТокенРешения0 = "B"', function)
+        self.assertIn("Значение2 = НеТерминалA();", function)
+        self.assertIn("Значение1 = Значение2;", function)
         self.assertIn("Значение3 = НеТерминалB();", function)
-        self.assertIn("Значение2 = Значение3;", function)
-        self.assertIn("ЭтотУзел.Значение = Значение2;", function)
+        self.assertIn("Значение1 = Значение3;", function)
+        self.assertIn("ЭтотУзел.Значение = Значение1;", function)
 
     def test_grouped_value_keeps_suffix_after_selected_result(self) -> None:
         function = _function(
@@ -232,11 +233,11 @@ class CanonicalBslBindingTests(unittest.TestCase):
             1,
         )[0]
         self.assertLess(
-            first_branch.index("Значение1 = НеТерминалA();"),
+            first_branch.index("Значение2 = НеТерминалA();"),
             first_branch.index('Лексема(",");'),
         )
-        self.assertIn("Значение2 = Значение1;", first_branch)
-        self.assertIn("ЭтотУзел.Значение = Значение2;", function)
+        self.assertIn("Значение1 = Значение2;", first_branch)
+        self.assertIn("ЭтотУзел.Значение = Значение1;", function)
 
 
 if __name__ == "__main__":

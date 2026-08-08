@@ -169,11 +169,11 @@ class CanonicalBslCodegenTests(unittest.TestCase):
 
         function = _function(generated.module_text, "НеТерминалS")
         self.assertIn(
-            'Если (ТипТокенаПросмотра(0) = "a") Тогда',
+            'Если ТокенРешения0 = "a" Тогда',
             function,
         )
         self.assertIn(
-            'ИначеЕсли (ТипТокенаПросмотра(0) = "b") Тогда',
+            'ИначеЕсли ТокенРешения0 = "b" Тогда',
             function,
         )
         self.assertIn("Иначе", function)
@@ -184,11 +184,7 @@ class CanonicalBslCodegenTests(unittest.TestCase):
 
         function = _function(generated.module_text, "НеТерминалS")
         self.assertIn(
-            'Если (ТипТокенаПросмотра(0) = "A") Тогда',
-            function,
-        )
-        self.assertIn(
-            'ИначеЕсли (ТипТокенаПросмотра(0) = "B") Тогда',
+            'ТокенРешения0 = "A"',
             function,
         )
         self.assertNotIn(
@@ -199,6 +195,16 @@ class CanonicalBslCodegenTests(unittest.TestCase):
             'ТипТокенаПросмотра(1) = "Y"',
             function,
         )
+
+    def test_shared_prefix_is_rendered_as_one_decision_region(self) -> None:
+        function = _function(
+            _build("<S> ::= A X | A Y | B Z", k=2).module_text,
+            "НеТерминалS",
+        )
+
+        self.assertEqual(function.count("ТипТокенаПросмотра(0)"), 1)
+        self.assertEqual(function.count("ТипТокенаПросмотра(1)"), 1)
+        self.assertIn('ТокенРешения0 = "A"', function)
 
     def test_returns_explicit_transparent_or_syntax_only_result(self) -> None:
         transparent = _build(

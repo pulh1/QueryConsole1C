@@ -12,7 +12,9 @@ from .bsl_rendering import (
     validate_bsl_member_name,
     validate_bsl_member_path,
 )
-from .canonical_bsl_conditions import CanonicalConditionRenderer
+from .canonical_bsl_decisions import CanonicalDecisionRenderer
+from .canonical_select import AlternativeOutcome
+from .decision_dag import CommitAlternative, ExitDecision, ImmediateError
 from .model import (
     Constant,
     IdentifierRef,
@@ -64,6 +66,7 @@ _BSL_DECLARATION = re.compile(
     re.MULTILINE | re.IGNORECASE,
 )
 _TEMPORARY = re.compile(r"Значение[1-9][0-9]*\Z", re.IGNORECASE)
+_DECISION_TOKEN = re.compile(r"ТокенРешения[0-9]+\Z", re.IGNORECASE)
 _GENERATED_LOCALS = frozenset(
     item.casefold()
     for item in ("РезультатПродукции", "ЭтотУзел")
@@ -114,7 +117,7 @@ class _CanonicalBslGenerator:
         self._source = source
         self._ir = parser_ir
         self._entrypoints = entrypoints
-        self._conditions = CanonicalConditionRenderer(
+        self._decisions = CanonicalDecisionRenderer(
             parser_ir.matcher_definitions
         )
         self._temporary = 0
@@ -220,7 +223,11 @@ class _CanonicalBslGenerator:
                 raise ValueError(
                     f"ABI parameter {parameter!r} collides with declared parameter"
                 )
-            if key in _GENERATED_LOCALS or _TEMPORARY.fullmatch(parameter):
+            if (
+                key in _GENERATED_LOCALS
+                or _TEMPORARY.fullmatch(parameter)
+                or _DECISION_TOKEN.fullmatch(parameter)
+            ):
                 raise ValueError(
                     f"ABI parameter {parameter!r} collides with generated local"
                 )
@@ -239,7 +246,11 @@ class _CanonicalBslGenerator:
                     f"production {production.name!r} has duplicate "
                     f"formal parameter {parameter!r}"
                 )
-            if key in _GENERATED_LOCALS or _TEMPORARY.fullmatch(parameter):
+            if (
+                key in _GENERATED_LOCALS
+                or _TEMPORARY.fullmatch(parameter)
+                or _DECISION_TOKEN.fullmatch(parameter)
+            ):
                 raise ValueError(
                     f"production {production.name!r} formal parameter "
                     f"{parameter!r} collides with generated local"
@@ -247,11 +258,12 @@ class _CanonicalBslGenerator:
             observed.add(key)
 
     def _validate_decision(self, decision) -> None:
-        for row in decision.rows:
-            if len(row.matchers) > self._ir.lookahead:
-                raise ValueError(
-                    "canonical decision exceeds Parser IR lookahead"
-                )
+        if decision.source.lookahead > self._ir.lookahead:
+            raise ValueError(
+                "canonical decision exceeds Parser IR lookahead"
+            )
+        if decision.dag.lookahead != decision.source.lookahead:
+            raise ValueError("canonical decision DAG lookahead differs")
 
     def _validate_generated_symbols(
         self,
@@ -337,26 +349,35 @@ class _CanonicalBslGenerator:
                 )
             )
         else:
-            for position, alternative in enumerate(production.alternatives):
-                keyword = "Если" if position == 0 else "ИначеЕсли"
-                condition = self._conditions.for_alternative_with_unique_first(
-                    production.decision,
-                    alternative.index + 1,
-                )
-                lines.append(f"\t{keyword} {condition} Тогда")
-                lines.extend(
-                    self._render_alternative(
-                        alternative,
-                        "\t\t",
-                        production.name,
+            alternatives_by_outcome = {
+                AlternativeOutcome(production.name, alternative.index + 1):
+                    alternative
+                for alternative in production.alternatives
+            }
+
+            def render_leaf(leaf, indent: str) -> list[str]:
+                if isinstance(leaf, ImmediateError):
+                    return [self._syntax_error_line(indent, production.name)]
+                if isinstance(leaf, ExitDecision):
+                    raise ValueError("production decision must not exit")
+                assert isinstance(leaf, CommitAlternative)
+                alternative = alternatives_by_outcome.get(leaf.outcome)
+                if alternative is None:
+                    raise ValueError(
+                        "production decision references unknown outcome"
                     )
+                return self._render_alternative(
+                    alternative,
+                    indent,
+                    production.name,
                 )
+
             lines.extend(
-                (
-                    "\tИначе",
-                    "\t\tВызватьИсключениеСинтаксическаяОшибка("
-                    f"{bsl_string(production.name)});",
-                    "\tКонецЕсли;",
+                self._decisions.render(
+                    production.decision,
+                    indent="\t",
+                    token_prefix="ТокенРешения",
+                    render_leaf=render_leaf,
                 )
             )
         lines.extend(("\tВозврат РезультатПродукции;", "КонецФункции"))
@@ -647,32 +668,37 @@ class _CanonicalBslGenerator:
         indent: str,
         error_label: str,
     ) -> tuple[list[str], str]:
-        lines: list[str] = []
-        result: str | None = None
-        for position, branch in enumerate(dispatch.branches):
-            keyword = "Если" if position == 0 else "ИначеЕсли"
-            condition = self._conditions.for_alternative_with_unique_first(
-                dispatch.decision,
-                branch.alternative,
-            )
+        if not dispatch.branches:
+            raise ValueError("value dispatch must have at least one branch")
+        result = self._new_temporary()
+        branches_by_outcome = {
+            branch.outcome: branch for branch in dispatch.branches
+        }
+
+        def render_leaf(leaf, leaf_indent: str) -> list[str]:
+            if isinstance(leaf, ImmediateError):
+                return [self._syntax_error_line(leaf_indent, error_label)]
+            if isinstance(leaf, ExitDecision):
+                raise ValueError("value dispatch must not exit")
+            assert isinstance(leaf, CommitAlternative)
+            branch = branches_by_outcome.get(leaf.outcome)
+            if branch is None:
+                raise ValueError("value dispatch references unknown outcome")
             branch_lines, branch_result = self._render_bound_value(
                 branch.value,
-                indent + "\t",
+                leaf_indent,
                 error_label,
             )
-            if result is None:
-                result = self._new_temporary()
-            lines.append(f"{indent}{keyword} {condition} Тогда")
-            lines.extend(branch_lines)
-            lines.append(f"{indent}\t{result} = {branch_result};")
-        if result is None:
-            raise ValueError("value dispatch must have at least one branch")
-        lines.extend(
-            (
-                f"{indent}Иначе",
-                self._syntax_error_line(indent + "\t", error_label),
-                f"{indent}КонецЕсли;",
+            branch_lines.append(
+                f"{leaf_indent}{result} = {branch_result};"
             )
+            return branch_lines
+
+        lines = self._decisions.render(
+            dispatch.decision,
+            indent=indent,
+            token_prefix="ТокенРешения",
+            render_leaf=render_leaf,
         )
         return lines, result
 
@@ -689,58 +715,39 @@ class _CanonicalBslGenerator:
             indent,
             error_label,
         )
-        alternatives = tuple(
-            branch.alternative
-            for branch in fold.recursive_branches
-        )
-        consume_condition = self._conditions.for_alternatives_with_unique_first(
-            fold.recursive_decision,
-            alternatives,
-        )
-        lines.append(f"{indent}Пока {consume_condition} Цикл")
-        self._fold_left_values.append(accumulator)
-        try:
-            if len(fold.recursive_branches) == 1:
-                lines.extend(
-                    self._render_left_fold_recursive_branch(
-                        fold.recursive_branches[0],
-                        accumulator,
-                        indent + "\t",
-                        error_label,
-                    )
+        branches_by_outcome = {
+            branch.outcome: branch for branch in fold.recursive_branches
+        }
+
+        def render_leaf(leaf, leaf_indent: str) -> list[str]:
+            if isinstance(leaf, ImmediateError):
+                return [self._syntax_error_line(leaf_indent, error_label)]
+            if isinstance(leaf, ExitDecision):
+                return [f"{leaf_indent}Прервать;"]
+            assert isinstance(leaf, CommitAlternative)
+            branch = branches_by_outcome.get(leaf.outcome)
+            if branch is None:
+                raise ValueError("left fold references unknown outcome")
+            self._fold_left_values.append(accumulator)
+            try:
+                return self._render_left_fold_recursive_branch(
+                    branch,
+                    accumulator,
+                    leaf_indent,
+                    error_label,
                 )
-            else:
-                for position, branch in enumerate(
-                    fold.recursive_branches
-                ):
-                    keyword = "Если" if position == 0 else "ИначеЕсли"
-                    condition = self._conditions.for_alternative_with_unique_first(
-                        fold.recursive_decision,
-                        branch.alternative,
-                    )
-                    lines.append(
-                        f"{indent}\t{keyword} {condition} Тогда"
-                    )
-                    lines.extend(
-                        self._render_left_fold_recursive_branch(
-                            branch,
-                            accumulator,
-                            indent + "\t\t",
-                            error_label,
-                        )
-                    )
-                lines.extend(
-                    (
-                        f"{indent}\tИначе",
-                        self._syntax_error_line(
-                            indent + "\t\t",
-                            error_label,
-                        ),
-                        f"{indent}\tКонецЕсли;",
-                    )
-                )
-        finally:
-            self._fold_left_values.pop()
+            finally:
+                self._fold_left_values.pop()
+
+        lines.append(f"{indent}Пока Истина Цикл")
+        lines.extend(
+            self._decisions.render(
+                fold.recursive_decision,
+                indent=indent + "\t",
+                token_prefix="ТокенРешения",
+                render_leaf=render_leaf,
+            )
+        )
         lines.append(f"{indent}КонецЦикла;")
         return lines, accumulator
 
@@ -763,30 +770,32 @@ class _CanonicalBslGenerator:
                 error_label,
             )
 
-        lines: list[str] = []
-        for position, branch in enumerate(fold.base_branches):
-            keyword = "Если" if position == 0 else "ИначеЕсли"
-            condition = self._conditions.for_alternative_with_unique_first(
-                fold.base_decision,
-                branch.alternative,
+        branches_by_outcome = {
+            branch.outcome: branch for branch in fold.base_branches
+        }
+
+        def render_leaf(leaf, leaf_indent: str) -> list[str]:
+            if isinstance(leaf, ImmediateError):
+                return [self._syntax_error_line(leaf_indent, error_label)]
+            if isinstance(leaf, ExitDecision):
+                raise ValueError("left-fold base decision must not exit")
+            assert isinstance(leaf, CommitAlternative)
+            branch = branches_by_outcome.get(leaf.outcome)
+            if branch is None:
+                raise ValueError("left-fold base references unknown outcome")
+            return self._render_left_fold_base_branch(
+                branch,
+                accumulator,
+                leaf_indent,
+                error_label,
             )
-            lines.append(f"{indent}{keyword} {condition} Тогда")
-            lines.extend(
-                self._render_left_fold_base_branch(
-                    branch,
-                    accumulator,
-                    indent + "\t",
-                    error_label,
-                )
-            )
-        lines.extend(
-            (
-                f"{indent}Иначе",
-                self._syntax_error_line(indent + "\t", error_label),
-                f"{indent}КонецЕсли;",
-            )
+
+        return self._decisions.render(
+            fold.base_decision,
+            indent=indent,
+            token_prefix="ТокенРешения",
+            render_leaf=render_leaf,
         )
-        return lines
 
     def _render_left_fold_base_branch(
         self,
@@ -858,35 +867,40 @@ class _CanonicalBslGenerator:
         error_label: str,
     ) -> tuple[list[str], str | None]:
         result = self._branch_result_temporary(dispatch.branches)
-        lines: list[str] = []
-        for position, branch in enumerate(dispatch.branches):
-            keyword = "Если" if position == 0 else "ИначеЕсли"
-            condition = self._conditions.for_alternative_with_unique_first(
-                dispatch.decision,
-                branch.alternative,
-            )
-            lines.append(f"{indent}{keyword} {condition} Тогда")
+        branches_by_outcome = {
+            branch.outcome: branch for branch in dispatch.branches
+        }
+
+        def render_leaf(leaf, leaf_indent: str) -> list[str]:
+            if isinstance(leaf, ImmediateError):
+                return [self._syntax_error_line(leaf_indent, error_label)]
+            if isinstance(leaf, ExitDecision):
+                raise ValueError("dispatch must not exit")
+            assert isinstance(leaf, CommitAlternative)
+            branch = branches_by_outcome.get(leaf.outcome)
+            if branch is None:
+                raise ValueError("dispatch references unknown outcome")
             branch_lines, values = self._render_operations(
                 branch.operations,
-                indent + "\t",
+                leaf_indent,
                 error_label,
                 required_result_index=(
                     branch.result_index if result is not None else None
                 ),
             )
-            lines.extend(branch_lines)
             if result is not None:
                 assert branch.result_index is not None
                 value = values[branch.result_index]
                 if value is None:
                     raise ValueError("dispatch branch result has no value")
-                lines.append(f"{indent}\t{result} = {value};")
-        lines.extend(
-            (
-                f"{indent}Иначе",
-                self._syntax_error_line(indent + "\t", error_label),
-                f"{indent}КонецЕсли;",
-            )
+                branch_lines.append(f"{leaf_indent}{result} = {value};")
+            return branch_lines
+
+        lines = self._decisions.render(
+            dispatch.decision,
+            indent=indent,
+            token_prefix="ТокенРешения",
+            render_leaf=render_leaf,
         )
         return lines, result
 
@@ -897,40 +911,50 @@ class _CanonicalBslGenerator:
         error_label: str,
     ) -> tuple[list[str], str | None]:
         result = self._branch_result_temporary(optional.branches)
-        lines: list[str] = []
-        for position, branch in enumerate(optional.branches):
-            keyword = "Если" if position == 0 else "ИначеЕсли"
-            condition = self._conditions.for_alternative_with_unique_first(
-                optional.decision,
-                branch.alternative,
-            )
-            lines.append(f"{indent}{keyword} {condition} Тогда")
+        branches_by_outcome = {
+            branch.outcome: branch for branch in optional.branches
+        }
+
+        def render_leaf(leaf, leaf_indent: str) -> list[str]:
+            if isinstance(leaf, ImmediateError):
+                return [self._syntax_error_line(leaf_indent, error_label)]
+            if isinstance(leaf, ExitDecision):
+                exit_lines, _ = self._render_operations(
+                    optional.exit_operations,
+                    leaf_indent,
+                    error_label,
+                )
+                if result is not None:
+                    exit_lines.append(
+                        f"{leaf_indent}{result} = Неопределено;"
+                    )
+                return exit_lines
+            assert isinstance(leaf, CommitAlternative)
+            branch = branches_by_outcome.get(leaf.outcome)
+            if branch is None:
+                raise ValueError("optional references unknown outcome")
             branch_lines, values = self._render_operations(
                 branch.operations,
-                indent + "\t",
+                leaf_indent,
                 error_label,
                 required_result_index=(
                     branch.result_index if result is not None else None
                 ),
             )
-            lines.extend(branch_lines)
             if result is not None:
                 assert branch.result_index is not None
                 value = values[branch.result_index]
                 if value is None:
                     raise ValueError("optional branch result has no value")
-                lines.append(f"{indent}\t{result} = {value};")
-        if optional.exit_operations or result is not None:
-            lines.append(f"{indent}Иначе")
-            exit_lines, _ = self._render_operations(
-                optional.exit_operations,
-                indent + "\t",
-                error_label,
-            )
-            lines.extend(exit_lines)
-            if result is not None:
-                lines.append(f"{indent}\t{result} = Неопределено;")
-        lines.append(f"{indent}КонецЕсли;")
+                branch_lines.append(f"{leaf_indent}{result} = {value};")
+            return branch_lines
+
+        lines = self._decisions.render(
+            optional.decision,
+            indent=indent,
+            token_prefix="ТокенРешения",
+            render_leaf=render_leaf,
+        )
         return lines, result
 
     def _render_wrap_optional(
@@ -949,37 +973,51 @@ class _CanonicalBslGenerator:
         accumulator = self._new_temporary()
         lines = [*seed_lines, f"{indent}{accumulator} = {seed_value};"]
         validate_bsl_member_name(optional.property, "wrapped property")
-        for position, branch in enumerate(optional.branches):
-            keyword = "Если" if position == 0 else "ИначеЕсли"
-            condition = self._conditions.for_alternative_with_unique_first(
-                optional.decision,
-                branch.alternative,
-            )
-            lines.append(f"{indent}{keyword} {condition} Тогда")
+        branches_by_outcome = {
+            branch.outcome: branch for branch in optional.branches
+        }
+
+        def render_leaf(leaf, leaf_indent: str) -> list[str]:
+            if isinstance(leaf, ImmediateError):
+                return [self._syntax_error_line(leaf_indent, error_label)]
+            if isinstance(leaf, ExitDecision):
+                return []
+            assert isinstance(leaf, CommitAlternative)
+            branch = branches_by_outcome.get(leaf.outcome)
+            if branch is None:
+                raise ValueError("wrapped optional references unknown outcome")
             assert branch.result_index is not None
             branch_lines, values = self._render_operations(
                 branch.operations,
-                indent + "\t",
+                leaf_indent,
                 error_label,
                 required_result_index=branch.result_index,
             )
-            lines.extend(branch_lines)
             wrapped = values[branch.result_index]
             if wrapped is None:
                 raise ValueError(
                     "returned-child decorator branch has no value"
                 )
-            lines.extend(
+            branch_lines.extend(
                 (
                     (
-                        f"{indent}\t{wrapped}.{optional.property}.Вставить(0, {accumulator});"
+                        f"{leaf_indent}{wrapped}.{optional.property}.Вставить(0, {accumulator});"
                         if optional.prepend
-                        else f"{indent}\t{wrapped}.{optional.property} = {accumulator};"
+                        else f"{leaf_indent}{wrapped}.{optional.property} = {accumulator};"
                     ),
-                    f"{indent}\t{accumulator} = {wrapped};",
+                    f"{leaf_indent}{accumulator} = {wrapped};",
                 )
             )
-        lines.append(f"{indent}КонецЕсли;")
+            return branch_lines
+
+        lines.extend(
+            self._decisions.render(
+                optional.decision,
+                indent=indent,
+                token_prefix="ТокенРешения",
+                render_leaf=render_leaf,
+            )
+        )
         return lines, accumulator
 
     def _render_wrap_value(
@@ -1021,45 +1059,35 @@ class _CanonicalBslGenerator:
         indent: str,
         error_label: str,
     ) -> tuple[list[str], None]:
-        alternatives = tuple(
-            branch.alternative
-            for branch in repeat.branches
-        )
-        consume_condition = self._conditions.for_alternatives_with_unique_first(
-            repeat.decision,
-            alternatives,
-        )
-        lines = [f"{indent}Пока {consume_condition} Цикл"]
-        if len(repeat.branches) == 1:
+        branches_by_outcome = {
+            branch.outcome: branch for branch in repeat.branches
+        }
+
+        def render_leaf(leaf, leaf_indent: str) -> list[str]:
+            if isinstance(leaf, ImmediateError):
+                return [self._syntax_error_line(leaf_indent, error_label)]
+            if isinstance(leaf, ExitDecision):
+                return [f"{leaf_indent}Прервать;"]
+            assert isinstance(leaf, CommitAlternative)
+            branch = branches_by_outcome.get(leaf.outcome)
+            if branch is None:
+                raise ValueError("repeat references unknown outcome")
             body, _ = self._render_operations(
-                repeat.branches[0].operations,
-                indent + "\t",
+                branch.operations,
+                leaf_indent,
                 error_label,
             )
-            lines.extend(body)
-        else:
-            for position, branch in enumerate(repeat.branches):
-                keyword = "Если" if position == 0 else "ИначеЕсли"
-                condition = self._conditions.for_alternative_with_unique_first(
-                    repeat.decision,
-                    branch.alternative,
-                )
-                lines.append(
-                    f"{indent}\t{keyword} {condition} Тогда"
-                )
-                body, _ = self._render_operations(
-                    branch.operations,
-                    indent + "\t\t",
-                    error_label,
-                )
-                lines.extend(body)
-            lines.extend(
-                (
-                    f"{indent}\tИначе",
-                    self._syntax_error_line(indent + "\t\t", error_label),
-                    f"{indent}\tКонецЕсли;",
-                )
+            return body
+
+        lines = [f"{indent}Пока Истина Цикл"]
+        lines.extend(
+            self._decisions.render(
+                repeat.decision,
+                indent=indent + "\t",
+                token_prefix="ТокенРешения",
+                render_leaf=render_leaf,
             )
+        )
         lines.append(f"{indent}КонецЦикла;")
         return lines, None
 
