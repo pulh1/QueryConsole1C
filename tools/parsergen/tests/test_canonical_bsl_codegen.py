@@ -90,6 +90,25 @@ class CanonicalBslCodegenTests(unittest.TestCase):
         )
         self.assertNotIn("НомерВариантаПродукции", generated.module_text)
 
+    def test_canonical_syntax_errors_preserve_token_type_and_coordinates(
+        self,
+    ) -> None:
+        module = _build("<S> ::= ITEM").module_text
+
+        self.assertIn(
+            '"{(%1, %2)}: Синтаксическая ошибка. '
+            'Неожиданный токен ""%3"""',
+            module,
+        )
+        self.assertIn("ТекущийТокен.НомерСтроки", module)
+        self.assertIn("ТекущийТокен.НомерСимвола", module)
+        self.assertIn("ТекущийТокен.Тип", module)
+        self.assertNotIn(
+            '"Синтаксическая ошибка. Неожиданный токен " '
+            "+ ТекущийТокен.Лексема",
+            module,
+        )
+
     def test_preserves_entrypoint_and_identifier_definition_order(self) -> None:
         generated = _build(
             "#ID_Name ::= ID | WORD\n"

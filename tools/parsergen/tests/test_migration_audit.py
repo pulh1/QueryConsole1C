@@ -211,8 +211,8 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["generated"],
             {
-                "bsl_functions": 79,
-                "bsl_loc": 2194,
+                "bsl_functions": 78,
+                "bsl_loc": 2105,
                 "constructor_names": 79,
                 "select_rows": 0,
                 "identifier_rows": 276,

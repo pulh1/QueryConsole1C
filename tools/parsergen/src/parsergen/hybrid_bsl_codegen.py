@@ -3,8 +3,12 @@ from __future__ import annotations
 from collections.abc import Collection, Mapping
 
 from .analysis import AnalysisResult
-from .bsl_codegen import BslGenerator, GeneratedParser
-from .canonical_bsl_codegen import generate_canonical_functions
+from .bsl_codegen import BslGenerator
+from .canonical_bsl_codegen import (
+    generate_canonical_functions,
+    generate_canonical_parser,
+)
+from .generated_parser import GeneratedParser, empty_select_table
 from .lowering import LoweringResult
 from .model import Grammar
 from .parser_ir import ParserIr
@@ -80,15 +84,24 @@ def generate_hybrid_parser(
             "legacy island owns synthetic CFG production: " + formatted
         )
 
+    if full_canonical_ownership:
+        canonical = generate_canonical_parser(
+            source,
+            parser_ir,
+            entrypoints,
+        )
+        return GeneratedParser(
+            canonical.module_text,
+            empty_select_table(analysis.k),
+            canonical.identifier_table,
+            canonical.constructor_names,
+        )
+
     canonical = generate_canonical_functions(
         source,
         parser_ir,
-        abi_parameters=()
-        if full_canonical_ownership
-        else _LEGACY_ABI,
-        call_argument_prefix=()
-        if full_canonical_ownership
-        else _LEGACY_CALL_PREFIX,
+        abi_parameters=_LEGACY_ABI,
+        call_argument_prefix=_LEGACY_CALL_PREFIX,
     )
     overrides = _split_function_fragment(
         canonical.module_fragment.replace(
@@ -113,7 +126,6 @@ def generate_hybrid_parser(
         matcher_productions=legacy_productions,
         additional_constructor_names=canonical.constructor_names,
         allow_synthetic_cfg=True,
-        legacy_entrypoint_abi=not full_canonical_ownership,
     ).generate()
 
 

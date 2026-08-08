@@ -202,7 +202,11 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
                     ),
                     1,
                 )
-        self.assertIn("ВызватьИсключениеCanonicalСинтаксическаяОшибка", function)
+        self.assertIn(
+            "ВызватьИсключениеСинтаксическаяОшибка",
+            function,
+        )
+        self.assertNotIn("CanonicalСинтаксическаяОшибка", function)
         self.assertNotIn("ТекущийЭлемент", function)
         self.assertNotIn("НомерВариантаПродукции", function)
 

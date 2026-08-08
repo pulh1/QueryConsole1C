@@ -9,7 +9,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from .bsl_codegen import GeneratedParser
+from .generated_parser import GeneratedParser
 from .value_table_codec import decode_value_table, encode_value_table
 
 

@@ -66,6 +66,16 @@ class HybridBslCodegenTests(unittest.TestCase):
         self.assertIn("Функция НеТерминалItem()", generated.module_text)
         self.assertIn("Результат = НеТерминалS();", generated.module_text)
         self.assertIn("Результат = НеТерминалItem();", generated.module_text)
+        self.assertNotIn(
+            "ТаблицаПервыхСимволовВариантов",
+            generated.module_text,
+        )
+        self.assertNotIn("НомерВариантаПродукции", generated.module_text)
+        self.assertNotIn("ПоследняяПродукция", generated.module_text)
+        self.assertNotIn(
+            "ВызватьИсключениеНеУдалосьВыпполнитьРазбор",
+            generated.module_text,
+        )
         self.assertEqual(generated.select_table.rows, ())
 
     def test_canonical_call_to_legacy_island_preserves_legacy_abi_slots(
@@ -94,6 +104,7 @@ class HybridBslCodegenTests(unittest.TestCase):
             "НеТерминалItem(Неопределено, Неопределено, Owner)",
             function,
         )
+        self.assertIn("НомерВариантаПродукции", generated.module_text)
 
     def test_links_legacy_canonical_legacy_calls_and_isolates_matcher_rows(
         self,

@@ -462,6 +462,10 @@ Legacy island        ──→ Legacy Adapter      ──→ compatibility funct
   nonterminal functions и entrypoint calls не содержат `Родитель`,
   `ЛевыйЭлемент` и фиктивных аргументов. Двухслотовый ABI остаётся только
   в partial-hybrid compatibility tests.
+- При полном canonical ownership production module генерируется standalone
+  canonical backend без вызова legacy `BslGenerator`, matcher artifact и
+  runtime dispatch helpers. Нейтральный generated-result contract сохраняет
+  пустой SELECT artifact только для текущего EDT metadata layout.
 - Каждый boundary покрывается migration contract tests.
 - После последнего island hybrid assembly становится чистым canonical parser.
 

@@ -14,10 +14,11 @@ from .analysis import (
     compute_analysis,
 )
 from .artifacts import compare_artifacts, render_artifacts, replace_artifacts
-from .bsl_codegen import GeneratedParser, generate_parser
+from .bsl_codegen import generate_parser
 from .config import ParsergenConfig, load_config
 from .diagnostics import Diagnostic, Severity
 from .grammar_parser import parse_grammar
+from .generated_parser import GeneratedParser
 from .hybrid_bsl_codegen import generate_hybrid_parser
 from .lowering import LoweringResult
 from .model import Grammar

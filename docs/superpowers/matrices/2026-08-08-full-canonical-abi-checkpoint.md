@@ -39,9 +39,9 @@ analysis remains the production decision contract; source lookahead stays at
   ABI slots where a canonical function calls a legacy island.
 - Production canonical functions, calls and entrypoints do not depend on that
   ABI.
-- The generated module still contains the legacy runtime shell helper while
-  its production SELECT table is empty. Removing that unused shell is a
-  separate cleanup package after equivalence and runtime gates.
+- Superseded by the subsequent full-canonical runtime checkpoint: production
+  BSL no longer contains the legacy runtime shell. The empty SELECT artifact
+  remains only to preserve the current EDT metadata layout.
 
 ## Automated evidence
 
