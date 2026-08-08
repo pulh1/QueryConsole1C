@@ -43,6 +43,7 @@ MIGRATED_PRODUCTIONS = (
     "ТипСсылочногоПоля",
     "ОперандВ",
     "ОператорСравнения",
+    "Отрицание",
     "ШаблонПодобия",
     "АрифметическоеВыражение",
     "Слагаемое",
@@ -700,7 +701,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 91)
+        self.assertEqual(len(parsed.source_grammar.productions), 90)
         self.assertEqual(len(parsed.grammar.productions), 136)
         self.assertNotIn(
             "КакОпционально",
@@ -1816,6 +1817,25 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertIn("НеТерминалПараметр()", pattern)
         self.assertNotIn("ТекущийЭлемент", pattern)
         self.assertNotIn("НомерВариантаПродукции", pattern)
+
+        negation = _generated_function(module, "Отрицание")
+        self.assertEqual(
+            negation.count(
+                "ЭлементыМоделиЗапроса.НовыйЛогическоеОтрицание("
+            ),
+            1,
+        )
+        self.assertEqual(negation.count("Пока "), 1)
+        self.assertIn(
+            "ЭтотУзел.Количество = ЭтотУзел.Количество + 1;",
+            negation,
+        )
+        self.assertNotIn("ТекущийЭлемент", negation)
+        self.assertNotIn("НомерВариантаПродукции", negation)
+        self.assertNotIn(
+            "Функция НеТерминалОтрицаниеПродолжение(",
+            module,
+        )
 
     def test_root_collection_lists_generate_loops_without_continuations(
         self,

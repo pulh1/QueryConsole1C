@@ -173,6 +173,13 @@ class ConcatScalar:
 
 
 @dataclass(frozen=True, slots=True)
+class IncrementScalar:
+    property: str
+    value: BoundValue
+    source_span: SourceSpan
+
+
+@dataclass(frozen=True, slots=True)
 class AssignConstant:
     property: str
     value: str
@@ -194,6 +201,7 @@ Operation = (
     | BindScalar
     | AppendCollection
     | ConcatScalar
+    | IncrementScalar
     | AssignConstant
     | ReturnConstant
     | LeftFold
@@ -752,7 +760,7 @@ class _ParserIrBuilder:
         self,
         binding: SourceBinding,
         value: BoundValue,
-    ) -> BindScalar | AppendCollection | ConcatScalar:
+    ) -> BindScalar | AppendCollection | ConcatScalar | IncrementScalar:
         kind = _binding_origin_kind(binding.mode)
         origin = self._binding_origin(binding.span, kind)
         if binding.mode is BindingMode.APPEND:
@@ -760,6 +768,9 @@ class _ParserIrBuilder:
         elif binding.mode is BindingMode.CONCAT:
             assert binding.property is not None
             operation = ConcatScalar
+        elif binding.mode is BindingMode.INCREMENT:
+            assert binding.property is not None
+            operation = IncrementScalar
         else:
             operation = BindScalar
         return operation(binding.property, value, origin.source_span)
@@ -888,4 +899,6 @@ def _binding_origin_kind(mode: BindingMode) -> BindingOriginKind:
         return BindingOriginKind.APPEND
     if mode is BindingMode.CONCAT:
         return BindingOriginKind.CONCAT
+    if mode is BindingMode.INCREMENT:
+        return BindingOriginKind.INCREMENT
     return BindingOriginKind.SCALAR

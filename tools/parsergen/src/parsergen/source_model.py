@@ -17,6 +17,7 @@ class BindingMode(StrEnum):
     SCALAR = "scalar"
     APPEND = "append"
     CONCAT = "concat"
+    INCREMENT = "increment"
 
 
 @dataclass(frozen=True, slots=True)

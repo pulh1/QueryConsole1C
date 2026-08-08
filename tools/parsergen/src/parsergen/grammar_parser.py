@@ -560,6 +560,21 @@ def _parse_source_sequence(
                 items.append(constant)
             continue
 
+        if pending_binding is None and body.startswith("++=", index):
+            _error(
+                bag,
+                "GP010",
+                "binding operator has no property",
+                _span(
+                    text,
+                    path,
+                    start_offset + index,
+                    start_offset + index + 3,
+                ),
+            )
+            index += 3
+            continue
+
         if pending_binding is None and body.startswith("+=", index):
             operator_span = _span(
                 text,
@@ -613,9 +628,13 @@ def _parse_source_sequence(
                     BindingMode.APPEND
                     if operator == "+="
                     else (
-                        BindingMode.CONCAT
-                        if operator == "~="
-                        else BindingMode.SCALAR
+                        BindingMode.INCREMENT
+                        if operator == "++="
+                        else (
+                            BindingMode.CONCAT
+                            if operator == "~="
+                            else BindingMode.SCALAR
+                        )
                     )
                 ),
                 symbol_start,
@@ -959,7 +978,7 @@ def _binding_prefix(
     operator_start = matched.end()
     while operator_start < len(text) and text[operator_start].isspace():
         operator_start += 1
-    for operator in ("+=", "~=", ":=", "="):
+    for operator in ("++=", "+=", "~=", ":=", "="):
         if text.startswith(operator, operator_start):
             return (
                 matched.group(0),

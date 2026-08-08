@@ -116,6 +116,23 @@ class CanonicalBslBindingTests(unittest.TestCase):
         self.assertIn('= Лексема(".");', loop)
         self.assertIn('= Идентификатор("ID_Name");', loop)
 
+    def test_scalar_increment_consumes_token_and_increments_inside_loop(self) -> None:
+        function = _function(
+            _build(
+                "<S> ::= @НовыйУзел NOT (Количество ++= NOT)* END",
+                k=2,
+            ).module_text,
+            "НеТерминалS",
+        )
+
+        loop = function.split("Пока ", 1)[1].split("КонецЦикла;", 1)[0]
+        self.assertIn('Терминал("NOT");', loop)
+        self.assertNotIn('= Терминал("NOT");', loop)
+        self.assertIn(
+            "ЭтотУзел.Количество = ЭтотУзел.Количество + 1;",
+            loop,
+        )
+
     def test_captures_terminal_identifier_and_constant_values(self) -> None:
         function = _function(
             _build(

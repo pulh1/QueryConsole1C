@@ -10,6 +10,7 @@ from parsergen.parser_ir import (
     ConcatScalar,
     Dispatch,
     DispatchValue,
+    IncrementScalar,
     OptionalBranch,
     ParseBranchValue,
     ParseSymbol,
@@ -152,6 +153,23 @@ class BindingParserIrTests(unittest.TestCase):
             [type(item) for item in loop.branches[0].operations],
             [ConcatScalar, ConcatScalar],
         )
+
+    def test_scalar_increment_is_explicit_inside_repeat(self) -> None:
+        parser_ir = _build(
+            "<S> ::= @НовыйУзел NOT (Количество ++= NOT)*"
+        )
+
+        operations = parser_ir.productions[0].alternatives[0].operations
+        self.assertEqual(
+            [type(item) for item in operations],
+            [ConstructNode, ParseSymbol, RepeatLoop],
+        )
+        loop = operations[2]
+        assert isinstance(loop, RepeatLoop)
+        increment = loop.branches[0].operations[0]
+        self.assertIsInstance(increment, IncrementScalar)
+        self.assertEqual(increment.property, "Количество")
+        self.assertIsInstance(increment.value, ParseSymbol)
 
     def test_terminal_identifier_and_constant_capture_are_parse_values(self) -> None:
         parser_ir = _build(

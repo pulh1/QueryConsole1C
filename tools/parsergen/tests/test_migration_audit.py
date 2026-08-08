@@ -103,6 +103,7 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "ТипСсылочногоПоля",
                 "ОперандВ",
                 "ОператорСравнения",
+                "Отрицание",
                 "ШаблонПодобия",
                 "АрифметическоеВыражение",
                 "Слагаемое",
@@ -142,19 +143,19 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["structural"],
             {
-                "source_productions": 91,
-                "source_alternatives": 213,
+                "source_productions": 90,
+                "source_alternatives": 211,
                 "productions": 136,
                 "alternatives": 298,
                 "epsilon_alternatives": 67,
                 "formal_parameters": 7,
                 "actual_arguments": 22,
-                "action_blocks": 105,
-                "statements": 118,
-                "constructor_statements": 18,
+                "action_blocks": 102,
+                "statements": 115,
+                "constructor_statements": 17,
                 "collection_statements": 10,
                 "constant_statements": 14,
-                "structural_statements": 73,
+                "structural_statements": 71,
                 "other_assignment_statements": 0,
                 "other_statements": 3,
             },
@@ -193,10 +194,10 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["generated"],
             {
-                "bsl_functions": 103,
-                "bsl_loc": 2488,
+                "bsl_functions": 102,
+                "bsl_loc": 2477,
                 "constructor_names": 78,
-                "select_rows": 2_090,
+                "select_rows": 2_087,
                 "identifier_rows": 276,
             },
         )
@@ -277,6 +278,7 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 '"ЛогическоеСлагаемое", '
                 '"ТипСсылочногоПоля", '
                 '"ОперандВ", "ОператорСравнения", '
+                '"Отрицание", '
                 '"ШаблонПодобия", '
                 '"АрифметическоеВыражение", "Слагаемое", '
                 '"УнарнаяОперация", "Множитель", "Операнд", '

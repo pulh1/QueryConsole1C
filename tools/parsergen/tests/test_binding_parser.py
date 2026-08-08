@@ -111,6 +111,22 @@ class BindingParserTests(unittest.TestCase):
             [BindingMode.CONCAT, BindingMode.CONCAT],
         )
 
+    def test_parses_scalar_increment_binding_inside_repeat(self) -> None:
+        result = parse_source_grammar(
+            "<S> ::= @НовыйУзел NOT (Количество ++= NOT)*"
+        )
+
+        self.assertEqual(result.diagnostics, ())
+        assert result.grammar is not None
+        repeat = result.grammar.productions[0].alternatives[0].body.items[2]
+        self.assertIsInstance(repeat, SourceRepeat)
+        assert isinstance(repeat, SourceRepeat)
+        assert isinstance(repeat.body, SourceGroup)
+        increment = repeat.body.alternatives[0].body.items[0]
+        self.assertIsInstance(increment, SourceBinding)
+        self.assertIs(increment.mode, BindingMode.INCREMENT)
+        self.assertEqual(increment.property, "Количество")
+
     def test_binding_captures_terminal_identifier_and_constant_tokens(self) -> None:
         result = parse_source_grammar(
             "<S> ::= @НовыйУзел "
@@ -172,6 +188,7 @@ class BindingParserTests(unittest.TestCase):
             "<S> ::= Значение =",
             "<S> ::= Значение *= <A>",
             "<S> ::= ~= <A>",
+            "<S> ::= ++= <A>",
             "<S> ::= Значение :=",
             "<S> ::= :=",
         )

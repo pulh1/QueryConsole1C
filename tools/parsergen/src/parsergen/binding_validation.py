@@ -172,6 +172,19 @@ class _BindingValidator:
                     binding.span,
                     binding.property,
                 )
+            elif (
+                mode is BindingMode.INCREMENT
+                and not isinstance(
+                    binding.value,
+                    (Constant, IdentifierRef, Lexeme, Terminal),
+                )
+            ):
+                self._add(
+                    "BIND209",
+                    "increment binding requires terminal or identifier value",
+                    binding.span,
+                    binding.property,
+                )
 
         for property_name, property_modes in modes.items():
             if len(property_modes) > 1:

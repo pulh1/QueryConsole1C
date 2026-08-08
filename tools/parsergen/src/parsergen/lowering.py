@@ -43,6 +43,8 @@ def _binding_origin_kind(mode: BindingMode) -> BindingOriginKind:
         return BindingOriginKind.APPEND
     if mode is BindingMode.CONCAT:
         return BindingOriginKind.CONCAT
+    if mode is BindingMode.INCREMENT:
+        return BindingOriginKind.INCREMENT
     return BindingOriginKind.SCALAR
 
 
@@ -58,6 +60,7 @@ class BindingOriginKind(StrEnum):
     SCALAR = "scalar"
     APPEND = "append"
     CONCAT = "concat"
+    INCREMENT = "increment"
     CONSTANT = "constant"
 
 

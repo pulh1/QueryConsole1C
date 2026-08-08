@@ -32,6 +32,7 @@ from .parser_ir import (
     Dispatch,
     DispatchValue,
     FoldLeftValue,
+    IncrementScalar,
     LeftFold,
     Operation,
     OptionalBranch,
@@ -453,6 +454,20 @@ class _CanonicalBslGenerator:
                 f"ЭтотУзел.{operation.property} + {expression};"
             )
             return lines, None
+        if isinstance(operation, IncrementScalar):
+            if not isinstance(operation.value, ParseSymbol):
+                raise ValueError(
+                    "increment binding requires a direct parse symbol"
+                )
+            validate_bsl_member_name(operation.property, "bound property")
+            return (
+                [
+                    f"{indent}{_symbol_call(operation.value.symbol)};",
+                    f"{indent}ЭтотУзел.{operation.property} = "
+                    f"ЭтотУзел.{operation.property} + 1;",
+                ],
+                None,
+            )
         if isinstance(operation, AssignConstant):
             validate_bsl_member_name(operation.property, "bound property")
             return (

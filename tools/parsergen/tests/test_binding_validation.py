@@ -128,6 +128,23 @@ class BindingValidationTests(unittest.TestCase):
             ["BIND207"],
         )
 
+    def test_accepts_repeated_scalar_increment_with_constructor(self) -> None:
+        report = _validate(
+            "<S> ::= @НовыйУзел NOT (Количество ++= NOT)*"
+        )
+
+        self.assertEqual(report.diagnostics, ())
+
+    def test_rejects_increment_of_structural_nonterminal_value(self) -> None:
+        report = _validate(
+            "<S> ::= @НовыйУзел Количество ++= <A>\n<A> ::= a"
+        )
+
+        self.assertEqual(
+            [item.code for item in report.diagnostics],
+            ["BIND209"],
+        )
+
     def test_rejects_invalid_constant_value(self) -> None:
         report = _validate("<S> ::= @НовыйУзел Флаг := Да")
 

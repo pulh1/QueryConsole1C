@@ -233,6 +233,7 @@ Constructor задаётся декларативно:
 Элементы += <Узел>      append to collection
 += <Узел>               append to constructed root collection
 Свойство ~= &Токен       concatenate token text to scalar property
+Свойство ++= Токен      consume token and increment numeric property
 Свойство = &Токен       terminal/token value
 Свойство := Истина      constant value
 Свойство := Типы.Все    enum/symbolic constant
@@ -284,6 +285,9 @@ Direct LR:
   в repeat и не смешивается с `=`/`+=` для одного property. На первой
   итерации использует factory default property; для production grammar это
   проверяется generated-parser/YAxUnit contract tests.
+- `++=` потребляет terminal/token и увеличивает numeric scalar property на
+  единицу. Binding разрешен в repeat, требует property и constructor и не
+  смешивается с другими binding modes того же property.
 - `:=` принимает только ограниченные literals или dotted symbolic constants,
   но не произвольный BSL.
 - `:=` без property возвращает разрешенную константу как semantic result
@@ -307,6 +311,7 @@ Validator проверяет:
 - binding без active constructor;
 - конфликтующие `=`, `+=` и `~=` одного property;
 - property-less `:=`, смешанный с constructor или другим semantic result;
+- `++=` для structural nonterminal или без active constructor;
 - scalar binding, способный вернуть несколько значений;
 - repeated binding без collection mode;
 - неоднозначный binding group;
