@@ -20,6 +20,14 @@ class BindingValidationTests(unittest.TestCase):
             ["BIND201"],
         )
 
+    def test_rejects_root_collection_binding_without_constructor(self) -> None:
+        report = _validate("<S> ::= += a")
+
+        self.assertEqual(
+            [item.code for item in report.diagnostics],
+            ["BIND201"],
+        )
+
     def test_rejects_binding_before_constructor_and_duplicate_constructor(
         self,
     ) -> None:
@@ -82,6 +90,13 @@ class BindingValidationTests(unittest.TestCase):
             "Элементы += b (',' Элементы += b)*"
         )
         report = _validate(source)
+
+        self.assertEqual(report.diagnostics, ())
+
+    def test_accepts_root_collection_append_with_constructor(self) -> None:
+        report = _validate(
+            "<S> ::= @НовыйСписок += a (',' += a)*"
+        )
 
         self.assertEqual(report.diagnostics, ())
 

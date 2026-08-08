@@ -160,7 +160,7 @@ class BindScalar:
 
 @dataclass(frozen=True, slots=True)
 class AppendCollection:
-    property: str
+    property: str | None
     value: BoundValue
     source_span: SourceSpan
 

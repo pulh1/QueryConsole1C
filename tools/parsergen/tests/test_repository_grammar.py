@@ -27,8 +27,10 @@ MIGRATED_PRODUCTIONS = (
     "ПрисоединяемаяТаблица",
     "ИсточникДанныхВременнаяТаблица",
     "ИсточникДанныхВложенныйЗапрос",
+    "СписокЭлементовУпорядочивания",
     "ЭлементУпорядочивания",
     "НаправлениеУпорядочивания",
+    "КонтрольныеТочкиИтогов",
     "КонтрольнаяТочкаИтогов",
     "ТипКонтрольнойТочки",
     "ТипПериодаИтогов",
@@ -694,7 +696,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 100)
+        self.assertEqual(len(parsed.source_grammar.productions), 98)
         self.assertEqual(len(parsed.grammar.productions), 138)
 
         resolution = resolve_grammar(parsed.grammar)
@@ -1727,6 +1729,83 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertIn("НеТерминалПараметр()", pattern)
         self.assertNotIn("ТекущийЭлемент", pattern)
         self.assertNotIn("НомерВариантаПродукции", pattern)
+
+    def test_root_collection_lists_generate_loops_without_continuations(
+        self,
+    ) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        selected = {
+            *MIGRATED_PRODUCTIONS,
+            "СписокЭлементовУпорядочивания",
+            "КонтрольныеТочкиИтогов",
+        }
+        canonical = tuple(
+            production.name
+            for production in parsed.source_grammar.productions
+            if production.name in selected
+        )
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=canonical,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=canonical,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        module = generated.module_text
+        for helper in (
+            "ПродолжениеСпискаЭлементовУпорядочивания",
+            "СписокКонтрольныхТочекОпциональное",
+        ):
+            with self.subTest(helper=helper):
+                self.assertNotIn(f"Функция НеТерминал{helper}(", module)
+
+        cases = (
+            (
+                "СписокЭлементовУпорядочивания",
+                "НовыйЭлементыПорядка",
+            ),
+            (
+                "КонтрольныеТочкиИтогов",
+                "НовыйКонтрольныеТочкиИтогов",
+            ),
+        )
+        for production, constructor in cases:
+            with self.subTest(production=production):
+                function = _generated_function(module, production)
+                self.assertEqual(
+                    function.count(
+                        f"ЭлементыМоделиЗапроса.{constructor}("
+                    ),
+                    1,
+                )
+                self.assertEqual(function.count("Пока "), 1)
+                self.assertEqual(function.count("ЭтотУзел.Добавить("), 2)
+                self.assertNotIn("ТекущийЭлемент", function)
+                self.assertNotIn("НомерВариантаПродукции", function)
 
     def test_select_field_package_generates_semantic_wrappers_and_bindings(
         self,

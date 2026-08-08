@@ -488,7 +488,7 @@ def _parse_source_sequence(
     items: list[SourceItem] = []
     epsilon_seen = False
     pending_binding: tuple[
-        str,
+        str | None,
         BindingMode,
         int,
         SourceSpan,
@@ -536,6 +536,22 @@ def _parse_source_sequence(
                 )
             )
             index = matched.end()
+            continue
+
+        if pending_binding is None and body.startswith("+=", index):
+            operator_span = _span(
+                text,
+                path,
+                start_offset + index,
+                start_offset + index + 2,
+            )
+            pending_binding = (
+                None,
+                BindingMode.APPEND,
+                symbol_start,
+                operator_span,
+            )
+            index += 2
             continue
 
         binding_prefix = (
@@ -774,7 +790,11 @@ def _parse_source_sequence(
         if primary is None:
             continue
         postfix_index = _next_nonspace(body, index)
-        if postfix_index is not None and body[postfix_index] in "*+?":
+        if (
+            postfix_index is not None
+            and body[postfix_index] in "*+?"
+            and not body.startswith("+=", postfix_index)
+        ):
             operator = body[postfix_index]
             operator_span = _span(
                 text,
@@ -809,6 +829,7 @@ def _parse_source_sequence(
             if (
                 repeated_index is not None
                 and body[repeated_index] in "*+?"
+                and not body.startswith("+=", repeated_index)
             ):
                 _error(
                     bag,

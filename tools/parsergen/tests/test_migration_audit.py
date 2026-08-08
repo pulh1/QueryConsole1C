@@ -87,8 +87,10 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "ПрисоединяемаяТаблица",
                 "ИсточникДанныхВременнаяТаблица",
                 "ИсточникДанныхВложенныйЗапрос",
+                "СписокЭлементовУпорядочивания",
                 "ЭлементУпорядочивания",
                 "НаправлениеУпорядочивания",
+                "КонтрольныеТочкиИтогов",
                 "КонтрольнаяТочкаИтогов",
                 "ТипКонтрольнойТочки",
                 "ТипПериодаИтогов",
@@ -136,19 +138,19 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["structural"],
             {
-                "source_productions": 100,
-                "source_alternatives": 230,
+                "source_productions": 98,
+                "source_alternatives": 226,
                 "productions": 138,
                 "alternatives": 302,
                 "epsilon_alternatives": 69,
                 "formal_parameters": 7,
                 "actual_arguments": 22,
-                "action_blocks": 131,
-                "statements": 146,
-                "constructor_statements": 23,
-                "collection_statements": 16,
+                "action_blocks": 123,
+                "statements": 138,
+                "constructor_statements": 21,
+                "collection_statements": 12,
                 "constant_statements": 14,
-                "structural_statements": 90,
+                "structural_statements": 88,
                 "other_assignment_statements": 0,
                 "other_statements": 3,
             },
@@ -202,10 +204,10 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["generated"],
             {
-                "bsl_functions": 112,
-                "bsl_loc": 2627,
+                "bsl_functions": 110,
+                "bsl_loc": 2595,
                 "constructor_names": 78,
-                "select_rows": 3_592,
+                "select_rows": 3_014,
                 "identifier_rows": 276,
             },
         )
@@ -273,8 +275,10 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 '"ПрисоединяемаяТаблица", '
                 '"ИсточникДанныхВременнаяТаблица", '
                 '"ИсточникДанныхВложенныйЗапрос", '
+                '"СписокЭлементовУпорядочивания", '
                 '"ЭлементУпорядочивания", '
                 '"НаправлениеУпорядочивания", '
+                '"КонтрольныеТочкиИтогов", '
                 '"КонтрольнаяТочкаИтогов", "ТипКонтрольнойТочки", '
                 '"ТипПериодаИтогов", '
                 '"Выражение", '

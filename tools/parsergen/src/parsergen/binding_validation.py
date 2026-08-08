@@ -43,7 +43,7 @@ class _BindingValidator:
     def __init__(self, grammar: SourceGrammar) -> None:
         self.grammar = grammar
         self.bag = DiagnosticBag()
-        self._reported: set[tuple[str, str, int]] = set()
+        self._reported: set[tuple[str, str | None, int]] = set()
 
     def run(self) -> tuple[Diagnostic, ...]:
         for production in self.grammar.productions:
@@ -116,7 +116,7 @@ class _BindingValidator:
                     earlier.span,
                 )
 
-        modes: dict[str, set[BindingMode]] = {}
+        modes: dict[str | None, set[BindingMode]] = {}
         for binding in bindings:
             mode = (
                 binding.mode
@@ -179,6 +179,7 @@ class _BindingValidator:
         for item in sequence.items:
             if isinstance(item, SourceBinding):
                 if item.mode is BindingMode.SCALAR:
+                    assert item.property is not None
                     if repeated:
                         self._add(
                             "BIND203",
@@ -257,7 +258,7 @@ class _BindingValidator:
         code: str,
         message: str,
         span: SourceSpan,
-        property_name: str = "",
+        property_name: str | None = "",
     ) -> None:
         key = (code, property_name, span.start.offset)
         if key in self._reported:

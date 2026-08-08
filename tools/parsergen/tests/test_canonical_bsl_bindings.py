@@ -70,6 +70,18 @@ class CanonicalBslBindingTests(unittest.TestCase):
         self.assertIn('Значение2 = Терминал("ITEM");', loop)
         self.assertIn("ЭтотУзел.Элементы.Добавить(Значение2);", loop)
 
+    def test_root_collection_binding_appends_to_constructed_value(self) -> None:
+        function = _function(
+            _build(
+                "<S> ::= @НовыйСписок += ITEM (',' += ITEM)* END",
+                k=2,
+            ).module_text,
+            "НеТерминалS",
+        )
+
+        self.assertEqual(function.count("ЭтотУзел.Добавить("), 2)
+        self.assertNotIn("ЭтотУзел..Добавить(", function)
+
     def test_captures_terminal_identifier_and_constant_values(self) -> None:
         function = _function(
             _build(

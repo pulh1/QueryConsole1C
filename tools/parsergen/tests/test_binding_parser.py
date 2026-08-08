@@ -65,6 +65,28 @@ class BindingParserTests(unittest.TestCase):
         self.assertIs(repeated.mode, BindingMode.APPEND)
         self.assertEqual(repeated.property, "Элементы")
 
+    def test_parses_root_collection_binding_inside_separator_repeat(self) -> None:
+        result = parse_source_grammar(
+            "<List> ::= @НовыйСписок += <Item> "
+            "(',' += <Item>)*\n<Item> ::= ITEM"
+        )
+
+        self.assertEqual(result.diagnostics, ())
+        assert result.grammar is not None
+        items = result.grammar.productions[0].alternatives[0].body.items
+        first = items[1]
+        self.assertIsInstance(first, SourceBinding)
+        self.assertIs(first.mode, BindingMode.APPEND)
+        self.assertIsNone(first.property)
+        repeat = items[2]
+        self.assertIsInstance(repeat, SourceRepeat)
+        assert isinstance(repeat, SourceRepeat)
+        assert isinstance(repeat.body, SourceGroup)
+        repeated = repeat.body.alternatives[0].body.items[1]
+        self.assertIsInstance(repeated, SourceBinding)
+        self.assertIs(repeated.mode, BindingMode.APPEND)
+        self.assertIsNone(repeated.property)
+
     def test_binding_captures_terminal_identifier_and_constant_tokens(self) -> None:
         result = parse_source_grammar(
             "<S> ::= @НовыйУзел "
@@ -110,6 +132,7 @@ class BindingParserTests(unittest.TestCase):
         cases = (
             "<S> ::= @",
             "<S> ::= = <A>",
+            "<S> ::= @НовыйСписок +=",
             "<S> ::= Значение =",
             "<S> ::= Значение *= <A>",
             "<S> ::= Значение :=",

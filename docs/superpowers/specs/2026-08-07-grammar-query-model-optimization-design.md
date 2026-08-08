@@ -231,6 +231,7 @@ Constructor задаётся декларативно:
 ```text
 Свойство = <Узел>       scalar/optional assignment
 Элементы += <Узел>      append to collection
++= <Узел>               append to constructed root collection
 Свойство = &Токен       terminal/token value
 Свойство := Истина      constant value
 Свойство := Типы.Все    enum/symbolic constant
@@ -241,8 +242,8 @@ Constructor задаётся декларативно:
 ```text
 <Поля> ::=
     @НовыйВыбираемыеПоля
-    Элементы += <Поле>
-    (',' Элементы += <Поле>)*
+    += <Поле>
+    (',' += <Поле>)*
 ```
 
 Optional properties:
@@ -274,6 +275,8 @@ Direct LR:
 - `=` присваивает одно значение либо `Неопределено` для отсутствующего
   optional.
 - `+=` добавляет каждое значение в collection property.
+- `+=` без property добавляет значение непосредственно в constructed root
+  collection; scalar root binding не поддерживается.
 - `:=` принимает только ограниченные literals или dotted symbolic constants,
   но не произвольный BSL.
 - Constructor recursive alternative вызывается один раз на итерацию left fold.

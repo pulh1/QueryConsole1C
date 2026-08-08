@@ -60,7 +60,7 @@ class SourceConstructor:
 
 @dataclass(frozen=True, slots=True)
 class SourceBinding:
-    property: str
+    property: str | None
     mode: BindingMode
     value: SourceValue
     span: SourceSpan

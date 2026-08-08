@@ -478,25 +478,31 @@ class _CanonicalBslGenerator:
 
     def _render_binding(
         self,
-        property_name: str,
+        property_name: str | None,
         value: BoundValue,
         indent: str,
         error_label: str,
         *,
         append: bool,
     ) -> tuple[list[str], None]:
-        validate_bsl_member_name(property_name, "bound property")
         lines, expression = self._render_bound_value(
             value,
             indent,
             error_label,
         )
         if append:
-            lines.append(
-                f"{indent}ЭтотУзел.{property_name}."
-                f"Добавить({expression});"
-            )
+            if property_name is None:
+                lines.append(f"{indent}ЭтотУзел.Добавить({expression});")
+            else:
+                validate_bsl_member_name(property_name, "bound property")
+                lines.append(
+                    f"{indent}ЭтотУзел.{property_name}."
+                    f"Добавить({expression});"
+                )
         else:
+            if property_name is None:
+                raise ValueError("scalar root binding is not supported")
+            validate_bsl_member_name(property_name, "bound property")
             lines.append(
                 f"{indent}ЭтотУзел.{property_name} = {expression};"
             )
