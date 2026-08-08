@@ -158,3 +158,101 @@ def canonical_matcher_definitions(
         )
         for matcher_id in compressed.matcher_definition_order
     )
+
+
+def intersect_languages(
+    left: SymbolicLanguage,
+    right: SymbolicLanguage,
+) -> SymbolicLanguage:
+    indexed = {(left.root, right.root): 0}
+    pending = [(left.root, right.root)]
+    nodes: list[SymbolicLanguageNode | None] = [None]
+
+    while pending:
+        left_state, right_state = pending.pop(0)
+        node_index = indexed[(left_state, right_state)]
+        targets: dict[int, set[str]] = {}
+        for left_edge in left.nodes[left_state].edges:
+            left_tokens = frozenset(left_edge.predicate.token_types)
+            for right_edge in right.nodes[right_state].edges:
+                token_types = left_tokens.intersection(
+                    right_edge.predicate.token_types
+                )
+                if not token_types:
+                    continue
+                target_key = (left_edge.target, right_edge.target)
+                target = indexed.get(target_key)
+                if target is None:
+                    target = len(nodes)
+                    indexed[target_key] = target
+                    nodes.append(None)
+                    pending.append(target_key)
+                targets.setdefault(target, set()).update(token_types)
+        nodes[node_index] = SymbolicLanguageNode(
+            left.nodes[left_state].accepting
+            and right.nodes[right_state].accepting,
+            tuple(
+                SymbolicLanguageEdge(
+                    TokenSetPredicate(tuple(sorted(token_types))),
+                    target,
+                )
+                for target, token_types in sorted(
+                    targets.items(),
+                    key=lambda item: (tuple(sorted(item[1])), item[0]),
+                )
+            ),
+        )
+
+    return SymbolicLanguage(
+        0,
+        tuple(node for node in nodes if node is not None),
+    )
+
+
+def _language_is_empty(language: SymbolicLanguage) -> bool:
+    pending = [language.root]
+    visited: set[int] = set()
+    while pending:
+        node_index = pending.pop()
+        if node_index in visited:
+            continue
+        visited.add(node_index)
+        node = language.nodes[node_index]
+        if node.accepting:
+            return False
+        pending.extend(edge.target for edge in node.edges)
+    return True
+
+
+def specialize_outcome(
+    source: CanonicalDecisionSource,
+    outcome: CanonicalOutcome,
+    callee: CanonicalDecisionSource,
+) -> CanonicalDecisionSource:
+    if source.lookahead != callee.lookahead:
+        raise ValueError("caller and callee lookahead must match")
+    matching = tuple(
+        item for item in source.languages if item.outcome == outcome
+    )
+    if len(matching) != 1:
+        raise ValueError("specialized outcome must exist exactly once")
+    caller_language = matching[0].language
+    languages: list[OutcomeLanguage] = []
+    for item in source.languages:
+        if item.outcome != outcome:
+            languages.append(item)
+            continue
+        for callee_item in callee.languages:
+            intersection = intersect_languages(
+                caller_language,
+                callee_item.language,
+            )
+            if not _language_is_empty(intersection):
+                languages.append(
+                    OutcomeLanguage(callee_item.outcome, intersection)
+                )
+    return CanonicalDecisionSource(
+        source.production,
+        source.lookahead,
+        tuple(languages),
+    )

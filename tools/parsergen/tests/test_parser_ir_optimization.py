@@ -225,7 +225,6 @@ class _ActionTraceEvaluator:
 
     def _parse(self, symbol):
         if isinstance(symbol, NonterminalCall):
-            self.trace.append(("parse", symbol.name))
             return self._production(symbol.name)
         if isinstance(symbol, (Terminal, Lexeme)):
             expected = symbol.token_type if isinstance(symbol, Terminal) else symbol.text

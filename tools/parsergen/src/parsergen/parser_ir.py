@@ -309,13 +309,16 @@ def build_parser_ir(
         if entrypoint_productions is None
         else entrypoint_productions
     )
-    return _ParserIrBuilder(
+    parser_ir = _ParserIrBuilder(
         source,
         lowering,
         analysis,
         frozenset(selected_names),
         protected_entrypoints,
     ).build()
+    from .parser_ir_optimization import optimize_parser_ir
+
+    return optimize_parser_ir(parser_ir)
 
 
 def _selected_production_names(

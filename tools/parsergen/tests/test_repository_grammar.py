@@ -1066,6 +1066,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             resolution.grammar,
             analysis,
             production_names=MIGRATED_PRODUCTIONS,
+            entrypoint_productions=("ПакетЗапросов", "Выражение"),
         )
         generated = generate_hybrid_parser(
             parsed.source_grammar,

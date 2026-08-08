@@ -963,6 +963,15 @@ class _CanonicalBslGenerator:
         indent: str,
         error_label: str,
     ) -> tuple[list[str], str]:
+        if any(
+            branch.outcome.production != optional.decision.source.production
+            for branch in optional.branches
+        ):
+            return self._render_specialized_wrap_optional(
+                optional,
+                indent,
+                error_label,
+            )
         seed_lines, seed_value = self._render_operation(
             optional.seed,
             indent,
@@ -1019,6 +1028,99 @@ class _CanonicalBslGenerator:
             )
         )
         return lines, accumulator
+
+    def _render_specialized_wrap_optional(
+        self,
+        optional: WrapOptional,
+        indent: str,
+        error_label: str,
+    ) -> tuple[list[str], str]:
+        seed_lines, seed_value = self._render_operation(
+            optional.seed,
+            indent,
+            error_label,
+        )
+        if seed_value is None:
+            raise ValueError("returned-child decorator seed has no value")
+        accumulator = self._new_temporary()
+        selected = self._new_temporary()
+        branch_result = self._new_temporary()
+        lines = [*seed_lines, f"{indent}{accumulator} = {seed_value};"]
+        branches_by_outcome = {
+            branch.outcome: branch for branch in optional.branches
+        }
+        outcome_codes = {
+            branch.outcome: position
+            for position, branch in enumerate(optional.branches, start=1)
+        }
+
+        def render_leaf(leaf, leaf_indent: str) -> list[str]:
+            if isinstance(leaf, ImmediateError):
+                return [self._syntax_error_line(leaf_indent, error_label)]
+            if isinstance(leaf, ExitDecision):
+                return [f"{leaf_indent}{selected} = 0;"]
+            assert isinstance(leaf, CommitAlternative)
+            code = outcome_codes.get(leaf.outcome)
+            if code is None:
+                raise ValueError(
+                    "specialized wrapped optional references unknown outcome"
+                )
+            return [f"{leaf_indent}{selected} = {code};"]
+
+        lines.extend(
+            self._decisions.render(
+                optional.decision,
+                indent=indent,
+                token_prefix="ТокенРешения",
+                render_leaf=render_leaf,
+            )
+        )
+        for position, branch in enumerate(optional.branches, start=1):
+            keyword = "Если" if position == 1 else "ИначеЕсли"
+            lines.append(f"{indent}{keyword} {selected} = {position} Тогда")
+            branch_lines, values = self._render_operations(
+                branch.operations,
+                indent + "\t",
+                error_label,
+                required_result_index=branch.result_index,
+            )
+            lines.extend(branch_lines)
+            value = self._specialized_branch_result(branch, values)
+            lines.append(f"{indent}\t{branch_result} = {value};")
+        lines.append(f"{indent}КонецЕсли;")
+
+        validate_bsl_member_name(optional.property, "wrapped property")
+        lines.append(f"{indent}Если {selected} <> 0 Тогда")
+        binding = (
+            f"{branch_result}.{optional.property}.Вставить(0, {accumulator});"
+            if optional.prepend
+            else f"{branch_result}.{optional.property} = {accumulator};"
+        )
+        lines.extend(
+            (
+                f"{indent}\t{binding}",
+                f"{indent}\t{accumulator} = {branch_result};",
+                f"{indent}КонецЕсли;",
+            )
+        )
+        return lines, accumulator
+
+    def _specialized_branch_result(
+        self,
+        branch: BranchIr,
+        values: list[str | None],
+    ) -> str:
+        if branch.result_index is not None:
+            value = values[branch.result_index]
+            if value is None:
+                raise ValueError("specialized branch result has no value")
+            return value
+        if any(
+            isinstance(operation, ConstructNode)
+            for operation in branch.operations
+        ):
+            return "ЭтотУзел"
+        raise ValueError("specialized branch does not produce a value")
 
     def _render_wrap_value(
         self,

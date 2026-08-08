@@ -290,8 +290,6 @@ def _validate_source(source: CanonicalDecisionSource) -> None:
     outcomes = tuple(item.outcome for item in source.languages)
     if len(set(outcomes)) != len(outcomes):
         raise ValueError("canonical decision outcomes must be unique")
-    if any(outcome.production != source.production for outcome in outcomes):
-        raise ValueError("outcome production does not match decision source")
     for item in source.languages:
         language = item.language
         if not 0 <= language.root < len(language.nodes):
