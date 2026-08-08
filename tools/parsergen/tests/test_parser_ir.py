@@ -7,6 +7,7 @@ from parsergen.parser_ir import (
     OptionalBranch,
     ParseSymbol,
     RepeatLoop,
+    WrapOptional,
     build_parser_ir,
 )
 from parsergen.resolver import resolve_grammar
@@ -31,6 +32,20 @@ def _build(source: str, k: int = 1):
 
 
 class ParserIrTests(unittest.TestCase):
+    def test_optional_returned_child_decorator_is_one_semantic_operation(
+        self,
+    ) -> None:
+        parser_ir = _build(
+            "<S> ::= <Base> Операнд => <Postfix>?\n"
+            "<Base> ::= @НовыйБаза BASE\n"
+            "<Postfix> ::= @НовыйPostfix POSTFIX"
+        )
+
+        alternative = parser_ir.productions[0].alternatives[0]
+        self.assertEqual(len(alternative.operations), 1)
+        self.assertIsInstance(alternative.operations[0], WrapOptional)
+        self.assertEqual(alternative.result_index, 0)
+
     def test_projection_builds_only_selected_production_and_skips_legacy_actions(
         self,
     ) -> None:

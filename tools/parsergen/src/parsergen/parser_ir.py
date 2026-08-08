@@ -133,6 +133,16 @@ class OptionalBranch:
 
 
 @dataclass(frozen=True, slots=True)
+class WrapOptional:
+    property: str
+    seed: Operation
+    decision: CanonicalDecision
+    branches: tuple[BranchIr, ...]
+    exit_alternative: int
+    source_span: SourceSpan
+
+
+@dataclass(frozen=True, slots=True)
 class LeftFold:
     base_decision: CanonicalDecision | None
     base_branches: tuple[BranchIr, ...]
@@ -204,6 +214,7 @@ Operation = (
     | Dispatch
     | RepeatLoop
     | OptionalBranch
+    | WrapOptional
     | ConstructNode
     | BindScalar
     | AppendCollection
@@ -563,7 +574,15 @@ class _ParserIrBuilder:
                         )
                     )
             elif isinstance(item, SourceBinding):
-                result.extend(self._binding(item))
+                if item.mode is BindingMode.WRAP:
+                    if not result or not _produces_transparent_value(result[-1]):
+                        raise ValueError(
+                            "returned-child decorator has no semantic seed"
+                        )
+                    seed = result.pop()
+                    result.append(self._wrap_optional(item, seed))
+                else:
+                    result.extend(self._binding(item))
             elif isinstance(item, SourceGroup):
                 branches = self._group_branches(item)
                 construct = self._construct(
@@ -597,6 +616,34 @@ class _ParserIrBuilder:
             else:
                 result.append(ParseSymbol(item, item.span))
         return tuple(result)
+
+    def _wrap_optional(
+        self,
+        binding: SourceBinding,
+        seed: Operation,
+    ) -> WrapOptional:
+        if not isinstance(binding.value, SourceOptional):
+            raise ValueError("returned-child decorator must be optional")
+        if binding.property is None:
+            raise ValueError("returned-child decorator requires a property")
+        optional = binding.value
+        construct = self._construct(
+            optional.span,
+            LoweredConstructKind.OPTIONAL,
+        )
+        branches = self._primary_branches(optional.body)
+        if not all(branch.result_index is not None for branch in branches):
+            raise ValueError(
+                "returned-child decorator must produce a semantic child"
+            )
+        return WrapOptional(
+            binding.property,
+            seed,
+            self._decision(construct.production),
+            branches,
+            len(branches) + 1,
+            binding.span,
+        )
 
     def _binding(self, binding: SourceBinding) -> tuple[Operation, ...]:
         kind = _binding_origin_kind(binding.mode)
@@ -968,6 +1015,8 @@ def _produces_transparent_value(operation: Operation) -> bool:
             branch.result_index is not None
             for branch in operation.branches
         )
+    if isinstance(operation, WrapOptional):
+        return True
     return False
 
 
@@ -980,4 +1029,6 @@ def _binding_origin_kind(mode: BindingMode) -> BindingOriginKind:
         return BindingOriginKind.INCREMENT
     if mode is BindingMode.DISCARD:
         return BindingOriginKind.DISCARD
+    if mode is BindingMode.WRAP:
+        return BindingOriginKind.WRAP
     return BindingOriginKind.SCALAR

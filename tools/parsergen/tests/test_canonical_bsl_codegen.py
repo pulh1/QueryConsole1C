@@ -47,6 +47,21 @@ def _function(module: str, name: str) -> str:
 
 
 class CanonicalBslCodegenTests(unittest.TestCase):
+    def test_optional_returned_child_decorator_wraps_and_returns_seed(self) -> None:
+        generated = _build(
+            "<S> ::= <Base> Операнд => <Postfix>?\n"
+            "<Base> ::= @НовыйБаза BASE\n"
+            "<Postfix> ::= @НовыйPostfix POSTFIX"
+        )
+
+        function = _function(generated.module_text, "НеТерминалS")
+        self.assertEqual(function.count("НеТерминалBase()"), 1)
+        self.assertEqual(function.count("НеТерминалPostfix()"), 1)
+        self.assertIn(".Операнд = ", function)
+        self.assertIn('POSTFIX', function)
+        self.assertIn("РезультатПродукции = Значение", function)
+        self.assertNotIn("НомерВариантаПродукции", function)
+
     def test_generates_canonical_runtime_without_legacy_matcher(self) -> None:
         generated = _build("<S> ::= ITEM", k=3)
 

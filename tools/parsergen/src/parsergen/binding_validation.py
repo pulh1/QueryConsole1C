@@ -77,6 +77,15 @@ class _BindingValidator:
                 and item.property is None
             )
         )
+        wrap_bindings = tuple(
+            item
+            for item in bindings
+            if isinstance(item, SourceBinding)
+            and item.mode is BindingMode.WRAP
+        )
+        node_bindings = tuple(
+            item for item in bindings if item not in wrap_bindings
+        )
         actions = _collect(sequence, Action)
 
         self._validate_transparent_constants(sequence)
@@ -111,11 +120,17 @@ class _BindingValidator:
             if len(top_level_constructors) == 1
             else None
         )
-        if bindings and constructor is None:
+        self._validate_wrap_bindings(
+            sequence,
+            wrap_bindings,
+            constructor,
+        )
+
+        if node_bindings and constructor is None:
             self._add(
                 "BIND201",
                 "binding requires an active constructor",
-                bindings[0].span,
+                node_bindings[0].span,
             )
         elif constructor is not None:
             earlier = next(
@@ -140,7 +155,7 @@ class _BindingValidator:
                 if isinstance(binding, SourceBinding)
                 else BindingMode.SCALAR
             )
-            if mode is not BindingMode.DISCARD:
+            if mode not in (BindingMode.DISCARD, BindingMode.WRAP):
                 modes.setdefault(binding.property, set()).add(mode)
             if isinstance(binding, SourceConstantBinding):
                 if not _valid_constant(binding.value):
@@ -210,6 +225,32 @@ class _BindingValidator:
                     "BIND206",
                     "transparent alternative has multiple semantic children",
                     sequence.span,
+                )
+
+    def _validate_wrap_bindings(
+        self,
+        sequence: SourceSequence,
+        bindings: tuple[SourceBinding, ...],
+        constructor: SourceConstructor | None,
+    ) -> None:
+        for binding in bindings:
+            valid = constructor is None and binding in sequence.items
+            valid = valid and isinstance(binding.value, SourceOptional)
+            if valid:
+                index = sequence.items.index(binding)
+                before = SourceSequence(sequence.items[:index], sequence.span)
+                after = SourceSequence(sequence.items[index + 1 :], sequence.span)
+                valid = semantic_child_counts(before) == (1,)
+                valid = valid and semantic_child_counts(after) == (0,)
+                optional = binding.value
+                assert isinstance(optional, SourceOptional)
+                valid = valid and _value_semantic_counts(optional.body) == (1,)
+            if not valid:
+                self._add(
+                    "BIND210",
+                    "returned-child decorator requires one seed and one optional semantic child",
+                    binding.span,
+                    binding.property,
                 )
 
     def _validate_transparent_constants(

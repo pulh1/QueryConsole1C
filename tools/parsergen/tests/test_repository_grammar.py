@@ -49,11 +49,15 @@ MIGRATED_PRODUCTIONS = (
     "ТипБлокаСКД",
     "Выражение",
     "ЛогическоеСлагаемое",
+    "ЛогическийМножитель",
+    "ЛогическийОператор",
     "ТипСсылочногоПоля",
     "ОперандВ",
     "ЛогическаяОперация",
     "ЛогическаяОперацияБезОтрицания",
     "ОператорСравнения",
+    "ОперандСравнения",
+    "ОператорПодобно",
     "ШаблонПодобия",
     "АрифметическоеВыражение",
     "Слагаемое",
@@ -711,8 +715,8 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 72)
-        self.assertEqual(len(parsed.grammar.productions), 144)
+        self.assertEqual(len(parsed.source_grammar.productions), 70)
+        self.assertEqual(len(parsed.grammar.productions), 149)
         self.assertNotIn(
             "КакОпционально",
             {item.name for item in parsed.source_grammar.productions},
@@ -1021,6 +1025,86 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(negation.count("ЭтотУзел.Выражение ="), 1)
         self.assertEqual(negation.count("ЛевыйЭлемент"), 1)
         self.assertNotIn("ТекущийЭлемент", negation)
+
+    def test_postfix_predicates_generate_max_one_canonical_wrappers(self) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=MIGRATED_PRODUCTIONS,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=MIGRATED_PRODUCTIONS,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        module = generated.module_text
+        self.assertNotIn("Функция НеТерминалОпциональноеНЕ(", module)
+        self.assertNotIn(
+            "Функция НеТерминалОпциональноеВИерархии(",
+            module,
+        )
+
+        wrappers = {
+            "ЛогическийМножитель": (
+                "НеТерминалЛогическаяОперация()",
+                "НеТерминалЛогическийОператор()",
+            ),
+            "ОперандСравнения": (
+                "НеТерминалАрифметическоеВыражение()",
+                "НеТерминалОператорПодобно()",
+            ),
+        }
+        for production, calls in wrappers.items():
+            with self.subTest(wrapper=production):
+                function = _generated_function(module, production)
+                self.assertEqual(function.count("Пока "), 0)
+                self.assertEqual(function.count(calls[0]), 1)
+                self.assertEqual(function.count(calls[1]), 1)
+                self.assertEqual(function.count(".Операнд = "), 1)
+                self.assertNotIn("ТекущийЭлемент", function)
+                self.assertNotIn("НомерВариантаПродукции", function)
+
+        logical = _generated_function(module, "ЛогическийОператор")
+        for constructor in (
+            "НовыйОператорМежду",
+            "НовыйОператорПроверкиТипа",
+            "НовыйОператорПроверкиНаNULL",
+            "НовыйОператорВ",
+        ):
+            self.assertEqual(logical.count(f".{constructor}("), 1)
+        self.assertNotIn("ЛевыйЭлемент", logical.split(")", 1)[1])
+        self.assertNotIn("ТекущийЭлемент", logical)
+        self.assertNotIn("НомерВариантаПродукции", logical)
+
+        like = _generated_function(module, "ОператорПодобно")
+        self.assertEqual(like.count(".НовыйОператорПодобно("), 1)
+        self.assertEqual(like.count("ЭтотУзел.Инверсия = Истина;"), 1)
+        self.assertEqual(like.count("ЭтотУзел.Шаблон ="), 1)
+        self.assertNotIn("ЛевыйЭлемент", like.split(")", 1)[1])
+        self.assertNotIn("ТекущийЭлемент", like)
+        self.assertNotIn("НомерВариантаПродукции", like)
 
     def test_expression_list_generates_collection_loop(self) -> None:
         parsed = parse_grammar(

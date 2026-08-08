@@ -43,6 +43,7 @@ from .parser_ir import (
     ProductionIr,
     RepeatLoop,
     ReturnConstant,
+    WrapOptional,
     UndefinedValue,
 )
 from .source_model import SourceGrammar
@@ -509,6 +510,12 @@ class _CanonicalBslGenerator:
                 indent,
                 error_label,
             )
+        if isinstance(operation, WrapOptional):
+            return self._render_wrap_optional(
+                operation,
+                indent,
+                error_label,
+            )
         if isinstance(operation, RepeatLoop):
             return self._render_repeat(
                 operation,
@@ -917,6 +924,62 @@ class _CanonicalBslGenerator:
             )
         )
         return lines, result
+
+    def _render_wrap_optional(
+        self,
+        optional: WrapOptional,
+        indent: str,
+        error_label: str,
+    ) -> tuple[list[str], str]:
+        seed_lines, seed_value = self._render_operation(
+            optional.seed,
+            indent,
+            error_label,
+        )
+        if seed_value is None:
+            raise ValueError("returned-child decorator seed has no value")
+        accumulator = self._new_temporary()
+        lines = [*seed_lines, f"{indent}{accumulator} = {seed_value};"]
+        validate_bsl_member_name(optional.property, "wrapped property")
+        for position, branch in enumerate(optional.branches):
+            keyword = "Если" if position == 0 else "ИначеЕсли"
+            condition = self._conditions.for_alternative(
+                optional.decision,
+                branch.alternative,
+            )
+            lines.append(f"{indent}{keyword} {condition} Тогда")
+            assert branch.result_index is not None
+            branch_lines, values = self._render_operations(
+                branch.operations,
+                indent + "\t",
+                error_label,
+                required_result_index=branch.result_index,
+            )
+            lines.extend(branch_lines)
+            wrapped = values[branch.result_index]
+            if wrapped is None:
+                raise ValueError(
+                    "returned-child decorator branch has no value"
+                )
+            lines.extend(
+                (
+                    f"{indent}\t{wrapped}.{optional.property} = {accumulator};",
+                    f"{indent}\t{accumulator} = {wrapped};",
+                )
+            )
+        exit_condition = self._conditions.for_alternative(
+            optional.decision,
+            optional.exit_alternative,
+        )
+        lines.extend(
+            (
+                f"{indent}ИначеЕсли {exit_condition} Тогда",
+                f"{indent}Иначе",
+                self._syntax_error_line(indent + "\t", error_label),
+                f"{indent}КонецЕсли;",
+            )
+        )
+        return lines, accumulator
 
     def _render_repeat(
         self,

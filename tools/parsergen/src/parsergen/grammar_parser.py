@@ -358,7 +358,12 @@ def _logical_declarations(text: str, path: str, bag: DiagnosticBag) -> tuple[Log
             angles -= 1
             if angles == 0:
                 angle_start = None
-        elif braces == 0 and char == ">" and not angles:
+        elif (
+            braces == 0
+            and char == ">"
+            and not angles
+            and (index == 0 or text[index - 1] != "=")
+        ):
             _error(bag, "GP006", "unexpected closing delimiter", _span(text, path, index, index + 1))
         elif braces == 0 and angles == 0 and char == "(":
             if parentheses == 0:
@@ -649,7 +654,11 @@ def _parse_source_sequence(
                         else (
                             BindingMode.CONCAT
                             if operator == "~="
-                            else BindingMode.SCALAR
+                            else (
+                                BindingMode.WRAP
+                                if operator == "=>"
+                                else BindingMode.SCALAR
+                            )
                         )
                     )
                 ),
@@ -994,7 +1003,7 @@ def _binding_prefix(
     operator_start = matched.end()
     while operator_start < len(text) and text[operator_start].isspace():
         operator_start += 1
-    for operator in ("++=", "+=", "~=", ":=", "="):
+    for operator in ("++=", "+=", "~=", ":=", "=>", "="):
         if text.startswith(operator, operator_start):
             return (
                 matched.group(0),

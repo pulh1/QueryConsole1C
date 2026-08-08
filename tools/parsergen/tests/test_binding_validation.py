@@ -12,6 +12,31 @@ def _validate(source: str):
 
 
 class BindingValidationTests(unittest.TestCase):
+    def test_accepts_optional_returned_child_decorator_without_constructor(
+        self,
+    ) -> None:
+        report = _validate(
+            "<S> ::= <Base> Операнд => <Postfix>?\n"
+            "<Base> ::= @НовыйБаза BASE\n"
+            "<Postfix> ::= @НовыйPostfix POSTFIX"
+        )
+
+        self.assertEqual(report.diagnostics, ())
+
+    def test_rejects_returned_child_decorator_without_seed_or_optional(self) -> None:
+        cases = (
+            "<S> ::= Операнд => <Postfix>?\n<Postfix> ::= POSTFIX",
+            "<S> ::= <Base> Операнд => <Postfix>\n"
+            "<Base> ::= BASE\n<Postfix> ::= POSTFIX",
+        )
+        for source in cases:
+            with self.subTest(source=source):
+                report = _validate(source)
+                self.assertEqual(
+                    [item.code for item in report.diagnostics],
+                    ["BIND210"],
+                )
+
     def test_rejects_binding_without_constructor(self) -> None:
         report = _validate("<S> ::= Значение = <A>\n<A> ::= a")
 

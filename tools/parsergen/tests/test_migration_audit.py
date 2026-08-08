@@ -109,11 +109,15 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "ТипБлокаСКД",
                 "Выражение",
                 "ЛогическоеСлагаемое",
+                "ЛогическийМножитель",
+                "ЛогическийОператор",
                 "ТипСсылочногоПоля",
                 "ОперандВ",
                 "ЛогическаяОперация",
                 "ЛогическаяОперацияБезОтрицания",
                 "ОператорСравнения",
+                "ОперандСравнения",
+                "ОператорПодобно",
                 "ШаблонПодобия",
                 "АрифметическоеВыражение",
                 "Слагаемое",
@@ -153,19 +157,19 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["structural"],
             {
-                "source_productions": 72,
-                "source_alternatives": 168,
-                "productions": 144,
-                "alternatives": 311,
-                "epsilon_alternatives": 72,
+                "source_productions": 70,
+                "source_alternatives": 162,
+                "productions": 149,
+                "alternatives": 319,
+                "epsilon_alternatives": 75,
                 "formal_parameters": 10,
                 "actual_arguments": 26,
-                "action_blocks": 42,
-                "statements": 51,
-                "constructor_statements": 10,
+                "action_blocks": 21,
+                "statements": 25,
+                "constructor_statements": 5,
                 "collection_statements": 4,
-                "constant_statements": 6,
-                "structural_statements": 31,
+                "constant_statements": 1,
+                "structural_statements": 15,
                 "other_assignment_statements": 0,
                 "other_statements": 0,
             },
@@ -178,12 +182,12 @@ class MigrationAuditProductionTests(unittest.TestCase):
                 "conflicts": [],
                 "diagnostics": [],
                 "stats": {
-                    "packed_first_rows": 12_069,
-                    "packed_follow_rows": 52_735,
-                    "select_descriptors": 311,
-                    "select_direct_facts": 11_710,
-                    "select_short_complete_prefixes": 359,
-                    "packed_select_upper_bound": 37_584,
+                    "packed_first_rows": 12_125,
+                    "packed_follow_rows": 54_372,
+                    "select_descriptors": 319,
+                    "select_direct_facts": 11_760,
+                    "select_short_complete_prefixes": 365,
+                    "packed_select_upper_bound": 37_634,
                     "conflict_work_items": 520,
                     "public_select_expansions": 0,
                     "select_cartesian_materializations": 0,
@@ -193,7 +197,7 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["legacy"],
             {
-                "matcher_rows": 10_225,
+                "matcher_rows": 10_283,
                 "matcher_definitions": 0,
                 "runtime_conflicts": [],
             },
@@ -204,10 +208,10 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["generated"],
             {
-                "bsl_functions": 84,
-                "bsl_loc": 2243,
+                "bsl_functions": 82,
+                "bsl_loc": 2200,
                 "constructor_names": 79,
-                "select_rows": 764,
+                "select_rows": 261,
                 "identifier_rows": 276,
             },
         )
@@ -289,11 +293,13 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 '"РасширениеСКД", "ТипБлокаСКД", '
                 '"Выражение", '
                 '"ЛогическоеСлагаемое", '
+                '"ЛогическийМножитель", "ЛогическийОператор", '
                 '"ТипСсылочногоПоля", '
                 '"ОперандВ", '
                 '"ЛогическаяОперация", '
                 '"ЛогическаяОперацияБезОтрицания", '
                 '"ОператорСравнения", '
+                '"ОперандСравнения", "ОператорПодобно", '
                 '"ШаблонПодобия", '
                 '"АрифметическоеВыражение", "Слагаемое", '
                 '"УнарнаяОперация", "Множитель", "Операнд", '

@@ -3,7 +3,9 @@ import unittest
 from parsergen.grammar_parser import parse_source_grammar
 from parsergen.model import Lexeme, NonterminalCall
 from parsergen.source_model import (
+    BindingMode,
     QuantifierKind,
+    SourceBinding,
     SourceGroup,
     SourceOptional,
     SourceRepeat,
@@ -11,6 +13,25 @@ from parsergen.source_model import (
 
 
 class SourceGrammarParserTests(unittest.TestCase):
+    def test_parses_optional_returned_child_decorator_binding(self) -> None:
+        result = parse_source_grammar(
+            "<S> ::= <Base> Операнд => <Postfix>?\n"
+            "<Base> ::= base\n<Postfix> ::= postfix"
+        )
+
+        self.assertEqual(result.diagnostics, ())
+        assert result.grammar is not None
+        items = result.grammar.productions[0].alternatives[0].body.items
+        self.assertEqual(len(items), 2)
+        binding = items[1]
+        self.assertIsInstance(binding, SourceBinding)
+        assert isinstance(binding, SourceBinding)
+        self.assertEqual(binding.property, "Операнд")
+        self.assertIs(binding.mode, BindingMode.WRAP)
+        self.assertIsInstance(binding.value, SourceOptional)
+        self.assertEqual(binding.operator_span.start.column, 24)
+        self.assertEqual(binding.operator_span.end.column, 26)
+
     def test_parses_separator_repeat_with_source_origins(self) -> None:
         result = parse_source_grammar("<S> ::= 'a' (',' 'a')*", "grammar.txt")
 
