@@ -51,6 +51,7 @@ harness и удаляются только перед MR.
 - перенос исторических BSL-модулей и двух макетов парсера;
 - параметризация существующего benchmark harness по компоненту и реализации;
 - отдельный lexer benchmark на том же corpus;
+- постоянный TextDocument corpus большого запроса учёта времени;
 - фактический запуск baseline и сохранение результатов;
 - точечная EDT/YAxUnit-проверка;
 - заранее определённый cleanup перед MR.
@@ -159,9 +160,34 @@ factory-функциями тестового модуля.
 остаются. Удаляются только old factories, old test registrations и ссылки на
 временные обработки.
 
+### Постоянный большой corpus
+
+Через EDT-MCP в `yaxunit` создаётся постоянный общий макет типа
+`TextDocument`:
+
+```text
+yaxunit/src/CommonTemplates/КОНС_БенчмаркДанныеУчетаВремени/
+  КОНС_БенчмаркДанныеУчетаВремени.mdo
+  Template.txt
+```
+
+Исходный файл:
+`C:\work\1C\мои разработки\Теория копмиляторов\Генерация парсеров АКТУАЛЬНОЕ\заппросы\ДанныеУчетаВремени.txt`.
+При импорте фиксируются 289542 исходных bytes, 5489 строк, 160135 символов,
+raw SHA-256 `43035fda34f0ccb05817d856374beba9e5539a3a99540fef9ba7d70d3656c93e`
+и normalized UTF-8/LF SHA-256
+`5e4a617dd41f8af97434b797bac46c9f8ba3ca1d167db9d81828b6854f1fc9c5`.
+После импорта repository template является воспроизводимым источником corpus;
+внешний путь сохраняется только как provenance и не нужен для запуска.
+
+Harness загружает текст через
+`ПолучитьОбщийМакет("КОНС_БенчмаркДанныеУчетаВремени").ПолучитьТекст()` при
+построении corpus, до preflight, calibration, warm-ups и samples. Чтение
+макета поэтому не входит в измеряемую область.
+
 ## Corpus и поток данных
 
-Оба режима используют восемь существующих corpus:
+Оба режима используют девять corpus:
 
 1. все 42 встроенных текста `QueryExamples`;
 2. самый большой реальный пакет;
@@ -171,6 +197,8 @@ factory-функциями тестового модуля.
 6. арифметическая цепочка;
 7. логическая цепочка;
 8. цепочка разыменований.
+9. `time_accounting_large` — точный большой запрос учёта времени из постоянного
+   TextDocument, один input, entrypoint `Разобрать`.
 
 Для parser mode сохраняются текущие entrypoints corpus: `Разобрать` и
 `РазобратьВыражение`. Lexer mode игнорирует parser entrypoint и полностью
@@ -253,6 +281,7 @@ docs/superpowers/matrices/2026-08-08-runtime-old-lexer-parser-baseline.md
 - warm-up count, sample count, calibration target и clock;
 - input count, input length и operation count;
 - token count для lexer corpus;
+- raw и normalized SHA-256 постоянного большого corpus;
 - samples, median и p95.
 
 Parser JSON записывает hashes parser, lexer и legacy factory, потому что parser
@@ -286,17 +315,25 @@ median/p95 без performance verdict.
 2. точечная ревалидация `CommonModule.КОНС_СтарыеЭлементыМоделиЗапроса`,
    `DataProcessor.КОНС_СтарыйЛексическийАнализатор`,
    `DataProcessor.КОНС_СтарыйПарсер` и
-   `CommonModule.КОНС_Обр_БенчмаркПарсера_МО`;
+   `CommonModule.КОНС_Обр_БенчмаркПарсера_МО`, а после добавления corpus также
+   `CommonTemplate.КОНС_БенчмаркДанныеУчетаВремени`;
 3. сравнение diagnostics с существующим фоном, отдельно для новых errors;
 4. запуск old lexer benchmark;
 5. запуск old parser benchmark;
 6. запуск существующих YAxUnit-модулей лексера и парсера current
    implementation;
-7. проверка JSON schema и положительных median/p95 для всех восьми corpus;
+7. проверка JSON schema и положительных median/p95 для всех девяти corpus;
 8. `git diff --check` и проверка фактического diff.
 
 Baseline не считается снятым, если benchmark не стартовал, выполнил ноль
 тестов, пропустил corpus, завершился с ошибкой либо не создал оба JSON.
+
+Фактические timing-runs old/current lexer или parser имеют отдельный ручной
+runtime-gate: перед первым запуском исполнитель сообщает пользователю о
+готовности, перечисляет подготовленные проверки и ждёт явного подтверждения,
+что тяжёлые процессы остановлены. До подтверждения разрешены metadata update,
+EDT validation, provenance checks и функциональные preflight-тесты, но не
+запуск benchmark registrations, создающих timing sidecar.
 
 ## Cleanup перед MR
 
@@ -311,6 +348,7 @@ Cleanup выполняется отдельным явным этапом пос
 Сохраняются:
 
 - общий lexer/parser measurement harness;
+- `CommonTemplate.КОНС_БенчмаркДанныеУчетаВремени` и его provenance;
 - current lexer/parser benchmark registrations;
 - оба baseline JSON;
 - Markdown-отчёт и provenance.
@@ -326,7 +364,7 @@ metadata object. MR не создаётся, пока временные объ�
 - Old lexer, old parser и legacy factory одновременно доступны в `yaxunit` и
   не изменяют production extension.
 - Parser baseline использует исключительно old lexer и legacy factory.
-- Все восемь corpus проходят preflight и 20 samples в обоих режимах.
+- Все девять corpus проходят preflight и 20 samples в обоих режимах.
 - Для каждого corpus записаны положительные median и p95.
 - Lexer JSON содержит token count, parser JSON содержит hashes parser, lexer и
   legacy factory.
