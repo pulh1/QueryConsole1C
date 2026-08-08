@@ -9,8 +9,22 @@ from .canonical_select import (
     OutcomeLanguage,
     specialize_outcome,
 )
-from .decision_dag import build_decision_dag
-from .model import Constant, IdentifierRef, NonterminalCall
+from .decision_dag import (
+    CommitAlternative,
+    DecisionPath,
+    DecisionPathFact,
+    ExitDecision,
+    build_decision_dag,
+    decision_paths,
+)
+from .model import (
+    Constant,
+    IdentifierRef,
+    Lexeme,
+    NonterminalCall,
+    SyntaxSymbol,
+    Terminal,
+)
 from .parser_ir import (
     AlternativeIr,
     AppendCollection,
@@ -19,7 +33,9 @@ from .parser_ir import (
     BranchIr,
     CanonicalDecision,
     ConcatScalar,
+    ConsumeKnownSymbol,
     ConstructNode,
+    DiscardSymbol,
     Dispatch,
     DispatchValue,
     ExtendCollection,
@@ -32,11 +48,15 @@ from .parser_ir import (
     ParserIr,
     ProductionIr,
     RepeatLoop,
+    ResolvedRegion,
     ReturnConstant,
     UndefinedValue,
     WrapOptional,
     WrapValue,
 )
+
+
+MAX_PATH_SPECIALIZATION_EXTRA_OPERATIONS = 32
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,6 +122,8 @@ def _operation_spans(operations: tuple[Operation, ...]):
         if isinstance(operation, (Dispatch, RepeatLoop)):
             for branch in operation.branches:
                 yield from _operation_spans(branch.operations)
+        elif isinstance(operation, ResolvedRegion):
+            yield from _operation_spans(operation.operations)
         elif isinstance(operation, OptionalBranch):
             for branch in operation.branches:
                 yield from _operation_spans(branch.operations)
@@ -135,6 +157,10 @@ def _contains_semantic_operation(operations: tuple[Operation, ...]) -> bool:
     for operation in operations:
         if isinstance(operation, _SEMANTIC_OPERATIONS):
             return True
+        if isinstance(operation, ResolvedRegion):
+            if _contains_semantic_operation(operation.operations):
+                return True
+            continue
         if isinstance(operation, (Dispatch, RepeatLoop)):
             if any(
                 _contains_semantic_operation(branch.operations)
@@ -162,6 +188,10 @@ def _transparent_path_kind(alternative: AlternativeIr) -> str | None:
         operation.symbol,
         (NonterminalCall, IdentifierRef, Constant),
     ):
+        return "unchanged child result"
+    if isinstance(operation, ConsumeKnownSymbol) and operation.capture_value:
+        return "unchanged child result"
+    if isinstance(operation, ResolvedRegion) and operation.result_index is not None:
         return "unchanged child result"
     return None
 
@@ -207,6 +237,10 @@ class _Optimizer:
             for production in parser_ir.productions
         }
         self.transparent = transparent
+        self.identifier_token_types = {
+            definition.label: frozenset(definition.token_types)
+            for definition in parser_ir.matcher_definitions
+        }
 
     def production(self, production: ProductionIr) -> ProductionIr:
         alternatives = tuple(
@@ -263,6 +297,17 @@ class _Optimizer:
         operation: Operation,
         stack: tuple[str, ...],
     ) -> Operation:
+        if isinstance(operation, ResolvedRegion):
+            operations = self.operations(operation.operations, stack)
+            return replace(
+                operation,
+                operations=operations,
+                result_index=(
+                    operation.result_index
+                    if operations == operation.operations
+                    else _result_index(operations)
+                ),
+            )
         if isinstance(operation, Dispatch):
             return replace(
                 operation,
@@ -400,8 +445,296 @@ class _Optimizer:
                 source,
                 build_decision_dag(source),
             )
-            return updated_decision, tuple(updated_branches)
+            return updated_decision, self._specialize_decision_paths(
+                updated_decision,
+                tuple(updated_branches),
+            )
         return decision, transformed
+
+    def _specialize_decision_paths(
+        self,
+        decision: CanonicalDecision,
+        branches: tuple[BranchIr, ...],
+    ) -> tuple[BranchIr, ...]:
+        branches_by_outcome: dict[AlternativeOutcome, BranchIr] = {}
+        for branch in branches:
+            if branch.outcome in branches_by_outcome:
+                return branches
+            branches_by_outcome[branch.outcome] = branch
+
+        paths_by_outcome: dict[AlternativeOutcome, list[DecisionPath]] = {}
+        outcome_order: list[AlternativeOutcome] = []
+        for path in decision_paths(decision.dag):
+            if not isinstance(path.leaf, CommitAlternative):
+                continue
+            outcome = path.leaf.outcome
+            if outcome not in paths_by_outcome:
+                outcome_order.append(outcome)
+                paths_by_outcome[outcome] = []
+            paths_by_outcome[outcome].append(path)
+
+        expanded: list[BranchIr] = []
+        for outcome in outcome_order:
+            branch = branches_by_outcome.get(outcome)
+            if branch is None:
+                return branches
+            candidates = tuple(
+                self._specialize_branch_path(branch, path.facts)
+                for path in paths_by_outcome[outcome]
+            )
+            distinct_operations: list[tuple[Operation, ...]] = []
+            for candidate in candidates:
+                if candidate.operations not in distinct_operations:
+                    distinct_operations.append(candidate.operations)
+            if len(distinct_operations) == 1:
+                candidate = candidates[0]
+                expanded.append(
+                    branch
+                    if candidate.operations == branch.operations
+                    else replace(candidate, path_facts=None)
+                )
+            else:
+                expanded.extend(
+                    replace(candidate, path_facts=path.facts)
+                    for candidate, path in zip(
+                        candidates,
+                        paths_by_outcome[outcome],
+                        strict=True,
+                    )
+                )
+
+        expanded_outcomes = frozenset(outcome_order)
+        expanded.extend(
+            branch
+            for branch in branches
+            if branch.outcome not in expanded_outcomes
+        )
+        result = tuple(expanded)
+        extra_cost = _branches_operation_tree_cost(result) - (
+            _branches_operation_tree_cost(branches)
+        )
+        if extra_cost > MAX_PATH_SPECIALIZATION_EXTRA_OPERATIONS:
+            return branches
+        return result
+
+    def _specialize_branch_path(
+        self,
+        branch: BranchIr,
+        facts: tuple[DecisionPathFact, ...],
+    ) -> BranchIr:
+        if not facts:
+            return branch
+        operations, _, _ = self._partial_evaluate_operations(
+            branch.operations,
+            branch.result_index,
+            facts,
+            0,
+        )
+        if operations == branch.operations:
+            return branch
+        return replace(
+            branch,
+            operations=operations,
+            result_index=(
+                branch.result_index
+                if len(operations) == len(branch.operations)
+                else _result_index(operations)
+            ),
+            path_facts=facts,
+        )
+
+    def _partial_evaluate_operations(
+        self,
+        operations: tuple[Operation, ...],
+        result_index: int | None,
+        facts: tuple[DecisionPathFact, ...],
+        cursor: int,
+    ) -> tuple[tuple[Operation, ...], int, bool]:
+        result: list[Operation] = []
+        for index, operation in enumerate(operations):
+            if isinstance(operation, (ParseSymbol, DiscardSymbol)):
+                capture_value = (
+                    isinstance(operation, ParseSymbol)
+                    and result_index == index
+                )
+                known = self._known_consume(
+                    operation.symbol,
+                    capture_value,
+                    operation.source_span,
+                    facts,
+                    cursor,
+                )
+                if known is None:
+                    result.extend(operations[index:])
+                    return tuple(result), cursor, True
+                result.append(known)
+                cursor += 1
+                continue
+            if isinstance(operation, (ConstructNode, AssignConstant, ReturnConstant)):
+                result.append(operation)
+                continue
+            if isinstance(operation, (Dispatch, OptionalBranch)):
+                resolved = self._resolve_region(
+                    operation,
+                    facts,
+                    cursor,
+                )
+                if resolved is None:
+                    result.extend(operations[index:])
+                    return tuple(result), cursor, True
+                region_operations, region_result, cursor, stopped = resolved
+                result.append(
+                    ResolvedRegion(
+                        region_operations,
+                        region_result,
+                        operation.source_span,
+                    )
+                )
+                if stopped:
+                    result.extend(operations[index + 1 :])
+                    return tuple(result), cursor, True
+                continue
+            if isinstance(
+                operation,
+                (
+                    BindScalar,
+                    AppendCollection,
+                    ExtendCollection,
+                    ConcatScalar,
+                    IncrementScalar,
+                ),
+            ):
+                value, cursor, stopped = self._partial_evaluate_bound_value(
+                    operation.value,
+                    facts,
+                    cursor,
+                )
+                if stopped:
+                    result.extend(operations[index:])
+                    return tuple(result), cursor, True
+                result.append(replace(operation, value=value))
+                continue
+            result.extend(operations[index:])
+            return tuple(result), cursor, True
+        return tuple(result), cursor, False
+
+    def _partial_evaluate_bound_value(
+        self,
+        value,
+        facts: tuple[DecisionPathFact, ...],
+        cursor: int,
+    ):
+        if isinstance(value, ParseSymbol):
+            known = self._known_consume(
+                value.symbol,
+                True,
+                value.source_span,
+                facts,
+                cursor,
+            )
+            if known is None:
+                return value, cursor, True
+            return known, cursor + 1, False
+        if isinstance(value, ConsumeKnownSymbol):
+            return value, cursor + 1, False
+        if isinstance(value, (UndefinedValue,)):
+            return value, cursor, False
+        if isinstance(value, ParseBranchValue):
+            operations, cursor, stopped = self._partial_evaluate_operations(
+                value.operations,
+                value.result_index,
+                facts,
+                cursor,
+            )
+            return (
+                replace(value, operations=operations),
+                cursor,
+                stopped,
+            )
+        return value, cursor, True
+
+    def _known_consume(
+        self,
+        symbol: SyntaxSymbol,
+        capture_value: bool,
+        source_span,
+        facts: tuple[DecisionPathFact, ...],
+        cursor: int,
+    ) -> ConsumeKnownSymbol | None:
+        accepted = self._accepted_token_types(symbol)
+        if accepted is None:
+            return None
+        fact = next((item for item in facts if item.offset == cursor), None)
+        if fact is None or not set(fact.predicate.token_types).issubset(accepted):
+            return None
+        return ConsumeKnownSymbol(
+            symbol,
+            capture_value,
+            fact.predicate.token_types,
+            source_span,
+        )
+
+    def _accepted_token_types(
+        self,
+        symbol: SyntaxSymbol,
+    ) -> frozenset[str] | None:
+        if isinstance(symbol, Terminal):
+            return frozenset({symbol.token_type})
+        if isinstance(symbol, Lexeme):
+            return frozenset({symbol.text})
+        if isinstance(symbol, Constant):
+            return frozenset({symbol.token_type})
+        if isinstance(symbol, IdentifierRef):
+            return self.identifier_token_types.get(symbol.name)
+        return None
+
+    def _resolve_region(
+        self,
+        operation: Dispatch | OptionalBranch,
+        facts: tuple[DecisionPathFact, ...],
+        cursor: int,
+    ) -> tuple[tuple[Operation, ...], int | None, int, bool] | None:
+        matching = tuple(
+            path
+            for path in decision_paths(operation.decision.dag)
+            if _path_is_proven(path, facts, cursor)
+        )
+        if len(matching) != 1:
+            return None
+        leaf = matching[0].leaf
+        if isinstance(leaf, CommitAlternative):
+            branches = tuple(
+                branch
+                for branch in operation.branches
+                if branch.outcome == leaf.outcome
+            )
+            if len(branches) != 1:
+                return None
+            branch = branches[0]
+            operations, cursor, stopped = self._partial_evaluate_operations(
+                branch.operations,
+                branch.result_index,
+                facts,
+                cursor,
+            )
+            return operations, branch.result_index, cursor, stopped
+        if isinstance(operation, OptionalBranch) and isinstance(
+            leaf,
+            ExitDecision,
+        ):
+            operations, cursor, stopped = self._partial_evaluate_operations(
+                operation.exit_operations,
+                _result_index(operation.exit_operations),
+                facts,
+                cursor,
+            )
+            return (
+                operations,
+                _result_index(operations),
+                cursor,
+                stopped,
+            )
+        return None
 
     def bound_value(self, value, stack: tuple[str, ...]):
         if isinstance(value, ParseSymbol) and isinstance(
@@ -570,12 +903,100 @@ def _produces_value(operation: Operation) -> bool:
             operation.symbol,
             (NonterminalCall, IdentifierRef, Constant),
         )
+    if isinstance(operation, ConsumeKnownSymbol):
+        return operation.capture_value
+    if isinstance(operation, ResolvedRegion):
+        return operation.result_index is not None
     if isinstance(operation, (Dispatch, OptionalBranch)):
         return bool(operation.branches) and all(
             branch.result_index is not None
             for branch in operation.branches
         )
     return False
+
+
+def _path_is_proven(
+    path: DecisionPath,
+    facts: tuple[DecisionPathFact, ...],
+    cursor: int,
+) -> bool:
+    facts_by_offset = {fact.offset: fact for fact in facts}
+    return all(
+        (outer := facts_by_offset.get(cursor + inner.offset)) is not None
+        and set(outer.predicate.token_types).issubset(
+            inner.predicate.token_types
+        )
+        for inner in path.facts
+    )
+
+
+def _branches_operation_tree_cost(
+    branches: tuple[BranchIr, ...],
+) -> int:
+    return sum(
+        _operations_tree_cost(branch.operations)
+        for branch in branches
+    )
+
+
+def _operations_tree_cost(operations: tuple[Operation, ...]) -> int:
+    return sum(_operation_tree_cost(operation) for operation in operations)
+
+
+def _operation_tree_cost(operation: Operation) -> int:
+    if isinstance(operation, ResolvedRegion):
+        return 1 + _operations_tree_cost(operation.operations)
+    if isinstance(operation, (Dispatch, RepeatLoop)):
+        return 1 + _branches_operation_tree_cost(operation.branches)
+    if isinstance(operation, OptionalBranch):
+        return (
+            1
+            + _branches_operation_tree_cost(operation.branches)
+            + _operations_tree_cost(operation.exit_operations)
+        )
+    if isinstance(operation, WrapOptional):
+        return (
+            1
+            + _operation_tree_cost(operation.seed)
+            + _branches_operation_tree_cost(operation.branches)
+        )
+    if isinstance(operation, WrapValue):
+        return (
+            1
+            + _operation_tree_cost(operation.seed)
+            + _bound_value_tree_cost(operation.value)
+        )
+    if isinstance(operation, LeftFold):
+        return (
+            1
+            + _branches_operation_tree_cost(operation.base_branches)
+            + _branches_operation_tree_cost(operation.recursive_branches)
+        )
+    if isinstance(
+        operation,
+        (
+            BindScalar,
+            AppendCollection,
+            ExtendCollection,
+            ConcatScalar,
+            IncrementScalar,
+        ),
+    ):
+        return 1 + _bound_value_tree_cost(operation.value)
+    return 1
+
+
+def _bound_value_tree_cost(value) -> int:
+    if isinstance(value, ParseBranchValue):
+        return 1 + _operations_tree_cost(value.operations)
+    if isinstance(value, DispatchValue):
+        return 1 + sum(
+            _bound_value_tree_cost(branch.value)
+            for branch in value.branches
+        )
+    if isinstance(value, (ParseSymbol, ConsumeKnownSymbol)):
+        return 1
+    return 0
 
 
 def _recursive_productions(

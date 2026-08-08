@@ -4,7 +4,9 @@ from dataclasses import FrozenInstanceError, replace
 import unittest
 from unittest.mock import patch
 
+import parsergen.decision_dag as decision_dag_module
 from parsergen.decision_dag import (
+    CanonicalDecisionDag,
     CommitAlternative,
     DecisionEdge,
     ExitDecision,
@@ -49,6 +51,93 @@ def _node_for_word(dag, word: tuple[str, ...]) -> int:
 
 
 class DecisionDagTests(unittest.TestCase):
+    def test_decision_paths_preserve_distinct_facts_for_one_leaf(self) -> None:
+        alternative_1 = CommitAlternative(AlternativeOutcome("S", 1))
+        alternative_2 = CommitAlternative(AlternativeOutcome("S", 2))
+        offset_1 = LookaheadDecision(
+            1,
+            ("A", "B"),
+            (
+                DecisionEdge(TokenSetPredicate(("A",)), 0),
+                DecisionEdge(TokenSetPredicate(("B",)), 1),
+            ),
+        )
+        root = LookaheadDecision(
+            0,
+            ("A", "НЕ"),
+            (
+                DecisionEdge(TokenSetPredicate(("A",)), 0),
+                DecisionEdge(TokenSetPredicate(("НЕ",)), 2),
+            ),
+        )
+        dag = CanonicalDecisionDag(
+            "S",
+            2,
+            3,
+            (alternative_1, alternative_2, offset_1, root),
+            {},
+        )
+
+        paths = decision_dag_module.decision_paths(dag)
+
+        self.assertEqual(
+            tuple(path.facts for path in paths if path.leaf == alternative_1),
+            (
+                (
+                    decision_dag_module.DecisionPathFact(
+                        0,
+                        TokenSetPredicate(("A",)),
+                    ),
+                ),
+                (
+                    decision_dag_module.DecisionPathFact(
+                        0,
+                        TokenSetPredicate(("НЕ",)),
+                    ),
+                    decision_dag_module.DecisionPathFact(
+                        1,
+                        TokenSetPredicate(("A",)),
+                    ),
+                ),
+            ),
+        )
+
+    def test_path_grouped_decision_edges_union_duplicate_targets(self) -> None:
+        node = LookaheadDecision(
+            0,
+            ("A", "B", "C"),
+            (
+                DecisionEdge(TokenSetPredicate(("B",)), 7),
+                DecisionEdge(TokenSetPredicate(("C",)), 9),
+                DecisionEdge(TokenSetPredicate(("A",)), 7),
+            ),
+        )
+
+        self.assertEqual(
+            decision_dag_module.grouped_decision_edges(node),
+            (
+                DecisionEdge(TokenSetPredicate(("A", "B")), 7),
+                DecisionEdge(TokenSetPredicate(("C",)), 9),
+            ),
+        )
+
+    def test_decision_paths_reject_duplicate_offset_on_one_path(self) -> None:
+        leaf = CommitAlternative(AlternativeOutcome("S", 1))
+        repeated_offset = LookaheadDecision(
+            0,
+            ("B",),
+            (DecisionEdge(TokenSetPredicate(("B",)), 0),),
+        )
+        root = LookaheadDecision(
+            0,
+            ("A",),
+            (DecisionEdge(TokenSetPredicate(("A",)), 1),),
+        )
+        dag = CanonicalDecisionDag("S", 2, 2, (leaf, repeated_offset, root), {})
+
+        with self.assertRaisesRegex(ValueError, "offset.*twice"):
+            decision_dag_module.decision_paths(dag)
+
     def test_reads_second_token_only_for_shared_first_prefix(self) -> None:
         source = _source("<S> ::= A X | A Y | B Z", k=2)
 

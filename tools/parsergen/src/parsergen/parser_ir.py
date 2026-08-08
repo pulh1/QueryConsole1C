@@ -14,7 +14,11 @@ from .canonical_select import (
     build_canonical_decision_source,
     canonical_matcher_definitions,
 )
-from .decision_dag import CanonicalDecisionDag, build_decision_dag
+from .decision_dag import (
+    CanonicalDecisionDag,
+    DecisionPathFact,
+    build_decision_dag,
+)
 from .diagnostics import Severity, SourceSpan
 from .lowering import (
     BindingOrigin,
@@ -33,8 +37,10 @@ from .model import (
     Action,
     Constant,
     IdentifierRef,
+    Lexeme,
     NonterminalCall,
     SyntaxSymbol,
+    Terminal,
 )
 from .resolver import ResolvedGrammar, resolve_grammar
 from .source_model import (
@@ -70,6 +76,42 @@ class ParseSymbol:
 class DiscardSymbol:
     symbol: SyntaxSymbol
     source_span: SourceSpan
+
+
+@dataclass(frozen=True, slots=True)
+class ConsumeKnownSymbol:
+    symbol: SyntaxSymbol
+    capture_value: bool
+    proven_token_types: tuple[str, ...]
+    source_span: SourceSpan
+
+    def __post_init__(self) -> None:
+        if not isinstance(
+            self.symbol,
+            (Terminal, Lexeme, Constant, IdentifierRef),
+        ):
+            raise ValueError("known consume requires a terminal-like symbol")
+        if (
+            not self.proven_token_types
+            or tuple(sorted(set(self.proven_token_types)))
+            != self.proven_token_types
+        ):
+            raise ValueError(
+                "proven token types must be sorted, unique, and non-empty"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class ResolvedRegion:
+    operations: tuple[Operation, ...]
+    result_index: int | None
+    source_span: SourceSpan
+
+    def __post_init__(self) -> None:
+        if self.result_index is not None and not (
+            0 <= self.result_index < len(self.operations)
+        ):
+            raise ValueError("resolved region result index is out of range")
 
 
 @dataclass(frozen=True, slots=True)
@@ -110,6 +152,7 @@ class BranchIr:
     operations: tuple[Operation, ...]
     result_index: int | None
     source_span: SourceSpan
+    path_facts: tuple[DecisionPathFact, ...] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -155,6 +198,7 @@ class LeftFold:
 
 BoundValue = (
     ParseSymbol
+    | ConsumeKnownSymbol
     | DispatchValue
     | ParseBranchValue
     | UndefinedValue
@@ -228,6 +272,8 @@ class ReturnConstant:
 Operation = (
     ParseSymbol
     | DiscardSymbol
+    | ConsumeKnownSymbol
+    | ResolvedRegion
     | Dispatch
     | RepeatLoop
     | OptionalBranch
@@ -1175,6 +1221,10 @@ def _produces_transparent_value(operation: Operation) -> bool:
             operation.symbol,
             (NonterminalCall, IdentifierRef, Constant),
         )
+    if isinstance(operation, ConsumeKnownSymbol):
+        return operation.capture_value
+    if isinstance(operation, ResolvedRegion):
+        return operation.result_index is not None
     if isinstance(operation, (Dispatch, OptionalBranch)):
         return bool(operation.branches) and all(
             branch.result_index is not None

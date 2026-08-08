@@ -60,6 +60,18 @@ class CanonicalDecisionDag:
 
 
 @dataclass(frozen=True, slots=True)
+class DecisionPathFact:
+    offset: int
+    predicate: TokenSetPredicate
+
+
+@dataclass(frozen=True, slots=True)
+class DecisionPath:
+    leaf: DecisionLeaf
+    facts: tuple[DecisionPathFact, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class _BuildState:
     offset: int
     remaining: int
@@ -364,6 +376,49 @@ def evaluate_decision(
     return node
 
 
+def grouped_decision_edges(
+    node: LookaheadDecision,
+) -> tuple[DecisionEdge, ...]:
+    token_types_by_target: dict[int, set[str]] = defaultdict(set)
+    target_order: list[int] = []
+    for edge in node.edges:
+        if edge.target not in token_types_by_target:
+            target_order.append(edge.target)
+        token_types_by_target[edge.target].update(edge.predicate.token_types)
+    return tuple(
+        DecisionEdge(
+            TokenSetPredicate(tuple(sorted(token_types_by_target[target]))),
+            target,
+        )
+        for target in target_order
+    )
+
+
+def decision_paths(
+    dag: CanonicalDecisionDag,
+) -> tuple[DecisionPath, ...]:
+    result: list[DecisionPath] = []
+
+    def visit(
+        node_index: int,
+        facts: tuple[DecisionPathFact, ...],
+    ) -> None:
+        node = dag.nodes[node_index]
+        if not isinstance(node, LookaheadDecision):
+            result.append(DecisionPath(node, facts))
+            return
+        if any(fact.offset == node.offset for fact in facts):
+            raise ValueError("decision path reads one offset twice")
+        for edge in grouped_decision_edges(node):
+            visit(
+                edge.target,
+                (*facts, DecisionPathFact(node.offset, edge.predicate)),
+            )
+
+    visit(dag.root, ())
+    return tuple(result)
+
+
 def emitted_predicate_token_sets(
     dag: CanonicalDecisionDag,
 ) -> tuple[tuple[str, ...], ...]:
@@ -373,17 +428,9 @@ def emitted_predicate_token_sets(
         node = dag.nodes[node_index]
         if not isinstance(node, LookaheadDecision):
             return
-        token_types_by_target: dict[int, set[str]] = defaultdict(set)
-        target_order: list[int] = []
-        for edge in node.edges:
-            if edge.target not in token_types_by_target:
-                target_order.append(edge.target)
-            token_types_by_target[edge.target].update(
-                edge.predicate.token_types
-            )
-        for target in target_order:
-            result.append(tuple(sorted(token_types_by_target[target])))
-            visit(target)
+        for edge in grouped_decision_edges(node):
+            result.append(edge.predicate.token_types)
+            visit(edge.target)
 
     visit(dag.root)
     return tuple(result)

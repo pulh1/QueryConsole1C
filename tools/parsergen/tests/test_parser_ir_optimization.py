@@ -4,6 +4,7 @@ from dataclasses import replace
 import unittest
 from unittest.mock import patch
 
+import parsergen.parser_ir as parser_ir_module
 from parsergen.analysis import compute_analysis
 from parsergen.canonical_bsl_codegen import generate_canonical_parser
 from parsergen.canonical_select import (
@@ -135,9 +136,27 @@ class _ActionTraceEvaluator:
             return None
         return values[alternative.result_index]
 
-    def _operations(self, operations):
+    def _branch(self, branches, leaf):
+        matching = tuple(
+            branch
+            for branch in branches
+            if branch.outcome == leaf.outcome
+            and (
+                branch.path_facts is None
+                or all(
+                    fact.offset < len(self._lookahead())
+                    and self._lookahead()[fact.offset]
+                    in fact.predicate.token_types
+                    for fact in branch.path_facts
+                )
+            )
+        )
+        if len(matching) != 1:
+            raise AssertionError(matching)
+        return matching[0]
+
+    def _operations(self, operations, current=None):
         values = []
-        current = None
         for operation in operations:
             if isinstance(operation, ConstructNode):
                 self.trace.append(("construct", operation.constructor))
@@ -145,6 +164,8 @@ class _ActionTraceEvaluator:
                 values.append(None)
             elif isinstance(operation, ParseSymbol):
                 values.append(self._parse(operation.symbol))
+            elif isinstance(operation, parser_ir_module.ConsumeKnownSymbol):
+                values.append(self._consume_known(operation))
             elif isinstance(operation, BindScalar):
                 value = self._bound(operation.value)
                 self.trace.append(("bind", operation.property))
@@ -167,11 +188,7 @@ class _ActionTraceEvaluator:
                     continue
                 if not isinstance(leaf, CommitAlternative):
                     raise _TraceFailure
-                branch = next(
-                    item
-                    for item in operation.branches
-                    if item.outcome == leaf.outcome
-                )
+                branch = self._branch(operation.branches, leaf)
                 branch_values, branch_current = self._operations(
                     branch.operations
                 )
@@ -190,16 +207,14 @@ class _ActionTraceEvaluator:
                 )
                 if isinstance(leaf, ExitDecision):
                     branch_values, branch_current = self._operations(
-                        operation.exit_operations
+                        operation.exit_operations,
+                        current,
                     )
                 elif isinstance(leaf, CommitAlternative):
-                    branch = next(
-                        item
-                        for item in operation.branches
-                        if item.outcome == leaf.outcome
-                    )
+                    branch = self._branch(operation.branches, leaf)
                     branch_values, branch_current = self._operations(
-                        branch.operations
+                        branch.operations,
+                        current,
                     )
                 else:
                     raise _TraceFailure
@@ -208,6 +223,20 @@ class _ActionTraceEvaluator:
                     if branch_current is not None
                     else (
                         branch_values[-1] if branch_values else None
+                    )
+                )
+            elif isinstance(operation, parser_ir_module.ResolvedRegion):
+                region_values, region_current = self._operations(
+                    operation.operations,
+                    current,
+                )
+                values.append(
+                    region_current
+                    if region_current is not None
+                    else (
+                        region_values[operation.result_index]
+                        if operation.result_index is not None
+                        else None
                     )
                 )
             else:
@@ -221,7 +250,30 @@ class _ActionTraceEvaluator:
     def _bound(self, value):
         if isinstance(value, ParseSymbol):
             return self._parse(value.symbol)
+        if isinstance(value, parser_ir_module.ConsumeKnownSymbol):
+            return self._consume_known(value)
         raise AssertionError(type(value))
+
+    def _consume_known(self, operation):
+        symbol = operation.symbol
+        if isinstance(symbol, (Terminal, Lexeme)):
+            expected = (
+                symbol.token_type
+                if isinstance(symbol, Terminal)
+                else symbol.text
+            )
+        elif isinstance(symbol, IdentifierRef):
+            expected = symbol.name
+        elif isinstance(symbol, Constant):
+            expected = symbol.token_type
+        else:
+            raise AssertionError(type(symbol))
+        self.trace.append(("parse", expected))
+        if self.position >= len(self.tokens):
+            raise _TraceFailure
+        value = self.tokens[self.position]
+        self.position += 1
+        return value if operation.capture_value else None
 
     def _parse(self, symbol):
         if isinstance(symbol, NonterminalCall):
@@ -372,6 +424,182 @@ class ParserIrSpecializationTests(unittest.TestCase):
         "<Choice> ::= @НовыйA A X | @НовыйB B Y"
     )
 
+    PATH_FACTS_GRAMMAR = (
+        "<S> ::= <Base> Child => <Choice>?\n"
+        "<Base> ::= @НовыйBase BASE\n"
+        "<Choice> ::= @НовыйBetween (NOT Inverted := Истина)? BETWEEN <Tail>\n"
+        "<Choice> ::= @НовыйIn (NOT Inverted := Истина)? IN <Tail>\n"
+        "<Tail> ::= VALUE"
+    )
+
+    def test_known_symbol_and_resolved_region_validate_their_contracts(self) -> None:
+        raw = _build_raw("<S> ::= A")
+        operation = raw.productions[0].alternatives[0].operations[0]
+        assert isinstance(operation, ParseSymbol)
+        span = operation.source_span
+        known_symbol = parser_ir_module.ConsumeKnownSymbol
+        resolved_region = parser_ir_module.ResolvedRegion
+
+        for symbol in (
+            Terminal("A", span),
+            Lexeme("A", span),
+            Constant("A", span),
+            IdentifierRef("ID_A", span),
+        ):
+            with self.subTest(symbol=type(symbol).__name__):
+                self.assertEqual(
+                    known_symbol(symbol, True, ("A",), span).proven_token_types,
+                    ("A",),
+                )
+        for proven in ((), ("B", "A"), ("A", "A")):
+            with self.subTest(proven=proven):
+                with self.assertRaises(ValueError):
+                    known_symbol(Terminal("A", span), False, proven, span)
+        with self.assertRaises(ValueError):
+            known_symbol(NonterminalCall("S", (), span), True, ("A",), span)
+        with self.assertRaises(ValueError):
+            resolved_region((), 0, span)
+
+    def test_path_facts_partially_evaluate_known_prefix_and_preserve_traces(
+        self,
+    ) -> None:
+        before = _build_raw(self.PATH_FACTS_GRAMMAR, 2)
+        after = optimize_parser_ir(before)
+        wrapper = after.productions[0].alternatives[0].operations[0]
+        assert isinstance(wrapper, WrapOptional)
+        choice_1 = tuple(
+            branch
+            for branch in wrapper.branches
+            if branch.outcome == AlternativeOutcome("Choice", 1)
+        )
+        choice_2 = tuple(
+            branch
+            for branch in wrapper.branches
+            if branch.outcome == AlternativeOutcome("Choice", 2)
+        )
+
+        self.assertEqual(len(choice_1), 2)
+        self.assertEqual(len(choice_2), 2)
+        self.assertTrue(
+            all(
+                branch.path_facts is not None
+                for branch in (*choice_1, *choice_2)
+            )
+        )
+        self.assertEqual(
+            {
+                tuple(fact.predicate.token_types for fact in branch.path_facts or ())
+                for branch in choice_1
+            },
+            {
+                (("BETWEEN",),),
+                (("NOT",), ("BETWEEN",)),
+            },
+        )
+        self.assertEqual(
+            {
+                tuple(fact.predicate.token_types for fact in branch.path_facts or ())
+                for branch in choice_2
+            },
+            {
+                (("IN",),),
+                (("NOT",), ("IN",)),
+            },
+        )
+
+        def known_tokens(branch):
+            result = []
+
+            def visit(operations):
+                for item in operations:
+                    if isinstance(item, parser_ir_module.ConsumeKnownSymbol):
+                        result.append(item.symbol.token_type)
+                    elif isinstance(item, parser_ir_module.ResolvedRegion):
+                        visit(item.operations)
+
+            visit(branch.operations)
+            return tuple(result)
+
+        by_facts = {
+            tuple(
+                fact.predicate.token_types
+                for fact in branch.path_facts or ()
+            ): branch
+            for branch in (*choice_1, *choice_2)
+        }
+        self.assertEqual(known_tokens(by_facts[(("BETWEEN",),)]), ("BETWEEN",))
+        self.assertEqual(
+            known_tokens(by_facts[(("NOT",), ("BETWEEN",))]),
+            ("NOT", "BETWEEN"),
+        )
+        self.assertEqual(known_tokens(by_facts[(("IN",),)]), ("IN",))
+        self.assertEqual(
+            known_tokens(by_facts[(("NOT",), ("IN",))]),
+            ("NOT", "IN"),
+        )
+        for branch in (*choice_1, *choice_2):
+            self.assertEqual(
+                sum(isinstance(item, ConstructNode) for item in branch.operations),
+                1,
+            )
+
+        for name, tokens, returned in (
+            ("between", ("BASE", "BETWEEN", "VALUE"), True),
+            ("not-between", ("BASE", "NOT", "BETWEEN", "VALUE"), True),
+            ("in", ("BASE", "IN", "VALUE"), True),
+            ("not-in", ("BASE", "NOT", "IN", "VALUE"), True),
+            ("exit", ("BASE",), True),
+            ("invalid-suffix", ("BASE", "NOT", "BETWEEN", "WRONG"), False),
+        ):
+            with self.subTest(name=name):
+                before_evaluator = _ActionTraceEvaluator(before, tokens)
+                after_evaluator = _ActionTraceEvaluator(after, tokens)
+                before_result = before_evaluator.execute("S")
+                after_result = after_evaluator.execute("S")
+                self.assertEqual(after_evaluator.trace, before_evaluator.trace)
+                self.assertEqual(
+                    after_evaluator.position,
+                    before_evaluator.position,
+                )
+                self.assertEqual(before_result is not None, returned)
+                self.assertEqual(after_result is not None, returned)
+                if name == "invalid-suffix":
+                    self.assertEqual(
+                        after_evaluator.trace.count(("construct", "НовыйIn")),
+                        0,
+                    )
+
+    def test_path_expansion_cost_33_keeps_outcome_branch_unspecialized(self) -> None:
+        # The two source branches cost 37 operations recursively.  Their
+        # direct paths each remove two optional-branch operations, so cloning
+        # direct and inverted fragments adds exactly 37 - 4 = 33 operations.
+        between_actions = " ".join(
+            f"BetweenFlag{index} := Истина" for index in range(13)
+        )
+        in_actions = " ".join(
+            f"InFlag{index} := Истина" for index in range(12)
+        )
+        parser_ir = _build(
+            "<S> ::= <Base> Child => <Choice>?\n"
+            "<Base> ::= @НовыйBase BASE\n"
+            f"<Choice> ::= @НовыйBetween {between_actions} "
+            "(NOT Inverted := Истина)? BETWEEN <Tail>\n"
+            f"<Choice> ::= @НовыйIn {in_actions} "
+            "(NOT Inverted := Истина)? IN <Tail>\n"
+            "<Tail> ::= VALUE",
+            2,
+        )
+        wrapper = parser_ir.productions[0].alternatives[0].operations[0]
+        assert isinstance(wrapper, WrapOptional)
+
+        choice_1 = tuple(
+            branch
+            for branch in wrapper.branches
+            if branch.outcome == AlternativeOutcome("Choice", 1)
+        )
+        self.assertEqual(len(choice_1), 1)
+        self.assertIsNone(choice_1[0].path_facts)
+
     def test_symbolic_specialization_intersects_languages_and_retains_exit(self) -> None:
         parser_ir = _build_raw(self.GRAMMAR, 2)
         wrapper = parser_ir.productions[0].alternatives[0].operations[0]
@@ -407,19 +635,18 @@ class ParserIrSpecializationTests(unittest.TestCase):
 
     def test_optional_semantic_callee_is_selected_once_and_actions_are_preserved(self) -> None:
         parser_ir = _build(self.GRAMMAR, 2)
-        generated = generate_canonical_parser(
-            parser_ir.source_grammar,
-            parser_ir,
-            {"Parse": "S"},
+        self.assertNotIn("Choice", {item.name for item in parser_ir.productions})
+        wrapper = parser_ir.productions[0].alternatives[0].operations[0]
+        assert isinstance(wrapper, WrapOptional)
+        self.assertEqual(len(wrapper.branches), 2)
+        self.assertEqual(
+            sum(
+                isinstance(operation, ConstructNode)
+                for branch in wrapper.branches
+                for operation in branch.operations
+            ),
+            2,
         )
-        function = _function(generated.module_text, "S")
-
-        self.assertNotIn("НеТерминалChoice()", function)
-        self.assertNotIn("Функция НеТерминалChoice(", generated.module_text)
-        self.assertEqual(function.count("ТипТокенаПросмотра(0)"), 1)
-        self.assertEqual(function.count("НовыйA"), 1)
-        self.assertEqual(function.count("НовыйB"), 1)
-        self.assertEqual(function.count(".Child = "), 1)
 
     def test_repeated_semantic_action_without_common_prefix_proof_is_unchanged(self) -> None:
         parser_ir = _build(
