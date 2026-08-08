@@ -65,11 +65,21 @@ class _BindingValidator:
 
     def _validate_alternative(self, sequence: SourceSequence) -> None:
         constructors = _collect(sequence, SourceConstructor)
-        bindings = _collect(
+        all_bindings = _collect(
             sequence,
             (SourceBinding, SourceConstantBinding),
         )
+        bindings = tuple(
+            item
+            for item in all_bindings
+            if not (
+                isinstance(item, SourceConstantBinding)
+                and item.property is None
+            )
+        )
         actions = _collect(sequence, Action)
+
+        self._validate_transparent_constants(sequence)
 
         if actions:
             self._add(
@@ -188,6 +198,64 @@ class _BindingValidator:
                     sequence.span,
                 )
 
+    def _validate_transparent_constants(
+        self,
+        sequence: SourceSequence,
+    ) -> None:
+        constants = tuple(
+            item
+            for item in sequence.items
+            if isinstance(item, SourceConstantBinding)
+            and item.property is None
+        )
+        if constants:
+            if not all(_valid_constant(item.value) for item in constants):
+                invalid = next(
+                    item
+                    for item in constants
+                    if not _valid_constant(item.value)
+                )
+                self._add(
+                    "BIND204",
+                    "constant binding value is not allowed",
+                    invalid.span,
+                )
+            has_constructor = any(
+                isinstance(item, SourceConstructor)
+                for item in sequence.items
+            )
+            semantic_counts = semantic_child_counts(sequence)
+            if (
+                len(constants) > 1
+                or has_constructor
+                or any(count > 0 for count in semantic_counts)
+            ):
+                self._add(
+                    "BIND208",
+                    "transparent constant must be the only semantic result",
+                    constants[-1].span,
+                )
+
+        for item in sequence.items:
+            if isinstance(item, SourceGroup):
+                for alternative in item.alternatives:
+                    self._validate_transparent_constants(alternative.body)
+            elif isinstance(item, (SourceRepeat, SourceOptional)):
+                self._validate_transparent_primary(item.body)
+            elif isinstance(item, SourceBinding):
+                self._validate_transparent_value(item.value)
+
+    def _validate_transparent_primary(self, primary) -> None:
+        if isinstance(primary, SourceGroup):
+            for alternative in primary.alternatives:
+                self._validate_transparent_constants(alternative.body)
+
+    def _validate_transparent_value(self, value) -> None:
+        if isinstance(value, (SourceRepeat, SourceOptional)):
+            self._validate_transparent_primary(value.body)
+        elif isinstance(value, SourceGroup):
+            self._validate_transparent_primary(value)
+
     def _validate_paths(
         self,
         sequence: SourceSequence,
@@ -220,6 +288,8 @@ class _BindingValidator:
                     current = updated
                 current = self._walk_value(item.value, current, repeated)
             elif isinstance(item, SourceConstantBinding):
+                if item.property is None:
+                    continue
                 updated = []
                 for path in current:
                     if item.property in path:

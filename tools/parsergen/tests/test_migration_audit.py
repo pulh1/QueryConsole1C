@@ -89,6 +89,8 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "ИсточникДанныхВременнаяТаблица",
                 "ИсточникДанныхТаблица",
                 "ИсточникДанныхВложенныйЗапрос",
+                "СписокПараметров",
+                "ПараметрТаблицы",
                 "СписокЭлементовУпорядочивания",
                 "ЭлементУпорядочивания",
                 "НаправлениеУпорядочивания",
@@ -140,19 +142,19 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["structural"],
             {
-                "source_productions": 92,
-                "source_alternatives": 215,
+                "source_productions": 91,
+                "source_alternatives": 213,
                 "productions": 136,
                 "alternatives": 298,
                 "epsilon_alternatives": 67,
                 "formal_parameters": 7,
                 "actual_arguments": 22,
-                "action_blocks": 110,
-                "statements": 125,
-                "constructor_statements": 19,
-                "collection_statements": 12,
+                "action_blocks": 105,
+                "statements": 118,
+                "constructor_statements": 18,
+                "collection_statements": 10,
                 "constant_statements": 14,
-                "structural_statements": 77,
+                "structural_statements": 73,
                 "other_assignment_statements": 0,
                 "other_statements": 3,
             },
@@ -191,10 +193,10 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["generated"],
             {
-                "bsl_functions": 104,
-                "bsl_loc": 2509,
+                "bsl_functions": 103,
+                "bsl_loc": 2488,
                 "constructor_names": 78,
-                "select_rows": 2_583,
+                "select_rows": 2_090,
                 "identifier_rows": 276,
             },
         )
@@ -264,6 +266,7 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                     '"ИсточникДанныхВременнаяТаблица", '
                     '"ИсточникДанныхТаблица", '
                 '"ИсточникДанныхВложенныйЗапрос", '
+                '"СписокПараметров", "ПараметрТаблицы", '
                 '"СписокЭлементовУпорядочивания", '
                 '"ЭлементУпорядочивания", '
                 '"НаправлениеУпорядочивания", '

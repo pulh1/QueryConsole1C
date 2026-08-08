@@ -538,6 +538,28 @@ def _parse_source_sequence(
             index = matched.end()
             continue
 
+        if pending_binding is None and body.startswith(":=", index):
+            operator_span = _span(
+                text,
+                path,
+                start_offset + index,
+                start_offset + index + 2,
+            )
+            constant, index = _parse_constant_binding(
+                body,
+                index + 2,
+                text,
+                path,
+                start_offset,
+                None,
+                symbol_start,
+                operator_span,
+                bag,
+            )
+            if constant is not None:
+                items.append(constant)
+            continue
+
         if pending_binding is None and body.startswith("+=", index):
             operator_span = _span(
                 text,
@@ -571,49 +593,19 @@ def _parse_source_sequence(
             )
             index = operator_end
             if operator == ":=":
-                value_start = _next_nonspace(body, index)
-                if value_start is None:
-                    _error(
-                        bag,
-                        "GP010",
-                        "constant binding value is missing",
-                        operator_span,
-                    )
-                    index = len(body)
-                    continue
-                matched = _BINDING_CONSTANT.match(body, value_start)
-                if matched is None or (
-                    matched.end() < len(body)
-                    and body[matched.end()] == "."
-                ):
-                    _error(
-                        bag,
-                        "GP010",
-                        "constant binding value is malformed",
-                        _span(
-                            text,
-                            path,
-                            start_offset + value_start,
-                            start_offset + min(value_start + 1, len(body)),
-                        ),
-                    )
-                    index = _next_token_boundary(body, value_start)
-                    continue
-                end = matched.end()
-                items.append(
-                    SourceConstantBinding(
-                        property_name,
-                        matched.group(0),
-                        _span(
-                            text,
-                            path,
-                            start_offset + symbol_start,
-                            start_offset + end,
-                        ),
-                        operator_span,
-                    )
+                constant, index = _parse_constant_binding(
+                    body,
+                    index,
+                    text,
+                    path,
+                    start_offset,
+                    property_name,
+                    symbol_start,
+                    operator_span,
+                    bag,
                 )
-                index = end
+                if constant is not None:
+                    items.append(constant)
                 continue
             pending_binding = (
                 property_name,
@@ -902,6 +894,59 @@ def _parse_source_sequence(
         start_offset + len(body),
     )
     return SourceSequence(tuple(items), sequence_span)
+
+
+def _parse_constant_binding(
+    body: str,
+    index: int,
+    text: str,
+    path: str,
+    start_offset: int,
+    property_name: str | None,
+    symbol_start: int,
+    operator_span: SourceSpan,
+    bag: DiagnosticBag,
+) -> tuple[SourceConstantBinding | None, int]:
+    value_start = _next_nonspace(body, index)
+    if value_start is None:
+        _error(
+            bag,
+            "GP010",
+            "constant binding value is missing",
+            operator_span,
+        )
+        return None, len(body)
+    matched = _BINDING_CONSTANT.match(body, value_start)
+    if matched is None or (
+        matched.end() < len(body) and body[matched.end()] == "."
+    ):
+        _error(
+            bag,
+            "GP010",
+            "constant binding value is malformed",
+            _span(
+                text,
+                path,
+                start_offset + value_start,
+                start_offset + min(value_start + 1, len(body)),
+            ),
+        )
+        return None, _next_token_boundary(body, value_start)
+    end = matched.end()
+    return (
+        SourceConstantBinding(
+            property_name,
+            matched.group(0),
+            _span(
+                text,
+                path,
+                start_offset + symbol_start,
+                start_offset + end,
+            ),
+            operator_span,
+        ),
+        end,
+    )
 
 
 def _binding_prefix(

@@ -14,6 +14,7 @@ from parsergen.parser_ir import (
     ParseBranchValue,
     ParseSymbol,
     RepeatLoop,
+    ReturnConstant,
     UndefinedValue,
     build_parser_ir,
 )
@@ -57,6 +58,17 @@ class BindingParserIrTests(unittest.TestCase):
         self.assertEqual(scalar.value.symbol.name, "A")
         self.assertEqual(constant.property, "Флаг")
         self.assertEqual(constant.value, "Истина")
+
+    def test_transparent_constant_is_explicit_semantic_result(self) -> None:
+        parser_ir = _build("<S> ::= VALUE | := Неопределено")
+
+        alternative = parser_ir.productions[0].alternatives[1]
+        self.assertEqual(
+            [type(item) for item in alternative.operations],
+            [ReturnConstant],
+        )
+        self.assertEqual(alternative.result_index, 0)
+        self.assertEqual(alternative.operations[0].value, "Неопределено")
 
     def test_optional_scalar_assigns_undefined_on_exit(self) -> None:
         parser_ir = _build(

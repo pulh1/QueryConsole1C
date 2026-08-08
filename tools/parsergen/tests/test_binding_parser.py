@@ -141,6 +141,18 @@ class BindingParserTests(unittest.TestCase):
         )
         self.assertEqual([item.value for item in constants], ["Истина", "Типы.Все"])
 
+    def test_parses_propertyless_constant_as_transparent_result(self) -> None:
+        result = parse_source_grammar(
+            "<S> ::= VALUE | := Неопределено"
+        )
+
+        self.assertEqual(result.diagnostics, ())
+        assert result.grammar is not None
+        constant = result.grammar.productions[0].alternatives[1].body.items[0]
+        self.assertIsInstance(constant, SourceConstantBinding)
+        self.assertIsNone(constant.property)
+        self.assertEqual(constant.value, "Неопределено")
+
     def test_quoted_and_action_content_protects_binding_markers(self) -> None:
         result = parse_source_grammar(
             '<S> ::= {Text = "@Node X += Y Z := Q"} '
@@ -161,6 +173,7 @@ class BindingParserTests(unittest.TestCase):
             "<S> ::= Значение *= <A>",
             "<S> ::= ~= <A>",
             "<S> ::= Значение :=",
+            "<S> ::= :=",
         )
         for source in cases:
             with self.subTest(source=source):

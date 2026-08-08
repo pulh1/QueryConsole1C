@@ -179,6 +179,12 @@ class AssignConstant:
     source_span: SourceSpan
 
 
+@dataclass(frozen=True, slots=True)
+class ReturnConstant:
+    value: str
+    source_span: SourceSpan
+
+
 Operation = (
     ParseSymbol
     | Dispatch
@@ -189,6 +195,7 @@ Operation = (
     | AppendCollection
     | ConcatScalar
     | AssignConstant
+    | ReturnConstant
     | LeftFold
 )
 
@@ -525,13 +532,21 @@ class _ParserIrBuilder:
                     item.span,
                     BindingOriginKind.CONSTANT,
                 )
-                result.append(
-                    AssignConstant(
-                        item.property,
-                        item.value,
-                        origin.source_span,
+                if item.property is None:
+                    result.append(
+                        ReturnConstant(
+                            item.value,
+                            origin.source_span,
+                        )
                     )
-                )
+                else:
+                    result.append(
+                        AssignConstant(
+                            item.property,
+                            item.value,
+                            origin.source_span,
+                        )
+                    )
             elif isinstance(item, SourceBinding):
                 result.extend(self._binding(item))
             elif isinstance(item, SourceGroup):
@@ -853,7 +868,7 @@ class _ParserIrBuilder:
 
 
 def _produces_transparent_value(operation: Operation) -> bool:
-    if isinstance(operation, LeftFold):
+    if isinstance(operation, (LeftFold, ReturnConstant)):
         return True
     if isinstance(operation, ParseSymbol):
         return isinstance(

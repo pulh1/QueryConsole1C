@@ -40,6 +40,7 @@ from .parser_ir import (
     ParserIr,
     ProductionIr,
     RepeatLoop,
+    ReturnConstant,
     UndefinedValue,
 )
 from .source_model import SourceGrammar
@@ -461,6 +462,8 @@ class _CanonicalBslGenerator:
                 ],
                 None,
             )
+        if isinstance(operation, ReturnConstant):
+            return [], operation.value
         if isinstance(operation, Dispatch):
             return self._render_dispatch(
                 operation,

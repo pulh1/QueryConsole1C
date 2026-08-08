@@ -144,6 +144,33 @@ class BindingValidationTests(unittest.TestCase):
 
         self.assertEqual(report.diagnostics, ())
 
+    def test_accepts_transparent_constant_without_constructor(self) -> None:
+        report = _validate("<S> ::= VALUE | := Неопределено")
+
+        self.assertEqual(report.diagnostics, ())
+
+    def test_rejects_transparent_constant_with_other_semantic_result(self) -> None:
+        cases = (
+            "<S> ::= @НовыйУзел := Неопределено",
+            "<S> ::= <A> := Неопределено\n<A> ::= a",
+            "<S> ::= := Истина := Ложь",
+        )
+        for source in cases:
+            with self.subTest(source=source):
+                report = _validate(source)
+                self.assertEqual(
+                    [item.code for item in report.diagnostics],
+                    ["BIND208"],
+                )
+
+    def test_rejects_invalid_transparent_constant(self) -> None:
+        report = _validate("<S> ::= := Да")
+
+        self.assertEqual(
+            [item.code for item in report.diagnostics],
+            ["BIND204"],
+        )
+
     def test_rejects_legacy_action_mixed_with_canonical_directives(self) -> None:
         report = _validate(
             "<S> ::= @НовыйУзел {ЭтотУзел = ЧтоТо} a"

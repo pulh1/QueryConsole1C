@@ -41,6 +41,21 @@ class CanonicalBslBindingTests(unittest.TestCase):
             ("НовыйУзел", "НовыйДочерний"),
         )
 
+    def test_root_list_preserves_empty_slots_with_transparent_constant(self) -> None:
+        function = _function(
+            _build(
+                "<S> ::= @НовыйСписок += (<A> | := Неопределено) "
+                "(',' += (<A> | := Неопределено))* END\n"
+                "<A> ::= ITEM",
+                k=2,
+            ).module_text,
+            "НеТерминалS",
+        )
+
+        self.assertEqual(function.count("ЭтотУзел.Добавить("), 2)
+        self.assertGreaterEqual(function.count("= Неопределено;"), 3)
+        self.assertEqual(function.count("Пока "), 1)
+
     def test_optional_scalar_assigns_present_or_undefined(self) -> None:
         function = _function(
             _build(

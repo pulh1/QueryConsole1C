@@ -70,7 +70,7 @@ class SourceBinding:
 
 @dataclass(frozen=True, slots=True)
 class SourceConstantBinding:
-    property: str
+    property: str | None
     value: str
     span: SourceSpan
     operator_span: SourceSpan

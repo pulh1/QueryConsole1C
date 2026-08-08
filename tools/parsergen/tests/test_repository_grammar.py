@@ -29,6 +29,8 @@ MIGRATED_PRODUCTIONS = (
     "ИсточникДанныхВременнаяТаблица",
     "ИсточникДанныхТаблица",
     "ИсточникДанныхВложенныйЗапрос",
+    "СписокПараметров",
+    "ПараметрТаблицы",
     "СписокЭлементовУпорядочивания",
     "ЭлементУпорядочивания",
     "НаправлениеУпорядочивания",
@@ -698,7 +700,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 92)
+        self.assertEqual(len(parsed.source_grammar.productions), 91)
         self.assertEqual(len(parsed.grammar.productions), 136)
         self.assertNotIn(
             "КакОпционально",
@@ -1636,6 +1638,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             "РазыменованиеТаблицы",
             "ПродолжениеРазыменованияТаблицы",
             "ПараметрыТаблицыОпционально",
+            "ПродолжениеСпискаПараметров",
         ):
             with self.subTest(removed=removed):
                 self.assertNotIn(f"Функция НеТерминал{removed}(", module)
@@ -1737,6 +1740,23 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertIn("ЭтотУзел.Псевдоним =", table)
         self.assertNotIn("ТекущийЭлемент", table)
         self.assertNotIn("НомерВариантаПродукции", table)
+
+        parameters = _generated_function(module, "СписокПараметров")
+        self.assertEqual(
+            parameters.count(
+                "ЭлементыМоделиЗапроса.НовыйСписокПараметров("
+            ),
+            1,
+        )
+        self.assertEqual(parameters.count("ЭтотУзел.Добавить("), 2)
+        self.assertEqual(parameters.count("Пока "), 1)
+        self.assertNotIn("ТекущийЭлемент", parameters)
+        self.assertNotIn("НомерВариантаПродукции", parameters)
+
+        parameter = _generated_function(module, "ПараметрТаблицы")
+        self.assertIn("РезультатПродукции = Неопределено;", parameter)
+        self.assertNotIn("ТекущийЭлемент", parameter)
+        self.assertNotIn("НомерВариантаПродукции", parameter)
 
     def test_logical_leaf_package_generates_values_without_actions(
         self,

@@ -236,6 +236,7 @@ Constructor задаётся декларативно:
 Свойство = &Токен       terminal/token value
 Свойство := Истина      constant value
 Свойство := Типы.Все    enum/symbolic constant
+:= Неопределено         transparent constant production result
 ```
 
 Список:
@@ -285,6 +286,10 @@ Direct LR:
   проверяется generated-parser/YAxUnit contract tests.
 - `:=` принимает только ограниченные literals или dotted symbolic constants,
   но не произвольный BSL.
+- `:=` без property возвращает разрешенную константу как semantic result
+  alternative. Он не требует constructor и должен быть единственным
+  semantic result на своем execution path; основной production use case —
+  сохранение пустых slots в declarative root collections.
 - Constructor recursive alternative вызывается один раз на итерацию left fold.
 - Canonical production не поддерживает arbitrary BSL escape hatch.
 
@@ -301,6 +306,7 @@ Validator проверяет:
 - корректность postfix operators и grouping;
 - binding без active constructor;
 - конфликтующие `=`, `+=` и `~=` одного property;
+- property-less `:=`, смешанный с constructor или другим semantic result;
 - scalar binding, способный вернуть несколько значений;
 - repeated binding без collection mode;
 - неоднозначный binding group;
