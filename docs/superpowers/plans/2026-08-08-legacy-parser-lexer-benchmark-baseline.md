@@ -1,0 +1,991 @@
+# Legacy Parser/Lexer Benchmark Baseline Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Подключить в `yaxunit` проверенные исторические lexer/parser из `origin/old_parser`, снять раздельные воспроизводимые wall-clock baseline и опубликовать два JSON и один Markdown-отчёт с доказуемым provenance.
+
+**Architecture:** Исторические BSL и два parser template материализуются из фиксированного Git commit в EDT-созданные test-only DataProcessor, а существующий `КОНС_Обр_БенчмаркПарсера_МО` становится общим descriptor-driven harness для режимов `lexer` и `parser`. Python CLI рядом с существующими parsergen benchmark-скриптами отвечает только за проверку ref/source bytes, materialization, строгую валидацию фактических sidecar и публикацию durable evidence; измерения остаются внутри YAxUnit server tests.
+
+**Tech Stack:** Python 3.11+, стандартная библиотека, pytest 8+, Git object database, EDT 2026.1/EDT-MCP, 1С:Предприятие 8.3.24, русский BSL UTF-8, YAxUnit 25.12, JSON и Markdown.
+
+## Global Constraints
+
+- Source ref: `origin/old_parser`; expected full commit: `59d538fd974c723c6b1cf336c61b0fea1aec8453`.
+- `КОНС_СтарыйЛексическийАнализатор/ObjectModule.bsl` должен быть функционально и после UTF-8/LF-нормализации побайтно эквивалентен историческому lexer source.
+- В old parser разрешена ровно одна замена `Обработки.ЛексическийАнализатор.Создать()` на `Обработки.КОНС_СтарыйЛексическийАнализатор.Создать()`; других compatibility-правок нет.
+- Оба parser template переносятся как исходные bytes из commit `59d538f`; их metadata template type — `TextDocument`.
+- Production `QueryConsoleZUP/src/**`, grammar, Parser IR, query model и downstream consumers не изменяются.
+- Corpus остаётся ровно из восьми существующих классов и включает все 42 embedded `QueryExamples`.
+- Для каждого component/corpus: preflight до измерения, batch calibration до 25 ms, 3 прогрева, 20 samples, median и nearest-rank p95.
+- Один заранее созданный runtime object повторно используется для preflight, calibration, warm-ups и samples внутри запуска реализации; создание объекта не входит в sample.
+- Lexer sample включает `УстановитьОбрабатываемыйТекст` и чтение всех содержательных токенов вместе с конечным токеном `Токен.Тип = Неопределено`.
+- Parser sample вызывает исходную corpus entrypoint `Разобрать` или `РазобратьВыражение` и тем самым включает токенизацию.
+- Ошибка preflight обязана включать component, implementation id, corpus id и input id; входы не пропускаются, corpus не сокращается, fallback не выполняется.
+- Performance threshold и verdict не вводятся.
+- Durable JSON и Markdown создаются только после двух успешных фактических YAxUnit runs; JSON копируются без изменения bytes.
+- Каждый YAxUnit launch использует `updateBeforeLaunch=true` и `updateScope="extension:yaxunit"`; нулевой test count, skipped corpus, failure или отсутствие sidecar блокируют публикацию.
+- Перед EDT write `list_projects` обязан показать, что project `yaxunit` указывает на каталог `yaxunit` текущего execution checkout. Если EDT всё ещё указывает на основной checkout, EDT write запрещён до явного переключения workspace; непроверенная команда переключения в этот план не вводится.
+- Ветка Decision DAG после `17c105d` на момент планирования не меняет `yaxunit/**` или production lexer/parser. Перед исполнением повторить `git diff --name-status 17c105d..feature/parser-lexer-optimization`; при новом пересечении с benchmark-модулем сначала объединить descriptor/runtime contracts, не перезаписывая изменения другой ветки.
+
+---
+
+## File Structure
+
+- Create: `tools/parsergen/benchmarks/legacy_runtime_baseline.py` — единственный CLI для ref verification, извлечения historical blobs, source verification, sidecar schema validation и evidence publication.
+- Create: `tools/parsergen/tests/test_legacy_runtime_baseline.py` — unit/contract tests CLI, hashes, schema, Markdown и статического BSL harness contract.
+- Create through EDT-MCP: `yaxunit/src/DataProcessors/КОНС_СтарыйЛексическийАнализатор/КОНС_СтарыйЛексическийАнализатор.mdo` — test-only metadata с новым EDT UUID.
+- Create from verified Git blob: `yaxunit/src/DataProcessors/КОНС_СтарыйЛексическийАнализатор/ObjectModule.bsl` — historical lexer source без правок.
+- Create through EDT-MCP: `yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/КОНС_СтарыйПарсер.mdo` — test-only parser metadata с двумя TextDocument templates и новым EDT UUID.
+- Create from verified Git blob: `yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/ObjectModule.bsl` — historical parser source с единственной разрешённой lexer-factory заменой.
+- Create from verified Git blobs: `yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/Templates/ТаблицаПервыхСимволовВариантов/Template.txt` and `yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/Templates/ОпределенияИдентификаторов/Template.txt` — exact historical bytes.
+- Modify through EDT-MCP: `yaxunit/src/Configuration/Configuration.mdo` — EDT-managed registration двух временных DataProcessor.
+- Modify: `yaxunit/src/CommonModules/КОНС_Обр_БенчмаркПарсера_МО/Module.bsl` — implementation descriptors, two modes, preflight, shared measurement/statistics, four explicit registrations и sidecar names.
+- Modify: `yaxunit/UPSTREAM.md` — перечисление permanent benchmark module и временных project-local DataProcessor; cleanup удалит только временные строки.
+- Create only from successful runtime sidecars: `docs/superpowers/matrices/2026-08-08-runtime-old-lexer-baseline.json`.
+- Create only from successful runtime sidecars: `docs/superpowers/matrices/2026-08-08-runtime-old-parser-baseline.json`.
+- Create only from those two JSON: `docs/superpowers/matrices/2026-08-08-runtime-old-lexer-parser-baseline.md`.
+
+## Execution Waves
+
+- **Wave A — Provenance RED/GREEN:** Task 1; review one complete CLI/test unit.
+- **Wave B — Historical objects RED/GREEN:** Task 2; review EDT metadata, extracted sources and provenance together.
+- **Wave C — Harness RED/GREEN:** Task 3 plus Task 4 gate; review descriptor, preflight, measurement and current-regression evidence together.
+- **Wave D — Runtime evidence RED/GREEN:** Task 5; review only after both actual sidecars and durable artifacts exist.
+- **Later cleanup wave:** Task 6 runs after optimizations and before MR; it is intentionally not part of baseline capture.
+
+### Task 1: Build the provenance/materialization/evidence CLI
+
+**Files:**
+- Create: `tools/parsergen/benchmarks/legacy_runtime_baseline.py`
+- Create: `tools/parsergen/tests/test_legacy_runtime_baseline.py`
+
+**Interfaces:**
+- Consumes: repository root, local `refs/remotes/origin/old_parser`, remote `refs/heads/old_parser`, exact Git blobs and completed YAxUnit sidecars.
+- Produces commands `verify-ref`, `materialize`, `verify-source`, `current-hashes`, `validate-sidecars`, and `publish`.
+- Produces normalized source SHA-256 values and raw template SHA-256 values shown below.
+- Exit codes: `0` success, `2` provenance/materialization mismatch, `3` sidecar/evidence validation failure.
+
+Approved manifest:
+
+| Artifact | Historical SHA-256 | Materialized SHA-256 | Hash scope |
+|---|---|---|---|
+| lexer module | `434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20` | same | UTF-8 text with CRLF/CR normalized to LF, no BOM added |
+| parser module | `0c365e1e521322554b63e400379be47c0dc5ecaa7f60dd6951dc84bc7cccd084` | `7319d0b0a2d0f551180e37fdabf3838ca718b2d4b8147199fe1ed4a26290f8bd` | same normalization; materialized hash includes exactly one factory replacement |
+| `ТаблицаПервыхСимволовВариантов` | `4e3f87f15291de1a0d216773f2dc3d69144759d56796504473fdd8bfb74dc3ed` | same | original bytes, 1,263,239 bytes |
+| `ОпределенияИдентификаторов` | `7c08a5a520ab66c1b931a9e401f06c3acbd9f1652c3acefe101fc38181e58152` | same | original bytes, 18,172 bytes |
+
+- [ ] **Step 1: Write failing manifest, normalization, replacement and sidecar tests**
+
+Use the repository's existing `spec_from_file_location` convention and add these exact assertions:
+
+```python
+def _make_sidecar(component: str) -> dict[str, object]:
+    artifacts = [
+        {
+            "role": "lexer",
+            "sha256": "434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20",
+        },
+    ]
+    if component == "parser":
+        artifacts.insert(
+            0,
+            {
+                "role": "parser",
+                "sha256": "7319d0b0a2d0f551180e37fdabf3838ca718b2d4b8147199fe1ed4a26290f8bd",
+            },
+        )
+    corpora = []
+    for index, corpus_id in enumerate(baseline.EXPECTED_CORPUS_IDS):
+        input_count = 42 if index == 0 else 1
+        inputs = [
+            {
+                "id": f"input_{input_index}",
+                "input_length": 1,
+                "provenance": "unit test",
+            }
+            for input_index in range(input_count)
+        ]
+        corpus = {
+            "id": corpus_id,
+            "entrypoint": "Разобрать",
+            "provenance": "unit test",
+            "generator_parameters": {},
+            "inputs": inputs,
+            "input_count": input_count,
+            "input_length": input_count,
+            "operation_count_per_iteration": input_count,
+            "operations_per_sample": input_count,
+            "iterations_per_sample": 1,
+            "warmup_count": 3,
+            "sample_count": 20,
+            "samples_ms": [1.0] * 20,
+            "wall_clock_median_ms": 1.0,
+            "wall_clock_p95_ms": 1.0,
+        }
+        if component == "lexer":
+            corpus["token_count"] = input_count
+            corpus["token_reads_per_iteration"] = input_count * 2
+            for item in inputs:
+                item["token_count"] = 1
+        else:
+            corpus["parse_calls_per_sample"] = input_count
+        corpora.append(corpus)
+    document = {
+        "schema_version": 2,
+        "benchmark_id": f"runtime-old-{component}-baseline",
+        "component": component,
+        "measurement_scope": component,
+        "implementation_id": f"old-{component}-59d538f",
+        "source_ref": "origin/old_parser",
+        "source_commit": baseline.EXPECTED_COMMIT,
+        "metadata_object_names": (
+            ["DataProcessor.КОНС_СтарыйЛексическийАнализатор"]
+            if component == "lexer"
+            else [
+                "DataProcessor.КОНС_СтарыйПарсер",
+                "DataProcessor.КОНС_СтарыйЛексическийАнализатор",
+            ]
+        ),
+        "artifacts": artifacts,
+        "warmup_count": 3,
+        "sample_count": 20,
+        "batch_calibration_target_ms": 25,
+        "clock": "ТекущаяУниверсальнаяДатаВМиллисекундах",
+        "clock_resolution_ms": 1,
+        "captured_at_platform_ms": 1,
+        "runtime": {"execution_context": "YAxUnit server test"},
+        "internal_counters": {},
+        "corpora": corpora,
+    }
+    if component == "parser":
+        document["parser_artifact"] = artifacts[0]
+    return document
+
+
+class LegacyRuntimeBaselineTests(unittest.TestCase):
+    def test_manifest_is_pinned_to_approved_commit_and_hashes(self) -> None:
+        self.assertEqual(
+            baseline.EXPECTED_COMMIT,
+            "59d538fd974c723c6b1cf336c61b0fea1aec8453",
+        )
+        self.assertEqual(
+            baseline.ARTIFACTS["lexer_module"].source_sha256,
+            "434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20",
+        )
+        self.assertEqual(
+            baseline.ARTIFACTS["parser_module"].materialized_sha256,
+            "7319d0b0a2d0f551180e37fdabf3838ca718b2d4b8147199fe1ed4a26290f8bd",
+        )
+
+    def test_parser_adaptation_requires_exactly_one_replacement(self) -> None:
+        source = b"A\r\n" + baseline.PRODUCTION_LEXER_FACTORY.encode() + b"\r\nB"
+        adapted = baseline.adapt_parser_source(source)
+        self.assertNotIn(baseline.PRODUCTION_LEXER_FACTORY, adapted.decode())
+        self.assertEqual(adapted.decode().count(baseline.OLD_LEXER_FACTORY), 1)
+        with self.assertRaisesRegex(ValueError, "exactly one"):
+            baseline.adapt_parser_source(b"no factory here")
+
+    def test_lexer_sidecar_requires_token_counts_and_twenty_samples(self) -> None:
+        sidecar = _make_sidecar("lexer")
+        baseline.validate_sidecar(sidecar, "lexer")
+        del sidecar["corpora"][0]["token_count"]
+        with self.assertRaisesRegex(ValueError, "token_count"):
+            baseline.validate_sidecar(sidecar, "lexer")
+
+    def test_parser_sidecar_requires_parser_and_lexer_artifacts(self) -> None:
+        sidecar = _make_sidecar("parser")
+        sidecar["artifacts"] = [sidecar["artifacts"][0]]
+        with self.assertRaisesRegex(ValueError, "parser and lexer"):
+            baseline.validate_sidecar(sidecar, "parser")
+```
+
+- [ ] **Step 2: Run the focused tests and verify RED**
+
+```powershell
+python -m pytest tools/parsergen/tests/test_legacy_runtime_baseline.py -v
+```
+
+Expected: FAIL because `legacy_runtime_baseline.py` and its interfaces do not exist.
+
+- [ ] **Step 3: Implement exact Git, normalization and adaptation primitives**
+
+Use argument arrays, binary stdout and atomic target replacement; never invoke a shell for Git:
+
+```python
+EXPECTED_REF = "refs/remotes/origin/old_parser"
+EXPECTED_REMOTE_REF = "refs/heads/old_parser"
+EXPECTED_COMMIT = "59d538fd974c723c6b1cf336c61b0fea1aec8453"
+PRODUCTION_LEXER_FACTORY = "Обработки.ЛексическийАнализатор.Создать()"
+OLD_LEXER_FACTORY = "Обработки.КОНС_СтарыйЛексическийАнализатор.Создать()"
+BENCHMARK_MODULE = (
+    Path(__file__).resolve().parents[3]
+    / "yaxunit/src/CommonModules/КОНС_Обр_БенчмаркПарсера_МО/Module.bsl"
+)
+
+
+@dataclass(frozen=True, slots=True)
+class ArtifactSpec:
+    source_path: str
+    target_path: str
+    source_sha256: str
+    materialized_sha256: str
+    hash_scope: str
+
+
+ARTIFACTS = {
+    "lexer_module": ArtifactSpec(
+        "QueryConsoleZUP/src/DataProcessors/ЛексическийАнализатор/ObjectModule.bsl",
+        "yaxunit/src/DataProcessors/КОНС_СтарыйЛексическийАнализатор/ObjectModule.bsl",
+        "434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20",
+        "434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20",
+        "normalized_utf8_lf",
+    ),
+    "parser_module": ArtifactSpec(
+        "QueryConsoleZUP/src/DataProcessors/Парсер/ObjectModule.bsl",
+        "yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/ObjectModule.bsl",
+        "0c365e1e521322554b63e400379be47c0dc5ecaa7f60dd6951dc84bc7cccd084",
+        "7319d0b0a2d0f551180e37fdabf3838ca718b2d4b8147199fe1ed4a26290f8bd",
+        "normalized_utf8_lf",
+    ),
+    "first_symbols_template": ArtifactSpec(
+        "QueryConsoleZUP/src/DataProcessors/Парсер/Templates/ТаблицаПервыхСимволовВариантов/Template.txt",
+        "yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/Templates/ТаблицаПервыхСимволовВариантов/Template.txt",
+        "4e3f87f15291de1a0d216773f2dc3d69144759d56796504473fdd8bfb74dc3ed",
+        "4e3f87f15291de1a0d216773f2dc3d69144759d56796504473fdd8bfb74dc3ed",
+        "original_bytes",
+    ),
+    "identifiers_template": ArtifactSpec(
+        "QueryConsoleZUP/src/DataProcessors/Парсер/Templates/ОпределенияИдентификаторов/Template.txt",
+        "yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/Templates/ОпределенияИдентификаторов/Template.txt",
+        "7c08a5a520ab66c1b931a9e401f06c3acbd9f1652c3acefe101fc38181e58152",
+        "7c08a5a520ab66c1b931a9e401f06c3acbd9f1652c3acefe101fc38181e58152",
+        "original_bytes",
+    ),
+}
+
+
+def git_bytes(repo: Path, *args: str) -> bytes:
+    return subprocess.run(
+        ["git", "-C", str(repo), *args],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ).stdout
+
+
+def normalize_bsl(source: bytes) -> bytes:
+    text = source.decode("utf-8")
+    return text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
+
+
+def adapt_parser_source(source: bytes) -> bytes:
+    text = normalize_bsl(source).decode("utf-8")
+    if text.count(PRODUCTION_LEXER_FACTORY) != 1:
+        raise ValueError("historical parser must contain exactly one production lexer factory")
+    return text.replace(PRODUCTION_LEXER_FACTORY, OLD_LEXER_FACTORY).encode("utf-8")
+```
+
+`verify-ref` must compare both commands without fetching or updating refs:
+
+```python
+local_commit = git_bytes(repo, "rev-parse", EXPECTED_REF).decode().strip()
+remote_rows = git_bytes(repo, "ls-remote", "--exit-code", "origin", EXPECTED_REMOTE_REF)
+remote_commit = remote_rows.decode().split()[0]
+if local_commit != EXPECTED_COMMIT or remote_commit != EXPECTED_COMMIT:
+    raise ValueError(
+        f"old_parser ref mismatch: local={local_commit} remote={remote_commit} expected={EXPECTED_COMMIT}"
+    )
+```
+
+`materialize --target-dir build/legacy-runtime-baseline-source` writes lexer bytes unchanged, parser bytes through `adapt_parser_source`, and both template blobs unchanged into ignored staging storage. It refuses to write until `verify-ref` succeeds and reports all four resulting hashes. `current-hashes` reads the two production BSL files from the working tree, applies `normalize_bsl`, and reports their hashes without changing files.
+
+- [ ] **Step 4: Implement strict sidecar validation and byte-preserving publication**
+
+`validate_sidecar(document, component)` must require:
+
+```python
+REQUIRED_TOP_LEVEL = {
+    "schema_version",
+    "benchmark_id",
+    "component",
+    "measurement_scope",
+    "implementation_id",
+    "source_ref",
+    "source_commit",
+    "metadata_object_names",
+    "artifacts",
+    "warmup_count",
+    "sample_count",
+    "batch_calibration_target_ms",
+    "clock",
+    "clock_resolution_ms",
+    "captured_at_platform_ms",
+    "runtime",
+    "internal_counters",
+    "corpora",
+}
+REQUIRED_CORPUS_FIELDS = {
+    "id",
+    "entrypoint",
+    "provenance",
+    "generator_parameters",
+    "inputs",
+    "input_count",
+    "input_length",
+    "operation_count_per_iteration",
+    "operations_per_sample",
+    "iterations_per_sample",
+    "warmup_count",
+    "sample_count",
+    "samples_ms",
+    "wall_clock_median_ms",
+    "wall_clock_p95_ms",
+}
+EXPECTED_CORPUS_IDS = (
+    "query_examples_all_42",
+    "large_package",
+    "long_field_list",
+    "join_chain",
+    "union_package_chain",
+    "arithmetic_chain",
+    "logical_chain",
+    "dereference_chain",
+)
+```
+
+Require `source_ref == "origin/old_parser"`, the full expected commit, `warmup_count == 3`, `sample_count == 20`, calibration `25`, exact corpus order, 42 inputs in the first corpus, 20 positive samples and positive median/p95 in every corpus. Lexer requires positive per-input and aggregate `token_count`; parser requires both parser and lexer artifact roles. Keep `validate_sidecar(document, component)` pure for unit tests; the `validate-sidecars` and `publish` CLI handlers first run `verify-source` and then require artifact hashes in both documents to match its fresh result.
+
+`publish` performs validation first, copies sidecar bytes with `shutil.copyfile`, reads the copied JSON, and renders Markdown tables with columns `corpus`, `input_count`, `input_length`, `operation_count_per_iteration`, `median_ms`, and `p95_ms`. The report contains no percentage or verdict.
+
+- [ ] **Step 5: Run unit tests and a read-only verification against Git objects**
+
+```powershell
+python -m pytest tools/parsergen/tests/test_legacy_runtime_baseline.py -v
+python tools/parsergen/benchmarks/legacy_runtime_baseline.py verify-ref --repo .
+```
+
+Expected: PASS and both local/remote refs equal `59d538fd974c723c6b1cf336c61b0fea1aec8453`.
+
+- [ ] **Step 6: Commit Wave A**
+
+```powershell
+git add tools/parsergen/benchmarks/legacy_runtime_baseline.py tools/parsergen/tests/test_legacy_runtime_baseline.py
+git commit -m "Добавить проверку provenance старого parser"
+```
+
+### Task 2: Create and prove the two historical DataProcessor objects
+
+**Files:**
+- Create through EDT-MCP: `yaxunit/src/DataProcessors/КОНС_СтарыйЛексическийАнализатор/**`
+- Create through EDT-MCP: `yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/**`
+- Modify through EDT-MCP: `yaxunit/src/Configuration/Configuration.mdo`
+- Modify: `yaxunit/UPSTREAM.md`
+
+**Interfaces:**
+- Consumes: Task 1 verified Git blobs and exact materialization command.
+- Produces: `DataProcessor.КОНС_СтарыйЛексическийАнализатор` with exported historical `Инициализировать()`, `УстановитьОбрабатываемыйТекст(Текст)`, `СледующийТокен()`.
+- Produces: `DataProcessor.КОНС_СтарыйПарсер` with exported historical `Разобрать(Текст)` and `РазобратьВыражение(Текст)` and two TextDocument templates.
+
+- [ ] **Step 1: Establish RED with absent target artifacts**
+
+```powershell
+python tools/parsergen/benchmarks/legacy_runtime_baseline.py verify-source --repo .
+```
+
+Expected: exit `2`, naming the two absent DataProcessor directories; production sources remain unchanged.
+
+- [ ] **Step 2: Enforce the EDT execution-checkout path gate**
+
+Call EDT-MCP `list_projects`. Resolve the execution root with `Resolve-Path .` and require these exact path equalities before a write:
+
+```text
+QueryConsoleZUP project path = Join-Path EXECUTION_ROOT 'QueryConsoleZUP'
+yaxunit project path         = Join-Path EXECUTION_ROOT 'yaxunit'
+```
+
+The values on the right come from the live `Resolve-Path` result, not a copied literal. If either differs, stop the EDT phase and switch/reopen the projects through the actual EDT workspace UI or a separately verified EDT tool; do not write metadata into the main checkout.
+
+- [ ] **Step 3: Snapshot background diagnostics, then create exact EDT metadata**
+
+Record `get_problem_summary(projectName="yaxunit")` and `get_project_errors(projectName="yaxunit", limit=1000, responseFormat="concise")` before creation.
+
+Use the confirmed `create_metadata` contract:
+
+```text
+create_metadata(projectName="yaxunit",
+  fqn="DataProcessor.КОНС_СтарыйЛексическийАнализатор",
+  expectedNotExists=true,
+  properties=[{name:"synonym", value:"КОНС старый лексический анализатор", language:"ru"},
+              {name:"comment", value:"Temporary old_parser runtime baseline object"}])
+
+create_metadata(projectName="yaxunit",
+  fqn="DataProcessor.КОНС_СтарыйПарсер",
+  expectedNotExists=true,
+  properties=[{name:"synonym", value:"КОНС старый парсер", language:"ru"},
+              {name:"comment", value:"Temporary old_parser runtime baseline object"}])
+
+create_metadata(projectName="yaxunit",
+  fqn="DataProcessor.КОНС_СтарыйПарсер.Template.ТаблицаПервыхСимволовВариантов",
+  expectedNotExists=true,
+  properties=[{name:"synonym", value:"Таблица первых символов вариантов", language:"ru"}])
+
+create_metadata(projectName="yaxunit",
+  fqn="DataProcessor.КОНС_СтарыйПарсер.Template.ОпределенияИдентификаторов",
+  expectedNotExists=true,
+  properties=[{name:"synonym", value:"Определения идентификаторов", language:"ru"}])
+```
+
+For each template call `get_metadata_details(projectName="yaxunit", objectFqns=[FQN], assignable=true)`, require `templateType` allows `TextDocument`, then call:
+
+```text
+modify_metadata(projectName="yaxunit",
+  fqn="DataProcessor.КОНС_СтарыйПарсер.Template.ТаблицаПервыхСимволовВариантов",
+  properties=[{name:"templateType", value:"TextDocument"}])
+
+modify_metadata(projectName="yaxunit",
+  fqn="DataProcessor.КОНС_СтарыйПарсер.Template.ОпределенияИдентификаторов",
+  properties=[{name:"templateType", value:"TextDocument"}])
+```
+
+Expected: EDT creates fresh UUIDs, registers both top objects in `Configuration.mdo`, and persists the two `Template.txt` paths. Do not copy historical `.mdo`, lexer form or parser manager module.
+
+- [ ] **Step 4: Materialize historical sources and make provenance GREEN**
+
+```powershell
+python tools/parsergen/benchmarks/legacy_runtime_baseline.py materialize --repo . --target-dir build/legacy-runtime-baseline-source
+```
+
+Read both newly created empty object modules through EDT-MCP. Write staged lexer/parser content with confirmed `write_module_source` arguments: `projectName="yaxunit"`, the exact `objectName` FQN, `moduleType="ObjectModule"`, `mode="replace"`, `expectedHash` and `expectedSource` from the preceding read, and `source` equal to the corresponding staged UTF-8 text. Copy the two staged `Template.txt` files to their EDT-created target paths with `Copy-Item -LiteralPath`; this bulk blob copy is required to preserve the original bytes because the available EDT metadata writer supports SpreadsheetDocument content but does not expose a TextDocument-content write API.
+
+Then run:
+
+```powershell
+python tools/parsergen/benchmarks/legacy_runtime_baseline.py verify-source --repo .
+```
+
+Expected: the four hashes equal the approved manifest; reverse replacement of `КОНС_СтарыйЛексическийАнализатор` yields the historical parser hash; this scan has no match:
+
+```powershell
+rg -n "Обработки\.ЛексическийАнализатор" yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/ObjectModule.bsl
+```
+
+- [ ] **Step 5: Revalidate exact EDT FQNs and compare new errors to the snapshot**
+
+```text
+revalidate_objects(projectName="yaxunit", objects=[
+  "DataProcessor.КОНС_СтарыйЛексическийАнализатор",
+  "DataProcessor.КОНС_СтарыйПарсер"
+])
+```
+
+Read `get_project_errors` filtered to those two FQNs. Expected: no new `ERRORS`; existing unrelated markers remain documented as background.
+
+- [ ] **Step 6: Register project-local additions and commit Wave B**
+
+In `yaxunit/UPSTREAM.md`, add `КОНС_Обр_БенчмаркПарсера_МО` to permanent common modules and both temporary DataProcessor under a clearly labeled baseline subsection.
+
+```powershell
+git diff -- QueryConsoleZUP/src
+git diff --check
+git add yaxunit/src/DataProcessors/КОНС_СтарыйЛексическийАнализатор yaxunit/src/DataProcessors/КОНС_СтарыйПарсер yaxunit/src/Configuration/Configuration.mdo yaxunit/UPSTREAM.md
+git commit -m "Добавить старые lexer и parser в YAxUnit"
+```
+
+Expected: first diff command is empty; commit contains only `yaxunit/**`.
+
+### Task 3: Parameterize the shared harness and add lexer/parser preflight
+
+**Files:**
+- Modify: `yaxunit/src/CommonModules/КОНС_Обр_БенчмаркПарсера_МО/Module.bsl`
+- Modify: `tools/parsergen/tests/test_legacy_runtime_baseline.py`
+
+**Interfaces:**
+- Consumes: exact runtime objects from Task 2 and existing `КорпусыБенчмарка()` without corpus text/order changes.
+- Produces descriptor fields `implementation_id`, `component`, `runtime_object`, `source_ref`, `source_commit`, `metadata_object_names`, `artifacts`, `sidecar_name`, `benchmark_id`, `measurement_scope`.
+- Produces `ВыполнитьБенчмарк(ОписаниеРеализации)`, `ВыполнитьPreflight`, `ИзмеритьКорпус(ОписаниеРеализации, Корпус, КоличествоПрогревов, КоличествоЗамеров)`, and descriptor-driven batch functions.
+- Preserves the current parser test name `RuntimeBaselineПарсераФормируется` for Decision DAG follow-up work.
+
+- [ ] **Step 1: Add RED static-contract tests before BSL changes**
+
+```python
+def test_bsl_harness_registers_old_and_current_modes(self) -> None:
+    text = baseline.BENCHMARK_MODULE.read_text(encoding="utf-8")
+    for test_name in (
+        "RuntimeBaselineСтарогоЛексераФормируется",
+        "RuntimeBaselineСтарогоПарсераФормируется",
+        "RuntimeBaselineЛексераФормируется",
+        "RuntimeBaselineПарсераФормируется",
+    ):
+        self.assertIn(f'ДобавитьСерверныйТест("{test_name}")', text)
+    self.assertIn("Функция ВыполнитьБенчмарк(ОписаниеРеализации)", text)
+    self.assertIn('Токен.Тип = Неопределено', text)
+    self.assertNotIn("Метаданные.НайтиПоТипу", text)
+```
+
+Run:
+
+```powershell
+python -m pytest tools/parsergen/tests/test_legacy_runtime_baseline.py -v
+```
+
+Expected: FAIL because the current module registers only the parser benchmark and `ВыполнитьБенчмарк()` has no descriptor parameter.
+
+- [ ] **Step 2: Add the four explicit descriptors and artifact schema**
+
+Read the current module with EDT-MCP `read_module_source(projectName="yaxunit", modulePath="CommonModules/КОНС_Обр_БенчмаркПарсера_МО/Module.bsl")`; retain its `contentHash` for guarded writes.
+
+Add these exact factories:
+
+```bsl
+Функция ОписаниеСтарогоЛексера()
+	Лексер = Обработки.КОНС_СтарыйЛексическийАнализатор.Создать();
+	Лексер.Инициализировать();
+	Артефакты = Новый Массив;
+	Артефакты.Добавить(НовыйАртефакт("lexer", "DataProcessor.КОНС_СтарыйЛексическийАнализатор",
+		"yaxunit/src/DataProcessors/КОНС_СтарыйЛексическийАнализатор/ObjectModule.bsl",
+		"434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20", "normalized_utf8_lf",
+		"QueryConsoleZUP/src/DataProcessors/ЛексическийАнализатор/ObjectModule.bsl",
+		"434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20"));
+	ИменаОбъектовМетаданных = Новый Массив;
+	ИменаОбъектовМетаданных.Добавить("DataProcessor.КОНС_СтарыйЛексическийАнализатор");
+	Возврат НовоеОписаниеРеализации("old-lexer-59d538f", "lexer", Лексер,
+		"origin/old_parser", "59d538fd974c723c6b1cf336c61b0fea1aec8453",
+		ИменаОбъектовМетаданных, Артефакты,
+		"runtime-old-lexer-baseline.json", "runtime-old-lexer-baseline",
+		"Полная токенизация: установка текста и чтение содержательных и конечного токена");
+КонецФункции
+```
+
+Add the parser factory in full:
+
+```bsl
+Функция ОписаниеСтарогоПарсера()
+	Парсер = Обработки.КОНС_СтарыйПарсер.Создать();
+	Артефакты = Новый Массив;
+	Артефакты.Добавить(НовыйАртефакт("parser", "DataProcessor.КОНС_СтарыйПарсер",
+		"yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/ObjectModule.bsl",
+		"7319d0b0a2d0f551180e37fdabf3838ca718b2d4b8147199fe1ed4a26290f8bd", "normalized_utf8_lf",
+		"QueryConsoleZUP/src/DataProcessors/Парсер/ObjectModule.bsl",
+		"0c365e1e521322554b63e400379be47c0dc5ecaa7f60dd6951dc84bc7cccd084"));
+	Артефакты.Добавить(НовыйАртефакт("lexer", "DataProcessor.КОНС_СтарыйЛексическийАнализатор",
+		"yaxunit/src/DataProcessors/КОНС_СтарыйЛексическийАнализатор/ObjectModule.bsl",
+		"434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20", "normalized_utf8_lf",
+		"QueryConsoleZUP/src/DataProcessors/ЛексическийАнализатор/ObjectModule.bsl",
+		"434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20"));
+	Артефакты.Добавить(НовыйАртефакт("first_symbols_template",
+		"DataProcessor.КОНС_СтарыйПарсер.Template.ТаблицаПервыхСимволовВариантов",
+		"yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/Templates/ТаблицаПервыхСимволовВариантов/Template.txt",
+		"4e3f87f15291de1a0d216773f2dc3d69144759d56796504473fdd8bfb74dc3ed", "original_bytes",
+		"QueryConsoleZUP/src/DataProcessors/Парсер/Templates/ТаблицаПервыхСимволовВариантов/Template.txt",
+		"4e3f87f15291de1a0d216773f2dc3d69144759d56796504473fdd8bfb74dc3ed"));
+	Артефакты.Добавить(НовыйАртефакт("identifiers_template",
+		"DataProcessor.КОНС_СтарыйПарсер.Template.ОпределенияИдентификаторов",
+		"yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/Templates/ОпределенияИдентификаторов/Template.txt",
+		"7c08a5a520ab66c1b931a9e401f06c3acbd9f1652c3acefe101fc38181e58152", "original_bytes",
+		"QueryConsoleZUP/src/DataProcessors/Парсер/Templates/ОпределенияИдентификаторов/Template.txt",
+		"7c08a5a520ab66c1b931a9e401f06c3acbd9f1652c3acefe101fc38181e58152"));
+	ИменаОбъектовМетаданных = Новый Массив;
+	ИменаОбъектовМетаданных.Добавить("DataProcessor.КОНС_СтарыйПарсер");
+	ИменаОбъектовМетаданных.Добавить("DataProcessor.КОНС_СтарыйЛексическийАнализатор");
+	Возврат НовоеОписаниеРеализации("old-parser-59d538f", "parser", Парсер,
+		"origin/old_parser", "59d538fd974c723c6b1cf336c61b0fea1aec8453",
+		ИменаОбъектовМетаданных, Артефакты, "runtime-old-parser-baseline.json",
+		"runtime-old-parser-baseline",
+		"Разобрать/РазобратьВыражение вместе с внутренней токенизацией; создание parser object вне sample");
+КонецФункции
+```
+
+Keep current parser compatibility by making `ОписаниеТекущегоПарсера()` use `Обработки.Парсер.Создать()`, normalized source hash `07d7f88f2926cb9fab32ab7eda6506a7cdbfb897eb4e87e9abdc70a21dd695f0`, template hashes `acb80f86f739d5a4a54fe7d6f2c85cdc57a2d664d779a1f1e51a0aaf54a059c1` and `13472cb0e1482b5c590a306fe6fc119d026546069e717d8eadd010b6a8661ef6`, sidecar `runtime-parser-benchmark-after.json`, and existing test `RuntimeBaselineПарсераФормируется`. Add `ОписаниеТекущегоЛексера()` with explicit `Обработки.ЛексическийАнализатор.Создать()` plus one `Инициализировать()`, normalized source hash `434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20`, sidecar `runtime-lexer-benchmark-after.json`, and new test `RuntimeBaselineЛексераФормируется`. Current descriptor `source_ref` is `17c105d` and `source_commit` is `17c105dcc864ea475353c350088e3cdbe97a3761`; immediately before the BSL write, run `current-hashes --repo .` and require exact equality with these values. Build current artifact rows with `НовыйАртефакт` exactly as for old artifacts but with production metadata FQNs and paths; current parser includes parser, lexer and both templates, while current lexer includes only lexer.
+
+Use helpers with these exact signatures:
+
+```bsl
+Функция НовыйАртефакт(Роль, ОбъектМетаданных, Путь, Хеш, ОбластьХеша, ИсходныйПуть, ИсходныйХеш)
+	Возврат Новый Структура(
+		"role,metadata_object,path,sha256,hash_scope,source_path,source_sha256",
+		Роль, ОбъектМетаданных, Путь, Хеш, ОбластьХеша, ИсходныйПуть, ИсходныйХеш);
+КонецФункции
+
+Функция НовоеОписаниеРеализации(Идентификатор, Компонент, ОбъектRuntime,
+	ИсходныйRef, ИсходныйCommit, ИменаОбъектовМетаданных, Артефакты,
+	ИмяSidecar, ИдентификаторБенчмарка, ОбластьИзмерения)
+
+	Возврат Новый Структура(
+		"implementation_id,component,runtime_object,source_ref,source_commit,metadata_object_names,artifacts,sidecar_name,benchmark_id,measurement_scope",
+		Идентификатор, Компонент, ОбъектRuntime, ИсходныйRef, ИсходныйCommit,
+		ИменаОбъектовМетаданных, Артефакты, ИмяSidecar, ИдентификаторБенчмарка, ОбластьИзмерения);
+КонецФункции
+```
+
+- [ ] **Step 3: Implement preflight with contextual hard failures**
+
+Build corpus once per benchmark invocation, then preflight each input before calibration. Lexer preflight records token counts on the input and corpus:
+
+```bsl
+Функция ВыполнитьLexerInput(ОписаниеРеализации, Корпус, Вход, СчитатьТокены)
+	Лексер = ОписаниеРеализации.runtime_object;
+	Лексер.УстановитьОбрабатываемыйТекст(Вход.text);
+	КоличествоТокенов = 0;
+	КоличествоЧтений = 0;
+	Пока Истина Цикл
+		Токен = Лексер.СледующийТокен();
+		КоличествоЧтений = КоличествоЧтений + 1;
+		Если Токен.Тип = Неопределено Тогда
+			Прервать;
+		КонецЕсли;
+		КоличествоТокенов = КоличествоТокенов + 1;
+	КонецЦикла;
+	Если СчитатьТокены И КоличествоТокенов <= 0 Тогда
+		ВызватьИсключение "lexer preflight получил ноль содержательных токенов";
+	КонецЕсли;
+	Возврат Новый Структура("token_count,token_reads", КоличествоТокенов, КоличествоЧтений);
+КонецФункции
+```
+
+Parser preflight calls only the corpus entrypoint and rejects `Неопределено`. `КонтекстОшибки` uses:
+
+```bsl
+Функция ВыполнитьParserInput(ОписаниеРеализации, Корпус, Вход)
+	Парсер = ОписаниеРеализации.runtime_object;
+	Если Корпус.entrypoint = "Разобрать" Тогда
+		РезультатРазбора = Парсер.Разобрать(Вход.text);
+	ИначеЕсли Корпус.entrypoint = "РазобратьВыражение" Тогда
+		РезультатРазбора = Парсер.РазобратьВыражение(Вход.text);
+	Иначе
+		ВызватьИсключение КонтекстОшибки(ОписаниеРеализации, Корпус, Вход,
+			"неизвестный parser entrypoint: " + Корпус.entrypoint);
+	КонецЕсли;
+	Если РезультатРазбора = Неопределено Тогда
+		ВызватьИсключение КонтекстОшибки(ОписаниеРеализации, Корпус, Вход,
+			"parser вернул Неопределено");
+	КонецЕсли;
+	Возврат РезультатРазбора;
+КонецФункции
+
+Процедура ВыполнитьPreflight(ОписаниеРеализации, Корпусы)
+	Для Каждого Корпус Из Корпусы Цикл
+		КоличествоТокеновКорпуса = 0;
+		Для Каждого Вход Из Корпус.inputs Цикл
+			Попытка
+				Если ОписаниеРеализации.component = "lexer" Тогда
+					Счетчики = ВыполнитьLexerInput(ОписаниеРеализации, Корпус, Вход, Истина);
+					Вход.Вставить("token_count", Счетчики.token_count);
+					КоличествоТокеновКорпуса = КоличествоТокеновКорпуса + Счетчики.token_count;
+				ИначеЕсли ОписаниеРеализации.component = "parser" Тогда
+					ВыполнитьParserInput(ОписаниеРеализации, Корпус, Вход);
+				Иначе
+					ВызватьИсключение "неизвестный component";
+				КонецЕсли;
+			Исключение
+				ВызватьИсключение КонтекстОшибки(ОписаниеРеализации, Корпус, Вход, ОписаниеОшибки());
+			КонецПопытки;
+		КонецЦикла;
+		Если ОписаниеРеализации.component = "lexer" Тогда
+			Корпус.Вставить("token_count", КоличествоТокеновКорпуса);
+		КонецЕсли;
+	КонецЦикла;
+КонецПроцедуры
+
+Функция КонтекстОшибки(ОписаниеРеализации, Корпус, Вход, Причина)
+	Возврат СтрШаблон("component=%1 implementation=%2 corpus=%3 input=%4: %5",
+		ОписаниеРеализации.component, ОписаниеРеализации.implementation_id,
+		Корпус.id, Вход.id, Причина);
+КонецФункции
+```
+
+Do not catch these exceptions to select another implementation.
+
+- [ ] **Step 4: Parameterize calibration, warm-ups and samples without changing statistics**
+
+Change the call chain to pass `ОписаниеРеализации` instead of a parser variable:
+
+```bsl
+Функция ИзмеритьКорпус(ОписаниеРеализации, Корпус, КоличествоПрогревов, КоличествоЗамеров)
+Функция КалиброватьРазмерПакета(ОписаниеРеализации, Корпус, ЦелеваяДлительностьМс)
+Функция ИзмеритьПакет(ОписаниеРеализации, Корпус, КоличествоИтераций)
+Процедура ВыполнитьПакет(ОписаниеРеализации, Корпус, КоличествоИтераций)
+```
+
+The inner dispatch is explicit:
+
+```bsl
+Если ОписаниеРеализации.component = "lexer" Тогда
+	ВыполнитьLexerInput(ОписаниеРеализации, Корпус, Вход, Ложь);
+ИначеЕсли ОписаниеРеализации.component = "parser" Тогда
+	ВыполнитьParserInput(ОписаниеРеализации, Корпус, Вход);
+Иначе
+	ВызватьИсключение КонтекстОшибки(ОписаниеРеализации, Корпус, Вход,
+		"неизвестный component");
+КонецЕсли;
+```
+
+Keep the existing `Медиана` and `Процентиль95` bodies unchanged. Preserve existing corpus construction bytes and order. Add `operations_per_sample`; keep `parse_calls_per_sample` for parser compatibility and add `token_reads_per_iteration` plus aggregate `token_count` for lexer.
+
+Build input descriptions without assuming a token field on parser inputs:
+
+```bsl
+Функция ОписаниеВходов(Входы)
+	Результат = Новый Массив;
+	Для Каждого Вход Из Входы Цикл
+		Описание = Новый Структура("id,input_length,provenance",
+			Вход.id, СтрДлина(Вход.text), Вход.provenance);
+		Если Вход.Свойство("token_count") Тогда
+			Описание.Вставить("token_count", Вход.token_count);
+		КонецЕсли;
+		Результат.Добавить(Описание);
+	КонецЦикла;
+	Возврат Результат;
+КонецФункции
+```
+
+For every component set `operation_count_per_iteration = Корпус.inputs.Количество()` and `operations_per_sample = ИтерацийВПакете * Корпус.inputs.Количество()`. For lexer additionally set `token_count = Корпус.token_count` and `token_reads_per_iteration = Корпус.token_count + Корпус.inputs.Количество()`; the second term counts one terminal token read per input.
+
+- [ ] **Step 5: Version the JSON and make each registration assert its own contract**
+
+`ВыполнитьБенчмарк(ОписаниеРеализации)` writes schema version `2`, keeps `captured_at_platform_ms`, `runtime`, `clock_resolution_ms`, `internal_counters` and every existing corpus/sample field, copies all descriptor provenance fields, and calls `ПутьКРезультатуJSON(ОписаниеРеализации.sidecar_name)`. Change the output helper signature exactly to `Функция ПутьКРезультатуJSON(ИмяSidecar)` and return `ЮТФайлы.ОбъединитьПути(КаталогОтчета, ИмяSidecar)`. Parser output keeps `parser_artifact` as a compatibility alias of its parser-role artifact while `artifacts` is the authoritative multi-artifact list. A shared `ПроверитьРезультатБенчмарка` asserts eight corpus, first corpus 42 inputs, 20 samples, and positive median/p95. Lexer registrations additionally assert positive corpus/input token counts.
+
+Register exactly these server tests in one test set:
+
+```bsl
+ЮТТесты.ДобавитьСерверныйТест("RuntimeBaselineСтарогоЛексераФормируется");
+ЮТТесты.ДобавитьСерверныйТест("RuntimeBaselineСтарогоПарсераФормируется");
+ЮТТесты.ДобавитьСерверныйТест("RuntimeBaselineЛексераФормируется");
+ЮТТесты.ДобавитьСерверныйТест("RuntimeBaselineПарсераФормируется");
+```
+
+Each exported procedure calls only its matching explicit descriptor; no metadata availability query appears.
+
+- [ ] **Step 6: Run headless GREEN checks and guarded EDT revalidation**
+
+```powershell
+python -m pytest tools/parsergen/tests/test_legacy_runtime_baseline.py -v
+git diff --check
+```
+
+Then use:
+
+```text
+revalidate_objects(projectName="yaxunit", objects=[
+  "DataProcessor.КОНС_СтарыйЛексическийАнализатор",
+  "DataProcessor.КОНС_СтарыйПарсер",
+  "CommonModule.КОНС_Обр_БенчмаркПарсера_МО"
+])
+```
+
+Expected: no new `ERRORS` for those FQNs. Re-read the changed module through EDT-MCP and confirm the guarded source matches disk.
+
+- [ ] **Step 7: Commit Wave C implementation**
+
+```powershell
+git add tools/parsergen/tests/test_legacy_runtime_baseline.py yaxunit/src/CommonModules/КОНС_Обр_БенчмаркПарсера_МО/Module.bsl
+git commit -m "Параметризовать runtime benchmark lexer и parser"
+```
+
+### Task 4: Pass the EDT integration and current-regression gate
+
+**Files:**
+- Read only: EDT project/model/diagnostics state.
+- Read only: YAxUnit reports for current lexer/parser modules.
+
+**Interfaces:**
+- Consumes: Wave C committed metadata and BSL.
+- Produces: recorded diagnostics delta and successful current-regression evidence before old timing is accepted.
+
+- [ ] **Step 1: Rediscover the runnable application instead of reusing a stale id**
+
+Call `get_applications(projectName="yaxunit")`. Bind its live `defaultApplicationId` result to `YAXUNIT_APP_ID`. The planning-time workspace had one inherited application and no client launch configuration, so the supported project/application form of `run_yaxunit_tests` is used.
+
+- [ ] **Step 2: Revalidate and compare diagnostics**
+
+Repeat the exact three-FQN `revalidate_objects` call from Task 3, then `get_problem_summary` and filtered `get_project_errors`. Expected: no new errors relative to the Task 2 snapshot; warnings already present in the snapshot are not reported as newly introduced.
+
+- [ ] **Step 3: Run existing current lexer/parser unit modules**
+
+Call `run_yaxunit_tests` with the live `YAXUNIT_APP_ID` and exact arguments:
+
+```text
+projectName="yaxunit"
+applicationId=YAXUNIT_APP_ID
+extensions=["YAXUNIT"]
+modules=[
+  "КОНС_Обр_ЛексическийАнализатор_МО",
+  "КОНС_Обр_Парсер_МО",
+  "КОНС_Обр_ПарсерЗапросов_МО"
+]
+updateBeforeLaunch=true
+updateScope="extension:yaxunit"
+timeout=60
+```
+
+If the call returns Pending, call again with identical arguments until the run completes. Expected: matched test count is positive and there are no new failures. Record exact passed/failed/skipped totals and `report.md` path.
+
+- [ ] **Step 4: Run the permanent current lexer/parser benchmark registrations**
+
+Run two exact tests separately so their sidecars and timing failures are attributable:
+
+```text
+КОНС_Обр_БенчмаркПарсера_МО.RuntimeBaselineЛексераФормируется
+КОНС_Обр_БенчмаркПарсера_МО.RuntimeBaselineПарсераФормируется
+```
+
+Use the same project/application/update arguments. Expected: one test matched per call, eight corpus, 20 samples each, both sidecars created. These current sidecars are integration evidence only and are not copied to the three durable old-baseline paths.
+
+- [ ] **Step 5: Record the gate without creating a synthetic commit**
+
+This task is read-only. If any source adjustment was required, return to Task 3 RED/GREEN, recommit the cohesive Wave C change, and rerun the entire gate.
+
+### Task 5: Capture and publish factual old lexer/parser runtime evidence
+
+**Files:**
+- Create from actual run: `docs/superpowers/matrices/2026-08-08-runtime-old-lexer-baseline.json`
+- Create from actual run: `docs/superpowers/matrices/2026-08-08-runtime-old-parser-baseline.json`
+- Create from the copied JSON: `docs/superpowers/matrices/2026-08-08-runtime-old-lexer-parser-baseline.md`
+
+**Interfaces:**
+- Consumes: successful EDT gate, live `YAXUNIT_APP_ID`, actual report directories and sidecars.
+- Produces: two byte-identical durable JSON files and a deterministic Markdown report without verdict.
+
+- [ ] **Step 1: Establish runtime RED before the first old run**
+
+Run `validate-sidecars` against the most recent YAxUnit report directories. Expected: exit `3` because `runtime-old-lexer-baseline.json` and `runtime-old-parser-baseline.json` do not yet both exist. Do not create empty JSON fixtures under `docs/superpowers/matrices`.
+
+- [ ] **Step 2: Run the old lexer benchmark alone**
+
+Call `run_yaxunit_tests` with:
+
+```text
+projectName="yaxunit"
+applicationId=YAXUNIT_APP_ID
+extensions=["YAXUNIT"]
+tests=["КОНС_Обр_БенчмаркПарсера_МО.RuntimeBaselineСтарогоЛексераФормируется"]
+updateBeforeLaunch=true
+updateScope="extension:yaxunit"
+timeout=60
+```
+
+Poll Pending with identical arguments. Require exactly one matched test, zero failures, eight corpus and the sidecar `runtime-old-lexer-baseline.json` next to the returned `report.md`. Bind its resolved path to `OLD_LEXER_SIDECAR`.
+
+- [ ] **Step 3: Run the old parser benchmark alone**
+
+Repeat with:
+
+```text
+tests=["КОНС_Обр_БенчмаркПарсера_МО.RuntimeBaselineСтарогоПарсераФормируется"]
+```
+
+Require exactly one matched test, zero failures, eight corpus and `runtime-old-parser-baseline.json`; bind its resolved path to `OLD_PARSER_SIDECAR`.
+
+If historical parser fails any corpus, stop Wave D. Preserve the failing JUnit report path and contextual error, make no parser compatibility edit, and report the baseline as blocked by the approved design rule.
+
+- [ ] **Step 4: Validate both actual sidecars before publication**
+
+```powershell
+python tools/parsergen/benchmarks/legacy_runtime_baseline.py validate-sidecars --repo . --lexer $OLD_LEXER_SIDECAR --parser $OLD_PARSER_SIDECAR
+```
+
+Expected: source provenance passes, exact corpus order matches, all 16 corpus rows have 20 positive samples and positive median/p95, lexer counts are positive, and parser artifacts contain both parser and lexer hashes.
+
+- [ ] **Step 5: Publish byte-identical JSON and render Markdown from them**
+
+```powershell
+python tools/parsergen/benchmarks/legacy_runtime_baseline.py publish --repo . --lexer $OLD_LEXER_SIDECAR --parser $OLD_PARSER_SIDECAR --output-dir docs/superpowers/matrices
+```
+
+Expected output paths are exactly the three names from File Structure. Prove JSON byte identity:
+
+```powershell
+$lexerDurable = 'docs/superpowers/matrices/2026-08-08-runtime-old-lexer-baseline.json'
+$parserDurable = 'docs/superpowers/matrices/2026-08-08-runtime-old-parser-baseline.json'
+(Get-FileHash -Algorithm SHA256 -LiteralPath $OLD_LEXER_SIDECAR).Hash -eq (Get-FileHash -Algorithm SHA256 -LiteralPath $lexerDurable).Hash
+(Get-FileHash -Algorithm SHA256 -LiteralPath $OLD_PARSER_SIDECAR).Hash -eq (Get-FileHash -Algorithm SHA256 -LiteralPath $parserDurable).Hash
+```
+
+Both expressions must return `True`.
+
+- [ ] **Step 6: Run the factual runtime evidence gate**
+
+```powershell
+python tools/parsergen/benchmarks/legacy_runtime_baseline.py validate-sidecars --repo . --lexer docs/superpowers/matrices/2026-08-08-runtime-old-lexer-baseline.json --parser docs/superpowers/matrices/2026-08-08-runtime-old-parser-baseline.json
+python -m pytest tools/parsergen/tests/test_legacy_runtime_baseline.py -v
+git diff --check
+git status --short
+```
+
+Inspect both JSON and Markdown diffs. Baseline is not captured if either run matched zero tests, skipped a corpus, failed, or omitted a JSON.
+
+- [ ] **Step 7: Commit Wave D evidence**
+
+```powershell
+git add docs/superpowers/matrices/2026-08-08-runtime-old-lexer-baseline.json docs/superpowers/matrices/2026-08-08-runtime-old-parser-baseline.json docs/superpowers/matrices/2026-08-08-runtime-old-lexer-parser-baseline.md
+git commit -m "Зафиксировать baseline старых lexer и parser"
+```
+
+### Task 6: Remove temporary old implementations after optimization and before MR
+
+**Execution timing:** This is a separate later task. Do not execute it during Tasks 1–5; the temporary objects must remain available while optimization comparisons are being collected.
+
+**Files:**
+- Delete through EDT-MCP: `yaxunit/src/DataProcessors/КОНС_СтарыйЛексическийАнализатор/**`
+- Delete through EDT-MCP: `yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/**`
+- Modify: `yaxunit/src/CommonModules/КОНС_Обр_БенчмаркПарсера_МО/Module.bsl`
+- Modify: `yaxunit/src/Configuration/Configuration.mdo`
+- Modify: `yaxunit/UPSTREAM.md`
+- Preserve: both durable baseline JSON, baseline Markdown, Python verifier/publisher, shared measurement functions and current lexer/parser registrations.
+
+**Interfaces:**
+- Removes only `ОписаниеСтарогоЛексера`, `ОписаниеСтарогоПарсера`, their two exported tests and temporary metadata references.
+- Keeps `RuntimeBaselineЛексераФормируется`, `RuntimeBaselineПарсераФормируется`, descriptor/schema helpers, corpus, preflight/statistics and current sidecars.
+
+- [ ] **Step 1: Add RED cleanup assertions**
+
+Update the static BSL contract test to require no `КОНС_Старый` reference while still requiring both current test registrations. Run it before cleanup and expect failure on the old references.
+
+- [ ] **Step 2: Remove old factories/tests and temporary UPSTREAM rows**
+
+Remove the two old exported test registrations and old descriptor factories from the benchmark module with a guarded BSL edit. Remove only the two temporary DataProcessor rows from `yaxunit/UPSTREAM.md`; keep `КОНС_Обр_БенчмаркПарсера_МО` listed. Revalidate the common module before deleting metadata so no executable BSL reference points at either temporary object.
+
+- [ ] **Step 3: Preview then execute exact EDT deletions**
+
+After the execution-checkout path gate, call `delete_metadata` first with `confirm=false`, require only expected registrations/references, then with `confirm=true` and `force=false` for:
+
+```text
+DataProcessor.КОНС_СтарыйПарсер
+DataProcessor.КОНС_СтарыйЛексическийАнализатор
+```
+
+Delete parser first because it references the old lexer. Never use `force=true`; a blocking reference means the BSL cleanup order must be corrected.
+
+- [ ] **Step 4: Revalidate permanent objects and run current gates**
+
+Revalidate `CommonModule.КОНС_Обр_БенчмаркПарсера_МО`, then run current lexer/parser benchmark registrations and the three current unit modules using the exact Task 4 arguments. Expected: positive test counts, no new failures and no new EDT errors.
+
+- [ ] **Step 5: Prove cleanup completeness and preserve evidence**
+
+```powershell
+rg -n "КОНС_СтарыйЛексическийАнализатор|КОНС_СтарыйПарсер" yaxunit/src yaxunit/UPSTREAM.md
+Test-Path 'docs/superpowers/matrices/2026-08-08-runtime-old-lexer-baseline.json'
+Test-Path 'docs/superpowers/matrices/2026-08-08-runtime-old-parser-baseline.json'
+git diff --check
+```
+
+Expected: no runtime/metadata references remain; both `Test-Path` calls return `True`.
+
+- [ ] **Step 6: Commit the later cleanup wave**
+
+```powershell
+git add -A yaxunit/src/DataProcessors/КОНС_СтарыйЛексическийАнализатор yaxunit/src/DataProcessors/КОНС_СтарыйПарсер yaxunit/src/CommonModules/КОНС_Обр_БенчмаркПарсера_МО/Module.bsl yaxunit/src/Configuration/Configuration.mdo yaxunit/UPSTREAM.md tools/parsergen/tests/test_legacy_runtime_baseline.py
+git commit -m "Удалить временный baseline старых lexer и parser"
+```
+
+## Final Verification
+
+- [ ] Run `python -m pytest tools/parsergen/tests/test_legacy_runtime_baseline.py -v`.
+- [ ] Run `verify-ref`, `verify-source`, and `validate-sidecars` against the durable JSON.
+- [ ] Revalidate the two temporary DataProcessor and benchmark common module before cleanup; after cleanup revalidate only the permanent benchmark common module.
+- [ ] Compare filtered EDT diagnostics to the recorded pre-change background and report newly introduced errors separately.
+- [ ] Record exact YAxUnit passed/failed/skipped counts and report paths for old lexer, old parser, current lexer/parser benchmarks and current lexer/parser unit modules.
+- [ ] Confirm exactly eight ordered corpus and 20 samples per corpus in both durable JSON.
+- [ ] Confirm positive token counts in lexer JSON and both parser+lexer artifact hashes in parser JSON.
+- [ ] Confirm durable JSON hashes equal their actual sidecar hashes and Markdown contains no performance verdict.
+- [ ] Run `git diff --check`, inspect `git diff --stat` and `git status --short`, and confirm production `QueryConsoleZUP/src/**` has no diff.
+- [ ] Before MR, execute Task 6 and prove no temporary metadata or runtime references remain while all durable evidence stays tracked.
