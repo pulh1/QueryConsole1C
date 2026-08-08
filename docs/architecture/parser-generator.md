@@ -576,6 +576,13 @@ comparison terminals и строкового/параметрического `�
 те же model node contracts. Exact delta:
 [logical leaf checkpoint](../superpowers/matrices/2026-08-08-logical-leaf-binding-checkpoint.md).
 
+Totals control-point package затем схлопнул шесть continuation/optional
+productions в одну semantic production с declarative scalar bindings и
+вложенными EBNF optionals. Все девять типов периода стали action-free terminal
+alternatives; generated parser больше не создаёт runtime helper functions для
+границ, дополнения периодами и псевдонима. Exact delta:
+[totals control-point checkpoint](../superpowers/matrices/2026-08-08-totals-control-point-binding-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:

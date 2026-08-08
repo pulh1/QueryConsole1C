@@ -26,7 +26,9 @@ MIGRATED_PRODUCTIONS = (
     "ИсточникДанныхВложенныйЗапрос",
     "ЭлементУпорядочивания",
     "НаправлениеУпорядочивания",
+    "КонтрольнаяТочкаИтогов",
     "ТипКонтрольнойТочки",
+    "ТипПериодаИтогов",
     "Выражение",
     "ЛогическоеСлагаемое",
     "ТипСсылочногоПоля",
@@ -689,8 +691,8 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 104)
-        self.assertEqual(len(parsed.grammar.productions), 134)
+        self.assertEqual(len(parsed.source_grammar.productions), 98)
+        self.assertEqual(len(parsed.grammar.productions), 135)
 
         resolution = resolve_grammar(parsed.grammar)
         self.assertEqual(resolution.diagnostics, ())
@@ -1722,6 +1724,95 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertIn("НеТерминалПараметр()", pattern)
         self.assertNotIn("ТекущийЭлемент", pattern)
         self.assertNotIn("НомерВариантаПродукции", pattern)
+
+    def test_totals_control_point_package_generates_nested_optionals_and_bindings(
+        self,
+    ) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=MIGRATED_PRODUCTIONS,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=MIGRATED_PRODUCTIONS,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        module = generated.module_text
+        for helper in (
+            "ПродолжениеКонтрольнойТочкиИтогов",
+            "ДополнениеПериодамиИтогов",
+            "ПсевдонимКонтрольнойТочкиИтогов",
+            "ПериодДополненияИтогов",
+            "ОкончаниеПериодаИтогов",
+            "ПериодИтогов",
+        ):
+            with self.subTest(helper=helper):
+                self.assertNotIn(f"Функция НеТерминал{helper}(", module)
+
+        control_point = _generated_function(module, "КонтрольнаяТочкаИтогов")
+        self.assertEqual(
+            control_point.count(
+                "ЭлементыМоделиЗапроса.НовыйКонтрольнаяТочкаИтогов("
+            ),
+            1,
+        )
+        self.assertEqual(
+            control_point.count("ЭлементыМоделиЗапроса.НовыйОбщиеИтоги("),
+            3,
+        )
+        for property_name in (
+            "Выражение",
+            "ТипКонтрольнойТочки",
+            "ТипДополненияПериодами",
+            "НачалоПериодаДополнения",
+            "КонецПериодаДополнения",
+            "ИмяКолонки",
+        ):
+            with self.subTest(property_name=property_name):
+                self.assertIn(f"ЭтотУзел.{property_name} =", control_point)
+        self.assertNotIn("ТекущийЭлемент", control_point)
+        self.assertNotIn("НомерВариантаПродукции", control_point)
+        self.assertNotIn("НеТерминалПсевдоним()", control_point)
+
+        period_type = _generated_function(module, "ТипПериодаИтогов")
+        for period in (
+            "СЕКУНДА",
+            "МИНУТА",
+            "ЧАС",
+            "ДЕНЬ",
+            "НЕДЕЛЯ",
+            "МЕСЯЦ",
+            "ГОД",
+            "ДЕКАДА",
+            "ПОЛУГОДИЕ",
+        ):
+            with self.subTest(period=period):
+                self.assertIn(f'Терминал("{period}")', period_type)
+        self.assertNotIn("ТекущийЭлемент", period_type)
+        self.assertNotIn("НомерВариантаПродукции", period_type)
 
 
 if __name__ == "__main__":
