@@ -40,6 +40,8 @@ MIGRATED_PRODUCTIONS = (
     "КонтрольнаяТочкаИтогов",
     "ТипКонтрольнойТочки",
     "ТипПериодаИтогов",
+    "РасширениеСКД",
+    "ТипБлокаСКД",
     "Выражение",
     "ЛогическоеСлагаемое",
     "ТипСсылочногоПоля",
@@ -2054,6 +2056,60 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertIn("Если ", totals_fields)
 
         for function in (select_fields, totals_fields):
+            self.assertNotIn("ТекущийЭлемент", function)
+            self.assertNotIn("НомерВариантаПродукции", function)
+
+    def test_dcs_boundary_shell_uses_canonical_dispatch(self) -> None:
+        expected = {"РасширениеСКД", "ТипБлокаСКД"}
+        self.assertTrue(expected.issubset(MIGRATED_PRODUCTIONS))
+
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=MIGRATED_PRODUCTIONS,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=MIGRATED_PRODUCTIONS,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        extension = _generated_function(generated.module_text, "РасширениеСКД")
+        self.assertIn('Лексема("{");', extension)
+        self.assertIn('Лексема("}");', extension)
+        self.assertIn(
+            "НеТерминалТелоБлокаСКД("
+            "Неопределено, Неопределено, Оператор)",
+            extension,
+        )
+
+        block_type = _generated_function(generated.module_text, "ТипБлокаСКД")
+        for token in ("ВЫБРАТЬ", "УПОРЯДОЧИТЬ", "ИТОГИ"):
+            with self.subTest(token=token):
+                self.assertIn(f'Терминал("{token}")', block_type)
+
+        for function in (extension, block_type):
             self.assertNotIn("ТекущийЭлемент", function)
             self.assertNotIn("НомерВариантаПродукции", function)
 

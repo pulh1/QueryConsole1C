@@ -100,6 +100,8 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "КонтрольнаяТочкаИтогов",
                 "ТипКонтрольнойТочки",
                 "ТипПериодаИтогов",
+                "РасширениеСКД",
+                "ТипБлокаСКД",
                 "Выражение",
                 "ЛогическоеСлагаемое",
                 "ТипСсылочногоПоля",
@@ -197,9 +199,9 @@ class MigrationAuditProductionTests(unittest.TestCase):
             self.report["generated"],
             {
                 "bsl_functions": 102,
-                "bsl_loc": 2486,
+                "bsl_loc": 2476,
                 "constructor_names": 78,
-                "select_rows": 1_596,
+                "select_rows": 1_588,
                 "identifier_rows": 276,
             },
         )
@@ -277,6 +279,7 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 '"КонтрольныеТочкиИтогов", '
                 '"КонтрольнаяТочкаИтогов", "ТипКонтрольнойТочки", '
                 '"ТипПериодаИтогов", '
+                '"РасширениеСКД", "ТипБлокаСКД", '
                 '"Выражение", '
                 '"ЛогическоеСлагаемое", '
                 '"ТипСсылочногоПоля", '
