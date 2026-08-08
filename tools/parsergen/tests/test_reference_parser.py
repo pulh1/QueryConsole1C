@@ -4,11 +4,10 @@ from collections import Counter
 import unittest
 from pathlib import Path
 
-from parsergen.analysis import compute_analysis
 from parsergen.artifacts import render_artifacts
-from parsergen.bsl_codegen import generate_parser
+from parsergen.cli import compile_from_config, generate_from_compilation
+from parsergen.config import load_config
 from parsergen.grammar_parser import parse_grammar
-from parsergen.resolver import resolve_grammar
 from parsergen.value_table_codec import (
     ColumnKind,
     ValueColumn,
@@ -18,14 +17,9 @@ from parsergen.value_table_codec import (
 
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
+REPOSITORY_ROOT = PACKAGE_ROOT.parents[1]
 GRAMMAR = PACKAGE_ROOT / "grammar/query-language.grammar"
 REFERENCE = Path(__file__).parent / "fixtures/reference_parser"
-ENTRYPOINTS = {
-    "Разобрать": "ПакетЗапросов",
-    "РазобратьВыражение": "Выражение",
-}
-
-
 def normalize_newlines(text: str) -> str:
     return text.replace("\r\n", "\n").replace("\r", "\n")
 
@@ -73,29 +67,18 @@ class ReferenceParserTests(unittest.TestCase):
         )
         self.assertIsNotNone(parsed.grammar)
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.grammar.productions), 124)
+        self.assertEqual(len(parsed.grammar.productions), 156)
         self.assertEqual(
             sum(
                 len(production.alternatives)
                 for production in parsed.grammar.productions
             ),
-            281,
+            334,
         )
 
-        resolved_result = resolve_grammar(parsed.grammar)
-        self.assertIsNotNone(resolved_result.grammar)
-        assert resolved_result.grammar is not None
-        analysis = compute_analysis(
-            resolved_result.grammar,
-            2,
-            tuple(ENTRYPOINTS.values()),
-        )
-        generated = generate_parser(
-            parsed.grammar,
-            resolved_result.grammar,
-            analysis,
-            ENTRYPOINTS,
-        )
+        config = load_config(REPOSITORY_ROOT / "parsergen.toml")
+        compilation = compile_from_config(config)
+        generated = generate_from_compilation(config, compilation)
         artifacts = render_artifacts(generated)
         reference_module = (REFERENCE / "ObjectModule.bsl").read_text(
             encoding="utf-8"

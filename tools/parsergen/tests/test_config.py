@@ -36,6 +36,77 @@ class ConfigTests(unittest.TestCase):
         )
         self.assertEqual(config.lookahead, 2)
         self.assertEqual(
+            config.canonical_productions,
+            (
+                "ПакетЗапросов",
+                "ЗапросПакета",
+                "ЗапросУничтожения",
+                "ЗапросВыбора",
+                "ОбъединяемыйЗапрос",
+                "ОператорОбъединения",
+                "ТипОбъединенияЗапроса",
+                "ПоляВыборки",
+                "ПолеВыборки",
+                "ВыражениеВсеПоляВыборки",
+                "ВыражениеВсеПоля",
+                "Псевдоним",
+                "БлокИз",
+                "ИсточникДанныхЗапроса",
+                "СписокСоединений",
+                "ПраваяЧастьСоединения",
+                "ИсточникДанныхСоединения",
+                "ТипСоединения",
+                "ИсточникДанных",
+                "ПрисоединяемаяТаблица",
+                "ИсточникДанныхТаблицаЗначений",
+                "ИсточникДанныхВременнаяТаблица",
+                "ИсточникДанныхТаблица",
+                "ИсточникДанныхВложенныйЗапрос",
+                "СписокПараметров",
+                "ПараметрТаблицы",
+                "СписокЭлементовУпорядочивания",
+                "ЭлементУпорядочивания",
+                "НаправлениеУпорядочивания",
+                "ПоляИтогов",
+                "КонтрольныеТочкиИтогов",
+                "КонтрольнаяТочкаИтогов",
+                "ТипКонтрольнойТочки",
+                "РасширениеСКД",
+                "Выражение",
+                "ЛогическоеСлагаемое",
+                "ЛогическийМножитель",
+                "ЛогическийОператор",
+                "ТипСсылочногоПоля",
+                "ОперандВ",
+                "ЛогическаяОперация",
+                "ЛогическаяОперацияБезОтрицания",
+                "ОперандСравнения",
+                "ОператорПодобно",
+                "ШаблонПодобия",
+                "АрифметическоеВыражение",
+                "Слагаемое",
+                "УнарнаяОперация",
+                "Множитель",
+                "Операнд",
+                "Поле",
+                "РазыменованиеПослеСкобок",
+                "ВыражениеВсеПоляИсточника",
+                "ПоляВложеннойТаблицы",
+                "СписокВыражений",
+                "ВыражениеМоделиЗапроса",
+                "СписокВыраженийМодели",
+                "ПриведениеТипа",
+                "ОписаниеТипа",
+                "Выбор",
+                "КогдаТогда",
+                "Константа",
+                "Параметр",
+                "АгрегатнаяФункция",
+                "Функция",
+                "ТипПериода",
+            ),
+        )
+        self.assertEqual(
             list(config.entrypoints.items()),
             [
                 ("Разобрать", "ПакетЗапросов"),
@@ -74,6 +145,46 @@ class ConfigTests(unittest.TestCase):
         )
         with self.assertRaises(TypeError):
             config.entrypoints["Новая"] = "S"  # type: ignore[index]
+
+    def test_loads_explicit_canonical_migration_productions(self) -> None:
+        config = load_config(
+            self.write_config(
+                'grammar = "grammar.txt"\n'
+                'target = "Парсер"\n'
+                "lookahead = 2\n"
+                "[migration]\n"
+                'canonical_productions = ["Expr", "Term"]\n'
+                "[entrypoints]\n"
+                '"Разобрать" = "S"\n'
+            )
+        )
+
+        self.assertEqual(config.canonical_productions, ("Expr", "Term"))
+
+    def test_rejects_invalid_canonical_migration_productions(self) -> None:
+        cases = {
+            "wrong-type": 'canonical_productions = "Expr"\n',
+            "empty": "canonical_productions = []\n",
+            "empty-name": 'canonical_productions = [""]\n',
+            "non-string": 'canonical_productions = ["Expr", 1]\n',
+            "duplicate": 'canonical_productions = ["Expr", "Expr"]\n',
+        }
+        for label, migration in cases.items():
+            with self.subTest(label=label):
+                path = self.write_config(
+                    'grammar = "grammar.txt"\n'
+                    'target = "Парсер"\n'
+                    "lookahead = 2\n"
+                    "[migration]\n"
+                    f"{migration}"
+                    "[entrypoints]\n"
+                    '"Разобрать" = "S"\n'
+                )
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "canonical_productions",
+                ):
+                    load_config(path)
 
     def test_normalizes_absolute_paths_without_requiring_existence(self) -> None:
         grammar = (self.root / "abs/../grammar.txt").absolute()

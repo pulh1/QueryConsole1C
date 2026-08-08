@@ -92,28 +92,31 @@ class GraphValidationTests(unittest.TestCase):
         self.assertEqual(nonproductive.severity, Severity.ERROR)
         self.assertTrue(nonproductive.related)
 
-    def test_direct_and_indirect_left_recursion_report_concrete_paths(self) -> None:
-        cases = (
-            (
-                "direct",
-                "<S> ::= <S> a | b",
-                ("S", "S"),
-            ),
-            (
-                "indirect",
-                "<S> ::= <A> | s\n<A> ::= <S> a | a",
-                ("S", "A", "S"),
-            ),
+    def test_productive_direct_left_recursion_is_supported(self) -> None:
+        report = validate_text(
+            "<S> ::= <S> a | b",
+            {"Разобрать": "S"},
+            k=2,
         )
-        for name, grammar, path in cases:
-            with self.subTest(name=name):
-                report = validate_text(grammar, {"Разобрать": "S"}, k=2)
-                recursion = [
-                    item for item in report.diagnostics if item.code == "VAL202"
-                ]
-                self.assertEqual(len(recursion), 1)
-                self.assertEqual(recursion[0].details["path"], path)
-                self.assertTrue(recursion[0].related)
+
+        self.assertNotIn(
+            "VAL202",
+            [item.code for item in report.diagnostics],
+        )
+
+    def test_indirect_left_recursion_reports_concrete_path(self) -> None:
+        report = validate_text(
+            "<S> ::= <A> | s\n<A> ::= <S> a | a",
+            {"Разобрать": "S"},
+            k=2,
+        )
+
+        recursion = [
+            item for item in report.diagnostics if item.code == "VAL202"
+        ]
+        self.assertEqual(len(recursion), 1)
+        self.assertEqual(recursion[0].details["path"], ("S", "A", "S"))
+        self.assertTrue(recursion[0].related)
 
     def test_left_recursion_through_nullable_prefix_reports_path(self) -> None:
         report = validate_text(
@@ -307,12 +310,9 @@ class LookaheadValidationTests(unittest.TestCase):
 
         self.assertEqual(
             [item.code for item in report.diagnostics],
-            ["VAL202", "LLK202"],
+            ["LLK202"],
         )
-        self.assertEqual(
-            report.diagnostics[1].details["witness"],
-            ("a",),
-        )
+        self.assertEqual(report.diagnostics[0].details["witness"], ("a",))
 
 
 class ValidationReportTests(unittest.TestCase):

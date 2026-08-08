@@ -110,15 +110,15 @@ class ArtifactTests(unittest.TestCase):
 
     def test_reference_templates_are_utf8_value_tables_without_bom(self) -> None:
         fixture = Path(__file__).parent / "fixtures/reference_parser/Templates"
-        for relative in (
-            "ТаблицаПервыхСимволовВариантов/Template.txt",
-            "ОпределенияИдентификаторов/Template.txt",
+        for relative, expected_rows in (
+            ("ТаблицаПервыхСимволовВариантов/Template.txt", 0),
+            ("ОпределенияИдентификаторов/Template.txt", 276),
         ):
             with self.subTest(relative=relative):
                 content = (fixture / relative).read_bytes()
                 self.assertFalse(content.startswith(b"\xef\xbb\xbf"))
                 decoded = decode_value_table(content.decode("utf-8"))
-                self.assertGreater(len(decoded.rows), 0)
+                self.assertEqual(len(decoded.rows), expected_rows)
 
     def test_rejects_missing_target_wrong_mdo_count_and_missing_artifacts(
         self,

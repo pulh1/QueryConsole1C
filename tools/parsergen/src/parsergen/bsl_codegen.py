@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
 from importlib import resources
 import re
 
@@ -10,6 +9,12 @@ from .analysis import (
     SelectMatcherArtifact,
     build_legacy_matcher_artifact,
 )
+from .bsl_rendering import (
+    bsl_string as _bsl_string,
+    normalize_newlines as _normalize_newlines,
+    validate_bsl_identifier as _validate_bsl_identifier,
+)
+from .generated_parser import GeneratedParser
 from .model import (
     Action,
     Alternative,
@@ -45,80 +50,12 @@ _LEGACY_ALTERNATIVE_NUMBERING = {
     "ПервыеРазличныеОпционально": (3, 1, 2),
 }
 
-_BSL_IDENTIFIER = re.compile(
-    r"[A-Za-zА-Яа-яЁё_][0-9A-Za-zА-Яа-яЁё_]*\Z"
-)
 _BSL_DECLARATION = re.compile(
     r"^(?:Функция|Процедура)\s+"
     r"([A-Za-zА-Яа-яЁё_][0-9A-Za-zА-Яа-яЁё_]*)\s*\(",
     re.MULTILINE | re.IGNORECASE,
 )
 
-# 1C:Enterprise Developer Guide, "Reserved words", defines the classic
-# bilingual language core. The grouped additions below cover the current
-# exception, handler, async, literal, and preprocessor constructs which may
-# also occur in generated modules. Keep the categories explicit: this is a
-# code-generation safety boundary, not a convenient sample of common words.
-_BSL_CONTROL_KEYWORDS = (
-    "Если", "If",
-    "Тогда", "Then",
-    "ИначеЕсли", "ElsIf",
-    "Иначе", "Else",
-    "КонецЕсли", "EndIf",
-    "Для", "For",
-    "Каждого", "Each",
-    "Из", "In",
-    "По", "To",
-    "Пока", "While",
-    "Цикл", "Do",
-    "КонецЦикла", "EndDo",
-    "Попытка", "Try",
-    "Исключение", "Except",
-    "КонецПопытки", "EndTry",
-    "ВызватьИсключение", "Raise",
-    "Перейти", "Goto",
-    "Возврат", "Return",
-    "Продолжить", "Continue",
-    "Прервать", "Break",
-)
-_BSL_DECLARATION_KEYWORDS = (
-    "Процедура", "Procedure",
-    "КонецПроцедуры", "EndProcedure",
-    "Функция", "Function",
-    "КонецФункции", "EndFunction",
-    "Перем", "Var",
-    "Экспорт", "Export",
-    "Знач", "Val",
-    "Асинх", "Async",
-)
-_BSL_OPERATOR_AND_LITERAL_KEYWORDS = (
-    "И", "And",
-    "Или", "Or",
-    "Не", "Not",
-    "Новый", "New",
-    "Выполнить", "Execute",
-    "Ждать", "Await",
-    "ДобавитьОбработчик", "AddHandler",
-    "УдалитьОбработчик", "RemoveHandler",
-    "Истина", "True",
-    "Ложь", "False",
-    "Неопределено", "Undefined",
-    "Null",
-)
-_BSL_PREPROCESSOR_KEYWORDS = (
-    "Область", "Region",
-    "КонецОбласти", "EndRegion",
-)
-_BSL_RESERVED_KEYWORDS = frozenset(
-    keyword.casefold()
-    for category in (
-        _BSL_CONTROL_KEYWORDS,
-        _BSL_DECLARATION_KEYWORDS,
-        _BSL_OPERATOR_AND_LITERAL_KEYWORDS,
-        _BSL_PREPROCESSOR_KEYWORDS,
-    )
-    for keyword in category
-)
 _IMPLICIT_PRODUCTION_PARAMETERS = ("Родитель", "ЛевыйЭлемент")
 _GENERATED_PRODUCTION_LOCALS = (
     "ЭтотУзел",
@@ -132,25 +69,6 @@ _GENERATED_PRODUCTION_RUNTIME_NAMES = (
 )
 
 
-def _validate_bsl_identifier(name: str, origin: str) -> None:
-    if _BSL_IDENTIFIER.fullmatch(name) is None:
-        raise ValueError(
-            f"{origin} {name!r} is not a valid BSL identifier"
-        )
-    if name.casefold() in _BSL_RESERVED_KEYWORDS:
-        raise ValueError(
-            f"{origin} {name!r} is a reserved BSL keyword"
-        )
-
-
-@dataclass(frozen=True, slots=True)
-class GeneratedParser:
-    module_text: str
-    select_table: ValueTable
-    identifier_table: ValueTable
-    constructor_names: tuple[str, ...]
-
-
 class BslGenerator:
     def __init__(
         self,
@@ -158,11 +76,24 @@ class BslGenerator:
         resolved: ResolvedGrammar,
         analysis: AnalysisResult,
         entrypoints: Mapping[str, str],
+        *,
+        function_overrides: Mapping[str, str] | None = None,
+        omitted_productions: frozenset[str] = frozenset(),
+        support_fragment: str = "",
+        matcher_productions: frozenset[str] | None = None,
+        additional_constructor_names: tuple[str, ...] = (),
+        allow_synthetic_cfg: bool = False,
     ) -> None:
         self._grammar = grammar
         self._resolved = resolved
         self._analysis = analysis
         self._entrypoints = entrypoints
+        self._function_overrides = dict(function_overrides or {})
+        self._omitted_productions = omitted_productions
+        self._support_fragment = support_fragment
+        self._matcher_productions = matcher_productions
+        self._additional_constructor_names = additional_constructor_names
+        self._allow_synthetic_cfg = allow_synthetic_cfg
         self._constructors: list[str] = []
         self._seen_constructors: set[str] = set()
 
@@ -172,6 +103,15 @@ class BslGenerator:
             self._analysis,
             max_rows=MAX_MATCHER_ROWS,
         )
+        if self._matcher_productions is not None:
+            artifact = SelectMatcherArtifact(
+                tuple(
+                    row
+                    for row in artifact.select_rows
+                    if row.production in self._matcher_productions
+                ),
+                artifact.matcher_definitions,
+            )
         select_table = _select_table(
             artifact,
             self._resolved.production_order,
@@ -188,6 +128,7 @@ class BslGenerator:
             self._render_entry_results(),
             self._render_productions_and_ending(),
         )
+        self._record_constructors(self._additional_constructor_names)
         return GeneratedParser(
             module,
             select_table,
@@ -196,6 +137,30 @@ class BslGenerator:
         )
 
     def _validate_inputs(self) -> None:
+        if not self._allow_synthetic_cfg and any(
+            production.name.casefold().startswith(
+                "__parsergen_ebnf__".casefold()
+            )
+            for production in self._grammar.productions
+        ):
+            raise ValueError(
+                "canonical Parser IR/codegen is required for EBNF grammar"
+            )
+        known_productions = {
+            production.name for production in self._grammar.productions
+        }
+        unknown_overrides = set(self._function_overrides).difference(
+            known_productions
+        )
+        unknown_omissions = self._omitted_productions.difference(
+            known_productions
+        )
+        if unknown_overrides or unknown_omissions:
+            raise ValueError("BSL assembly references unknown production")
+        if set(self._function_overrides).intersection(
+            self._omitted_productions
+        ):
+            raise ValueError("production cannot be overridden and omitted")
         if _contains_reserved_end(self._grammar, self._resolved):
             raise ValueError(
                 "reserved END token '$' cannot be produced by grammar"
@@ -295,7 +260,13 @@ class BslGenerator:
             (matched.group(1), "fixed template helper")
             for matched in _BSL_DECLARATION.finditer(template)
         )
+        symbols.extend(
+            (matched.group(1), "generated support helper")
+            for matched in _BSL_DECLARATION.finditer(self._support_fragment)
+        )
         for production in self._grammar.productions:
+            if production.name in self._omitted_productions:
+                continue
             name = f"НеТерминал{production.name}"
             _validate_bsl_identifier(name, "generated production function")
             symbols.append((name, f"production {production.name!r}"))
@@ -371,9 +342,16 @@ class BslGenerator:
 
     def _render_productions_and_ending(self) -> str:
         functions = "\r\n\r\n".join(
-            self._render_production(production)
+            self._render_assembled_production(production)
             for production in self._grammar.productions
+            if production.name not in self._omitted_productions
         )
+        if self._support_fragment:
+            functions = (
+                f"{self._support_fragment}\r\n\r\n{functions}"
+                if functions
+                else self._support_fragment
+            )
         ending = (
             "#КонецОбласти\r\n"
             "\r\n"
@@ -393,6 +371,12 @@ class BslGenerator:
         if not functions:
             return ending
         return f"{functions}\r\n\r\n{ending}"
+
+    def _render_assembled_production(self, production: Production) -> str:
+        override = self._function_overrides.get(production.name)
+        if override is not None:
+            return override
+        return self._render_production(production)
 
     def _render_production(self, production: Production) -> str:
         parameters = "".join(
@@ -692,16 +676,3 @@ def _entry_result_name(entrypoint: str) -> str:
         "РазобратьВыражение": "РезультатРазбораВыражения",
     }
     return established.get(entrypoint, f"Результат{entrypoint}")
-
-
-def _bsl_string(value: str) -> str:
-    escaped = value.replace('"', '""')
-    return f'"{escaped}"'
-
-
-def _normalize_newlines(text: str) -> str:
-    return (
-        text.replace("\r\n", "\n")
-        .replace("\r", "\n")
-        .replace("\n", "\r\n")
-    )

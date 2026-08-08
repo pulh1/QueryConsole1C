@@ -1,0 +1,1477 @@
+{
+  "schema_version": 1,
+  "runner": {
+    "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ЛексическийАнализатор_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+    "executable": "EDT-MCP run_yaxunit_tests; it launches the configured 1C:Enterprise thin client, whose executable path is not exposed by launch metadata",
+    "version": "EDT-MCP 2026.1.2.2; target configuration compatibility mode 8.3.24 (thin-client executable version is not exposed)",
+    "infobase": "База разработки исполняемых представлений (демо ЗУП)",
+    "update_state": "INCREMENTAL_UPDATE_REQUIRED before the runner auto-chain",
+    "launch_configuration": "QueryConsoleZUP Тонкий клиент",
+    "project": "База_разработки_исполняемых_представлений_демо_ЗУП",
+    "extension_filter": [
+      "YAXUNIT"
+    ],
+    "module_filters": [
+      "КОНС_Обр_ЛексическийАнализатор_МО",
+      "КОНС_Обр_Парсер_МО",
+      "КОНС_Обр_ПарсерЗапросов_МО",
+      "КОНС_ОМ_ОбработкаМоделиЗапроса"
+    ],
+    "update_before_launch": true,
+    "update_scope": "extension:yaxunit",
+    "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________89fbc7bb7_3a8fdb4e66dc47e2790da4331afb515197924971\\report.md",
+    "junit": {
+      "total": 347,
+      "passed": 347,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "verified_runs": [
+      {
+        "purpose": "Task 1 runner discovery",
+        "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_Парсер_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+        "module_filters": [
+          "КОНС_Обр_Парсер_МО"
+        ],
+        "result_ref": "docs/superpowers/matrices/2026-08-07-grammar-query-model-coverage.md#граница-headless-запуска--2026-08-07",
+        "junit": {
+          "total": 84,
+          "passed": 84,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      },
+      {
+        "purpose": "Task 2 final combined gate",
+        "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ЛексическийАнализатор_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+        "module_filters": [
+          "КОНС_Обр_ЛексическийАнализатор_МО",
+          "КОНС_Обр_Парсер_МО",
+          "КОНС_Обр_ПарсерЗапросов_МО",
+          "КОНС_ОМ_ОбработкаМоделиЗапроса"
+        ],
+        "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________89fbc7bb7_3a8fdb4e66dc47e2790da4331afb515197924971\\report.md",
+        "junit": {
+          "total": 347,
+          "passed": 347,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      },
+      {
+        "purpose": "Task 3 focused factory, dispatcher, visitor and text-error gate",
+        "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+        "module_filters": [
+          "КОНС_Обр_МодельВыражений_МО",
+          "КОНС_Обр_Парсер_МО"
+        ],
+        "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________20b0c6dfb_ab7363625af9457ee11412005a9f4af946b47218\\report.md",
+        "junit": {
+          "total": 97,
+          "passed": 97,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      },
+      {
+        "purpose": "Task 3 parser and semantic regression",
+        "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+        "module_filters": [
+          "КОНС_Обр_МодельВыражений_МО",
+          "КОНС_Обр_Парсер_МО",
+          "КОНС_Обр_ПарсерЗапросов_МО",
+          "КОНС_ОМ_ОбработкаМоделиЗапроса"
+        ],
+        "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________64b1530b6_d9decbea611298fcbafa90e91b535e52d0a13436\\report.md",
+        "junit": {
+          "total": 214,
+          "passed": 214,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      },
+      {
+        "purpose": "Task 4 builder and semantic round-trip focused gate",
+        "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПостроениеИГенерацияЗапросов_МО\"], timeout: 120, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+        "module_filters": [
+          "КОНС_Обр_ПостроениеИГенерацияЗапросов_МО"
+        ],
+        "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________cfe76e884_313367d132001080e19625ca130375b01632bbec\\report.md",
+        "junit": {
+          "total": 2,
+          "passed": 2,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      },
+      {
+        "purpose": "Task 4 parser, semantic, expression-model and round-trip regression",
+        "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПостроениеИГенерацияЗапросов_МО\", \"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\"], timeout: 180, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+        "module_filters": [
+          "КОНС_Обр_ПостроениеИГенерацияЗапросов_МО",
+          "КОНС_Обр_МодельВыражений_МО",
+          "КОНС_Обр_Парсер_МО",
+          "КОНС_Обр_ПарсерЗапросов_МО",
+          "КОНС_ОМ_ОбработкаМоделиЗапроса"
+        ],
+        "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________d8a50c7a7_5798aa2094f1d3dbbdf40cdce58da47403158c97\\report.md",
+        "junit": {
+          "total": 216,
+          "passed": 216,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      },
+      {
+        "purpose": "Task 6 application consumers combined Phase 2.5 regression",
+        "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПостроениеИГенерацияЗапросов_МО\", \"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\", \"КОНС_Обр_ИсполняемыеПредставления_МО\", \"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО\"], timeout: 180, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+        "module_filters": [
+          "КОНС_Обр_ПостроениеИГенерацияЗапросов_МО",
+          "КОНС_Обр_МодельВыражений_МО",
+          "КОНС_Обр_Парсер_МО",
+          "КОНС_Обр_ПарсерЗапросов_МО",
+          "КОНС_ОМ_ОбработкаМоделиЗапроса",
+          "КОНС_Обр_ИсполняемыеПредставления_МО",
+          "КОНС_Обр_ПрикладныеПотребителиЗапроса_МО"
+        ],
+        "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________a8ebd9979_85bb9084483c5dfd88a004e74489f84b44782ba2\\report.md",
+        "junit": {
+          "total": 225,
+          "passed": 223,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 2
+        }
+      },
+      {
+        "purpose": "Task 9 final combined Phase 2.5 closure including runtime benchmark",
+        "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ЛексическийАнализатор_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\", \"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_ПостроениеИГенерацияЗапросов_МО\", \"КОНС_Обр_ИсполняемыеПредставления_МО\", \"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО\", \"КОНС_Обр_ПотребителиПредставлений_МО\", \"КОНС_Обр_БенчмаркПарсера_МО\"], timeout: 240, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+        "module_filters": [
+          "КОНС_Обр_ЛексическийАнализатор_МО",
+          "КОНС_Обр_Парсер_МО",
+          "КОНС_Обр_ПарсерЗапросов_МО",
+          "КОНС_ОМ_ОбработкаМоделиЗапроса",
+          "КОНС_Обр_МодельВыражений_МО",
+          "КОНС_Обр_ПостроениеИГенерацияЗапросов_МО",
+          "КОНС_Обр_ИсполняемыеПредставления_МО",
+          "КОНС_Обр_ПрикладныеПотребителиЗапроса_МО",
+          "КОНС_Обр_ПотребителиПредставлений_МО",
+          "КОНС_Обр_БенчмаркПарсера_МО"
+        ],
+        "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________eaea5e771_422d1da37e95cc5cca07dabba1b8e3d037f0f212\\report.md",
+        "junit": {
+          "total": 457,
+          "passed": 454,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 3
+        }
+      }
+    ]
+  },
+  "contracts": [
+    {
+      "contract_id": "C01",
+      "component": "AST factories",
+      "status": "green",
+      "date": "2026-08-07",
+      "inventory": {
+        "factory_exports": 91,
+        "inventory_rows": 91,
+        "unique_inventory_rows": 91,
+        "families": {
+          "expressions": 51,
+          "query_package_source": 35,
+          "remaining_types_and_executable_views": 5
+        }
+      },
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_МодельВыражений_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_МодельВыражений_МО",
+            "КОНС_Обр_Парсер_МО"
+          ],
+          "test_or_tag": "ФабрикиВыраженийСоздаютОжидаемыеСвойства; ФабрикиПакетаЗапросаИИсточниковСоздаютОжидаемыеСвойства; ОстальныеФабрикиТиповИИсполняемыхПредставленийСоздаютОжидаемыеСвойства",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________20b0c6dfb_ab7363625af9457ee11412005a9f4af946b47218\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 97,
+            "passed": 97,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C06",
+      "component": "Expression dispatcher/template",
+      "status": "green",
+      "date": "2026-08-07",
+      "callback_count": 59,
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_МодельВыражений_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_МодельВыражений_МО",
+            "КОНС_Обр_Парсер_МО"
+          ],
+          "test_or_tag": "ДиспетчерВызываетВсе59КолбэковВПорядкеОбхода",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________20b0c6dfb_ab7363625af9457ee11412005a9f4af946b47218\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 97,
+            "passed": 97,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C07",
+      "component": "Semantic visitor",
+      "status": "green",
+      "date": "2026-08-07",
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_МодельВыражений_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_МодельВыражений_МО",
+            "КОНС_Обр_Парсер_МО"
+          ],
+          "test_or_tag": "СемантическийПосетительСохраняетТипыИАгрегаты",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________20b0c6dfb_ab7363625af9457ee11412005a9f4af946b47218\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 97,
+            "passed": 97,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C08",
+      "component": "Filter applicability visitor",
+      "status": "green",
+      "date": "2026-08-07",
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_МодельВыражений_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_МодельВыражений_МО",
+            "КОНС_Обр_Парсер_МО"
+          ],
+          "test_or_tag": "ПосетительОтбораРазделяетДелегируемыеСмешанныеИНедопустимыеУсловия",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________20b0c6dfb_ab7363625af9457ee11412005a9f4af946b47218\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 97,
+            "passed": 97,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C09",
+      "component": "SKD dereference visitor",
+      "status": "green",
+      "date": "2026-08-07",
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_МодельВыражений_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_МодельВыражений_МО",
+            "КОНС_Обр_Парсер_МО"
+          ],
+          "test_or_tag": "ПосетительСКДПреобразуетРазыменованиеИТип",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________20b0c6dfb_ab7363625af9457ee11412005a9f4af946b47218\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 97,
+            "passed": 97,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C10",
+      "component": "Model builder",
+      "status": "green",
+      "date": "2026-08-07",
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_ПостроениеИГенерацияЗапросов_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ПостроениеИГенерацияЗапросов_МО"
+          ],
+          "test_or_tag": "ПостроительМеняетИсточникиОтборСортировкуИИтогиПоШагам",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПостроениеИГенерацияЗапросов_МО\"], timeout: 120, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________cfe76e884_313367d132001080e19625ca130375b01632bbec\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 2,
+            "passed": 2,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C11",
+      "component": "Query/expression text generation",
+      "status": "green",
+      "date": "2026-08-07",
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_Парсер_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_МодельВыражений_МО",
+            "КОНС_Обр_Парсер_МО"
+          ],
+          "test_or_tag": "НеизвестныйУзелВыраженияВызываетИсключениеГенератораТекста",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________20b0c6dfb_ab7363625af9457ee11412005a9f4af946b47218\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 97,
+            "passed": 97,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_ПостроениеИГенерацияЗапросов_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ПостроениеИГенерацияЗапросов_МО"
+          ],
+          "test_or_tag": "ТекстПакетаПослеПовторногоРазбораСохраняетСемантику",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПостроениеИГенерацияЗапросов_МО\"], timeout: 120, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________cfe76e884_313367d132001080e19625ca130375b01632bbec\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 2,
+            "passed": 2,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C02",
+      "component": "Lexer",
+      "status": "green",
+      "date": "2026-08-07",
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_ЛексическийАнализатор_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ЛексическийАнализатор_МО"
+          ],
+          "test_or_tag": "КОНС_Обр_ЛексическийАнализатор_МО (полный модуль; зарегистрированный тег Лексер)",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ЛексическийАнализатор_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________1f15b44f3_b2c06897646187031cb4f17dd398113c28997056\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 141,
+            "passed": 141,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C03",
+      "component": "Expression parser",
+      "status": "green",
+      "date": "2026-08-07",
+      "known_non_normative_behavior": "1 - 2 - 3 currently parses as 1 - (2 - 3); direct-LR migration must replace this baseline with left fold ((1 - 2) - 3).",
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_Парсер_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ЛексическийАнализатор_МО",
+            "КОНС_Обр_Парсер_МО",
+            "КОНС_Обр_ПарсерЗапросов_МО",
+            "КОНС_ОМ_ОбработкаМоделиЗапроса"
+          ],
+          "test_or_tag": "КОНС_Обр_Парсер_МО.ПроверяетсяСемантическаяПроекцияВыражения",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ЛексическийАнализатор_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________89fbc7bb7_3a8fdb4e66dc47e2790da4331afb515197924971\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 347,
+            "passed": 347,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C04",
+      "component": "Full-query parser",
+      "status": "green",
+      "date": "2026-08-07",
+      "corpus_paths": [
+        "QueryExamples/ТестВТПериоды.q1c",
+        "QueryExamples/ТестЗапросОстаткиОтпусков.q1c",
+        "QueryExamples/ТестСотрудникиОрганизацииПоВТФизлица.q1c",
+        "QueryExamples/ТестИндексыИПсевдониымПолей.q1c",
+        "QueryExamples/СрезСОтборами.q1c",
+        "QueryExamples/ТестПакетЗапрсов.q1c"
+      ],
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_ПарсерЗапросов_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ЛексическийАнализатор_МО",
+            "КОНС_Обр_Парсер_МО",
+            "КОНС_Обр_ПарсерЗапросов_МО",
+            "КОНС_ОМ_ОбработкаМоделиЗапроса"
+          ],
+          "test_or_tag": "КОНС_Обр_ПарсерЗапросов_МО.ПроверяетсяСемантическаяПроекцияПолногоЗапроса; КОНС_Обр_ПарсерЗапросов_МО.ПервыйЗапросПримераРазбирается",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ЛексическийАнализатор_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________89fbc7bb7_3a8fdb4e66dc47e2790da4331afb515197924971\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 347,
+            "passed": 347,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C05",
+      "component": "Semantic analyzer",
+      "status": "green",
+      "date": "2026-08-07",
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_ОМ_ОбработкаМоделиЗапроса/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ЛексическийАнализатор_МО",
+            "КОНС_Обр_Парсер_МО",
+            "КОНС_Обр_ПарсерЗапросов_МО",
+            "КОНС_ОМ_ОбработкаМоделиЗапроса"
+          ],
+          "test_or_tag": "КОНС_ОМ_ОбработкаМоделиЗапроса.СемантикаИсточниковПакетаСогласованаСПарсером",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ЛексическийАнализатор_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________89fbc7bb7_3a8fdb4e66dc47e2790da4331afb515197924971\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 347,
+            "passed": 347,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C12",
+      "component": "Executable-view processing",
+      "status": "green",
+      "date": "2026-08-07",
+      "external_blockers": [],
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_ИсполняемыеПредставления_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ИсполняемыеПредставления_МО"
+          ],
+          "test_or_tag": "ИсполняемоеПредставлениеПреобразуетИДелегируетОтбор",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ИсполняемыеПредставления_МО\"], tests: [\"КОНС_Обр_ИсполняемыеПредставления_МО.ИсполняемоеПредставлениеПреобразуетИДелегируетОтбор\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________60a8a4331_0ce5e48bc569cc128c6704fca352b568811eeb96\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 1,
+            "passed": 1,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_ИсполняемыеПредставления_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ПостроениеИГенерацияЗапросов_МО",
+            "КОНС_Обр_МодельВыражений_МО",
+            "КОНС_Обр_Парсер_МО",
+            "КОНС_Обр_ПарсерЗапросов_МО",
+            "КОНС_ОМ_ОбработкаМоделиЗапроса",
+            "КОНС_Обр_ИсполняемыеПредставления_МО"
+          ],
+          "test_or_tag": "ИсполняемыеПредставления",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПостроениеИГенерацияЗапросов_МО\", \"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\", \"КОНС_Обр_ИсполняемыеПредставления_МО\"], timeout: 120, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________a0c95fab2_d2e51d7e035d254ff4c4fa931dd7feecb55260ac\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 219,
+            "passed": 219,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C13",
+      "component": "Executor/code/SKD generation",
+      "status": "green",
+      "date": "2026-08-07",
+      "external_blockers": [],
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_ИсполняемыеПредставления_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ИсполняемыеПредставления_МО"
+          ],
+          "test_or_tag": "ИсполнительФормируетКодИТекстСКДДляПредставительнойМодели",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ИсполняемыеПредставления_МО\"], timeout: 120, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________42260b44c_44ec70c3ebc2ddc549f170056b93c7ea2a793a7d\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 3,
+            "passed": 3,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_ИсполняемыеПредставления_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ПостроениеИГенерацияЗапросов_МО",
+            "КОНС_Обр_МодельВыражений_МО",
+            "КОНС_Обр_Парсер_МО",
+            "КОНС_Обр_ПарсерЗапросов_МО",
+            "КОНС_ОМ_ОбработкаМоделиЗапроса",
+            "КОНС_Обр_ИсполняемыеПредставления_МО"
+          ],
+          "test_or_tag": "ИсполняемыеПредставления",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПостроениеИГенерацияЗапросов_МО\", \"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\", \"КОНС_Обр_ИсполняемыеПредставления_МО\"], timeout: 120, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________a0c95fab2_d2e51d7e035d254ff4c4fa931dd7feecb55260ac\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 219,
+            "passed": 219,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C16",
+      "component": "Universal report",
+      "status": "green",
+      "date": "2026-08-07",
+      "external_blockers": [],
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_ИсполняемыеПредставления_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ИсполняемыеПредставления_МО"
+          ],
+          "test_or_tag": "УниверсальныйОтчетЗаменяетИсполняемыеПредставленияВременнымиТаблицами",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ИсполняемыеПредставления_МО\"], timeout: 120, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________42260b44c_44ec70c3ebc2ddc549f170056b93c7ea2a793a7d\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 3,
+            "passed": 3,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_ИсполняемыеПредставления_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ПостроениеИГенерацияЗапросов_МО",
+            "КОНС_Обр_МодельВыражений_МО",
+            "КОНС_Обр_Парсер_МО",
+            "КОНС_Обр_ПарсерЗапросов_МО",
+            "КОНС_ОМ_ОбработкаМоделиЗапроса",
+            "КОНС_Обр_ИсполняемыеПредставления_МО"
+          ],
+          "test_or_tag": "ИсполняемыеПредставления",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПостроениеИГенерацияЗапросов_МО\", \"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\", \"КОНС_Обр_ИсполняемыеПредставления_МО\"], timeout: 120, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________a0c95fab2_d2e51d7e035d254ff4c4fa931dd7feecb55260ac\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 219,
+            "passed": 219,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C14",
+      "component": "Query console underlying logic",
+      "status": "green",
+      "date": "2026-08-07",
+      "external_blockers": [],
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_ПрикладныеПотребителиЗапроса_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ПрикладныеПотребителиЗапроса_МО"
+          ],
+          "test_or_tag": "КонсольВыполняетМинимальныйЗапросБезФормы; КонсольПреобразуетПланВМетаданныеБезФормы",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО\"], tests: [\"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО.КонсольВыполняетМинимальныйЗапросБезФормы\", \"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО.КонсольПреобразуетПланВМетаданныеБезФормы\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________1dcc53836_4ef1d417a291d5e579edca572c664c8a11dd95ad\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 2,
+            "passed": 2,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C15",
+      "component": "Query Constructor underlying logic",
+      "status": "external-blocker",
+      "date": "2026-08-07",
+      "external_blockers": [
+        "AvailableTablesBeforeExpandAtServer requires ДанныеФормыДерево.FindByID",
+        "SourcesBeforeExpandAtServer requires ДанныеФормыДерево.FindByID"
+      ],
+      "evidence": [
+        {
+          "kind": "external-blocker",
+          "call": "Конструктор.AvailableTablesBeforeExpandAtServer(Неопределено, 0, Неопределено, Неопределено, ДеревоЗначений, 1, Истина, Неопределено, Неопределено, ЗапросВыбораСхемыЗапроса)",
+          "error": "Метод объекта не обнаружен (FindByID); КонструкторЗапросов.ObjectModule.bsl:29",
+          "prerequisite": "Headless-constructible ДанныеФормыДерево; ДеревоЗначений does not expose FindByID/GetItems/GetParent.",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________aba3b22f9_ef02011810933aa62c63cd51328bce7594ebec6a\\report.md",
+          "failing_junit": {
+            "total": 1,
+            "passed": 0,
+            "failed": 0,
+            "errors": 1,
+            "skipped": 0
+          }
+        },
+        {
+          "kind": "external-blocker",
+          "call": "Конструктор.SourcesBeforeExpandAtServer(Неопределено, 0, 0, Неопределено, Неопределено, ДеревоЗначений, 1, Неопределено, Неопределено, ЗапросВыбораСхемыЗапроса)",
+          "error": "Метод объекта не обнаружен (FindByID); КонструкторЗапросов.ObjectModule.bsl:84",
+          "prerequisite": "Headless-constructible ДанныеФормыДерево; ДеревоЗначений does not expose FindByID/GetItems/GetParent.",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________8017bc5ce_14da1b209503c0047745f11d70af7cf07a3e6e2a\\report.md",
+          "failing_junit": {
+            "total": 1,
+            "passed": 0,
+            "failed": 0,
+            "errors": 1,
+            "skipped": 0
+          }
+        }
+      ],
+      "verified_green_runs": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_ПрикладныеПотребителиЗапроса_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ПрикладныеПотребителиЗапроса_МО"
+          ],
+          "test_or_tag": "СхемаЗапросаВозвращаетсяДляВложеннойПозиции",
+          "fixture": "Outer query has two nested sources; positions [0, 1] select the second nested query with one catalog source, while the first nested query has zero sources.",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО\"], tests: [\"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО.СхемаЗапросаВозвращаетсяДляВложеннойПозиции\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________a3d020982_8837c349f1ae21f53a5af5a10913cfd592719a71\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 1,
+            "passed": 1,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_ПрикладныеПотребителиЗапроса_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ПрикладныеПотребителиЗапроса_МО"
+          ],
+          "test_or_tag": "ПрикладныеПотребителиЗапроса",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________fa91874d4_6e20db4f4e6c9ec7c4aec57bcf206937e54a20ff\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 6,
+            "passed": 4,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 2
+          }
+        }
+      ],
+      "mutation_proof": [
+        {
+          "mutation": "Nested source position [0, 1] changed to [0, 0] without changing expectations.",
+          "observed_failure": "Expected returned nested source count 1, observed 0 at Module.bsl:110.",
+          "junit": {
+            "total": 1,
+            "passed": 0,
+            "failed": 1,
+            "errors": 0,
+            "skipped": 0
+          },
+          "result_ref_unavailable_reason": "EDT-MCP reuses the report directory for an identical filter; the required final GREEN rerun replaced the temporary mutation report."
+        }
+      ]
+    },
+    {
+      "contract_id": "C17",
+      "component": "Feature-generation helpers",
+      "status": "green",
+      "date": "2026-08-07",
+      "external_blockers": [],
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_ПрикладныеПотребителиЗапроса_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ПрикладныеПотребителиЗапроса_МО"
+          ],
+          "test_or_tag": "ГенераторFeatureФайловФормируетЭталонПакетаЗапроса",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО\"], tests: [\"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО.ГенераторFeatureФайловФормируетЭталонПакетаЗапроса\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________7936deb53_be7c5fc074d169631d3e2b4b6e3ec65bebb53d4d\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 1,
+            "passed": 1,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "C18",
+      "component": "15 `Представление*` manager consumers",
+      "status": "external-blocker",
+      "date": "2026-08-07",
+      "external_blockers": [
+        "ПредставлениеРабочиеМестаСотрудников.ТекстЗапросаДляСКД читает отсутствующее поле ПараметрыВыполнения.ОписаниеФильтра вместо канонического .ОписаниеВТФильтр."
+      ],
+      "evidence": [
+        {
+          "kind": "external-blocker",
+          "manager": "ПредставлениеРабочиеМестаСотрудников",
+          "export": "ТекстЗапросаДляСКД",
+          "call": "Обработки.ПредставлениеРабочиеМестаСотрудников.ТекстЗапросаДляСКД(ПараметрыВыполнения)",
+          "error": "Поле объекта не обнаружено (ОписаниеФильтра); QueryConsoleZUP/src/DataProcessors/ПредставлениеРабочиеМестаСотрудников/ManagerModule.bsl:275",
+          "prerequisite": "Production fix: заменить ошибочное чтение ПараметрыВыполнения.ОписаниеФильтра на каноническое поле live factory ПараметрыВыполнения.ОписаниеВТФильтр в ManagerModule.bsl:275.",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________083865a69_c92eb3acb47f1823a87b0544cf17d72ee376e9cc\\report.md",
+          "failing_junit": {
+            "total": 15,
+            "passed": 14,
+            "failed": 0,
+            "errors": 1,
+            "skipped": 0
+          }
+        }
+      ],
+      "verified_green_runs": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_ПотребителиПредставлений_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_ПотребителиПредставлений_МО"
+          ],
+          "test_or_tag": "ПотребителиПредставлений: 15 managers × 6 direct exports",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", modules: [\"КОНС_Обр_ПотребителиПредставлений_МО\"], timeout: 60, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 90,
+            "passed": 89,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 1
+          },
+          "contracts": [
+            {
+              "manager": "ПредставлениеДанныеПозицийШтатногоРасписания",
+              "operations": {
+                "Описание": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетОписание(ПредставлениеДанныеПозицийШтатногоРасписания)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Справка": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетСправку(ПредставлениеДанныеПозицийШтатногоРасписания)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИмяПредставления": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетИмяПредставления(ПредставлениеДанныеПозицийШтатногоРасписания)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИсполняемыйКод": {
+                  "status": "green",
+                  "test": "МенеджерФормируетИсполняемыйКод(ПредставлениеДанныеПозицийШтатногоРасписания)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ТекстЗапросаДляСКД": {
+                  "status": "green",
+                  "test": "МенеджерФормируетТекстЗапросаДляСКД(ПредставлениеДанныеПозицийШтатногоРасписания)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Исполнить": {
+                  "status": "green",
+                  "test": "МенеджерИсполняетПредставительнуюМодель(ПредставлениеДанныеПозицийШтатногоРасписания)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                }
+              }
+            },
+            {
+              "manager": "ПредставлениеДанныеСотрудников",
+              "operations": {
+                "Описание": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетОписание(ПредставлениеДанныеСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Справка": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетСправку(ПредставлениеДанныеСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИмяПредставления": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетИмяПредставления(ПредставлениеДанныеСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИсполняемыйКод": {
+                  "status": "green",
+                  "test": "МенеджерФормируетИсполняемыйКод(ПредставлениеДанныеСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ТекстЗапросаДляСКД": {
+                  "status": "green",
+                  "test": "МенеджерФормируетТекстЗапросаДляСКД(ПредставлениеДанныеСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Исполнить": {
+                  "status": "green",
+                  "test": "МенеджерИсполняетПредставительнуюМодель(ПредставлениеДанныеСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                }
+              }
+            },
+            {
+              "manager": "ПредставлениеДанныеУчетаВремениСотрудников",
+              "operations": {
+                "Описание": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетОписание(ПредставлениеДанныеУчетаВремениСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Справка": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетСправку(ПредставлениеДанныеУчетаВремениСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИмяПредставления": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетИмяПредставления(ПредставлениеДанныеУчетаВремениСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИсполняемыйКод": {
+                  "status": "green",
+                  "test": "МенеджерФормируетИсполняемыйКод(ПредставлениеДанныеУчетаВремениСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ТекстЗапросаДляСКД": {
+                  "status": "green",
+                  "test": "МенеджерФормируетТекстЗапросаДляСКД(ПредставлениеДанныеУчетаВремениСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Исполнить": {
+                  "status": "green",
+                  "test": "МенеджерИсполняетПредставительнуюМодель(ПредставлениеДанныеУчетаВремениСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                }
+              }
+            },
+            {
+              "manager": "ПредставлениеДанныеФизическихЛиц",
+              "operations": {
+                "Описание": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетОписание(ПредставлениеДанныеФизическихЛиц)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Справка": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетСправку(ПредставлениеДанныеФизическихЛиц)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИмяПредставления": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетИмяПредставления(ПредставлениеДанныеФизическихЛиц)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИсполняемыйКод": {
+                  "status": "green",
+                  "test": "МенеджерФормируетИсполняемыйКод(ПредставлениеДанныеФизическихЛиц)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ТекстЗапросаДляСКД": {
+                  "status": "green",
+                  "test": "МенеджерФормируетТекстЗапросаДляСКД(ПредставлениеДанныеФизическихЛиц)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Исполнить": {
+                  "status": "green",
+                  "test": "МенеджерИсполняетПредставительнуюМодель(ПредставлениеДанныеФизическихЛиц)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                }
+              }
+            },
+            {
+              "manager": "ПредставлениеНачисленияУдержанияВыплаты",
+              "operations": {
+                "Описание": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетОписание(ПредставлениеНачисленияУдержанияВыплаты)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Справка": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетСправку(ПредставлениеНачисленияУдержанияВыплаты)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИмяПредставления": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетИмяПредставления(ПредставлениеНачисленияУдержанияВыплаты)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИсполняемыйКод": {
+                  "status": "green",
+                  "test": "МенеджерФормируетИсполняемыйКод(ПредставлениеНачисленияУдержанияВыплаты)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ТекстЗапросаДляСКД": {
+                  "status": "green",
+                  "test": "МенеджерФормируетТекстЗапросаДляСКД(ПредставлениеНачисленияУдержанияВыплаты)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Исполнить": {
+                  "status": "green",
+                  "test": "МенеджерИсполняетПредставительнуюМодель(ПредставлениеНачисленияУдержанияВыплаты)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                }
+              }
+            },
+            {
+              "manager": "ПредставлениеНачисленияУдержанияВыплатыАвансом",
+              "operations": {
+                "Описание": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетОписание(ПредставлениеНачисленияУдержанияВыплатыАвансом)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Справка": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетСправку(ПредставлениеНачисленияУдержанияВыплатыАвансом)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИмяПредставления": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетИмяПредставления(ПредставлениеНачисленияУдержанияВыплатыАвансом)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИсполняемыйКод": {
+                  "status": "green",
+                  "test": "МенеджерФормируетИсполняемыйКод(ПредставлениеНачисленияУдержанияВыплатыАвансом)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ТекстЗапросаДляСКД": {
+                  "status": "green",
+                  "test": "МенеджерФормируетТекстЗапросаДляСКД(ПредставлениеНачисленияУдержанияВыплатыАвансом)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Исполнить": {
+                  "status": "green",
+                  "test": "МенеджерИсполняетПредставительнуюМодель(ПредставлениеНачисленияУдержанияВыплатыАвансом)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                }
+              }
+            },
+            {
+              "manager": "ПредставлениеОстаткиОтпусков",
+              "operations": {
+                "Описание": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетОписание(ПредставлениеОстаткиОтпусков)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Справка": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетСправку(ПредставлениеОстаткиОтпусков)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИмяПредставления": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетИмяПредставления(ПредставлениеОстаткиОтпусков)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИсполняемыйКод": {
+                  "status": "green",
+                  "test": "МенеджерФормируетИсполняемыйКод(ПредставлениеОстаткиОтпусков)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ТекстЗапросаДляСКД": {
+                  "status": "green",
+                  "test": "МенеджерФормируетТекстЗапросаДляСКД(ПредставлениеОстаткиОтпусков)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Исполнить": {
+                  "status": "green",
+                  "test": "МенеджерИсполняетПредставительнуюМодель(ПредставлениеОстаткиОтпусков)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                }
+              }
+            },
+            {
+              "manager": "ПредставлениеПериоды",
+              "operations": {
+                "Описание": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетОписание(ПредставлениеПериоды)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Справка": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетСправку(ПредставлениеПериоды)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИмяПредставления": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетИмяПредставления(ПредставлениеПериоды)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИсполняемыйКод": {
+                  "status": "green",
+                  "test": "МенеджерФормируетИсполняемыйКод(ПредставлениеПериоды)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ТекстЗапросаДляСКД": {
+                  "status": "green",
+                  "test": "МенеджерФормируетТекстЗапросаДляСКД(ПредставлениеПериоды)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Исполнить": {
+                  "status": "green",
+                  "test": "МенеджерИсполняетПредставительнуюМодель(ПредставлениеПериоды)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                }
+              }
+            },
+            {
+              "manager": "ПредставлениеПлановоеВремяСотрудников",
+              "operations": {
+                "Описание": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетОписание(ПредставлениеПлановоеВремяСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Справка": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетСправку(ПредставлениеПлановоеВремяСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИмяПредставления": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетИмяПредставления(ПредставлениеПлановоеВремяСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИсполняемыйКод": {
+                  "status": "green",
+                  "test": "МенеджерФормируетИсполняемыйКод(ПредставлениеПлановоеВремяСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ТекстЗапросаДляСКД": {
+                  "status": "green",
+                  "test": "МенеджерФормируетТекстЗапросаДляСКД(ПредставлениеПлановоеВремяСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Исполнить": {
+                  "status": "green",
+                  "test": "МенеджерИсполняетПредставительнуюМодель(ПредставлениеПлановоеВремяСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                }
+              }
+            },
+            {
+              "manager": "ПредставлениеРабочиеМестаСотрудников",
+              "operations": {
+                "Описание": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетОписание(ПредставлениеРабочиеМестаСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Справка": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетСправку(ПредставлениеРабочиеМестаСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИмяПредставления": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетИмяПредставления(ПредставлениеРабочиеМестаСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИсполняемыйКод": {
+                  "status": "green",
+                  "test": "МенеджерФормируетИсполняемыйКод(ПредставлениеРабочиеМестаСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ТекстЗапросаДляСКД": {
+                  "status": "external-blocker",
+                  "test": "МенеджерФормируетТекстЗапросаДляСКД(ПредставлениеРабочиеМестаСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md",
+                  "call": "Обработки.ПредставлениеРабочиеМестаСотрудников.ТекстЗапросаДляСКД(ПараметрыВыполнения)",
+                  "error": "Поле объекта не обнаружено (ОписаниеФильтра); QueryConsoleZUP/src/DataProcessors/ПредставлениеРабочиеМестаСотрудников/ManagerModule.bsl:275",
+                  "prerequisite": "Production fix: заменить ошибочное чтение ПараметрыВыполнения.ОписаниеФильтра на каноническое поле live factory ПараметрыВыполнения.ОписаниеВТФильтр в ManagerModule.bsl:275.",
+                  "failing_result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________083865a69_c92eb3acb47f1823a87b0544cf17d72ee376e9cc\\report.md"
+                },
+                "Исполнить": {
+                  "status": "green",
+                  "test": "МенеджерИсполняетПредставительнуюМодель(ПредставлениеРабочиеМестаСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                }
+              }
+            },
+            {
+              "manager": "ПредставлениеРегистрСведенийЗаписи",
+              "operations": {
+                "Описание": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетОписание(ПредставлениеРегистрСведенийЗаписи)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Справка": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетСправку(ПредставлениеРегистрСведенийЗаписи)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИмяПредставления": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетИмяПредставления(ПредставлениеРегистрСведенийЗаписи)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИсполняемыйКод": {
+                  "status": "green",
+                  "test": "МенеджерФормируетИсполняемыйКод(ПредставлениеРегистрСведенийЗаписи)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ТекстЗапросаДляСКД": {
+                  "status": "green",
+                  "test": "МенеджерФормируетТекстЗапросаДляСКД(ПредставлениеРегистрСведенийЗаписи)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Исполнить": {
+                  "status": "green",
+                  "test": "МенеджерИсполняетПредставительнуюМодель(ПредставлениеРегистрСведенийЗаписи)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                }
+              }
+            },
+            {
+              "manager": "ПредставлениеРегистрСведенийСрезПоследних",
+              "operations": {
+                "Описание": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетОписание(ПредставлениеРегистрСведенийСрезПоследних)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Справка": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетСправку(ПредставлениеРегистрСведенийСрезПоследних)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИмяПредставления": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетИмяПредставления(ПредставлениеРегистрСведенийСрезПоследних)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИсполняемыйКод": {
+                  "status": "green",
+                  "test": "МенеджерФормируетИсполняемыйКод(ПредставлениеРегистрСведенийСрезПоследних)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ТекстЗапросаДляСКД": {
+                  "status": "green",
+                  "test": "МенеджерФормируетТекстЗапросаДляСКД(ПредставлениеРегистрСведенийСрезПоследних)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Исполнить": {
+                  "status": "green",
+                  "test": "МенеджерИсполняетПредставительнуюМодель(ПредставлениеРегистрСведенийСрезПоследних)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                }
+              }
+            },
+            {
+              "manager": "ПредставлениеСотрудникиОрганизации",
+              "operations": {
+                "Описание": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетОписание(ПредставлениеСотрудникиОрганизации)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Справка": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетСправку(ПредставлениеСотрудникиОрганизации)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИмяПредставления": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетИмяПредставления(ПредставлениеСотрудникиОрганизации)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИсполняемыйКод": {
+                  "status": "green",
+                  "test": "МенеджерФормируетИсполняемыйКод(ПредставлениеСотрудникиОрганизации)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ТекстЗапросаДляСКД": {
+                  "status": "green",
+                  "test": "МенеджерФормируетТекстЗапросаДляСКД(ПредставлениеСотрудникиОрганизации)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Исполнить": {
+                  "status": "green",
+                  "test": "МенеджерИсполняетПредставительнуюМодель(ПредставлениеСотрудникиОрганизации)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                }
+              }
+            },
+            {
+              "manager": "ПредставлениеСтажиФизическихЛиц",
+              "operations": {
+                "Описание": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетОписание(ПредставлениеСтажиФизическихЛиц)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Справка": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетСправку(ПредставлениеСтажиФизическихЛиц)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИмяПредставления": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетИмяПредставления(ПредставлениеСтажиФизическихЛиц)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИсполняемыйКод": {
+                  "status": "green",
+                  "test": "МенеджерФормируетИсполняемыйКод(ПредставлениеСтажиФизическихЛиц)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ТекстЗапросаДляСКД": {
+                  "status": "green",
+                  "test": "МенеджерФормируетТекстЗапросаДляСКД(ПредставлениеСтажиФизическихЛиц)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Исполнить": {
+                  "status": "green",
+                  "test": "МенеджерИсполняетПредставительнуюМодель(ПредставлениеСтажиФизическихЛиц)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                }
+              }
+            },
+            {
+              "manager": "ПредставлениеФактическиеОтпускаСотрудников",
+              "operations": {
+                "Описание": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетОписание(ПредставлениеФактическиеОтпускаСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Справка": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетСправку(ПредставлениеФактическиеОтпускаСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИмяПредставления": {
+                  "status": "green",
+                  "test": "МенеджерПубликуетИмяПредставления(ПредставлениеФактическиеОтпускаСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ИсполняемыйКод": {
+                  "status": "green",
+                  "test": "МенеджерФормируетИсполняемыйКод(ПредставлениеФактическиеОтпускаСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "ТекстЗапросаДляСКД": {
+                  "status": "green",
+                  "test": "МенеджерФормируетТекстЗапросаДляСКД(ПредставлениеФактическиеОтпускаСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                },
+                "Исполнить": {
+                  "status": "green",
+                  "test": "МенеджерИсполняетПредставительнуюМодель(ПредставлениеФактическиеОтпускаСотрудников)",
+                  "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________4002ffcc2_4eeb8b8c496eb740bb6daad1ffe20d57fd6109c4\\report.md"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "kind": "test-run",
+          "module_filter": [
+            "КОНС_Обр_ЛексическийАнализатор_МО",
+            "КОНС_Обр_Парсер_МО",
+            "КОНС_Обр_ПарсерЗапросов_МО",
+            "КОНС_ОМ_ОбработкаМоделиЗапроса",
+            "КОНС_Обр_МодельВыражений_МО",
+            "КОНС_Обр_ПостроениеИГенерацияЗапросов_МО",
+            "КОНС_Обр_ИсполняемыеПредставления_МО",
+            "КОНС_Обр_ПрикладныеПотребителиЗапроса_МО",
+            "КОНС_Обр_ПотребителиПредставлений_МО",
+            "КОНС_Обр_БенчмаркПарсера_МО"
+          ],
+          "test_or_tag": "Phase 2.5 final combined regression including C18 and X01",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_ЛексическийАнализатор_МО\", \"КОНС_Обр_Парсер_МО\", \"КОНС_Обр_ПарсерЗапросов_МО\", \"КОНС_ОМ_ОбработкаМоделиЗапроса\", \"КОНС_Обр_МодельВыражений_МО\", \"КОНС_Обр_ПостроениеИГенерацияЗапросов_МО\", \"КОНС_Обр_ИсполняемыеПредставления_МО\", \"КОНС_Обр_ПрикладныеПотребителиЗапроса_МО\", \"КОНС_Обр_ПотребителиПредставлений_МО\", \"КОНС_Обр_БенчмаркПарсера_МО\"], timeout: 240, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________eaea5e771_422d1da37e95cc5cca07dabba1b8e3d037f0f212\\report.md",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 457,
+            "passed": 454,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 3
+          }
+        }
+      ]
+    },
+    {
+      "contract_id": "X01",
+      "component": "New test/benchmark harness owned by the production parser entrypoints `DataProcessors/Парсер/ObjectModule.bsl.Разобрать` and `РазобратьВыражение`",
+      "status": "green",
+      "date": "2026-08-07",
+      "external_blockers": [],
+      "benchmark_result": "docs/superpowers/matrices/2026-08-07-runtime-parser-benchmark-before.json",
+      "baseline_report": "docs/superpowers/matrices/2026-08-07-runtime-parser-benchmark-baseline.md",
+      "raw_benchmark_result": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________f49cea393_39767d76ab1d38f5fadfa5c32807961daa03e544\\runtime-parser-benchmark-before.json",
+      "evidence": [
+        {
+          "kind": "test-run",
+          "module": "yaxunit/src/CommonModules/КОНС_Обр_БенчмаркПарсера_МО/Module.bsl",
+          "module_filter": [
+            "КОНС_Обр_БенчмаркПарсера_МО"
+          ],
+          "test_or_tag": "КОНС_Обр_БенчмаркПарсера_МО.RuntimeBaselineПарсераФормируется",
+          "command": "mcp__edt_mcp__run_yaxunit_tests({launchConfigurationName: \"QueryConsoleZUP Тонкий клиент\", extensions: [\"YAXUNIT\"], modules: [\"КОНС_Обр_БенчмаркПарсера_МО\"], timeout: 180, updateBeforeLaunch: true, updateScope: \"extension:yaxunit\"})",
+          "result_ref": "C:\\Users\\pkhlu\\AppData\\Local\\Temp\\edt-mcp-yaxunit\\QueryConsoleZUP_______________f49cea393_39767d76ab1d38f5fadfa5c32807961daa03e544\\report.md",
+          "benchmark_result": "docs/superpowers/matrices/2026-08-07-runtime-parser-benchmark-before.json",
+          "exit_code": null,
+          "exit_code_unavailable_reason": "EDT-MCP run_yaxunit_tests returns observed JUnit counts and a report reference, not a process exit code.",
+          "junit": {
+            "total": 1,
+            "passed": 1,
+            "failed": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        }
+      ]
+    }
+  ]
+}

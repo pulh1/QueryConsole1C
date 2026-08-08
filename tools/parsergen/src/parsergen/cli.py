@@ -14,12 +14,16 @@ from .analysis import (
     compute_analysis,
 )
 from .artifacts import compare_artifacts, render_artifacts, replace_artifacts
-from .bsl_codegen import generate_parser
 from .config import ParsergenConfig, load_config
 from .diagnostics import Diagnostic, Severity
 from .grammar_parser import parse_grammar
+from .generated_parser import GeneratedParser
+from .hybrid_bsl_codegen import generate_hybrid_parser
+from .lowering import LoweringResult
 from .model import Grammar
+from .parser_ir import build_parser_ir
 from .resolver import ResolvedGrammar, ResolutionResult, resolve_grammar
+from .source_model import SourceGrammar
 from .validation import ValidationReport, validate_grammar
 
 
@@ -29,6 +33,8 @@ class Compilation:
     resolved: ResolvedGrammar | None
     analysis: AnalysisResult | None
     report: ValidationReport
+    source_grammar: SourceGrammar | None = None
+    lowering: LoweringResult | None = None
 
 
 class _ArgumentParser(argparse.ArgumentParser):
@@ -66,12 +72,55 @@ def compile_from_config(config: ParsergenConfig) -> Compilation:
         analysis,
         config.entrypoints,
         (*parsed.diagnostics, *resolved_result.diagnostics),
+        lowering=parsed.lowering,
     )
     return Compilation(
         parsed.grammar,
         resolved_result.grammar,
         analysis,
         report,
+        parsed.source_grammar,
+        parsed.lowering,
+    )
+
+
+def generate_from_compilation(
+    config: ParsergenConfig,
+    compilation: Compilation,
+) -> GeneratedParser:
+    if (
+        compilation.grammar is None
+        or compilation.resolved is None
+        or compilation.analysis is None
+    ):
+        raise ValueError("grammar did not produce a complete analysis")
+    if not config.canonical_productions:
+        from .bsl_codegen import generate_parser
+
+        return generate_parser(
+            compilation.grammar,
+            compilation.resolved,
+            compilation.analysis,
+            config.entrypoints,
+        )
+    if compilation.source_grammar is None or compilation.lowering is None:
+        raise ValueError("canonical migration requires source grammar lowering")
+    parser_ir = build_parser_ir(
+        compilation.source_grammar,
+        compilation.lowering,
+        compilation.resolved,
+        compilation.analysis,
+        production_names=config.canonical_productions,
+    )
+    return generate_hybrid_parser(
+        compilation.source_grammar,
+        compilation.lowering,
+        compilation.grammar,
+        compilation.resolved,
+        compilation.analysis,
+        parser_ir,
+        canonical_productions=config.canonical_productions,
+        entrypoints=config.entrypoints,
     )
 
 
@@ -100,16 +149,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 sys.stdout.write(_analysis_text(compilation.analysis))
         elif arguments.command == "generate":
             try:
-                assert compilation.grammar is not None
-                assert compilation.resolved is not None
-                assert compilation.analysis is not None
+                generated = generate_from_compilation(config, compilation)
                 artifacts = render_artifacts(
-                    generate_parser(
-                        compilation.grammar,
-                        compilation.resolved,
-                        compilation.analysis,
-                        config.entrypoints,
-                    )
+                    generated
                 )
                 comparison = compare_artifacts(config.target, artifacts)
                 if arguments.check:

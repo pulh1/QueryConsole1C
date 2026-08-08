@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:CommonModule xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="0532b3ab-7444-447b-ab64-e8ad45a19a4b">
+  <name>КОНС_Обр_БенчмаркПарсера_МО</name>
+  <synonym>
+    <key>ru</key>
+    <value>КОНС benchmark парсера</value>
+  </synonym>
+  <comment>Test-only runtime benchmark parser baseline</comment>
+  <server>true</server>
+  <externalConnection>true</externalConnection>
+  <clientOrdinaryApplication>true</clientOrdinaryApplication>
+</mdclass:CommonModule>

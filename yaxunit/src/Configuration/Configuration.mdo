@@ -62,10 +62,16 @@
   <commonTemplates>CommonTemplate.ЮТYaxUnitAddIn</commonTemplates>
   <commonTemplates>CommonTemplate.ЮТИнформацияОбОшибке</commonTemplates>
   <commonTemplates>CommonTemplate.ЮТОписаниеМетаданных</commonTemplates>
+  <commonModules>CommonModule.КОНС_Обр_БенчмаркПарсера_МО</commonModules>
+  <commonModules>CommonModule.КОНС_Обр_ИсполняемыеПредставления_МО</commonModules>
   <commonModules>CommonModule.КОНС_Обр_ЛексическийАнализатор_МО</commonModules>
+  <commonModules>CommonModule.КОНС_Обр_МодельВыражений_МО</commonModules>
   <commonModules>CommonModule.КОНС_Обр_Парсер_МО</commonModules>
   <commonModules>CommonModule.КОНС_Обр_ПарсерБудущаяГрамматика_МО</commonModules>
   <commonModules>CommonModule.КОНС_Обр_ПарсерЗапросов_МО</commonModules>
+  <commonModules>CommonModule.КОНС_Обр_ПостроениеИГенерацияЗапросов_МО</commonModules>
+  <commonModules>CommonModule.КОНС_Обр_ПотребителиПредставлений_МО</commonModules>
+  <commonModules>CommonModule.КОНС_Обр_ПрикладныеПотребителиЗапроса_МО</commonModules>
   <commonModules>CommonModule.КОНС_ОМ_ОбработкаМоделиЗапроса</commonModules>
   <commonModules>CommonModule.КОНС_ТестовыеФабрикиСлужебный</commonModules>
   <commonModules>CommonModule.Мокито</commonModules>
