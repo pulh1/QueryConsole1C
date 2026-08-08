@@ -33,6 +33,8 @@ MIGRATED_PRODUCTIONS = (
     "Операнд",
     "СписокВыражений",
     "СписокВыраженийМодели",
+    "ПриведениеТипа",
+    "ОписаниеТипа",
     "Выбор",
     "КогдаТогда",
     "Константа",
@@ -511,6 +513,66 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertNotIn("ТекущийЭлемент", function)
         self.assertNotIn("НомерВариантаПродукции", function)
 
+    def test_type_cast_family_generates_declarative_bindings_and_optionals(
+        self,
+    ) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        canonical = MIGRATED_PRODUCTIONS
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=canonical,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=canonical,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        module = generated.module_text
+        for helper in ("ОписаниеЧисла", "ТочностьЧисла", "ОписаниеСтроки"):
+            with self.subTest(helper=helper):
+                self.assertNotIn(f"Функция НеТерминал{helper}(", module)
+
+        type_cast = _generated_function(module, "ПриведениеТипа")
+        self.assertIn("ЭлементыМоделиЗапроса.НовыйПриведениеТипа(", type_cast)
+        self.assertIn("НеТерминалВыражение()", type_cast)
+        self.assertIn("ЭтотУзел.Выражение =", type_cast)
+        self.assertIn("НеТерминалОписаниеТипа()", type_cast)
+        self.assertIn("ЭтотУзел.ОписаниеТипа =", type_cast)
+
+        description = _generated_function(module, "ОписаниеТипа")
+        self.assertIn("НеТерминалТипСсылочногоПоля()", description)
+        self.assertEqual(
+            description.count("ЭлементыМоделиЗапроса.НовыйОписаниеТипа"),
+            4,
+        )
+        self.assertEqual(description.count("ЭтотУзел.Длина ="), 2)
+        self.assertEqual(description.count("ЭтотУзел.Точность ="), 1)
+        for function in (type_cast, description):
+            self.assertNotIn("ТекущийЭлемент", function)
+            self.assertNotIn("НомерВариантаПродукции", function)
+
     def test_query_package_generates_collection_loop_and_optional_terminator(
         self,
     ) -> None:
@@ -616,8 +678,8 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 106)
-        self.assertEqual(len(parsed.grammar.productions), 126)
+        self.assertEqual(len(parsed.source_grammar.productions), 103)
+        self.assertEqual(len(parsed.grammar.productions), 127)
 
         resolution = resolve_grammar(parsed.grammar)
         self.assertEqual(resolution.diagnostics, ())

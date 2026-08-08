@@ -554,6 +554,11 @@ legacy `Поле` пока вызывается через hybrid ABI. Exact del
 уровне. Exact delta:
 [factor checkpoint](../superpowers/matrices/2026-08-08-factor-transparent-checkpoint.md).
 
+Связанный пакет `ПриведениеТипа`/`ОписаниеТипа` затем получил constructors,
+scalar bindings и EBNF optionals. Три helper-productions параметров числа и
+строки удалены с сохранением defaults и формы `ЧИСЛО(10,)`. Exact delta:
+[type-cast checkpoint](../superpowers/matrices/2026-08-08-type-cast-binding-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:
