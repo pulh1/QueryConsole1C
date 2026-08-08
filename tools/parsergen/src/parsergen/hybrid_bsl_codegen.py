@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Collection, Mapping
 
 from .analysis import AnalysisResult
-from .bsl_codegen import BslGenerator
 from .canonical_bsl_codegen import (
     generate_canonical_functions,
     generate_canonical_parser,
@@ -115,6 +114,8 @@ def generate_hybrid_parser(
         for production in source.productions
         if production.name not in frozenset(canonical_names)
     )
+    from .bsl_codegen import BslGenerator
+
     return BslGenerator(
         grammar,
         resolved,

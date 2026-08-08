@@ -12,7 +12,8 @@ legacy matcher, не вызывает `НомерВариантаПродукц�
 
 Query model источников теперь отражает предметное дерево JOIN, а не плоский
 parser accumulator. Все найденные non-form consumers мигрированы и защищены
-headless tests; интерактивные формы проверены финальным Vanessa/manual gate.
+headless tests; доступный Vanessa/manual gate Query Constructor выполнен,
+повторная прикладная проверка Universal Report остаётся отдельным pending gate.
 
 ## 1. Impact analysis
 
@@ -52,7 +53,7 @@ source. Compatibility wrapper старой модели не создавалс�
 
 | Area | Post-migration evidence | Remaining gap |
 | --- | --- | --- |
-| Python parsergen/canonical/legacy/codegen | 508 passed, 1 skipped, 4 558 subtests | Windows symlink privilege only |
+| Python parsergen/canonical/legacy/codegen | 509 passed, 1 skipped, 4 558 subtests | Windows symlink privilege only |
 | Expression + full parser | 223/223 YAxUnit GREEN | Нет headless gap |
 | Lexer/model/semantic/executor/generation/report/other consumers | 265 total / 262 passed / 3 skips | Один старый production defect; два form-only API blockers |
 | Runtime benchmark | 1/1 YAxUnit GREEN | Дорогие production counters намеренно не внедрялись |
@@ -146,6 +147,9 @@ competing `a b d` и отвергнуть его.
 Production parser больше не зависит от legacy artifact, shadowing,
 cycle-prefix injection, nullable fallback или longest-prefix dispatch. Empty
 SELECT metadata artifact пока сохраняет EDT layout, но runtime его не читает.
+Full-canonical Python route также не импортирует `bsl_codegen`; legacy backend
+загружается лениво только для legacy/partial-hybrid generation и защищён
+отдельным subprocess import-guard test.
 Окончательное удаление legacy допустимо после intentional retirement старого
 standalone/hybrid compatibility contract и его внешних consumers; production
 migration больше не является препятствием.
@@ -236,7 +240,7 @@ synthetic recursive runtime functions. Полные данные:
 
 ## 10. Automated evidence
 
-- Python: 508 passed, 1 skipped, 4 558 subtests;
+- Python: 509 passed, 1 skipped, 4 558 subtests;
 - `parsergen validate`: exit 0;
 - `parsergen generate --check`: artifacts current;
 - canonical conflict/diagnostic lists: empty at `k=2`;
@@ -245,20 +249,23 @@ synthetic recursive runtime functions. Полные данные:
 - combined parser/downstream/benchmark YAxUnit: 494 total / 491 passed /
   3 documented skips;
 - benchmark YAxUnit: 1/1 GREEN;
-- EDT exact revalidation of parser and changed test modules: no errors;
+- EDT syntax/revalidation production-модулей пройдены; YAxUnit-модули сохраняют
+  известный cross-extension/static-analysis diagnostic background, который не
+  воспроизводится полным runtime YAxUnit gate;
 - generated parser/reference artifact parity: green;
+- full-canonical CLI import guard: legacy `bsl_codegen` не загружается;
 - generated parser SHA256:
   `537939b79bc29d77d581b8148973595481f444c1415b082d032e461133736b45`.
 
 ## 11. Manual verification
 
-Финальный интерактивный gate выполнен пользователем:
+Интерактивная часть Query Constructor выполнена пользователем:
 
 - полный Vanessa-набор прошёл;
 - изменение владельца JOIN проверено в Query Constructor;
 - удаление источников проверено в Query Constructor;
 - формирование Universal Report после исправления вложенного executable view
-  передано на повторную прикладную проверку.
+  передано на повторную прикладную проверку и пока не отмечено выполненным.
 
 ## 12. Remaining limitations
 
@@ -269,6 +276,8 @@ synthetic recursive runtime functions. Полные данные:
   headless-вызова; интерактивный Vanessa gate при этом пройден;
 - один manager SKD contract заблокирован существующим именем свойства
   `.ОписаниеФильтра` вместо `.ОписаниеВТФильтр`;
+- повторная прикладная проверка формирования Universal Report после исправления
+  вложенного executable view остаётся pending;
 - internal runtime call/depth/allocation counters не измерены, чтобы не
   оставлять expensive instrumentation в production.
 

@@ -33,6 +33,38 @@ class CliTests(unittest.TestCase):
             env=environment,
         )
 
+    def run_full_canonical_cli_without_legacy_backend(
+        self,
+        *arguments: str,
+    ) -> subprocess.CompletedProcess[str]:
+        environment = os.environ.copy()
+        source_path = str(Path(__file__).parents[1] / "src")
+        existing = environment.get("PYTHONPATH")
+        environment["PYTHONPATH"] = (
+            os.pathsep.join((source_path, existing)) if existing else source_path
+        )
+        script = """
+import importlib.abc
+import sys
+
+class BlockLegacyBackend(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == "parsergen.bsl_codegen":
+            raise RuntimeError("legacy backend imported by canonical route")
+        return None
+
+sys.meta_path.insert(0, BlockLegacyBackend())
+from parsergen.cli import main
+raise SystemExit(main(sys.argv[1:]))
+"""
+        return subprocess.run(
+            (sys.executable, "-c", script, *arguments),
+            capture_output=True,
+            check=False,
+            encoding="utf-8",
+            env=environment,
+        )
+
     def make_configured_project(self) -> tuple[Path, Path]:
         target = self.root / "Парсер"
         (target / "Templates/ТаблицаПервыхСимволовВариантов").mkdir(
@@ -304,6 +336,32 @@ class CliTests(unittest.TestCase):
         self.assertEqual(expression.count("Пока "), 1)
         self.assertNotIn("НомерВариантаПродукции", expression)
         self.assertNotIn("Функция НеТерминал__parsergen_ebnf__", module)
+
+    def test_full_canonical_generate_does_not_import_legacy_backend(self) -> None:
+        config, _target = self.make_configured_project()
+        (self.root / "grammar.txt").write_text(
+            "<S> ::= @НовыйS ITEM",
+            encoding="utf-8",
+        )
+        config.write_text(
+            'grammar = "grammar.txt"\n'
+            'target = "Парсер"\n'
+            "lookahead = 1\n"
+            "[migration]\n"
+            'canonical_productions = ["S"]\n'
+            "[entrypoints]\n"
+            '"Разобрать" = "S"\n',
+            encoding="utf-8",
+        )
+
+        completed = self.run_full_canonical_cli_without_legacy_backend(
+            "generate",
+            "--config",
+            str(config),
+        )
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertNotIn("legacy backend imported", completed.stderr)
 
     def test_generate_rejects_canonical_action_before_writing_artifacts(
         self,

@@ -14,7 +14,6 @@ from .analysis import (
     compute_analysis,
 )
 from .artifacts import compare_artifacts, render_artifacts, replace_artifacts
-from .bsl_codegen import generate_parser
 from .config import ParsergenConfig, load_config
 from .diagnostics import Diagnostic, Severity
 from .grammar_parser import parse_grammar
@@ -96,6 +95,8 @@ def generate_from_compilation(
     ):
         raise ValueError("grammar did not produce a complete analysis")
     if not config.canonical_productions:
+        from .bsl_codegen import generate_parser
+
         return generate_parser(
             compilation.grammar,
             compilation.resolved,
