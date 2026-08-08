@@ -46,12 +46,21 @@ def _make_sidecar(component: str) -> dict[str, object]:
                 "role": "parser",
                 "metadata_object": "DataProcessor.КОНС_СтарыйПарсер",
                 "path": "yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/ObjectModule.bsl",
-                "sha256": "7319d0b0a2d0f551180e37fdabf3838ca718b2d4b8147199fe1ed4a26290f8bd",
+                "sha256": "dc401e271105eb34b4b2234c75b13fcdfd0341bb3b6766507d9f8cb1eb62e8b7",
                 "hash_scope": "normalized_utf8_lf",
                 "source_path": "QueryConsoleZUP/src/DataProcessors/Парсер/ObjectModule.bsl",
                 "source_sha256": "0c365e1e521322554b63e400379be47c0dc5ecaa7f60dd6951dc84bc7cccd084",
             },
             *artifacts,
+            {
+                "role": "legacy_model_factory",
+                "metadata_object": "CommonModule.КОНС_СтарыеЭлементыМоделиЗапроса",
+                "path": "yaxunit/src/CommonModules/КОНС_СтарыеЭлементыМоделиЗапроса/Module.bsl",
+                "sha256": "62213fee493659cd38c8678db5cb25a1ec6e79d2075d5128d1a396c6cea9c313",
+                "hash_scope": "normalized_utf8_lf",
+                "source_path": "QueryConsoleZUP/src/CommonModules/ЭлементыМоделиЗапроса/Module.bsl",
+                "source_sha256": "62213fee493659cd38c8678db5cb25a1ec6e79d2075d5128d1a396c6cea9c313",
+            },
             {
                 "role": "first_symbols_template",
                 "metadata_object": "DataProcessor.КОНС_СтарыйПарсер.Template.ТаблицаПервыхСимволовВариантов",
@@ -125,6 +134,7 @@ def _make_sidecar(component: str) -> dict[str, object]:
             else [
                 "DataProcessor.КОНС_СтарыйПарсер",
                 "DataProcessor.КОНС_СтарыйЛексическийАнализатор",
+                "CommonModule.КОНС_СтарыеЭлементыМоделиЗапроса",
             ]
         ),
         "artifacts": artifacts,
@@ -166,16 +176,23 @@ class LegacyRuntimeBaselineTests(unittest.TestCase):
         )
         self.assertEqual(
             baseline.ARTIFACTS["parser_module"].materialized_sha256,
-            "7319d0b0a2d0f551180e37fdabf3838ca718b2d4b8147199fe1ed4a26290f8bd",
+            "dc401e271105eb34b4b2234c75b13fcdfd0341bb3b6766507d9f8cb1eb62e8b7",
         )
 
-    def test_parser_adaptation_requires_exactly_one_replacement(self) -> None:
-        source = b"A\r\n" + baseline.PRODUCTION_LEXER_FACTORY.encode() + b"\r\nB"
+    def test_parser_adaptation_requires_exact_dependency_renames(self) -> None:
+        source = (
+            b"A\r\n" + baseline.PRODUCTION_LEXER_FACTORY.encode() + b"\r\n"
+            + b"\r\n".join(
+                baseline.PRODUCTION_MODEL_FACTORY_PREFIX.encode() + "Экспорт()".encode()
+                for _ in range(102)
+            )
+        )
         adapted = baseline.adapt_parser_source(source)
         self.assertNotIn(baseline.PRODUCTION_LEXER_FACTORY, adapted.decode())
         self.assertEqual(adapted.decode().count(baseline.OLD_LEXER_FACTORY), 1)
-        with self.assertRaisesRegex(ValueError, "exactly one"):
-            baseline.adapt_parser_source(b"no factory here")
+        self.assertEqual(adapted.decode().count(baseline.OLD_MODEL_FACTORY_PREFIX), 102)
+        with self.assertRaisesRegex(ValueError, "102"):
+            baseline.adapt_parser_source(baseline.PRODUCTION_LEXER_FACTORY.encode())
 
     def test_lexer_materialization_preserves_historical_bytes(self) -> None:
         source = b"A\r\nB\r\n"
@@ -191,7 +208,7 @@ class LegacyRuntimeBaselineTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "token_count"):
             baseline.validate_sidecar(sidecar, "lexer")
 
-    def test_parser_sidecar_requires_parser_and_lexer_artifacts(self) -> None:
+    def test_parser_sidecar_requires_parser_lexer_and_legacy_factory_artifacts(self) -> None:
         sidecar = _make_sidecar("parser")
         sidecar["artifacts"] = [sidecar["artifacts"][0]]
         with self.assertRaisesRegex(ValueError, "artifact row count"):
@@ -202,8 +219,9 @@ class LegacyRuntimeBaselineTests(unittest.TestCase):
             ("lexer", 0, "lexer"),
             ("parser", 0, "parser"),
             ("parser", 1, "lexer"),
-            ("parser", 2, "first_symbols_template"),
-            ("parser", 3, "identifiers_template"),
+            ("parser", 2, "legacy_model_factory"),
+            ("parser", 3, "first_symbols_template"),
+            ("parser", 4, "identifiers_template"),
         )
         replacements = {
             "role": "wrong_role",
@@ -351,7 +369,7 @@ class LegacyRuntimeBaselineTests(unittest.TestCase):
     def test_validate_durable_reuses_strict_artifact_row_validator(self) -> None:
         lexer = _make_sidecar("lexer")
         parser = _make_sidecar("parser")
-        parser["artifacts"][3]["source_path"] = "wrong/source/path"
+        parser["artifacts"][4]["source_path"] = "wrong/source/path"
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             lexer_path = root / "lexer.json"
@@ -372,6 +390,6 @@ class LegacyRuntimeBaselineTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(
                 ValueError,
-                r"parser\.artifacts\[3\]\.source_path",
+                r"parser\.artifacts\[4\]\.source_path",
             ):
                 baseline.validate_durable(lexer_path, parser_path, report_path)

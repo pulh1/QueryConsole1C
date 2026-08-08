@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -18,6 +19,9 @@ EXPECTED_REMOTE_REF = "refs/heads/old_parser"
 EXPECTED_COMMIT = "59d538fd974c723c6b1cf336c61b0fea1aec8453"
 PRODUCTION_LEXER_FACTORY = "Обработки.ЛексическийАнализатор.Создать()"
 OLD_LEXER_FACTORY = "Обработки.КОНС_СтарыйЛексическийАнализатор.Создать()"
+PRODUCTION_MODEL_FACTORY_PREFIX = "ЭлементыМоделиЗапроса."
+OLD_MODEL_FACTORY_PREFIX = "КОНС_СтарыеЭлементыМоделиЗапроса."
+MODEL_FACTORY_REPLACEMENT_COUNT = 102
 BENCHMARK_MODULE = (
     Path(__file__).resolve().parents[3]
     / "yaxunit/src/CommonModules/КОНС_Обр_БенчмаркПарсера_МО/Module.bsl"
@@ -41,11 +45,18 @@ ARTIFACTS = {
         "434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20",
         "normalized_utf8_lf",
     ),
+    "legacy_model_factory_module": ArtifactSpec(
+        "QueryConsoleZUP/src/CommonModules/ЭлементыМоделиЗапроса/Module.bsl",
+        "yaxunit/src/CommonModules/КОНС_СтарыеЭлементыМоделиЗапроса/Module.bsl",
+        "62213fee493659cd38c8678db5cb25a1ec6e79d2075d5128d1a396c6cea9c313",
+        "62213fee493659cd38c8678db5cb25a1ec6e79d2075d5128d1a396c6cea9c313",
+        "normalized_utf8_lf",
+    ),
     "parser_module": ArtifactSpec(
         "QueryConsoleZUP/src/DataProcessors/Парсер/ObjectModule.bsl",
         "yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/ObjectModule.bsl",
         "0c365e1e521322554b63e400379be47c0dc5ecaa7f60dd6951dc84bc7cccd084",
-        "7319d0b0a2d0f551180e37fdabf3838ca718b2d4b8147199fe1ed4a26290f8bd",
+        "dc401e271105eb34b4b2234c75b13fcdfd0341bb3b6766507d9f8cb1eb62e8b7",
         "normalized_utf8_lf",
     ),
     "first_symbols_template": ArtifactSpec(
@@ -137,12 +148,21 @@ EXPECTED_ARTIFACTS = {
             "role": "parser",
             "metadata_object": "DataProcessor.КОНС_СтарыйПарсер",
             "path": "yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/ObjectModule.bsl",
-            "sha256": "7319d0b0a2d0f551180e37fdabf3838ca718b2d4b8147199fe1ed4a26290f8bd",
+            "sha256": "dc401e271105eb34b4b2234c75b13fcdfd0341bb3b6766507d9f8cb1eb62e8b7",
             "hash_scope": "normalized_utf8_lf",
             "source_path": "QueryConsoleZUP/src/DataProcessors/Парсер/ObjectModule.bsl",
             "source_sha256": "0c365e1e521322554b63e400379be47c0dc5ecaa7f60dd6951dc84bc7cccd084",
         },
         OLD_LEXER_ARTIFACT,
+        {
+            "role": "legacy_model_factory",
+            "metadata_object": "CommonModule.КОНС_СтарыеЭлементыМоделиЗапроса",
+            "path": "yaxunit/src/CommonModules/КОНС_СтарыеЭлементыМоделиЗапроса/Module.bsl",
+            "sha256": "62213fee493659cd38c8678db5cb25a1ec6e79d2075d5128d1a396c6cea9c313",
+            "hash_scope": "normalized_utf8_lf",
+            "source_path": "QueryConsoleZUP/src/CommonModules/ЭлементыМоделиЗапроса/Module.bsl",
+            "source_sha256": "62213fee493659cd38c8678db5cb25a1ec6e79d2075d5128d1a396c6cea9c313",
+        },
         {
             "role": "first_symbols_template",
             "metadata_object": "DataProcessor.КОНС_СтарыйПарсер.Template.ТаблицаПервыхСимволовВариантов",
@@ -183,6 +203,7 @@ EXPECTED_SIDECARS = {
         "metadata_object_names": (
             "DataProcessor.КОНС_СтарыйПарсер",
             "DataProcessor.КОНС_СтарыйЛексическийАнализатор",
+            "CommonModule.КОНС_СтарыеЭлементыМоделиЗапроса",
         ),
     },
 }
@@ -202,11 +223,39 @@ def normalize_bsl(source: bytes) -> bytes:
     return text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
 
 
+def qualified_factory_prefix_count(text: str, prefix: str) -> int:
+    pattern = rf"(?<![0-9A-Za-zА-Яа-я_]){re.escape(prefix)}"
+    return len(re.findall(pattern, text))
+
+
 def adapt_parser_source(source: bytes) -> bytes:
     text = normalize_bsl(source).decode("utf-8")
     if text.count(PRODUCTION_LEXER_FACTORY) != 1:
         raise ValueError("historical parser must contain exactly one production lexer factory")
-    return text.replace(PRODUCTION_LEXER_FACTORY, OLD_LEXER_FACTORY).encode("utf-8")
+    if qualified_factory_prefix_count(text, PRODUCTION_MODEL_FACTORY_PREFIX) != MODEL_FACTORY_REPLACEMENT_COUNT:
+        raise ValueError("historical parser must contain exactly 102 production model-factory prefixes")
+    return (
+        text.replace(PRODUCTION_LEXER_FACTORY, OLD_LEXER_FACTORY)
+        .replace(PRODUCTION_MODEL_FACTORY_PREFIX, OLD_MODEL_FACTORY_PREFIX)
+        .encode("utf-8")
+    )
+
+
+def reverse_parser_adaptation(source: bytes) -> bytes:
+    text = normalize_bsl(source).decode("utf-8")
+    if text.count(OLD_LEXER_FACTORY) != 1:
+        raise ValueError("materialized parser must contain exactly one old lexer factory")
+    if qualified_factory_prefix_count(text, PRODUCTION_MODEL_FACTORY_PREFIX) != 0:
+        raise ValueError("materialized parser still contains a production model-factory prefix")
+    if qualified_factory_prefix_count(text, OLD_MODEL_FACTORY_PREFIX) != MODEL_FACTORY_REPLACEMENT_COUNT:
+        raise ValueError("materialized parser must contain exactly 102 legacy model-factory prefixes")
+    restored = (
+        text.replace(OLD_LEXER_FACTORY, PRODUCTION_LEXER_FACTORY)
+        .replace(OLD_MODEL_FACTORY_PREFIX, PRODUCTION_MODEL_FACTORY_PREFIX)
+    )
+    if qualified_factory_prefix_count(restored, PRODUCTION_MODEL_FACTORY_PREFIX) != MODEL_FACTORY_REPLACEMENT_COUNT:
+        raise ValueError("reverse parser adaptation lost production model-factory prefixes")
+    return restored.encode("utf-8")
 
 
 def _sha256(value: bytes) -> str:
@@ -282,12 +331,9 @@ def verify_materialized_sources(repo: Path) -> dict[str, str]:
         if _sha256(source_bytes) != spec.source_sha256:
             raise ValueError(f"historical {spec_name} SHA-256 mismatch")
         if spec_name == "parser_module":
-            text = normalize_bsl(target_bytes).decode("utf-8")
-            if text.count(OLD_LEXER_FACTORY) != 1 or PRODUCTION_LEXER_FACTORY in text:
-                raise ValueError("materialized parser must contain exactly one old lexer factory")
-            if _sha256(text.replace(OLD_LEXER_FACTORY, PRODUCTION_LEXER_FACTORY).encode("utf-8")) != spec.source_sha256:
+            materialized = normalize_bsl(target_bytes)
+            if reverse_parser_adaptation(materialized) != source_bytes:
                 raise ValueError("materialized parser does not reverse to historical source")
-            materialized = text.encode("utf-8")
         elif spec.hash_scope == "normalized_utf8_lf":
             materialized = normalize_bsl(target_bytes)
         else:
@@ -303,7 +349,7 @@ def verify_materialized_sources(repo: Path) -> dict[str, str]:
 
 def current_hashes(repo: Path) -> dict[str, str]:
     result: dict[str, str] = {}
-    for name in ("lexer_module", "parser_module"):
+    for name in ("lexer_module", "parser_module", "legacy_model_factory_module"):
         spec = ARTIFACTS[name]
         result[name] = _sha256(normalize_bsl((repo / spec.source_path).read_bytes()))
     return result
