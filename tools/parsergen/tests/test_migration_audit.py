@@ -111,8 +111,9 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "ЛогическоеСлагаемое",
                 "ТипСсылочногоПоля",
                 "ОперандВ",
+                "ЛогическаяОперация",
+                "ЛогическаяОперацияБезОтрицания",
                 "ОператорСравнения",
-                "Отрицание",
                 "ШаблонПодобия",
                 "АрифметическоеВыражение",
                 "Слагаемое",
@@ -152,19 +153,19 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["structural"],
             {
-                "source_productions": 73,
-                "source_alternatives": 169,
+                "source_productions": 72,
+                "source_alternatives": 168,
                 "productions": 144,
                 "alternatives": 311,
                 "epsilon_alternatives": 72,
                 "formal_parameters": 10,
                 "actual_arguments": 26,
-                "action_blocks": 51,
-                "statements": 61,
-                "constructor_statements": 11,
+                "action_blocks": 42,
+                "statements": 51,
+                "constructor_statements": 10,
                 "collection_statements": 4,
                 "constant_statements": 6,
-                "structural_statements": 40,
+                "structural_statements": 31,
                 "other_assignment_statements": 0,
                 "other_statements": 0,
             },
@@ -177,12 +178,12 @@ class MigrationAuditProductionTests(unittest.TestCase):
                 "conflicts": [],
                 "diagnostics": [],
                 "stats": {
-                    "packed_first_rows": 11_780,
-                    "packed_follow_rows": 52_570,
+                    "packed_first_rows": 12_069,
+                    "packed_follow_rows": 52_735,
                     "select_descriptors": 311,
-                    "select_direct_facts": 11_427,
-                    "select_short_complete_prefixes": 353,
-                    "packed_select_upper_bound": 37_061,
+                    "select_direct_facts": 11_710,
+                    "select_short_complete_prefixes": 359,
+                    "packed_select_upper_bound": 37_584,
                     "conflict_work_items": 520,
                     "public_select_expansions": 0,
                     "select_cartesian_materializations": 0,
@@ -192,7 +193,7 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["legacy"],
             {
-                "matcher_rows": 10_025,
+                "matcher_rows": 10_225,
                 "matcher_definitions": 0,
                 "runtime_conflicts": [],
             },
@@ -203,10 +204,10 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["generated"],
             {
-                "bsl_functions": 85,
-                "bsl_loc": 2277,
+                "bsl_functions": 84,
+                "bsl_loc": 2243,
                 "constructor_names": 79,
-                "select_rows": 1_261,
+                "select_rows": 764,
                 "identifier_rows": 276,
             },
         )
@@ -289,8 +290,10 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 '"Выражение", '
                 '"ЛогическоеСлагаемое", '
                 '"ТипСсылочногоПоля", '
-                '"ОперандВ", "ОператорСравнения", '
-                '"Отрицание", '
+                '"ОперандВ", '
+                '"ЛогическаяОперация", '
+                '"ЛогическаяОперацияБезОтрицания", '
+                '"ОператорСравнения", '
                 '"ШаблонПодобия", '
                 '"АрифметическоеВыражение", "Слагаемое", '
                 '"УнарнаяОперация", "Множитель", "Операнд", '

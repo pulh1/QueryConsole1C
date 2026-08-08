@@ -51,8 +51,9 @@ MIGRATED_PRODUCTIONS = (
     "ЛогическоеСлагаемое",
     "ТипСсылочногоПоля",
     "ОперандВ",
+    "ЛогическаяОперация",
+    "ЛогическаяОперацияБезОтрицания",
     "ОператорСравнения",
-    "Отрицание",
     "ШаблонПодобия",
     "АрифметическоеВыражение",
     "Слагаемое",
@@ -710,7 +711,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 73)
+        self.assertEqual(len(parsed.source_grammar.productions), 72)
         self.assertEqual(len(parsed.grammar.productions), 144)
         self.assertNotIn(
             "КакОпционально",
@@ -945,6 +946,81 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
                 )
                 self.assertEqual(function.count("ЭтотУзел.ЛеваяЧасть ="), 1)
                 self.assertEqual(function.count("ЭтотУзел.ПраваяЧасть ="), 1)
+
+    def test_comparison_and_negation_generate_canonical_left_fold(self) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=MIGRATED_PRODUCTIONS,
+        )
+
+        productions = {
+            production.name: production
+            for production in parser_ir.productions
+        }
+        comparison = productions["ЛогическаяОперацияБезОтрицания"]
+        self.assertEqual(len(comparison.alternatives), 1)
+        self.assertIsInstance(comparison.alternatives[0].operations[0], LeftFold)
+
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=MIGRATED_PRODUCTIONS,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+        module = generated.module_text
+        self.assertNotIn("Функция НеТерминалОперацияСравнения(", module)
+        self.assertNotIn("Функция НеТерминалОтрицание(", module)
+
+        function = _generated_function(
+            module,
+            "ЛогическаяОперацияБезОтрицания",
+        )
+        self.assertEqual(function.count("Пока "), 1)
+        self.assertNotIn("НомерВариантаПродукции", function)
+        self.assertEqual(function.count("ЛевыйЭлемент"), 1)
+        self.assertNotIn("ТекущийЭлемент", function)
+        self.assertEqual(
+            function.count("ЭлементыМоделиЗапроса.НовыйБинарнаяОперация("),
+            1,
+        )
+        self.assertEqual(function.count("ЭтотУзел.ЛеваяЧасть ="), 1)
+        self.assertEqual(function.count("ЭтотУзел.Операция ="), 1)
+        self.assertEqual(function.count("ЭтотУзел.ПраваяЧасть ="), 1)
+
+        negation = _generated_function(module, "ЛогическаяОперация")
+        self.assertEqual(
+            negation.count("ЭлементыМоделиЗапроса.НовыйЛогическоеОтрицание("),
+            1,
+        )
+        self.assertEqual(negation.count("Пока "), 1)
+        self.assertIn(
+            "ЭтотУзел.Количество = ЭтотУзел.Количество + 1;",
+            negation,
+        )
+        self.assertEqual(negation.count("ЭтотУзел.Выражение ="), 1)
+        self.assertEqual(negation.count("ЛевыйЭлемент"), 1)
+        self.assertNotIn("ТекущийЭлемент", negation)
 
     def test_expression_list_generates_collection_loop(self) -> None:
         parsed = parse_grammar(
@@ -1826,25 +1902,6 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertIn("НеТерминалПараметр()", pattern)
         self.assertNotIn("ТекущийЭлемент", pattern)
         self.assertNotIn("НомерВариантаПродукции", pattern)
-
-        negation = _generated_function(module, "Отрицание")
-        self.assertEqual(
-            negation.count(
-                "ЭлементыМоделиЗапроса.НовыйЛогическоеОтрицание("
-            ),
-            1,
-        )
-        self.assertEqual(negation.count("Пока "), 1)
-        self.assertIn(
-            "ЭтотУзел.Количество = ЭтотУзел.Количество + 1;",
-            negation,
-        )
-        self.assertNotIn("ТекущийЭлемент", negation)
-        self.assertNotIn("НомерВариантаПродукции", negation)
-        self.assertNotIn(
-            "Функция НеТерминалОтрицаниеПродолжение(",
-            module,
-        )
 
     def test_root_collection_lists_generate_loops_without_continuations(
         self,
