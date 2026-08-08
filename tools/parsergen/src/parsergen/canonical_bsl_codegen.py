@@ -14,7 +14,12 @@ from .bsl_rendering import (
 )
 from .canonical_bsl_decisions import CanonicalDecisionRenderer
 from .canonical_select import AlternativeOutcome
-from .decision_dag import CommitAlternative, ExitDecision, ImmediateError
+from .decision_dag import (
+    CommitAlternative,
+    DecisionPathFact,
+    ExitDecision,
+    ImmediateError,
+)
 from .model import (
     Constant,
     IdentifierRef,
@@ -31,6 +36,7 @@ from .parser_ir import (
     ConcatScalar,
     BoundValue,
     BranchIr,
+    ConsumeKnownSymbol,
     ConstructNode,
     Dispatch,
     DispatchValue,
@@ -46,6 +52,7 @@ from .parser_ir import (
     ParserIr,
     ProductionIr,
     RepeatLoop,
+    ResolvedRegion,
     ReturnConstant,
     WrapOptional,
     WrapValue,
@@ -384,7 +391,7 @@ class _CanonicalBslGenerator:
                 for alternative in production.alternatives
             }
 
-            def render_leaf(leaf, indent: str) -> list[str]:
+            def render_leaf(leaf, path_facts, indent: str) -> list[str]:
                 if isinstance(leaf, ImmediateError):
                     return [
                         self._syntax_error_line(
@@ -494,6 +501,31 @@ class _CanonicalBslGenerator:
                 ],
                 temporary,
             )
+        if isinstance(operation, ConsumeKnownSymbol):
+            temporary = (
+                self._new_temporary() if operation.capture_value else None
+            )
+            lines = []
+            if temporary is not None:
+                lines.append(
+                    f"{indent}{temporary} = "
+                    f"{self._known_current_value(operation.symbol)};"
+                )
+            lines.append(f"{indent}УстановитьТекущийТокен();")
+            return lines, temporary
+        if isinstance(operation, ResolvedRegion):
+            lines, values = self._render_operations(
+                operation.operations,
+                indent,
+                error_label,
+                required_result_index=operation.result_index,
+            )
+            return (
+                lines,
+                None
+                if operation.result_index is None
+                else values[operation.result_index],
+            )
         if isinstance(operation, ConstructNode):
             validate_bsl_identifier(operation.constructor, "constructor")
             self._record_constructor(operation.constructor)
@@ -552,14 +584,27 @@ class _CanonicalBslGenerator:
             )
             return lines, None
         if isinstance(operation, IncrementScalar):
-            if not isinstance(operation.value, ParseSymbol):
+            if not isinstance(
+                operation.value,
+                (ParseSymbol, ConsumeKnownSymbol),
+            ):
                 raise ValueError(
                     "increment binding requires a direct parse symbol"
                 )
             validate_bsl_member_name(operation.property, "bound property")
+            if isinstance(operation.value, ParseSymbol):
+                lines = [
+                    f"{indent}{self._symbol_call(operation.value.symbol)};"
+                ]
+            else:
+                lines, _ = self._render_bound_value(
+                    operation.value,
+                    indent,
+                    error_label,
+                )
             return (
                 [
-                    f"{indent}{self._symbol_call(operation.value.symbol)};",
+                    *lines,
                     f"{indent}ЭтотУзел.{operation.property} = "
                     f"ЭтотУзел.{operation.property} + 1;",
                 ],
@@ -626,6 +671,15 @@ class _CanonicalBslGenerator:
         )
         return f"НеТерминал{symbol.name}({', '.join(arguments)})"
 
+    def _known_current_value(self, symbol: SyntaxSymbol) -> str:
+        if isinstance(symbol, (Terminal, Lexeme)):
+            return "ТекущийТокен.Тип"
+        if isinstance(symbol, Constant):
+            return "ТекущийТокен.Значение"
+        if isinstance(symbol, IdentifierRef):
+            return "ТекущийТокен.Лексема"
+        raise TypeError(type(symbol))
+
     def _render_binding(
         self,
         property_name: str | None,
@@ -664,7 +718,7 @@ class _CanonicalBslGenerator:
         indent: str,
         error_label: str,
     ) -> tuple[list[str], str]:
-        if isinstance(value, ParseSymbol):
+        if isinstance(value, (ParseSymbol, ConsumeKnownSymbol)):
             lines, result = self._render_operation(
                 value,
                 indent,
@@ -710,7 +764,7 @@ class _CanonicalBslGenerator:
             branch.outcome: branch for branch in dispatch.branches
         }
 
-        def render_leaf(leaf, leaf_indent: str) -> list[str]:
+        def render_leaf(leaf, path_facts, leaf_indent: str) -> list[str]:
             if isinstance(leaf, ImmediateError):
                 return [
                     self._syntax_error_line(
@@ -760,7 +814,7 @@ class _CanonicalBslGenerator:
             branch.outcome: branch for branch in fold.recursive_branches
         }
 
-        def render_leaf(leaf, leaf_indent: str) -> list[str]:
+        def render_leaf(leaf, path_facts, leaf_indent: str) -> list[str]:
             if isinstance(leaf, ImmediateError):
                 return [
                     self._syntax_error_line(
@@ -821,7 +875,7 @@ class _CanonicalBslGenerator:
             branch.outcome: branch for branch in fold.base_branches
         }
 
-        def render_leaf(leaf, leaf_indent: str) -> list[str]:
+        def render_leaf(leaf, path_facts, leaf_indent: str) -> list[str]:
             if isinstance(leaf, ImmediateError):
                 return [
                     self._syntax_error_line(
@@ -924,7 +978,7 @@ class _CanonicalBslGenerator:
             branch.outcome: branch for branch in dispatch.branches
         }
 
-        def render_leaf(leaf, leaf_indent: str) -> list[str]:
+        def render_leaf(leaf, path_facts, leaf_indent: str) -> list[str]:
             if isinstance(leaf, ImmediateError):
                 return [
                     self._syntax_error_line(
@@ -974,7 +1028,7 @@ class _CanonicalBslGenerator:
             branch.outcome: branch for branch in optional.branches
         }
 
-        def render_leaf(leaf, leaf_indent: str) -> list[str]:
+        def render_leaf(leaf, path_facts, leaf_indent: str) -> list[str]:
             if isinstance(leaf, ImmediateError):
                 return [
                     self._syntax_error_line(
@@ -1051,7 +1105,7 @@ class _CanonicalBslGenerator:
             branch.outcome: branch for branch in optional.branches
         }
 
-        def render_leaf(leaf, leaf_indent: str) -> list[str]:
+        def render_leaf(leaf, path_facts, leaf_indent: str) -> list[str]:
             if isinstance(leaf, ImmediateError):
                 return [
                     self._syntax_error_line(
@@ -1114,18 +1168,22 @@ class _CanonicalBslGenerator:
         if seed_value is None:
             raise ValueError("returned-child decorator seed has no value")
         accumulator = self._new_temporary()
-        selected = self._new_temporary()
+        present = self._new_temporary()
         branch_result = self._new_temporary()
         lines = [*seed_lines, f"{indent}{accumulator} = {seed_value};"]
-        branches_by_outcome = {
-            branch.outcome: branch for branch in optional.branches
-        }
-        outcome_codes = {
-            branch.outcome: position
-            for position, branch in enumerate(optional.branches, start=1)
-        }
+        branches_by_key: dict[
+            tuple[AlternativeOutcome, tuple[DecisionPathFact, ...] | None],
+            BranchIr,
+        ] = {}
+        for branch in optional.branches:
+            key = (branch.outcome, branch.path_facts)
+            if key in branches_by_key:
+                raise ValueError(
+                    "duplicate specialized wrapped optional mapping"
+                )
+            branches_by_key[key] = branch
 
-        def render_leaf(leaf, leaf_indent: str) -> list[str]:
+        def render_leaf(leaf, path_facts, leaf_indent: str) -> list[str]:
             if isinstance(leaf, ImmediateError):
                 return [
                     self._syntax_error_line(
@@ -1135,14 +1193,29 @@ class _CanonicalBslGenerator:
                     )
                 ]
             if isinstance(leaf, ExitDecision):
-                return [f"{leaf_indent}{selected} = 0;"]
+                return [f"{leaf_indent}{present} = Ложь;"]
             assert isinstance(leaf, CommitAlternative)
-            code = outcome_codes.get(leaf.outcome)
-            if code is None:
+            branch = branches_by_key.get((leaf.outcome, path_facts))
+            if branch is None:
+                branch = branches_by_key.get((leaf.outcome, None))
+            if branch is None:
                 raise ValueError(
                     "specialized wrapped optional references unknown outcome"
                 )
-            return [f"{leaf_indent}{selected} = {code};"]
+            branch_lines, values = self._render_operations(
+                branch.operations,
+                leaf_indent,
+                error_label,
+                required_result_index=branch.result_index,
+            )
+            value = self._specialized_branch_result(branch, values)
+            branch_lines.extend(
+                (
+                    f"{leaf_indent}{branch_result} = {value};",
+                    f"{leaf_indent}{present} = Истина;",
+                )
+            )
+            return branch_lines
 
         lines.extend(
             self._decisions.render(
@@ -1152,22 +1225,8 @@ class _CanonicalBslGenerator:
                 render_leaf=render_leaf,
             )
         )
-        for position, branch in enumerate(optional.branches, start=1):
-            keyword = "Если" if position == 1 else "ИначеЕсли"
-            lines.append(f"{indent}{keyword} {selected} = {position} Тогда")
-            branch_lines, values = self._render_operations(
-                branch.operations,
-                indent + "\t",
-                error_label,
-                required_result_index=branch.result_index,
-            )
-            lines.extend(branch_lines)
-            value = self._specialized_branch_result(branch, values)
-            lines.append(f"{indent}\t{branch_result} = {value};")
-        lines.append(f"{indent}КонецЕсли;")
-
         validate_bsl_member_name(optional.property, "wrapped property")
-        lines.append(f"{indent}Если {selected} <> 0 Тогда")
+        lines.append(f"{indent}Если {present} Тогда")
         binding = (
             f"{branch_result}.{optional.property}.Вставить(0, {accumulator});"
             if optional.prepend
@@ -1242,7 +1301,7 @@ class _CanonicalBslGenerator:
             branch.outcome: branch for branch in repeat.branches
         }
 
-        def render_leaf(leaf, leaf_indent: str) -> list[str]:
+        def render_leaf(leaf, path_facts, leaf_indent: str) -> list[str]:
             if isinstance(leaf, ImmediateError):
                 return [
                     self._syntax_error_line(

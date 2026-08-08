@@ -1045,7 +1045,9 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertNotIn("Родитель", negation)
         self.assertNotIn("ТекущийЭлемент", negation)
 
-    def test_postfix_predicates_generate_max_one_canonical_wrappers(self) -> None:
+    def test_logical_postfix_predicates_generate_path_specialized_wrappers(
+        self,
+    ) -> None:
         parsed = parse_grammar(
             REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
             str(REPOSITORY_GRAMMAR),
@@ -1107,21 +1109,55 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
                 self.assertNotIn("НомерВариантаПродукции", function)
 
         logical = _generated_function(module, "ЛогическийМножитель")
-        for constructor in (
-            "НовыйОператорМежду",
-            "НовыйОператорПроверкиТипа",
-            "НовыйОператорПроверкиНаNULL",
-            "НовыйОператорВ",
+        self.assertNotIn("НеТерминалЛогическийОператор()", logical)
+        self.assertEqual(logical.count("ТипТокенаПросмотра(1)"), 2)
+        second_lookaheads = [
+            match.start()
+            for match in re.finditer("ТипТокенаПросмотра\\(1\\)", logical)
+        ]
+        self.assertLess(
+            logical.index('ТокенРешения0 = "НЕ"'),
+            second_lookaheads[0],
+        )
+        self.assertLess(
+            logical.index('ТокенРешения0 = "ССЫЛКА"'),
+            second_lookaheads[1],
+        )
+        self.assertNotIn('Терминал("МЕЖДУ")', logical)
+        self.assertNotIn('Терминал("В")', logical)
+        for constructor, expected_count in (
+            ("НовыйОператорМежду", 2),
+            ("НовыйОператорПроверкиТипа", 1),
+            ("НовыйОператорПроверкиНаNULL", 1),
+            ("НовыйОператорВ", 2),
         ):
-            self.assertEqual(logical.count(f".{constructor}("), 1)
+            self.assertEqual(
+                logical.count(f".{constructor}("),
+                expected_count,
+            )
         self.assertNotIn("ЛевыйЭлемент", logical.split(")", 1)[1])
         self.assertNotIn("ТекущийЭлемент", logical)
         self.assertNotIn("НомерВариантаПродукции", logical)
+        self.assertEqual(logical.count(".Операнд = "), 1)
+        self.assertGreater(
+            logical.index(".Операнд = "),
+            max(
+                logical.rfind("ЭтотУзел.Инверсия = Истина;"),
+                logical.rfind("НеТерминалОперандВ()"),
+            ),
+        )
+        is_null = logical.split(".НовыйОператорПроверкиНаNULL(", 1)[1].split(
+            ".НовыйОператорВ(",
+            1,
+        )[0]
+        self.assertIn("ТипТокенаПросмотра(0)", is_null)
+        self.assertIn('ТокенРешения0 = "НЕ"', is_null)
+        self.assertIn('Терминал("NULL")', is_null)
 
         like = _generated_function(module, "ОперандСравнения")
-        self.assertEqual(like.count(".НовыйОператорПодобно("), 1)
+        self.assertEqual(like.count(".НовыйОператорПодобно("), 2)
         self.assertEqual(like.count("ЭтотУзел.Инверсия = Истина;"), 1)
-        self.assertEqual(like.count("ЭтотУзел.Шаблон ="), 1)
+        self.assertEqual(like.count("ЭтотУзел.Шаблон ="), 2)
         self.assertNotIn("ЛевыйЭлемент", like.split(")", 1)[1])
         self.assertNotIn("ТекущийЭлемент", like)
         self.assertNotIn("НомерВариантаПродукции", like)

@@ -1,6 +1,7 @@
 import unittest
 
 from parsergen.canonical_bsl_decisions import CanonicalDecisionRenderer
+from parsergen.decision_dag import CommitAlternative
 from tests.test_parser_ir import _build as _build_ir
 
 
@@ -15,7 +16,7 @@ def _render(grammar: str, k: int = 1) -> list[str]:
         production.decision,
         indent="",
         token_prefix="ТокенРешения",
-        render_leaf=lambda leaf, indent: [
+        render_leaf=lambda leaf, facts, indent: [
             f"{indent}// {type(leaf).__name__}"
         ],
     )
@@ -64,7 +65,7 @@ class CanonicalBslDecisionTests(unittest.TestCase):
                 production.decision,
                 indent="",
                 token_prefix="ТокенРешения",
-                render_leaf=lambda leaf, indent: [f"{indent}// leaf"],
+                render_leaf=lambda leaf, facts, indent: [f"{indent}// leaf"],
             )
         )
 
@@ -77,6 +78,43 @@ class CanonicalBslDecisionTests(unittest.TestCase):
             if "ТокенПринадлежитКлассу" in line
         )
         self.assertNotIn("ТипТокенаПросмотра", helper_call)
+
+    def test_renderer_passes_exact_facts_for_direct_and_two_token_paths(
+        self,
+    ) -> None:
+        parser_ir = _build_ir("<S> ::= A X | A Y | B Z", 2)
+        production = next(
+            item for item in parser_ir.productions if item.name == "S"
+        )
+        assert production.decision is not None
+        observed: dict[
+            int,
+            tuple[tuple[int, tuple[str, ...]], ...],
+        ] = {}
+
+        def render_leaf(leaf, facts, indent: str) -> list[str]:
+            if isinstance(leaf, CommitAlternative):
+                observed[leaf.outcome.alternative] = tuple(
+                    (fact.offset, fact.predicate.token_types)
+                    for fact in facts
+                )
+            return [f"{indent}// leaf"]
+
+        CanonicalDecisionRenderer(parser_ir.matcher_definitions).render(
+            production.decision,
+            indent="",
+            token_prefix="ТокенРешения",
+            render_leaf=render_leaf,
+        )
+
+        self.assertEqual(
+            observed,
+            {
+                1: ((0, ("A",)), (1, ("X",))),
+                2: ((0, ("A",)), (1, ("Y",))),
+                3: ((0, ("B",)),),
+            },
+        )
 
 
 if __name__ == "__main__":

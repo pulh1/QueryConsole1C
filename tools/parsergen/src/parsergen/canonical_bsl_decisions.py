@@ -6,9 +6,11 @@ from collections.abc import Callable, Mapping
 from .analysis import MatcherDefinition
 from .bsl_rendering import bsl_string
 from .decision_dag import (
+    DecisionPathFact,
     DecisionLeaf,
     ImmediateError,
     LookaheadDecision,
+    grouped_decision_edges,
 )
 from .parser_ir import CanonicalDecision
 
@@ -82,7 +84,10 @@ class CanonicalDecisionRenderer:
         *,
         indent: str,
         token_prefix: str,
-        render_leaf: Callable[[DecisionLeaf, str], list[str]],
+        render_leaf: Callable[
+            [DecisionLeaf, tuple[DecisionPathFact, ...], str],
+            list[str],
+        ],
     ) -> list[str]:
         if decision.source.production != decision.dag.production:
             raise ValueError("decision source and DAG productions differ")
@@ -96,6 +101,7 @@ class CanonicalDecisionRenderer:
             indent,
             token_prefix,
             render_leaf,
+            (),
         )
 
     def _render_node(
@@ -104,27 +110,23 @@ class CanonicalDecisionRenderer:
         node_index: int,
         indent: str,
         token_prefix: str,
-        render_leaf: Callable[[DecisionLeaf, str], list[str]],
+        render_leaf: Callable[
+            [DecisionLeaf, tuple[DecisionPathFact, ...], str],
+            list[str],
+        ],
+        path_facts: tuple[DecisionPathFact, ...],
     ) -> list[str]:
         node = decision.dag.nodes[node_index]
         if not isinstance(node, LookaheadDecision):
-            return render_leaf(node, indent)
+            return render_leaf(node, path_facts, indent)
 
         variable = f"{token_prefix}{node.offset}"
         lines = [
             f"{indent}{variable} = {_LOOKAHEAD_FUNCTION}({node.offset});"
         ]
-        token_types_by_target: dict[int, set[str]] = defaultdict(set)
-        target_order: list[int] = []
-        for edge in node.edges:
-            if edge.target not in token_types_by_target:
-                target_order.append(edge.target)
-            token_types_by_target[edge.target].update(
-                edge.predicate.token_types
-            )
-        for position, target in enumerate(target_order):
+        for position, edge in enumerate(grouped_decision_edges(node)):
             keyword = "Если" if position == 0 else "ИначеЕсли"
-            token_types = tuple(sorted(token_types_by_target[target]))
+            token_types = edge.predicate.token_types
             label = self._named_predicates.get(token_types)
             predicate = (
                 f"ТокенПринадлежитКлассу({variable}, {bsl_string(label)})"
@@ -135,13 +137,23 @@ class CanonicalDecisionRenderer:
             lines.extend(
                 self._render_node(
                     decision,
-                    target,
+                    edge.target,
                     indent + "\t",
                     token_prefix,
                     render_leaf,
+                    (
+                        *path_facts,
+                        DecisionPathFact(node.offset, edge.predicate),
+                    ),
                 )
             )
         lines.append(f"{indent}Иначе")
-        lines.extend(render_leaf(ImmediateError(node.expected), indent + "\t"))
+        lines.extend(
+            render_leaf(
+                ImmediateError(node.expected),
+                path_facts,
+                indent + "\t",
+            )
+        )
         lines.append(f"{indent}КонецЕсли;")
         return lines

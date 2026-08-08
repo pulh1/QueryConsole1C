@@ -116,6 +116,7 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "structural",
                 "canonical",
                 "decision_dag",
+                "decision_path",
                 "legacy",
                 "generated",
                 "artifacts",
@@ -213,6 +214,14 @@ class MigrationAuditUnitTests(unittest.TestCase):
         self.assertGreater(report["decision_dag"]["decision_regions"], 0)
         self.assertGreater(report["decision_dag"]["emitted_predicates"], 0)
         self.assertEqual(
+            report["decision_path"],
+            {
+                "specialized_paths": 6,
+                "known_symbol_consumes": 11,
+                "redundant_validations": 0,
+            },
+        )
+        self.assertEqual(
             report["canonical"]["stats"]["public_select_expansions"],
             0,
         )
@@ -221,7 +230,18 @@ class MigrationAuditUnitTests(unittest.TestCase):
             0,
         )
         self.assertEqual(report["legacy"]["runtime_conflicts"], [])
-        self.assertEqual(report["artifacts"]["changed"], [])
+        self.assertEqual(
+            report["artifacts"]["changed"],
+            [
+                str(
+                    Path("QueryConsoleZUP")
+                    / "src"
+                    / "DataProcessors"
+                    / "Парсер"
+                    / "ObjectModule.bsl"
+                )
+            ],
+        )
 
 
 class MigrationAuditProductionTests(unittest.TestCase):
@@ -283,30 +303,51 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["decision_dag"],
             {
-                "source_states": 33_718,
-                "dag_states": 415,
+                "source_states": 33_659,
+                "dag_states": 406,
                 "shared_states": 89,
                 "max_depth": 2,
-                "decision_regions": 112,
-                "emitted_predicates": 316,
+                "decision_regions": 109,
+                "emitted_predicates": 310,
             },
         )
-        self.assertEqual(self.report["artifacts"]["changed"], [])
+        self.assertEqual(
+            self.report["artifacts"]["changed"],
+            [
+                str(
+                    Path("QueryConsoleZUP")
+                    / "src"
+                    / "DataProcessors"
+                    / "Парсер"
+                    / "ObjectModule.bsl"
+                )
+            ],
+        )
+
+    def test_decision_path_baseline_is_explicit(self) -> None:
+        self.assertEqual(
+            self.report["decision_path"],
+            {
+                "specialized_paths": 6,
+                "known_symbol_consumes": 11,
+                "redundant_validations": 0,
+            },
+        )
 
     def test_generated_shape_baseline_is_explicit(self) -> None:
         self.assertEqual(
             self.report["generated"],
             {
                 "bsl_functions": 74,
-                "bsl_loc": 2460,
+                "bsl_loc": 2463,
                 "constructor_names": 79,
                 "select_rows": 0,
                 "identifier_rows": 276,
-                "lookahead_calls": 132,
-                "decision_lines": 375,
-                "predicate_atoms": 3_783,
+                "lookahead_calls": 130,
+                "decision_lines": 366,
+                "predicate_atoms": 3_779,
                 "nonterminal_functions": 63,
-                "nonterminal_call_sites": 176,
+                "nonterminal_call_sites": 180,
                 "max_condition_chars": 2_551,
                 "max_condition_predicate_atoms": 88,
                 "max_condition_lookahead_calls": 1,
