@@ -18,6 +18,9 @@ MIGRATED_PRODUCTIONS = (
     "ПакетЗапросов",
     "ЗапросПакета",
     "ЗапросУничтожения",
+    "ПолеВыборки",
+    "ВыражениеВсеПоляВыборки",
+    "ВыражениеВсеПоля",
     "Псевдоним",
     "ТипСоединения",
     "ИсточникДанных",
@@ -691,8 +694,8 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 98)
-        self.assertEqual(len(parsed.grammar.productions), 135)
+        self.assertEqual(len(parsed.source_grammar.productions), 100)
+        self.assertEqual(len(parsed.grammar.productions), 138)
 
         resolution = resolve_grammar(parsed.grammar)
         self.assertEqual(resolution.diagnostics, ())
@@ -1724,6 +1727,79 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertIn("НеТерминалПараметр()", pattern)
         self.assertNotIn("ТекущийЭлемент", pattern)
         self.assertNotIn("НомерВариантаПродукции", pattern)
+
+    def test_select_field_package_generates_semantic_wrappers_and_bindings(
+        self,
+    ) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        canonical = MIGRATED_PRODUCTIONS
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=canonical,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=canonical,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        module = generated.module_text
+        select_field = _generated_function(module, "ПолеВыборки")
+        self.assertEqual(
+            select_field.count(
+                "ЭлементыМоделиЗапроса.НовыйПолеЗапроса("
+            ),
+            2,
+        )
+        self.assertIn("ЭтотУзел.Выражение =", select_field)
+        self.assertIn("ЭтотУзел.Псевдоним =", select_field)
+        self.assertNotIn("НеТерминалПсевдонимОпционально", select_field)
+        self.assertNotIn("ТекущийЭлемент", select_field)
+        self.assertNotIn("НомерВариантаПродукции", select_field)
+
+        all_fields_model = _generated_function(
+            module,
+            "ВыражениеВсеПоляВыборки",
+        )
+        self.assertEqual(
+            all_fields_model.count(
+                "ЭлементыМоделиЗапроса.НовыйВыражениеМоделиЗапроса("
+            ),
+            1,
+        )
+        self.assertIn("ЭтотУзел.Значение =", all_fields_model)
+        self.assertNotIn("ТекущийЭлемент", all_fields_model)
+
+        all_fields = _generated_function(module, "ВыражениеВсеПоля")
+        self.assertEqual(
+            all_fields.count(
+                "ЭлементыМоделиЗапроса.НовыйВыражениеВсеПоля("
+            ),
+            1,
+        )
+        self.assertIn('Лексема("*");', all_fields)
+        self.assertNotIn("ТекущийЭлемент", all_fields)
 
     def test_totals_control_point_package_generates_nested_optionals_and_bindings(
         self,
