@@ -100,6 +100,34 @@ class BindingValidationTests(unittest.TestCase):
 
         self.assertEqual(report.diagnostics, ())
 
+    def test_accepts_repeated_scalar_concat_with_constructor(self) -> None:
+        report = _validate(
+            "<S> ::= @НовыйУзел Путь ~= ID "
+            "(Путь ~= '.' Путь ~= ID)*"
+        )
+
+        self.assertEqual(report.diagnostics, ())
+
+    def test_rejects_mixed_scalar_and_concat_modes(self) -> None:
+        report = _validate(
+            "<S> ::= @НовыйУзел Путь = ID Путь ~= ID"
+        )
+
+        self.assertEqual(
+            [item.code for item in report.diagnostics],
+            ["BIND202"],
+        )
+
+    def test_rejects_concat_of_structural_nonterminal_value(self) -> None:
+        report = _validate(
+            "<S> ::= @НовыйУзел Текст ~= <A>\n<A> ::= a"
+        )
+
+        self.assertEqual(
+            [item.code for item in report.diagnostics],
+            ["BIND207"],
+        )
+
     def test_rejects_invalid_constant_value(self) -> None:
         report = _validate("<S> ::= @НовыйУзел Флаг := Да")
 

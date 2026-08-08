@@ -620,21 +620,31 @@ def _parse_source_sequence(
                 (
                     BindingMode.APPEND
                     if operator == "+="
-                    else BindingMode.SCALAR
+                    else (
+                        BindingMode.CONCAT
+                        if operator == "~="
+                        else BindingMode.SCALAR
+                    )
                 ),
                 symbol_start,
                 operator_span,
             )
             continue
 
-        if char in "=:":
+        if char in "=:~":
+            operator_length = 2 if body.startswith("~=", index) else 1
             _error(
                 bag,
                 "GP010",
                 "binding operator has no property",
-                _span(text, path, start_offset + index, start_offset + index + 1),
+                _span(
+                    text,
+                    path,
+                    start_offset + index,
+                    start_offset + index + operator_length,
+                ),
             )
-            index += 1
+            index += operator_length
             continue
         if char in "*+?":
             _error(
@@ -904,7 +914,7 @@ def _binding_prefix(
     operator_start = matched.end()
     while operator_start < len(text) and text[operator_start].isspace():
         operator_start += 1
-    for operator in ("+=", ":=", "="):
+    for operator in ("+=", "~=", ":=", "="):
         if text.startswith(operator, operator_start):
             return (
                 matched.group(0),

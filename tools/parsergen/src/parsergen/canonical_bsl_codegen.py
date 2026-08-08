@@ -25,6 +25,7 @@ from .parser_ir import (
     AppendCollection,
     AssignConstant,
     BindScalar,
+    ConcatScalar,
     BoundValue,
     BranchIr,
     ConstructNode,
@@ -439,6 +440,18 @@ class _CanonicalBslGenerator:
                 error_label,
                 append=True,
             )
+        if isinstance(operation, ConcatScalar):
+            lines, expression = self._render_bound_value(
+                operation.value,
+                indent,
+                error_label,
+            )
+            validate_bsl_member_name(operation.property, "bound property")
+            lines.append(
+                f"{indent}ЭтотУзел.{operation.property} = "
+                f"ЭтотУзел.{operation.property} + {expression};"
+            )
+            return lines, None
         if isinstance(operation, AssignConstant):
             validate_bsl_member_name(operation.property, "bound property")
             return (

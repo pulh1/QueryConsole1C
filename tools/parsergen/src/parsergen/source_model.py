@@ -16,6 +16,7 @@ class QuantifierKind(StrEnum):
 class BindingMode(StrEnum):
     SCALAR = "scalar"
     APPEND = "append"
+    CONCAT = "concat"
 
 
 @dataclass(frozen=True, slots=True)

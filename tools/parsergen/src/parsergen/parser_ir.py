@@ -166,6 +166,13 @@ class AppendCollection:
 
 
 @dataclass(frozen=True, slots=True)
+class ConcatScalar:
+    property: str
+    value: BoundValue
+    source_span: SourceSpan
+
+
+@dataclass(frozen=True, slots=True)
 class AssignConstant:
     property: str
     value: str
@@ -180,6 +187,7 @@ Operation = (
     | ConstructNode
     | BindScalar
     | AppendCollection
+    | ConcatScalar
     | AssignConstant
     | LeftFold
 )
@@ -561,11 +569,7 @@ class _ParserIrBuilder:
         return tuple(result)
 
     def _binding(self, binding: SourceBinding) -> tuple[Operation, ...]:
-        kind = (
-            BindingOriginKind.APPEND
-            if binding.mode is BindingMode.APPEND
-            else BindingOriginKind.SCALAR
-        )
+        kind = _binding_origin_kind(binding.mode)
         origin = self._binding_origin(binding.span, kind)
         if isinstance(binding.value, SourceOptional):
             optional = binding.value
@@ -733,18 +737,16 @@ class _ParserIrBuilder:
         self,
         binding: SourceBinding,
         value: BoundValue,
-    ) -> BindScalar | AppendCollection:
-        kind = (
-            BindingOriginKind.APPEND
-            if binding.mode is BindingMode.APPEND
-            else BindingOriginKind.SCALAR
-        )
+    ) -> BindScalar | AppendCollection | ConcatScalar:
+        kind = _binding_origin_kind(binding.mode)
         origin = self._binding_origin(binding.span, kind)
-        operation = (
-            AppendCollection
-            if binding.mode is BindingMode.APPEND
-            else BindScalar
-        )
+        if binding.mode is BindingMode.APPEND:
+            operation = AppendCollection
+        elif binding.mode is BindingMode.CONCAT:
+            assert binding.property is not None
+            operation = ConcatScalar
+        else:
+            operation = BindScalar
         return operation(binding.property, value, origin.source_span)
 
     def _group_branches(self, group: SourceGroup) -> tuple[BranchIr, ...]:
@@ -864,3 +866,11 @@ def _produces_transparent_value(operation: Operation) -> bool:
             for branch in operation.branches
         )
     return False
+
+
+def _binding_origin_kind(mode: BindingMode) -> BindingOriginKind:
+    if mode is BindingMode.APPEND:
+        return BindingOriginKind.APPEND
+    if mode is BindingMode.CONCAT:
+        return BindingOriginKind.CONCAT
+    return BindingOriginKind.SCALAR

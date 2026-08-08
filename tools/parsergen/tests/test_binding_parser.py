@@ -87,6 +87,30 @@ class BindingParserTests(unittest.TestCase):
         self.assertIs(repeated.mode, BindingMode.APPEND)
         self.assertIsNone(repeated.property)
 
+    def test_parses_scalar_concat_binding_inside_repeat(self) -> None:
+        result = parse_source_grammar(
+            "#ID_Name ::= ID\n"
+            "<S> ::= @НовыйУзел Путь ~= #ID_Name "
+            "(Путь ~= '.' Путь ~= #ID_Name)*"
+        )
+
+        self.assertEqual(result.diagnostics, ())
+        assert result.grammar is not None
+        items = result.grammar.productions[0].alternatives[0].body.items
+        first = items[1]
+        self.assertIsInstance(first, SourceBinding)
+        self.assertIs(first.mode, BindingMode.CONCAT)
+        self.assertEqual(first.property, "Путь")
+        repeat = items[2]
+        self.assertIsInstance(repeat, SourceRepeat)
+        assert isinstance(repeat, SourceRepeat)
+        assert isinstance(repeat.body, SourceGroup)
+        repeated = repeat.body.alternatives[0].body.items
+        self.assertEqual(
+            [item.mode for item in repeated],
+            [BindingMode.CONCAT, BindingMode.CONCAT],
+        )
+
     def test_binding_captures_terminal_identifier_and_constant_tokens(self) -> None:
         result = parse_source_grammar(
             "<S> ::= @НовыйУзел "
@@ -135,6 +159,7 @@ class BindingParserTests(unittest.TestCase):
             "<S> ::= @НовыйСписок +=",
             "<S> ::= Значение =",
             "<S> ::= Значение *= <A>",
+            "<S> ::= ~= <A>",
             "<S> ::= Значение :=",
         )
         for source in cases:

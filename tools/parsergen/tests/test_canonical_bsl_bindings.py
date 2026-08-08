@@ -82,6 +82,25 @@ class CanonicalBslBindingTests(unittest.TestCase):
         self.assertEqual(function.count("ЭтотУзел.Добавить("), 2)
         self.assertNotIn("ЭтотУзел..Добавить(", function)
 
+    def test_scalar_concat_accumulates_terminal_values_inside_loop(self) -> None:
+        function = _function(
+            _build(
+                "#ID_Name ::= ID\n"
+                "<S> ::= @НовыйУзел Путь ~= #ID_Name "
+                "(Путь ~= '.' Путь ~= #ID_Name)* END",
+                k=2,
+            ).module_text,
+            "НеТерминалS",
+        )
+
+        self.assertEqual(
+            function.count("ЭтотУзел.Путь = ЭтотУзел.Путь +"),
+            3,
+        )
+        loop = function.split("Пока ", 1)[1].split("КонецЦикла;", 1)[0]
+        self.assertIn('= Лексема(".");', loop)
+        self.assertIn('= Идентификатор("ID_Name");', loop)
+
     def test_captures_terminal_identifier_and_constant_values(self) -> None:
         function = _function(
             _build(

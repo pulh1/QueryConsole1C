@@ -27,6 +27,7 @@ MIGRATED_PRODUCTIONS = (
     "ПрисоединяемаяТаблица",
     "ИсточникДанныхТаблицаЗначений",
     "ИсточникДанныхВременнаяТаблица",
+    "ИсточникДанныхТаблица",
     "ИсточникДанныхВложенныйЗапрос",
     "СписокЭлементовУпорядочивания",
     "ЭлементУпорядочивания",
@@ -697,7 +698,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 96)
+        self.assertEqual(len(parsed.source_grammar.productions), 92)
         self.assertEqual(len(parsed.grammar.productions), 136)
         self.assertNotIn(
             "КакОпционально",
@@ -1630,6 +1631,14 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             "Функция НеТерминалВыражениеСКДПараметр(",
             module,
         )
+        for removed in (
+            "ПсевдонимОпционально",
+            "РазыменованиеТаблицы",
+            "ПродолжениеРазыменованияТаблицы",
+            "ПараметрыТаблицыОпционально",
+        ):
+            with self.subTest(removed=removed):
+                self.assertNotIn(f"Функция НеТерминал{removed}(", module)
         source_data = _generated_function(module, "ИсточникДанных")
         for child in (
             "ИсточникДанныхТаблицаЗначений",
@@ -1702,6 +1711,32 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertNotIn("НеТерминалПараметр", value_table)
         self.assertNotIn("ТекущийЭлемент", value_table)
         self.assertNotIn("НомерВариантаПродукции", value_table)
+
+        table = _generated_function(
+            module,
+            "ИсточникДанныхТаблица",
+        )
+        self.assertEqual(
+            table.count(
+                "ЭлементыМоделиЗапроса."
+                "НовыйИсточникДанныхТаблица("
+            ),
+            1,
+        )
+        self.assertEqual(table.count("Пока "), 1)
+        self.assertEqual(
+            table.count(
+                "ЭтотУзел.ИмяТаблицы = "
+                "ЭтотУзел.ИмяТаблицы +"
+            ),
+            5,
+        )
+        self.assertIn("НеТерминалСписокПараметров()", table)
+        self.assertIn("ЭтотУзел.Параметры =", table)
+        self.assertIn("НеТерминалПсевдоним()", table)
+        self.assertIn("ЭтотУзел.Псевдоним =", table)
+        self.assertNotIn("ТекущийЭлемент", table)
+        self.assertNotIn("НомерВариантаПродукции", table)
 
     def test_logical_leaf_package_generates_values_without_actions(
         self,

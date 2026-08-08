@@ -83,10 +83,11 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "ВыражениеВсеПоля",
                 "Псевдоним",
                 "ТипСоединения",
-            "ИсточникДанных",
-            "ПрисоединяемаяТаблица",
-            "ИсточникДанныхТаблицаЗначений",
-            "ИсточникДанныхВременнаяТаблица",
+                "ИсточникДанных",
+                "ПрисоединяемаяТаблица",
+                "ИсточникДанныхТаблицаЗначений",
+                "ИсточникДанныхВременнаяТаблица",
+                "ИсточникДанныхТаблица",
                 "ИсточникДанныхВложенныйЗапрос",
                 "СписокЭлементовУпорядочивания",
                 "ЭлементУпорядочивания",
@@ -139,19 +140,19 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["structural"],
             {
-                "source_productions": 96,
-                "source_alternatives": 222,
+                "source_productions": 92,
+                "source_alternatives": 215,
                 "productions": 136,
                 "alternatives": 298,
                 "epsilon_alternatives": 67,
                 "formal_parameters": 7,
                 "actual_arguments": 22,
-                "action_blocks": 120,
-                "statements": 135,
-                "constructor_statements": 20,
+                "action_blocks": 110,
+                "statements": 125,
+                "constructor_statements": 19,
                 "collection_statements": 12,
                 "constant_statements": 14,
-                "structural_statements": 86,
+                "structural_statements": 77,
                 "other_assignment_statements": 0,
                 "other_statements": 3,
             },
@@ -190,10 +191,10 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["generated"],
             {
-                "bsl_functions": 108,
-                "bsl_loc": 2561,
+                "bsl_functions": 104,
+                "bsl_loc": 2509,
                 "constructor_names": 78,
-                "select_rows": 2_890,
+                "select_rows": 2_583,
                 "identifier_rows": 276,
             },
         )
@@ -261,6 +262,7 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 '"ПрисоединяемаяТаблица", '
                     '"ИсточникДанныхТаблицаЗначений", '
                     '"ИсточникДанныхВременнаяТаблица", '
+                    '"ИсточникДанныхТаблица", '
                 '"ИсточникДанныхВложенныйЗапрос", '
                 '"СписокЭлементовУпорядочивания", '
                 '"ЭлементУпорядочивания", '

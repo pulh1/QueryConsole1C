@@ -7,6 +7,7 @@ from parsergen.parser_ir import (
     AssignConstant,
     BindScalar,
     ConstructNode,
+    ConcatScalar,
     Dispatch,
     DispatchValue,
     OptionalBranch,
@@ -117,6 +118,28 @@ class BindingParserIrTests(unittest.TestCase):
         append = loop.branches[0].operations[1]
         self.assertIsInstance(append, AppendCollection)
         self.assertIsNone(append.property)
+
+    def test_scalar_concat_is_explicit_inside_repeat(self) -> None:
+        parser_ir = _build(
+            "#ID_Name ::= ID\n"
+            "<S> ::= @НовыйУзел Путь ~= #ID_Name "
+            "(Путь ~= '.' Путь ~= #ID_Name)*"
+        )
+
+        operations = parser_ir.productions[0].alternatives[0].operations
+        self.assertEqual(
+            [type(item) for item in operations],
+            [ConstructNode, ConcatScalar, RepeatLoop],
+        )
+        first = operations[1]
+        self.assertEqual(first.property, "Путь")
+        self.assertIsInstance(first.value, ParseSymbol)
+        loop = operations[2]
+        assert isinstance(loop, RepeatLoop)
+        self.assertEqual(
+            [type(item) for item in loop.branches[0].operations],
+            [ConcatScalar, ConcatScalar],
+        )
 
     def test_terminal_identifier_and_constant_capture_are_parse_values(self) -> None:
         parser_ir = _build(

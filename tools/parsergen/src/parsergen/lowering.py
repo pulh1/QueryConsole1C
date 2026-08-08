@@ -38,6 +38,14 @@ from .source_validation import validate_source_grammar
 _SYNTHETIC_PREFIX = "__parsergen_ebnf__"
 
 
+def _binding_origin_kind(mode: BindingMode) -> BindingOriginKind:
+    if mode is BindingMode.APPEND:
+        return BindingOriginKind.APPEND
+    if mode is BindingMode.CONCAT:
+        return BindingOriginKind.CONCAT
+    return BindingOriginKind.SCALAR
+
+
 class LoweredConstructKind(StrEnum):
     GROUP = "group"
     STAR = "star"
@@ -49,6 +57,7 @@ class BindingOriginKind(StrEnum):
     CONSTRUCTOR = "constructor"
     SCALAR = "scalar"
     APPEND = "append"
+    CONCAT = "concat"
     CONSTANT = "constant"
 
 
@@ -322,11 +331,7 @@ class _Lowerer:
             if isinstance(item, SourceBinding):
                 self._bindings.append(
                     BindingOrigin(
-                        (
-                            BindingOriginKind.APPEND
-                            if item.mode is BindingMode.APPEND
-                            else BindingOriginKind.SCALAR
-                        ),
+                        _binding_origin_kind(item.mode),
                         item.property,
                         None,
                         item_path,

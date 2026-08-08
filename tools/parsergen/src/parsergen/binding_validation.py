@@ -3,7 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .diagnostics import Diagnostic, DiagnosticBag, Severity, SourceSpan
-from .model import Action, Constant, IdentifierRef, NonterminalCall
+from .model import (
+    Action,
+    Constant,
+    IdentifierRef,
+    Lexeme,
+    NonterminalCall,
+    Terminal,
+)
 from .source_model import (
     BindingMode,
     SourceBinding,
@@ -142,6 +149,19 @@ class _BindingValidator:
                     binding.span,
                     binding.property,
                 )
+            elif (
+                mode is BindingMode.CONCAT
+                and not isinstance(
+                    binding.value,
+                    (Constant, IdentifierRef, Lexeme, Terminal),
+                )
+            ):
+                self._add(
+                    "BIND207",
+                    "concat binding requires terminal or identifier value",
+                    binding.span,
+                    binding.property,
+                )
 
         for property_name, property_modes in modes.items():
             if len(property_modes) > 1:
@@ -152,7 +172,7 @@ class _BindingValidator:
                 )
                 self._add(
                     "BIND202",
-                    "property mixes scalar and collection binding modes",
+                    "property mixes binding modes",
                     conflict.span,
                     property_name,
                 )
