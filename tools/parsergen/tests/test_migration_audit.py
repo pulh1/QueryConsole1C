@@ -108,7 +108,6 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "КонтрольныеТочкиИтогов",
                 "КонтрольнаяТочкаИтогов",
                 "ТипКонтрольнойТочки",
-                "ТипПериодаИтогов",
                 "РасширениеСКД",
                 "Выражение",
                 "ЛогическоеСлагаемое",
@@ -118,7 +117,6 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "ОперандВ",
                 "ЛогическаяОперация",
                 "ЛогическаяОперацияБезОтрицания",
-                "ОператорСравнения",
                 "ОперандСравнения",
                 "ОператорПодобно",
                 "ШаблонПодобия",
@@ -160,8 +158,8 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["structural"],
             {
-                "source_productions": 67,
-                "source_alternatives": 156,
+                "source_productions": 65,
+                "source_alternatives": 141,
                 "productions": 150,
                 "alternatives": 322,
                 "epsilon_alternatives": 77,
@@ -211,8 +209,8 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["generated"],
             {
-                "bsl_functions": 78,
-                "bsl_loc": 2105,
+                "bsl_functions": 76,
+                "bsl_loc": 2108,
                 "constructor_names": 79,
                 "select_rows": 0,
                 "identifier_rows": 276,
@@ -294,7 +292,6 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 '"ПоляИтогов", '
                 '"КонтрольныеТочкиИтогов", '
                 '"КонтрольнаяТочкаИтогов", "ТипКонтрольнойТочки", '
-                '"ТипПериодаИтогов", '
                 '"РасширениеСКД", '
                 '"Выражение", '
                 '"ЛогическоеСлагаемое", '
@@ -303,7 +300,6 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 '"ОперандВ", '
                 '"ЛогическаяОперация", '
                 '"ЛогическаяОперацияБезОтрицания", '
-                '"ОператорСравнения", '
                 '"ОперандСравнения", "ОператорПодобно", '
                 '"ШаблонПодобия", '
                 '"АрифметическоеВыражение", "Слагаемое", '

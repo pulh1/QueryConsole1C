@@ -496,7 +496,10 @@ def _sequence_value_cardinality(
     semantic = [
         item
         for item in sequence.items
-        if isinstance(item, (NonterminalCall, IdentifierRef, Constant))
+        if isinstance(
+            item,
+            (NonterminalCall, IdentifierRef, Constant, Terminal, Lexeme),
+        )
     ]
     count = len(semantic)
     return BindingCardinality(count, count)

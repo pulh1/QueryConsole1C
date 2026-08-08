@@ -48,7 +48,6 @@ MIGRATED_PRODUCTIONS = (
     "КонтрольныеТочкиИтогов",
     "КонтрольнаяТочкаИтогов",
     "ТипКонтрольнойТочки",
-    "ТипПериодаИтогов",
     "РасширениеСКД",
     "Выражение",
     "ЛогическоеСлагаемое",
@@ -58,7 +57,6 @@ MIGRATED_PRODUCTIONS = (
     "ОперандВ",
     "ЛогическаяОперация",
     "ЛогическаяОперацияБезОтрицания",
-    "ОператорСравнения",
     "ОперандСравнения",
     "ОператорПодобно",
     "ШаблонПодобия",
@@ -722,7 +720,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 67)
+        self.assertEqual(len(parsed.source_grammar.productions), 65)
         self.assertEqual(len(parsed.grammar.productions), 150)
         self.assertNotIn(
             "КакОпционально",
@@ -1979,10 +1977,15 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertNotIn("ТекущийЭлемент", in_operand)
         self.assertNotIn("НомерВариантаПродукции", in_operand)
 
-        comparison = _generated_function(module, "ОператорСравнения")
+        comparison = _generated_function(
+            module,
+            "ЛогическаяОперацияБезОтрицания",
+        )
+        self.assertNotIn("НеТерминалОператорСравнения()", comparison)
+        self.assertIn("ЭтотУзел.Операция =", comparison)
         for operator in ("=", "<>", ">", "<", ">=", "<="):
             with self.subTest(operator=operator):
-                self.assertIn(f'Лексема("{operator}")', comparison)
+                self.assertIn(f'= Лексема("{operator}")', comparison)
         self.assertNotIn("ТекущийЭлемент", comparison)
         self.assertNotIn("НомерВариантаПродукции", comparison)
 
@@ -2629,7 +2632,10 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertNotIn("НомерВариантаПродукции", control_point)
         self.assertNotIn("НеТерминалПсевдоним()", control_point)
 
-        period_type = _generated_function(module, "ТипПериодаИтогов")
+        self.assertNotIn(
+            "Функция НеТерминалТипПериодаИтогов(",
+            module,
+        )
         for period in (
             "СЕКУНДА",
             "МИНУТА",
@@ -2642,9 +2648,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             "ПОЛУГОДИЕ",
         ):
             with self.subTest(period=period):
-                self.assertIn(f'Терминал("{period}")', period_type)
-        self.assertNotIn("ТекущийЭлемент", period_type)
-        self.assertNotIn("НомерВариантаПродукции", period_type)
+                self.assertIn(f'= Терминал("{period}")', control_point)
 
 
 if __name__ == "__main__":

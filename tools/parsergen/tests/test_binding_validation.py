@@ -12,6 +12,13 @@ def _validate(source: str):
 
 
 class BindingValidationTests(unittest.TestCase):
+    def test_accepts_scalar_choice_of_terminal_values(self) -> None:
+        report = _validate(
+            "<S> ::= @НовыйУзел Операция = ('=' | '<>' | '>=')"
+        )
+
+        self.assertEqual(report.diagnostics, ())
+
     def test_accepts_optional_returned_child_decorator_without_constructor(
         self,
     ) -> None:
