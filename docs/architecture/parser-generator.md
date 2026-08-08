@@ -548,6 +548,12 @@ types. Шесть structural propagation actions удалены без изме�
 legacy `Поле` пока вызывается через hybrid ABI. Exact delta:
 [operand checkpoint](../superpowers/matrices/2026-08-07-operand-transparent-checkpoint.md).
 
+`Множитель` после этого стал transparent canonical choice между обычным
+`Операнд` и `УнарнаяОперация`. Две structural propagation actions удалены,
+а multiplicative expression path больше не использует legacy dispatch на этом
+уровне. Exact delta:
+[factor checkpoint](../superpowers/matrices/2026-08-08-factor-transparent-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:
