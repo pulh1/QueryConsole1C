@@ -325,6 +325,50 @@ class LegacyRuntimeBaselineTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 3, completed.stderr)
         self.assertIn("top-level field set", completed.stderr)
 
+    def test_capture_commands_return_two_for_materialization_error(self) -> None:
+        commands = (
+            (
+                "validate-sidecars",
+                [
+                    "validate-sidecars",
+                    "--repo",
+                    ".",
+                    "--lexer",
+                    "lexer.json",
+                    "--parser",
+                    "parser.json",
+                ],
+            ),
+            (
+                "publish",
+                [
+                    "publish",
+                    "--repo",
+                    ".",
+                    "--lexer",
+                    "lexer.json",
+                    "--parser",
+                    "parser.json",
+                    "--output-dir",
+                    "output",
+                ],
+            ),
+        )
+        for command, arguments in commands:
+            with self.subTest(command=command):
+                stderr = io.StringIO()
+                with (
+                    patch.object(
+                        baseline,
+                        "verify_materialized_sources",
+                        side_effect=ValueError("materialized parser SHA-256 mismatch"),
+                    ),
+                    patch.object(baseline.sys, "stderr", stderr),
+                ):
+                    exit_code = baseline.main(arguments)
+                self.assertEqual(exit_code, 2)
+                self.assertIn("materialized parser SHA-256 mismatch", stderr.getvalue())
+
     def test_json_output_supports_a_text_only_stdout(self) -> None:
         output = io.StringIO()
         with patch.object(baseline.sys, "stdout", output):

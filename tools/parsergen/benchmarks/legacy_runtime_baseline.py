@@ -209,6 +209,10 @@ EXPECTED_SIDECARS = {
 }
 
 
+class ProvenanceMaterializationError(Exception):
+    """Distinguishes source/ref mismatches from sidecar evidence failures."""
+
+
 def git_bytes(repo: Path, *args: str) -> bytes:
     return subprocess.run(
         ["git", "-C", str(repo), *args],
@@ -489,7 +493,10 @@ def _load_sidecar(path: Path) -> dict[str, Any]:
 
 
 def validate_capture_sidecars(repo: Path, lexer_path: Path, parser_path: Path) -> tuple[dict[str, Any], dict[str, Any]]:
-    verify_materialized_sources(repo)
+    try:
+        verify_materialized_sources(repo)
+    except (OSError, subprocess.SubprocessError, UnicodeError, ValueError) as error:
+        raise ProvenanceMaterializationError(str(error)) from error
     lexer = _load_sidecar(lexer_path)
     parser = _load_sidecar(parser_path)
     validate_sidecar(lexer, "lexer")
@@ -641,6 +648,9 @@ def main(argv: list[str] | None = None) -> int:
         else:
             validate_durable(arguments.lexer, arguments.parser, arguments.report)
             _write_json({"status": "valid"})
+    except ProvenanceMaterializationError as error:
+        print(f"{type(error).__name__}: {error}", file=sys.stderr)
+        return 2
     except (OSError, subprocess.SubprocessError, UnicodeError, ValueError, json.JSONDecodeError) as error:
         print(f"{type(error).__name__}: {error}", file=sys.stderr)
         return 3 if arguments.command in {"validate-sidecars", "publish", "validate-durable"} else 2
