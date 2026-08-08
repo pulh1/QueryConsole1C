@@ -31,7 +31,7 @@
 
 ## File Structure
 
-- Create: `tools/parsergen/benchmarks/legacy_runtime_baseline.py` — единственный CLI для ref verification, извлечения historical blobs, source verification, sidecar schema validation и evidence publication.
+- Create: `tools/parsergen/benchmarks/legacy_runtime_baseline.py` — единственный CLI для ref verification, извлечения historical blobs, source verification, capture-time sidecar validation, post-cleanup durable validation и evidence publication.
 - Create: `tools/parsergen/tests/test_legacy_runtime_baseline.py` — unit/contract tests CLI, hashes, schema, Markdown и статического BSL harness contract.
 - Create through EDT-MCP: `yaxunit/src/DataProcessors/КОНС_СтарыйЛексическийАнализатор/КОНС_СтарыйЛексическийАнализатор.mdo` — test-only metadata с новым EDT UUID.
 - Create from verified Git blob: `yaxunit/src/DataProcessors/КОНС_СтарыйЛексическийАнализатор/ObjectModule.bsl` — historical lexer source без правок.
@@ -61,7 +61,8 @@
 
 **Interfaces:**
 - Consumes: repository root, local `refs/remotes/origin/old_parser`, remote `refs/heads/old_parser`, exact Git blobs and completed YAxUnit sidecars.
-- Produces commands `verify-ref`, `materialize`, `verify-source`, `current-hashes`, `validate-sidecars`, and `publish`.
+- Produces commands `verify-ref`, `materialize`, `verify-source`, `current-hashes`, `validate-sidecars`, `publish`, and `validate-durable`.
+- Produces pure/effect-separated functions `verify_materialized_sources(repo)`, `validate_sidecar(document, component)`, `render_markdown(lexer_document, parser_document, lexer_json_sha256, parser_json_sha256)`, and `validate_durable(lexer_path, parser_path, report_path)`.
 - Produces normalized source SHA-256 values and raw template SHA-256 values shown below.
 - Exit codes: `0` success, `2` provenance/materialization mismatch, `3` sidecar/evidence validation failure.
 
@@ -76,24 +77,64 @@ Approved manifest:
 
 - [ ] **Step 1: Write failing manifest, normalization, replacement and sidecar tests**
 
-Use the repository's existing `spec_from_file_location` convention and add these exact assertions:
+Use the repository's existing `spec_from_file_location` convention, but register the dynamic module before `exec_module`; `@dataclass(frozen=True, slots=True)` resolves its module through `sys.modules` during import. Restore any previous entry after `exec_module` completes and also on import failure; use a sentinel so a pre-existing `None` entry is restored rather than mistaken for absence:
 
 ```python
+from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
+import hashlib
+import json
+import sys
+import tempfile
+import unittest
+from unittest.mock import patch
+
+
+PACKAGE_ROOT = Path(__file__).resolve().parents[1]
+BASELINE_PATH = PACKAGE_ROOT / "benchmarks/legacy_runtime_baseline.py"
+MODULE_NAME = "queryconsole_legacy_runtime_baseline_test"
+SPEC = spec_from_file_location(MODULE_NAME, BASELINE_PATH)
+assert SPEC is not None and SPEC.loader is not None
+baseline = module_from_spec(SPEC)
+MISSING_MODULE = object()
+PREVIOUS_MODULE = sys.modules.get(MODULE_NAME, MISSING_MODULE)
+sys.modules[MODULE_NAME] = baseline
+try:
+    SPEC.loader.exec_module(baseline)
+finally:
+    if PREVIOUS_MODULE is MISSING_MODULE:
+        sys.modules.pop(MODULE_NAME, None)
+    else:
+        sys.modules[MODULE_NAME] = PREVIOUS_MODULE
+
+
 def _make_sidecar(component: str) -> dict[str, object]:
     artifacts = [
         {
             "role": "lexer",
             "sha256": "434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20",
+            "source_sha256": "434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20",
         },
     ]
     if component == "parser":
-        artifacts.insert(
-            0,
+        artifacts = [
             {
                 "role": "parser",
                 "sha256": "7319d0b0a2d0f551180e37fdabf3838ca718b2d4b8147199fe1ed4a26290f8bd",
+                "source_sha256": "0c365e1e521322554b63e400379be47c0dc5ecaa7f60dd6951dc84bc7cccd084",
             },
-        )
+            *artifacts,
+            {
+                "role": "first_symbols_template",
+                "sha256": "4e3f87f15291de1a0d216773f2dc3d69144759d56796504473fdd8bfb74dc3ed",
+                "source_sha256": "4e3f87f15291de1a0d216773f2dc3d69144759d56796504473fdd8bfb74dc3ed",
+            },
+            {
+                "role": "identifiers_template",
+                "sha256": "7c08a5a520ab66c1b931a9e401f06c3acbd9f1652c3acefe101fc38181e58152",
+                "source_sha256": "7c08a5a520ab66c1b931a9e401f06c3acbd9f1652c3acefe101fc38181e58152",
+            },
+        ]
     corpora = []
     for index, corpus_id in enumerate(baseline.EXPECTED_CORPUS_IDS):
         input_count = 42 if index == 0 else 1
@@ -134,7 +175,11 @@ def _make_sidecar(component: str) -> dict[str, object]:
         "schema_version": 2,
         "benchmark_id": f"runtime-old-{component}-baseline",
         "component": component,
-        "measurement_scope": component,
+        "measurement_scope": (
+            "Полная токенизация: установка текста и чтение содержательных и конечного токена"
+            if component == "lexer"
+            else "Разобрать/РазобратьВыражение вместе с внутренней токенизацией; создание parser object вне sample"
+        ),
         "implementation_id": f"old-{component}-59d538f",
         "source_ref": "origin/old_parser",
         "source_commit": baseline.EXPECTED_COMMIT,
@@ -163,6 +208,17 @@ def _make_sidecar(component: str) -> dict[str, object]:
 
 
 class LegacyRuntimeBaselineTests(unittest.TestCase):
+    def test_dynamic_loader_imports_dataclass_and_restores_sys_modules(self) -> None:
+        if PREVIOUS_MODULE is MISSING_MODULE:
+            self.assertNotIn(MODULE_NAME, sys.modules)
+        else:
+            self.assertIs(sys.modules.get(MODULE_NAME), PREVIOUS_MODULE)
+        self.assertEqual(baseline.ArtifactSpec.__module__, MODULE_NAME)
+        self.assertEqual(
+            baseline.ARTIFACTS["lexer_module"].hash_scope,
+            "normalized_utf8_lf",
+        )
+
     def test_manifest_is_pinned_to_approved_commit_and_hashes(self) -> None:
         self.assertEqual(
             baseline.EXPECTED_COMMIT,
@@ -195,9 +251,63 @@ class LegacyRuntimeBaselineTests(unittest.TestCase):
     def test_parser_sidecar_requires_parser_and_lexer_artifacts(self) -> None:
         sidecar = _make_sidecar("parser")
         sidecar["artifacts"] = [sidecar["artifacts"][0]]
-        with self.assertRaisesRegex(ValueError, "parser and lexer"):
+        with self.assertRaisesRegex(ValueError, "artifact roles"):
             baseline.validate_sidecar(sidecar, "parser")
+
+    def test_sidecar_identity_fields_are_exact(self) -> None:
+        replacements = {
+            "schema_version": 1,
+            "benchmark_id": "runtime-old-parser-baseline-copy",
+            "component": "lexer",
+            "measurement_scope": "parser",
+            "implementation_id": "old-parser",
+            "metadata_object_names": ["DataProcessor.КОНС_СтарыйПарсер"],
+            "clock": "another clock",
+        }
+        for field, value in replacements.items():
+            with self.subTest(field=field):
+                sidecar = _make_sidecar("parser")
+                sidecar[field] = value
+                with self.assertRaisesRegex(ValueError, field):
+                    baseline.validate_sidecar(sidecar, "parser")
+
+    def test_parser_artifact_alias_equals_parser_role_artifact(self) -> None:
+        sidecar = _make_sidecar("parser")
+        sidecar["parser_artifact"] = dict(sidecar["parser_artifact"])
+        sidecar["parser_artifact"]["sha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "parser_artifact"):
+            baseline.validate_sidecar(sidecar, "parser")
+
+    def test_validate_durable_does_not_read_deleted_target_sources(self) -> None:
+        lexer = _make_sidecar("lexer")
+        parser = _make_sidecar("parser")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            lexer_path = root / "lexer.json"
+            parser_path = root / "parser.json"
+            report_path = root / "report.md"
+            lexer_bytes = json.dumps(lexer, ensure_ascii=False).encode("utf-8")
+            parser_bytes = json.dumps(parser, ensure_ascii=False).encode("utf-8")
+            lexer_path.write_bytes(lexer_bytes)
+            parser_path.write_bytes(parser_bytes)
+            report_path.write_text(
+                baseline.render_markdown(
+                    lexer,
+                    parser,
+                    hashlib.sha256(lexer_bytes).hexdigest(),
+                    hashlib.sha256(parser_bytes).hexdigest(),
+                ),
+                encoding="utf-8",
+            )
+            with patch.object(
+                baseline,
+                "verify_materialized_sources",
+                side_effect=AssertionError("durable validation read target sources"),
+            ):
+                baseline.validate_durable(lexer_path, parser_path, report_path)
 ```
+
+This importability test is part of the RED/GREEN contract: after the CLI file first exists, the test module must still import and instantiate the slotted dataclass through this dynamic loader; a loader that calls `exec_module` before `sys.modules[MODULE_NAME] = baseline` fails during test collection and is not GREEN.
 
 - [ ] **Step 2: Run the focused tests and verify RED**
 
@@ -351,11 +461,127 @@ EXPECTED_CORPUS_IDS = (
     "logical_chain",
     "dereference_chain",
 )
+EXPECTED_CLOCK = "ТекущаяУниверсальнаяДатаВМиллисекундах"
+EXPECTED_ARTIFACT_HASHES = {
+    "lexer": {
+        "lexer": (
+            "434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20",
+            "434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20",
+        ),
+    },
+    "parser": {
+        "parser": (
+            "7319d0b0a2d0f551180e37fdabf3838ca718b2d4b8147199fe1ed4a26290f8bd",
+            "0c365e1e521322554b63e400379be47c0dc5ecaa7f60dd6951dc84bc7cccd084",
+        ),
+        "lexer": (
+            "434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20",
+            "434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20",
+        ),
+        "first_symbols_template": (
+            "4e3f87f15291de1a0d216773f2dc3d69144759d56796504473fdd8bfb74dc3ed",
+            "4e3f87f15291de1a0d216773f2dc3d69144759d56796504473fdd8bfb74dc3ed",
+        ),
+        "identifiers_template": (
+            "7c08a5a520ab66c1b931a9e401f06c3acbd9f1652c3acefe101fc38181e58152",
+            "7c08a5a520ab66c1b931a9e401f06c3acbd9f1652c3acefe101fc38181e58152",
+        ),
+    },
+}
+EXPECTED_SIDECARS = {
+    "lexer": {
+        "schema_version": 2,
+        "benchmark_id": "runtime-old-lexer-baseline",
+        "component": "lexer",
+        "measurement_scope": (
+            "Полная токенизация: установка текста и чтение содержательных и конечного токена"
+        ),
+        "implementation_id": "old-lexer-59d538f",
+        "metadata_object_names": (
+            "DataProcessor.КОНС_СтарыйЛексическийАнализатор",
+        ),
+        "artifact_roles": ("lexer",),
+    },
+    "parser": {
+        "schema_version": 2,
+        "benchmark_id": "runtime-old-parser-baseline",
+        "component": "parser",
+        "measurement_scope": (
+            "Разобрать/РазобратьВыражение вместе с внутренней токенизацией; "
+            "создание parser object вне sample"
+        ),
+        "implementation_id": "old-parser-59d538f",
+        "metadata_object_names": (
+            "DataProcessor.КОНС_СтарыйПарсер",
+            "DataProcessor.КОНС_СтарыйЛексическийАнализатор",
+        ),
+        "artifact_roles": (
+            "parser",
+            "lexer",
+            "first_symbols_template",
+            "identifiers_template",
+        ),
+    },
+}
 ```
 
-Require `source_ref == "origin/old_parser"`, the full expected commit, `warmup_count == 3`, `sample_count == 20`, calibration `25`, exact corpus order, 42 inputs in the first corpus, 20 positive samples and positive median/p95 in every corpus. Lexer requires positive per-input and aggregate `token_count`; parser requires both parser and lexer artifact roles. Keep `validate_sidecar(document, component)` pure for unit tests; the `validate-sidecars` and `publish` CLI handlers first run `verify-source` and then require artifact hashes in both documents to match its fresh result.
+For `validate_sidecar`, compare by equality rather than mere presence:
 
-`publish` performs validation first, copies sidecar bytes with `shutil.copyfile`, reads the copied JSON, and renders Markdown tables with columns `corpus`, `input_count`, `input_length`, `operation_count_per_iteration`, `median_ms`, and `p95_ms`. The report contains no percentage or verdict.
+```python
+expected = EXPECTED_SIDECARS[component]
+for field in (
+    "schema_version",
+    "benchmark_id",
+    "component",
+    "measurement_scope",
+    "implementation_id",
+):
+    if document[field] != expected[field]:
+        raise ValueError(f"{component}.{field}: {document[field]!r} != {expected[field]!r}")
+if tuple(document["metadata_object_names"]) != expected["metadata_object_names"]:
+    raise ValueError(f"{component}.metadata_object_names mismatch")
+if document["clock"] != EXPECTED_CLOCK:
+    raise ValueError(f"{component}.clock mismatch")
+roles = tuple(artifact["role"] for artifact in document["artifacts"])
+if roles != expected["artifact_roles"]:
+    raise ValueError(f"{component}.artifact roles mismatch: {roles!r}")
+for artifact in document["artifacts"]:
+    expected_hash, expected_source_hash = EXPECTED_ARTIFACT_HASHES[component][artifact["role"]]
+    if artifact["sha256"] != expected_hash:
+        raise ValueError(f"{component}.{artifact['role']}.sha256 mismatch")
+    if artifact["source_sha256"] != expected_source_hash:
+        raise ValueError(f"{component}.{artifact['role']}.source_sha256 mismatch")
+if component == "parser":
+    parser_artifact = document["artifacts"][roles.index("parser")]
+    if document.get("parser_artifact") != parser_artifact:
+        raise ValueError("parser.parser_artifact must equal parser-role artifact")
+```
+
+Also require `source_ref == "origin/old_parser"`, the full expected commit, exact approved SHA-256 for every role, `warmup_count == 3`, `sample_count == 20`, calibration `25`, exact corpus order, 42 inputs in the first corpus, 20 positive samples and positive median/p95 in every corpus. Lexer requires positive per-input and aggregate `token_count`. No extra or duplicate artifact role, metadata object name or corpus is accepted. Keep `validate_sidecar(document, component)` pure for unit tests; the `validate-sidecars` and `publish` CLI handlers first run `verify-source` and then require artifact hashes in both documents to match its fresh result.
+
+`publish` performs capture-time validation first, copies sidecar bytes with `shutil.copyfile`, reads the copied JSON, and renders Markdown tables with columns `corpus`, `input_count`, `input_length`, `operation_count_per_iteration`, `median_ms`, and `p95_ms`. Its provenance section includes `lexer_json_sha256` and `parser_json_sha256`, computed from the exact copied bytes. The report contains no percentage or verdict.
+
+Implement the post-cleanup validator without Git or target-source access:
+
+```python
+def validate_durable(lexer_path: Path, parser_path: Path, report_path: Path) -> None:
+    lexer_bytes = lexer_path.read_bytes()
+    parser_bytes = parser_path.read_bytes()
+    lexer_document = json.loads(lexer_bytes.decode("utf-8"))
+    parser_document = json.loads(parser_bytes.decode("utf-8"))
+    validate_sidecar(lexer_document, "lexer")
+    validate_sidecar(parser_document, "parser")
+    expected_report = render_markdown(
+        lexer_document,
+        parser_document,
+        hashlib.sha256(lexer_bytes).hexdigest(),
+        hashlib.sha256(parser_bytes).hexdigest(),
+    )
+    if report_path.read_text(encoding="utf-8") != expected_report:
+        raise ValueError("durable Markdown does not match durable JSON bytes")
+```
+
+The `validate-durable` CLI calls only this function. It validates durable JSON bytes through the hashes embedded in regenerated Markdown, strict schema/provenance through `validate_sidecar`, and exact Markdown regeneration; it must not call `verify-ref`, `verify_materialized_sources`, `git_bytes`, or inspect either temporary DataProcessor directory.
 
 - [ ] **Step 5: Run unit tests and a read-only verification against Git objects**
 
@@ -480,6 +706,14 @@ revalidate_objects(projectName="yaxunit", objects=[
 
 Read `get_project_errors` filtered to those two FQNs. Expected: no new `ERRORS`; existing unrelated markers remain documented as background.
 
+Immediately after revalidation, prove EDT refresh/export did not rewrite historical BSL normalization or template bytes:
+
+```powershell
+python tools/parsergen/benchmarks/legacy_runtime_baseline.py verify-source --repo .
+```
+
+Expected: all four approved materialized hashes still match, including both original-byte template hashes.
+
 - [ ] **Step 6: Register project-local additions and commit Wave B**
 
 In `yaxunit/UPSTREAM.md`, add `КОНС_Обр_БенчмаркПарсера_МО` to permanent common modules and both temporary DataProcessor under a clearly labeled baseline subsection.
@@ -533,6 +767,15 @@ Expected: FAIL because the current module registers only the parser benchmark an
 - [ ] **Step 2: Add the four explicit descriptors and artifact schema**
 
 Read the current module with EDT-MCP `read_module_source(projectName="yaxunit", modulePath="CommonModules/КОНС_Обр_БенчмаркПарсера_МО/Module.bsl")`; retain its `contentHash` for guarded writes.
+
+Immediately before every Task 3 `write_module_source` call, repeat EDT-MCP `list_projects`, recompute `EXECUTION_ROOT = (Resolve-Path .).Path`, and assert exact normalized path equality for both rows:
+
+```text
+QueryConsoleZUP.path == Join-Path EXECUTION_ROOT 'QueryConsoleZUP'
+yaxunit.path         == Join-Path EXECUTION_ROOT 'yaxunit'
+```
+
+Abort that write if either assertion fails, even if Task 2 previously passed the same gate. After each successful write, obtain a fresh `contentHash`; never reuse the revision guard from an earlier write.
 
 Add these exact factories:
 
@@ -906,12 +1149,13 @@ Both expressions must return `True`.
 
 ```powershell
 python tools/parsergen/benchmarks/legacy_runtime_baseline.py validate-sidecars --repo . --lexer docs/superpowers/matrices/2026-08-08-runtime-old-lexer-baseline.json --parser docs/superpowers/matrices/2026-08-08-runtime-old-parser-baseline.json
+python tools/parsergen/benchmarks/legacy_runtime_baseline.py validate-durable --lexer docs/superpowers/matrices/2026-08-08-runtime-old-lexer-baseline.json --parser docs/superpowers/matrices/2026-08-08-runtime-old-parser-baseline.json --report docs/superpowers/matrices/2026-08-08-runtime-old-lexer-parser-baseline.md
 python -m pytest tools/parsergen/tests/test_legacy_runtime_baseline.py -v
 git diff --check
 git status --short
 ```
 
-Inspect both JSON and Markdown diffs. Baseline is not captured if either run matched zero tests, skipped a corpus, failed, or omitted a JSON.
+This is the **capture gate before cleanup**: `validate-sidecars` must still see and hash both temporary DataProcessor sources/templates, while `validate-durable` proves the independently retained artifacts are self-consistent. Inspect both JSON and Markdown diffs. Baseline is not captured if either run matched zero tests, skipped a corpus, failed, omitted a JSON or differs from the approved source manifest.
 
 - [ ] **Step 7: Commit Wave D evidence**
 
@@ -938,15 +1182,19 @@ git commit -m "Зафиксировать baseline старых lexer и parser"
 
 - [ ] **Step 1: Add RED cleanup assertions**
 
-Update the static BSL contract test to require no `КОНС_Старый` reference while still requiring both current test registrations. Run it before cleanup and expect failure on the old references.
+Immediately before editing `tools/parsergen/tests/test_legacy_runtime_baseline.py`, repeat `list_projects`, recompute `EXECUTION_ROOT`, and require the two exact Task 3 path equalities. Update the static BSL contract test only after that fresh gate to require no `КОНС_Старый` reference while still requiring both current test registrations. Run it before cleanup and expect failure on the old references.
 
 - [ ] **Step 2: Remove old factories/tests and temporary UPSTREAM rows**
 
-Remove the two old exported test registrations and old descriptor factories from the benchmark module with a guarded BSL edit. Remove only the two temporary DataProcessor rows from `yaxunit/UPSTREAM.md`; keep `КОНС_Обр_БенчмаркПарсера_МО` listed. Revalidate the common module before deleting metadata so no executable BSL reference points at either temporary object.
+Immediately before the guarded benchmark-module write, repeat `list_projects`, recompute `EXECUTION_ROOT`, and require the two exact Task 3 path equalities. Remove the two old exported test registrations and old descriptor factories with `write_module_source` only after that fresh gate and a fresh module `contentHash`.
+
+Immediately before editing `yaxunit/UPSTREAM.md`, repeat the same `list_projects` and path assertions again; then remove only the two temporary DataProcessor rows and keep `КОНС_Обр_БенчмаркПарсера_МО` listed. Revalidate the common module before deleting metadata so no executable BSL reference points at either temporary object. A successful earlier cleanup write never substitutes for either fresh path assertion.
 
 - [ ] **Step 3: Preview then execute exact EDT deletions**
 
-After the execution-checkout path gate, call `delete_metadata` first with `confirm=false`, require only expected registrations/references, then with `confirm=true` and `force=false` for:
+For every `delete_metadata` invocation below—including each preview and each confirmed deletion—repeat `list_projects`, recompute `EXECUTION_ROOT`, and require both exact Task 3 path equalities immediately before the call. Do not reuse the result from the previous preview or deletion.
+
+Call `delete_metadata` first with `confirm=false`, require only expected registrations/references, then repeat the path gate and call with `confirm=true` and `force=false` for:
 
 ```text
 DataProcessor.КОНС_СтарыйПарсер
@@ -965,10 +1213,11 @@ Revalidate `CommonModule.КОНС_Обр_БенчмаркПарсера_МО`, t
 rg -n "КОНС_СтарыйЛексическийАнализатор|КОНС_СтарыйПарсер" yaxunit/src yaxunit/UPSTREAM.md
 Test-Path 'docs/superpowers/matrices/2026-08-08-runtime-old-lexer-baseline.json'
 Test-Path 'docs/superpowers/matrices/2026-08-08-runtime-old-parser-baseline.json'
+python tools/parsergen/benchmarks/legacy_runtime_baseline.py validate-durable --lexer docs/superpowers/matrices/2026-08-08-runtime-old-lexer-baseline.json --parser docs/superpowers/matrices/2026-08-08-runtime-old-parser-baseline.json --report docs/superpowers/matrices/2026-08-08-runtime-old-lexer-parser-baseline.md
 git diff --check
 ```
 
-Expected: no runtime/metadata references remain; both `Test-Path` calls return `True`.
+Expected: no runtime/metadata references remain; both `Test-Path` calls return `True`; `validate-durable` passes without reading deleted targets. Do not run `verify-source`, `validate-sidecars` or `publish` after deletion because those are intentionally capture-time commands.
 
 - [ ] **Step 6: Commit the later cleanup wave**
 
@@ -980,12 +1229,13 @@ git commit -m "Удалить временный baseline старых lexer и 
 ## Final Verification
 
 - [ ] Run `python -m pytest tools/parsergen/tests/test_legacy_runtime_baseline.py -v`.
-- [ ] Run `verify-ref`, `verify-source`, and `validate-sidecars` against the durable JSON.
+- [ ] Before cleanup, run the capture gate: `verify-ref`, `verify-source`, `validate-sidecars`, byte-identity checks and `validate-durable` against the durable JSON/Markdown.
 - [ ] Revalidate the two temporary DataProcessor and benchmark common module before cleanup; after cleanup revalidate only the permanent benchmark common module.
 - [ ] Compare filtered EDT diagnostics to the recorded pre-change background and report newly introduced errors separately.
 - [ ] Record exact YAxUnit passed/failed/skipped counts and report paths for old lexer, old parser, current lexer/parser benchmarks and current lexer/parser unit modules.
 - [ ] Confirm exactly eight ordered corpus and 20 samples per corpus in both durable JSON.
 - [ ] Confirm positive token counts in lexer JSON and both parser+lexer artifact hashes in parser JSON.
-- [ ] Confirm durable JSON hashes equal their actual sidecar hashes and Markdown contains no performance verdict.
+- [ ] Confirm before cleanup that durable JSON hashes equal their actual sidecar hashes and Markdown contains no performance verdict.
+- [ ] After cleanup, run only `validate-durable` for retained evidence; require strict schema/provenance, embedded JSON-byte hashes and exact Markdown regeneration without temporary source files.
 - [ ] Run `git diff --check`, inspect `git diff --stat` and `git status --short`, and confirm production `QueryConsoleZUP/src/**` has no diff.
 - [ ] Before MR, execute Task 6 and prove no temporary metadata or runtime references remain while all durable evidence stays tracked.
