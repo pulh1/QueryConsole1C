@@ -123,13 +123,50 @@ state действительно terminal. `decision_dag` и его незави
   production `ObjectModule.bsl`.
 - `git diff --check`: PASS перед commits.
 
-Полный pytest по прямому требованию запускался ровно один раз, до обнаружения
-и исправления saturated root cause: `34 failed, 521 passed, 1 skipped,
-27006 subtests passed`. После root fix он намеренно не перезапускался второй
-раз. Точечный повтор всех ранее semantic-sensitive repository cases дал
-`8 passed, 7 failed, 52 subtests passed`; оставшиеся 7 failures проверяют
-старую нумерацию temporaries либо текстовую уникальность action-кода, которая
-изменилась при structured DAG rendering, а не отсутствие runtime alternative.
+### Verification addendum на final Wave 2 HEAD
+
+После saturated SELECT root fix по прямому review-требованию повторен полный
+`python -m pytest tools/parsergen/tests -q`: `11 failed, 525 passed, 1 skipped,
+27026 subtests passed` за `43.92s`. Первый post-fix запуск завершился, но его
+финальный output был усечён инструментом; для доказуемой сводки та же команда
+была повторена с сохранением её хвоста. Все 11 падений классифицированы:
+
+- `MigrationAuditUnitTests::test_build_report_has_separate_canonical_and_legacy_sections`
+  и
+  `MigrationAuditProductionTests::test_canonical_and_legacy_contracts_are_separate`
+  ожидают `artifacts.changed == []`, но намеренно не регенерированный Task 13
+  `ObjectModule.bsl` отличается.
+- `MigrationAuditProductionTests::test_generated_shape_baseline_is_explicit`
+  сравнивает со старым pre-DAG shape baseline; его обновление входит в Task 13.
+- `ReferenceParserTests::test_full_extended_grammar_matches_reference_parser`
+  сравнивает in-memory direct-DAG output с намеренно stale Task 13
+  reference parser.
+- `RepositoryGrammarCompatibilityTests::test_alias_alternatives_return_their_identifier_value`
+  проверяет старый номер temporary: direct DAG корректно вызывает
+  `Идентификатор("ID_ПсевдонимРасширенный")` и возвращает его через
+  `Значение2`, а assertion требует `Значение1`.
+- три subtests
+  `RepositoryGrammarCompatibilityTests::test_operand_alternatives_return_their_single_child`
+  (`Выбор`, `Параметр`, `АгрегатнаяФункция`) аналогично проверяют
+  pre-DAG temporary `Значение1`; нужные child calls и return assignments в generated
+  branches присутствуют.
+- два wrapper subtests и aggregate failure
+  `RepositoryGrammarCompatibilityTests::test_postfix_predicates_generate_max_one_canonical_wrappers`
+  требуют ровно одну текстовую копию action. Structured DAG рисует две
+  копии во взаимоисключающих branches; за один runtime parse выполняется одна.
+  Текстовая дедупликация относится к Wave 3 optimizer и здесь не выполнялась.
+
+Таким образом, среди финальных failures нет доказанного runtime semantic
+regression: четыре связаны с отложенными Task 13 artifacts/baselines, семь —
+с изменившейся текстовой формой direct DAG. Production/reference fixtures не
+регенерировались, tests под старую форму не ослаблялись.
+
+Дополнительная verification на том же HEAD:
+
+- `python -m parsergen validate --config parsergen.toml`: exit `0`.
+- `git diff --check`: exit `0`.
+- `generate --check`: ранее зафиксированный deliberate exit `3`, только stale
+  `ObjectModule.bsl`; артефакт не перегенерирован.
 
 ## Изменённые файлы
 
@@ -154,8 +191,6 @@ state действительно terminal. `decision_dag` и его незави
   подготовлен, named helper emission до Task 12 отключён.
 - Runtime BSL не содержит DAG tables/objects или helper-per-node.
 - Production lookahead остаётся 2; optimizer/inlining Wave 3 не затронут.
-
-Итоговые root-fix проверки и commit будут добавлены после GREEN.
 
 ## Artifact drift и concerns
 
