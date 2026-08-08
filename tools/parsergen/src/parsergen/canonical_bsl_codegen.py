@@ -10,6 +10,7 @@ from .bsl_rendering import (
     normalize_newlines,
     validate_bsl_identifier,
     validate_bsl_member_name,
+    validate_bsl_member_path,
 )
 from .canonical_bsl_conditions import CanonicalConditionRenderer
 from .model import (
@@ -31,6 +32,7 @@ from .parser_ir import (
     ConstructNode,
     Dispatch,
     DispatchValue,
+    ExtendCollection,
     DiscardSymbol,
     FoldLeftValue,
     IncrementScalar,
@@ -462,6 +464,25 @@ class _CanonicalBslGenerator:
                 error_label,
                 append=True,
             )
+        if isinstance(operation, ExtendCollection):
+            lines, collection = self._render_bound_value(
+                operation.value,
+                indent,
+                error_label,
+            )
+            validate_bsl_member_path(operation.property, "bound property")
+            item = "ЭлементКоллекции"
+            lines.extend(
+                (
+                    f"{indent}Если {collection} <> Неопределено Тогда",
+                    f"{indent}\tДля Каждого {item} Из {collection} Цикл",
+                    f"{indent}\t\tЭтотУзел.{operation.property}."
+                    f"Добавить({item});",
+                    f"{indent}\tКонецЦикла;",
+                    f"{indent}КонецЕсли;",
+                )
+            )
+            return lines, None
         if isinstance(operation, ConcatScalar):
             lines, expression = self._render_bound_value(
                 operation.value,

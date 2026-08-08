@@ -82,6 +82,10 @@ class Cursor:
 _BINDING_IDENTIFIER = re.compile(
     r"[A-Za-zА-Яа-яЁё_][0-9A-Za-zА-Яа-яЁё_]*"
 )
+_BINDING_TARGET = re.compile(
+    r"[A-Za-zА-Яа-яЁё_][0-9A-Za-zА-Яа-яЁё_]*"
+    r"(?:\[[0-9]+\]|\.[A-Za-zА-Яа-яЁё_][0-9A-Za-zА-Яа-яЁё_]*)*"
+)
 _BINDING_CONSTANT = re.compile(
     r"[A-Za-zА-Яа-яЁё_][0-9A-Za-zА-Яа-яЁё_]*"
     r"(?:\.[A-Za-zА-Яа-яЁё_][0-9A-Za-zА-Яа-яЁё_]*)*"
@@ -580,6 +584,21 @@ def _parse_source_sequence(
             index += 3
             continue
 
+        if pending_binding is None and body.startswith("*=", index):
+            _error(
+                bag,
+                "GP010",
+                "binding operator has no property",
+                _span(
+                    text,
+                    path,
+                    start_offset + index,
+                    start_offset + index + 2,
+                ),
+            )
+            index += 2
+            continue
+
         if pending_binding is None and body.startswith("+=", index):
             operator_span = _span(
                 text,
@@ -646,18 +665,22 @@ def _parse_source_sequence(
             pending_binding = (
                 property_name,
                 (
-                    BindingMode.APPEND
-                    if operator == "+="
+                    BindingMode.EXTEND
+                    if operator == "*="
                     else (
-                        BindingMode.INCREMENT
-                        if operator == "++="
+                        BindingMode.APPEND
+                        if operator == "+="
                         else (
-                            BindingMode.CONCAT
-                            if operator == "~="
+                            BindingMode.INCREMENT
+                            if operator == "++="
                             else (
-                                BindingMode.WRAP
-                                if operator == "=>"
-                                else BindingMode.SCALAR
+                                BindingMode.CONCAT
+                                if operator == "~="
+                                else (
+                                    BindingMode.WRAP
+                                    if operator == "=>"
+                                    else BindingMode.SCALAR
+                                )
                             )
                         )
                     )
@@ -997,13 +1020,13 @@ def _binding_prefix(
     text: str,
     start: int,
 ) -> tuple[str, str, int, int] | None:
-    matched = _BINDING_IDENTIFIER.match(text, start)
+    matched = _BINDING_TARGET.match(text, start)
     if matched is None:
         return None
     operator_start = matched.end()
     while operator_start < len(text) and text[operator_start].isspace():
         operator_start += 1
-    for operator in ("++=", "+=", "~=", ":=", "=>", "="):
+    for operator in ("++=", "+=", "*=", "~=", ":=", "=>", "="):
         if text.startswith(operator, operator_start):
             return (
                 matched.group(0),

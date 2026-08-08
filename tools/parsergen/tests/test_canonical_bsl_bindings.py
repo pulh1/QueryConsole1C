@@ -97,6 +97,41 @@ class CanonicalBslBindingTests(unittest.TestCase):
         self.assertEqual(function.count("ЭтотУзел.Добавить("), 2)
         self.assertNotIn("ЭтотУзел..Добавить(", function)
 
+    def test_collection_extend_adds_each_child_item(self) -> None:
+        function = _function(
+            _build(
+                "<S> ::= @НовыйУзел Элементы *= <Items> END\n"
+                "<Items> ::= @НовыйСписок += ITEM"
+            ).module_text,
+            "НеТерминалS",
+        )
+
+        self.assertEqual(function.count("НеТерминалItems()"), 1)
+        self.assertIn("Если Значение", function)
+        self.assertIn("<> Неопределено Тогда", function)
+        self.assertIn("Для Каждого ЭлементКоллекции", function)
+        self.assertIn("Из Значение", function)
+        self.assertIn(
+            "ЭтотУзел.Элементы.Добавить(ЭлементКоллекции",
+            function,
+        )
+
+    def test_collection_extend_renders_safe_member_path(self) -> None:
+        function = _function(
+            _build(
+                "<S> ::= @НовыйУзел "
+                "Операторы[0].ОтборыСКД *= <Items> END\n"
+                "<Items> ::= @НовыйСписок += ITEM"
+            ).module_text,
+            "НеТерминалS",
+        )
+
+        self.assertIn(
+            "ЭтотУзел.Операторы[0].ОтборыСКД."
+            "Добавить(ЭлементКоллекции);",
+            function,
+        )
+
     def test_discard_binding_parses_side_effect_calls_without_temporaries(self) -> None:
         function = _function(
             _build(

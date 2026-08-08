@@ -6,6 +6,10 @@ import re
 _BSL_IDENTIFIER = re.compile(
     r"[A-Za-zА-Яа-яЁё_][0-9A-Za-zА-Яа-яЁё_]*\Z"
 )
+_BSL_MEMBER_PATH = re.compile(
+    r"[A-Za-zА-Яа-яЁё_][0-9A-Za-zА-Яа-яЁё_]*"
+    r"(?:\[[0-9]+\]|\.[A-Za-zА-Яа-яЁё_][0-9A-Za-zА-Яа-яЁё_]*)*\Z"
+)
 
 # 1C:Enterprise Developer Guide, "Reserved words", defines the classic
 # bilingual language core. The grouped additions below cover the current
@@ -89,6 +93,13 @@ def validate_bsl_member_name(name: str, origin: str) -> None:
     if _BSL_IDENTIFIER.fullmatch(name) is None:
         raise ValueError(
             f"{origin} {name!r} is not a valid BSL member name"
+        )
+
+
+def validate_bsl_member_path(path: str, origin: str) -> None:
+    if _BSL_MEMBER_PATH.fullmatch(path) is None:
+        raise ValueError(
+            f"{origin} {path!r} is not a valid BSL member path"
         )
 
 

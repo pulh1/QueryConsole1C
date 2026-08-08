@@ -41,6 +41,8 @@ _SYNTHETIC_PREFIX = "__parsergen_ebnf__"
 def _binding_origin_kind(mode: BindingMode) -> BindingOriginKind:
     if mode is BindingMode.APPEND:
         return BindingOriginKind.APPEND
+    if mode is BindingMode.EXTEND:
+        return BindingOriginKind.EXTEND
     if mode is BindingMode.CONCAT:
         return BindingOriginKind.CONCAT
     if mode is BindingMode.INCREMENT:
@@ -63,6 +65,7 @@ class BindingOriginKind(StrEnum):
     CONSTRUCTOR = "constructor"
     SCALAR = "scalar"
     APPEND = "append"
+    EXTEND = "extend"
     CONCAT = "concat"
     INCREMENT = "increment"
     DISCARD = "discard"

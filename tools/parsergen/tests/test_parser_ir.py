@@ -4,6 +4,7 @@ from parsergen.analysis import compute_analysis
 from parsergen.grammar_parser import parse_grammar
 from parsergen.parser_ir import (
     Dispatch,
+    ExtendCollection,
     OptionalBranch,
     ParseSymbol,
     RepeatLoop,
@@ -60,6 +61,17 @@ class ParserIrTests(unittest.TestCase):
         self.assertEqual(len(alternative.operations), 1)
         self.assertIsInstance(alternative.operations[0], WrapValue)
         self.assertEqual(alternative.result_index, 0)
+
+    def test_collection_extend_is_one_structural_operation(self) -> None:
+        parser_ir = _build(
+            "<S> ::= @НовыйУзел Элементы *= <Items>\n"
+            "<Items> ::= @НовыйСписок += ITEM"
+        )
+
+        alternative = parser_ir.productions[0].alternatives[0]
+        self.assertEqual(len(alternative.operations), 2)
+        self.assertIsInstance(alternative.operations[1], ExtendCollection)
+        self.assertIsNone(alternative.result_index)
 
     def test_projection_builds_only_selected_production_and_skips_legacy_actions(
         self,

@@ -50,7 +50,6 @@ MIGRATED_PRODUCTIONS = (
     "ТипКонтрольнойТочки",
     "ТипПериодаИтогов",
     "РасширениеСКД",
-    "СписокПолейСКД",
     "Выражение",
     "ЛогическоеСлагаемое",
     "ЛогическийМножитель",
@@ -719,7 +718,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 69)
+        self.assertEqual(len(parsed.source_grammar.productions), 67)
         self.assertEqual(len(parsed.grammar.productions), 150)
         self.assertNotIn(
             "КакОпционально",
@@ -2141,7 +2140,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertIn('Лексема("*");', all_fields)
         self.assertNotIn("ТекущийЭлемент", all_fields)
 
-    def test_query_field_lists_generate_canonical_loops_with_legacy_context(
+    def test_query_field_lists_generate_canonical_loops_without_context(
         self,
     ) -> None:
         parsed = parse_grammar(
@@ -2186,14 +2185,11 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             generated.module_text,
             "ПоляВыборки",
         )
-        self.assertIn("Оператор = Неопределено", select_fields)
+        self.assertNotIn("Оператор = Неопределено", select_fields)
         self.assertEqual(select_fields.count("Пока "), 1)
         self.assertEqual(select_fields.count("ЭтотУзел.Добавить("), 2)
         self.assertEqual(
-            select_fields.count(
-                "НеТерминалРасширениеСКД("
-                "Неопределено, Неопределено, Оператор)"
-            ),
+            select_fields.count("НеТерминалРасширениеСКД()"),
             2,
         )
 
@@ -2212,7 +2208,6 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
     def test_dcs_boundary_shell_uses_canonical_dispatch(self) -> None:
         expected = {
             "РасширениеСКД",
-            "СписокПолейСКД",
         }
         self.assertTrue(expected.issubset(MIGRATED_PRODUCTIONS))
 
@@ -2251,24 +2246,24 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         extension = _generated_function(generated.module_text, "РасширениеСКД")
         self.assertIn('Лексема("{");', extension)
         self.assertIn('Лексема("}");', extension)
-        self.assertIn("НеТерминалСписокПолейСКД()", extension)
-        self.assertIn(
-            "НеТерминалОтборСКД("
-            "Неопределено, Неопределено, Оператор.ОтборыСКД)",
-            extension,
-        )
+        self.assertEqual(extension.count("Пока "), 2)
+        self.assertEqual(extension.count("ЭтотУзел.Добавить("), 2)
+        self.assertNotIn("НеТерминалСписокПолейСКД", extension)
+        self.assertNotIn("НеТерминалОтборСКД", extension)
 
-        fields = _generated_function(generated.module_text, "СписокПолейСКД")
-        self.assertEqual(fields.count("Пока "), 1)
-        self.assertEqual(fields.count("ЭтотУзел.Добавить("), 2)
-        self.assertNotIn("НеТерминалСписокПолейСКД", fields)
-        self.assertNotIn("ЭтотУзел = Родитель", fields)
+        operator = _generated_function(
+            generated.module_text,
+            "ОбъединяемыйЗапрос",
+        )
+        self.assertEqual(operator.count("Для Каждого ЭлементКоллекции"), 8)
+        self.assertEqual(operator.count("ОтборыСКД.Добавить("), 8)
+        self.assertEqual(operator.count("<> Неопределено Тогда"), 8)
 
         for token in ("ВЫБРАТЬ", "УПОРЯДОЧИТЬ", "ИТОГИ"):
             with self.subTest(token=token):
                 self.assertIn(f'Терминал("{token}")', extension)
 
-        for function in (extension, fields):
+        for function in (extension, operator):
             self.assertNotIn("ТекущийЭлемент", function)
             self.assertNotIn("НомерВариантаПродукции", function)
 
@@ -2334,7 +2329,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             "ЭтотУзел.КоличествоПолучаемыхЗаписей =",
             "ЭтотУзел.ВыбиратьРазличные = Истина;",
             "ЭтотУзел.__ВыбиратьРазрешенные = Истина;",
-            "ЭтотУзел.ВыбираемыеПоля =",
+            "ЭтотУзел.ВыбираемыеПоля.Добавить(",
             "ЭтотУзел.__ТаблицаДляПомещения =",
             "ЭтотУзел.Источники =",
             "ЭтотУзел.Отбор =",
@@ -2406,6 +2401,13 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             1,
         )
         self.assertIn("Пока ", query)
+        self.assertEqual(
+            query.count(
+                "ЭтотУзел.Операторы[0].ОтборыСКД."
+                "Добавить(ЭлементКоллекции);"
+            ),
+            2,
+        )
         for assignment in (
             "ЭтотУзел.Операторы.Добавить(",
             "ЭтотУзел.Порядок =",

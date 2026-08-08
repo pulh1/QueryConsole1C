@@ -16,6 +16,7 @@ class QuantifierKind(StrEnum):
 class BindingMode(StrEnum):
     SCALAR = "scalar"
     APPEND = "append"
+    EXTEND = "extend"
     CONCAT = "concat"
     INCREMENT = "increment"
     DISCARD = "discard"

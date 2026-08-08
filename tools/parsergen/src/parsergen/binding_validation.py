@@ -84,7 +84,13 @@ class _BindingValidator:
             and item.mode is BindingMode.WRAP
         )
         node_bindings = tuple(
-            item for item in bindings if item not in wrap_bindings
+            item
+            for item in bindings
+            if item not in wrap_bindings
+            and not (
+                isinstance(item, SourceBinding)
+                and item.mode is BindingMode.DISCARD
+            )
         )
         actions = _collect(sequence, Action)
 
@@ -136,7 +142,7 @@ class _BindingValidator:
             earlier = next(
                 (
                     item
-                    for item in bindings
+                    for item in node_bindings
                     if item.span.start.offset < constructor.span.start.offset
                 ),
                 None,
@@ -157,7 +163,18 @@ class _BindingValidator:
             )
             if mode not in (BindingMode.DISCARD, BindingMode.WRAP):
                 modes.setdefault(binding.property, set()).add(mode)
-            if isinstance(binding, SourceConstantBinding):
+            if (
+                binding.property is not None
+                and ("." in binding.property or "[" in binding.property)
+                and mode is not BindingMode.EXTEND
+            ):
+                self._add(
+                    "BIND211",
+                    "member path is only supported by collection extend binding",
+                    binding.span,
+                    binding.property,
+                )
+            elif isinstance(binding, SourceConstantBinding):
                 if not _valid_constant(binding.value):
                     self._add(
                         "BIND204",

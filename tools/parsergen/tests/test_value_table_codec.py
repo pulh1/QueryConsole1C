@@ -102,21 +102,7 @@ class ValueTableCodecTests(unittest.TestCase):
                 ColumnKind.NUMBER,
             ],
         )
-        self.assertEqual(len(select.rows), 44)
-        self.assertEqual(
-            select.rows[0],
-            (2, "ГДЕ", "&", "ОтборСКД", 1),
-        )
-        self.assertEqual(
-            select.rows[-1],
-            (
-                2,
-                "ГДЕ",
-                "ЧисловаяКонстанта",
-                "ОтборСКД",
-                1,
-            ),
-        )
+        self.assertEqual(select.rows, ())
         self.assertEqual(decode_value_table(encode_value_table(select)), select)
 
     def test_rejects_wrong_value_table_guid_with_offset(self) -> None:

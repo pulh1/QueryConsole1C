@@ -110,7 +110,6 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "ТипКонтрольнойТочки",
                 "ТипПериодаИтогов",
                 "РасширениеСКД",
-                "СписокПолейСКД",
                 "Выражение",
                 "ЛогическоеСлагаемое",
                 "ЛогическийМножитель",
@@ -161,17 +160,17 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["structural"],
             {
-                "source_productions": 69,
-                "source_alternatives": 158,
+                "source_productions": 67,
+                "source_alternatives": 156,
                 "productions": 150,
-                "alternatives": 320,
-                "epsilon_alternatives": 75,
-                "formal_parameters": 5,
-                "actual_arguments": 16,
-                "action_blocks": 1,
-                "statements": 1,
+                "alternatives": 322,
+                "epsilon_alternatives": 77,
+                "formal_parameters": 0,
+                "actual_arguments": 0,
+                "action_blocks": 0,
+                "statements": 0,
                 "constructor_statements": 0,
-                "collection_statements": 1,
+                "collection_statements": 0,
                 "constant_statements": 0,
                 "structural_statements": 0,
                 "other_assignment_statements": 0,
@@ -186,13 +185,13 @@ class MigrationAuditProductionTests(unittest.TestCase):
                 "conflicts": [],
                 "diagnostics": [],
                 "stats": {
-                    "packed_first_rows": 12_478,
-                    "packed_follow_rows": 54_327,
-                    "select_descriptors": 320,
-                    "select_direct_facts": 12_105,
-                    "select_short_complete_prefixes": 373,
-                    "packed_select_upper_bound": 37_918,
-                    "conflict_work_items": 522,
+                    "packed_first_rows": 12_125,
+                    "packed_follow_rows": 54_164,
+                    "select_descriptors": 322,
+                    "select_direct_facts": 11_758,
+                    "select_short_complete_prefixes": 367,
+                    "packed_select_upper_bound": 37_559,
+                    "conflict_work_items": 524,
                     "public_select_expansions": 0,
                     "select_cartesian_materializations": 0,
                 },
@@ -201,7 +200,7 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["legacy"],
             {
-                "matcher_rows": 10_482,
+                "matcher_rows": 10_283,
                 "matcher_definitions": 0,
                 "runtime_conflicts": [],
             },
@@ -212,10 +211,10 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["generated"],
             {
-                "bsl_functions": 81,
-                "bsl_loc": 2147,
+                "bsl_functions": 79,
+                "bsl_loc": 2194,
                 "constructor_names": 79,
-                "select_rows": 44,
+                "select_rows": 0,
                 "identifier_rows": 276,
             },
         )
@@ -296,7 +295,7 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 '"КонтрольныеТочкиИтогов", '
                 '"КонтрольнаяТочкаИтогов", "ТипКонтрольнойТочки", '
                 '"ТипПериодаИтогов", '
-                '"РасширениеСКД", "СписокПолейСКД", '
+                '"РасширениеСКД", '
                 '"Выражение", '
                 '"ЛогическоеСлагаемое", '
                 '"ЛогическийМножитель", "ЛогическийОператор", '

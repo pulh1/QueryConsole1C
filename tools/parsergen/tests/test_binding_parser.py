@@ -65,6 +65,34 @@ class BindingParserTests(unittest.TestCase):
         self.assertIs(repeated.mode, BindingMode.APPEND)
         self.assertEqual(repeated.property, "Элементы")
 
+    def test_parses_collection_extend_binding(self) -> None:
+        result = parse_source_grammar(
+            "<S> ::= @НовыйУзел Элементы *= <Items>\n"
+            "<Items> ::= @НовыйСписок += ITEM"
+        )
+
+        self.assertEqual(result.diagnostics, ())
+        assert result.grammar is not None
+        binding = result.grammar.productions[0].alternatives[0].body.items[1]
+        self.assertIsInstance(binding, SourceBinding)
+        self.assertIs(binding.mode, BindingMode.EXTEND)
+        self.assertEqual(binding.property, "Элементы")
+        self.assertIsInstance(binding.value, NonterminalCall)
+
+    def test_parses_collection_extend_binding_to_member_path(self) -> None:
+        result = parse_source_grammar(
+            "<S> ::= @НовыйУзел "
+            "Операторы[0].ОтборыСКД *= <Items>\n"
+            "<Items> ::= @НовыйСписок += ITEM"
+        )
+
+        self.assertEqual(result.diagnostics, ())
+        assert result.grammar is not None
+        binding = result.grammar.productions[0].alternatives[0].body.items[1]
+        self.assertIsInstance(binding, SourceBinding)
+        self.assertIs(binding.mode, BindingMode.EXTEND)
+        self.assertEqual(binding.property, "Операторы[0].ОтборыСКД")
+
     def test_parses_root_collection_binding_inside_separator_repeat(self) -> None:
         result = parse_source_grammar(
             "<List> ::= @НовыйСписок += <Item> "
@@ -208,7 +236,7 @@ class BindingParserTests(unittest.TestCase):
             "<S> ::= = <A>",
             "<S> ::= @НовыйСписок +=",
             "<S> ::= Значение =",
-            "<S> ::= Значение *= <A>",
+            "<S> ::= *= <A>",
             "<S> ::= ~= <A>",
             "<S> ::= ++= <A>",
             "<S> ::= -=",

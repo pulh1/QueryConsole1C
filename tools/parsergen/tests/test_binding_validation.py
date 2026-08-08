@@ -74,13 +74,10 @@ class BindingValidationTests(unittest.TestCase):
             ["BIND201"],
         )
 
-    def test_rejects_discard_binding_without_constructor(self) -> None:
+    def test_accepts_discard_binding_without_constructor(self) -> None:
         report = _validate("<S> ::= -= <A>\n<A> ::= a")
 
-        self.assertEqual(
-            [item.code for item in report.diagnostics],
-            ["BIND201"],
-        )
+        self.assertEqual(report.diagnostics, ())
 
     def test_rejects_binding_before_constructor_and_duplicate_constructor(
         self,
@@ -153,6 +150,47 @@ class BindingValidationTests(unittest.TestCase):
         )
 
         self.assertEqual(report.diagnostics, ())
+
+    def test_accepts_collection_extend_with_constructor(self) -> None:
+        report = _validate(
+            "<S> ::= @НовыйУзел Элементы *= <Items>\n"
+            "<Items> ::= @НовыйСписок += ITEM"
+        )
+
+        self.assertEqual(report.diagnostics, ())
+
+    def test_accepts_collection_extend_to_member_path(self) -> None:
+        report = _validate(
+            "<S> ::= @НовыйУзел "
+            "Операторы[0].ОтборыСКД *= <Items>\n"
+            "<Items> ::= @НовыйСписок += ITEM"
+        )
+
+        self.assertEqual(report.diagnostics, ())
+
+    def test_rejects_member_path_for_other_binding_modes(self) -> None:
+        cases = (
+            "<S> ::= @НовыйУзел Вложенный.Элемент = ITEM",
+            "<S> ::= @НовыйУзел Вложенный.Элементы += ITEM",
+            "<S> ::= @НовыйУзел Вложенный.Флаг := Истина",
+        )
+        for source in cases:
+            with self.subTest(source=source):
+                report = _validate(source)
+                self.assertEqual(
+                    [item.code for item in report.diagnostics],
+                    ["BIND211"],
+                )
+
+    def test_rejects_collection_extend_without_constructor(self) -> None:
+        report = _validate(
+            "<S> ::= Элементы *= <Items>\n<Items> ::= ITEM"
+        )
+
+        self.assertEqual(
+            [item.code for item in report.diagnostics],
+            ["BIND201"],
+        )
 
     def test_accepts_repeated_scalar_concat_with_constructor(self) -> None:
         report = _validate(

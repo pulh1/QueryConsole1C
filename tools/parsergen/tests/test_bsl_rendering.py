@@ -4,6 +4,7 @@ from parsergen.bsl_rendering import (
     bsl_string,
     normalize_newlines,
     validate_bsl_identifier,
+    validate_bsl_member_path,
 )
 
 
@@ -38,6 +39,25 @@ class BslRenderingTests(unittest.TestCase):
                     "is a reserved BSL keyword",
                 ):
                     validate_bsl_identifier(name, "generated symbol")
+
+    def test_accepts_safe_member_and_literal_index_path(self) -> None:
+        validate_bsl_member_path(
+            "Операторы[0].ОтборыСКД",
+            "bound property",
+        )
+
+    def test_rejects_executable_member_path_fragments(self) -> None:
+        for path in (
+            "Операторы[Индекс].ОтборыСКД",
+            "Операторы[0]();УдалитьВсе",
+            "Операторы[-1].ОтборыСКД",
+        ):
+            with self.subTest(path=path):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "is not a valid BSL member path",
+                ):
+                    validate_bsl_member_path(path, "bound property")
 
     def test_escapes_quotes_in_bsl_string_literal(self) -> None:
         self.assertEqual(bsl_string('a"b'), '"a""b"')

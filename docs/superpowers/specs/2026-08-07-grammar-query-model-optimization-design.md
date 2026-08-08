@@ -233,13 +233,14 @@ Constructor задаётся декларативно:
 Свойство = <Узел>       scalar/optional assignment
 Элементы += <Узел>      append to collection
 += <Узел>               append to constructed root collection
+Элементы *= <Список>    extend collection with child collection
 -= <Узел>               parse and explicitly discard semantic result
 Свойство ~= &Токен       concatenate token text to scalar property
 Свойство ++= Токен      consume token and increment numeric property
 Свойство = &Токен       terminal/token value
 Свойство := Истина      constant value
 Свойство := Типы.Все    enum/symbolic constant
-Свойство => <Узел>    attach seed to returned child
+Свойство => <Узел>      attach seed to returned child
 := Неопределено         transparent constant production result
 ```
 
@@ -287,10 +288,14 @@ Direct LR:
 - `+=` добавляет каждое значение в collection property.
 - `+=` без property добавляет значение непосредственно в constructed root
   collection; scalar root binding не поддерживается.
-- `-=` явно помечает semantic result как syntax-only. Это требуется на
-  временной canonical/legacy boundary, когда legacy island изменяет переданный
-  domain object и его возвращаемое значение не должно становиться частью AST.
-  Discard binding требует active constructor и не ослабляет проверку unbound
+- `*=` разбирает одну дочернюю коллекцию и добавляет ее элементы в collection
+  property текущего constructor. Target может быть BSL-safe member/index path,
+  всегда rooted в текущем constructor; scalar bindings такие пути не
+  поддерживают. `Неопределено` означает отсутствие значений, generated loop в
+  этом случае не выполняется. Binding не принимает внешний target и не создает
+  attribute-grammar context.
+- `-=` явно помечает semantic result как syntax-only. Он не требует active
+  constructor, поскольку не изменяет AST, и не ослабляет проверку unbound
   repeated semantic values.
 - `~=` добавляет text разобранного token/identifier к scalar string
   property. Binding требует property и constructor, может исполняться

@@ -190,6 +190,13 @@ class AppendCollection:
 
 
 @dataclass(frozen=True, slots=True)
+class ExtendCollection:
+    property: str
+    value: BoundValue
+    source_span: SourceSpan
+
+
+@dataclass(frozen=True, slots=True)
 class ConcatScalar:
     property: str
     value: BoundValue
@@ -227,6 +234,7 @@ Operation = (
     | ConstructNode
     | BindScalar
     | AppendCollection
+    | ExtendCollection
     | ConcatScalar
     | IncrementScalar
     | AssignConstant
@@ -899,11 +907,19 @@ class _ParserIrBuilder:
         self,
         binding: SourceBinding,
         value: BoundValue,
-    ) -> BindScalar | AppendCollection | ConcatScalar | IncrementScalar:
+    ) -> (
+        BindScalar
+        | AppendCollection
+        | ExtendCollection
+        | ConcatScalar
+        | IncrementScalar
+    ):
         kind = _binding_origin_kind(binding.mode)
         origin = self._binding_origin(binding.span, kind)
         if binding.mode is BindingMode.APPEND:
             operation = AppendCollection
+        elif binding.mode is BindingMode.EXTEND:
+            operation = ExtendCollection
         elif binding.mode is BindingMode.CONCAT:
             assert binding.property is not None
             operation = ConcatScalar
@@ -969,6 +985,7 @@ class _ParserIrBuilder:
                     ConstructNode,
                     BindScalar,
                     AppendCollection,
+                    ExtendCollection,
                     ConcatScalar,
                     IncrementScalar,
                     AssignConstant,
@@ -1051,6 +1068,8 @@ def _produces_transparent_value(operation: Operation) -> bool:
 def _binding_origin_kind(mode: BindingMode) -> BindingOriginKind:
     if mode is BindingMode.APPEND:
         return BindingOriginKind.APPEND
+    if mode is BindingMode.EXTEND:
+        return BindingOriginKind.EXTEND
     if mode is BindingMode.CONCAT:
         return BindingOriginKind.CONCAT
     if mode is BindingMode.INCREMENT:

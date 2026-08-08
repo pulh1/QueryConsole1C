@@ -1,5 +1,8 @@
 # SKD field-list migration checkpoint
 
+> Superseded: the remaining compatibility island and context parameters were
+> removed by `2026-08-08-dcs-declarative-merge-checkpoint.md`.
+
 ## Scope
 
 The SKD grammar family was migrated as one coherent package instead of
