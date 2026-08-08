@@ -2416,7 +2416,16 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
                 "ЭтотУзел.Операторы[0].ОтборыСКД."
                 "Добавить(ЭлементКоллекции);"
             ),
-            2,
+            3,
+        )
+        index_branch = query[
+            query.index('Терминал("ИНДЕКСИРОВАТЬ");') :
+            query.index('Терминал("ИТОГИ");')
+        ]
+        self.assertIn(
+            "ЭтотУзел.Операторы[0].ОтборыСКД."
+            "Добавить(ЭлементКоллекции);",
+            index_branch,
         )
         for assignment in (
             "ЭтотУзел.Операторы.Добавить(",

@@ -211,7 +211,7 @@ class MigrationAuditProductionTests(unittest.TestCase):
             self.report["generated"],
             {
                 "bsl_functions": 77,
-                "bsl_loc": 1949,
+                "bsl_loc": 1954,
                 "constructor_names": 79,
                 "select_rows": 0,
                 "identifier_rows": 276,

@@ -156,6 +156,9 @@ migration больше не является препятствием.
 - arithmetic, comparison и logical expression tails заменены direct LR;
 - lists, separators, optionals, UNION, JOIN, dereference и query tails используют
   EBNF/bindings;
+- расширение СКД после `ИНДЕКСИРОВАТЬ ПО` декларативно добавляет отборы в
+  `Операторы[0].ОтборыСКД`; characterization test закрывает потерю результата,
+  возникшую при замене старого parameter-side-effect на discard binding;
 - технический `ИсточникиЗапроса.Элементы` и UUID JOIN-link удалены;
 - production grammar содержит 66 source productions вместо 124; число 66
   включает semantic decorator `РазыменованиеПослеСкобок`, а не continuation
@@ -189,7 +192,7 @@ actions: **0**; специальных исключений и оправдан�
 | `Родитель` / `ЛевыйЭлемент` in source grammar | used as plumbing | 0 / 0 |
 | Lowered CFG productions | 124 | 156 |
 | Lowered CFG alternatives / epsilon | 281 / 63 | 334 / 80 |
-| Generated BSL LOC | 3 394 | 1 949 |
+| Generated BSL LOC | 3 394 | 1 954 |
 | Generated functions / procedures / routines | 135 / 6 / 141 | 77 / 5 / 82 |
 | Generated `НеТерминал*` functions | 124 | 66 |
 | Generated production SELECT rows | 11 273 | 0 |
@@ -207,14 +210,18 @@ empty at `k=2`.
 
 | Corpus | Median before -> after | p95 before -> after |
 | --- | ---: | ---: |
-| 42 QueryExamples | 1679.5 -> 860 ms (-48.8%) | 2030 -> 903 ms (-55.5%) |
-| Large package | 161.5 -> 99 ms (-38.7%) | 195 -> 107 ms (-45.1%) |
-| Long field list | 161.5 -> 85.5 ms (-47.1%) | 192 -> 95 ms (-50.5%) |
-| JOIN chain | 68.5 -> 55.5 ms (-19.0%) | 80 -> 77 ms (-3.7%) |
-| UNION chain | 96.5 -> 44.5 ms (-53.9%) | 125 -> 67 ms (-46.4%) |
-| Arithmetic chain | 65.5 -> 40 ms (-38.9%) | 96 -> 49 ms (-49.0%) |
-| Logical chain | 77 -> 54.5 ms (-29.2%) | 109 -> 70 ms (-35.8%) |
-| Dereference chain | 20 -> 12.5 ms (-37.5%) | 32 -> 13 ms (-59.4%) |
+| 42 QueryExamples | 1679.5 -> 862.5 ms (-48.6%) | 2030 -> 918 ms (-54.8%) |
+| Large package | 161.5 -> 95 ms (-41.2%) | 195 -> 97 ms (-50.3%) |
+| Long field list | 161.5 -> 83 ms (-48.6%) | 192 -> 92 ms (-52.1%) |
+| JOIN chain | 68.5 -> 55.5 ms (-19.0%) | 80 -> 88 ms (+10.0%) |
+| UNION chain | 96.5 -> 41.5 ms (-57.0%) | 125 -> 49 ms (-60.8%) |
+| Arithmetic chain | 65.5 -> 48.5 ms (-26.0%) | 96 -> 64 ms (-33.3%) |
+| Logical chain | 77 -> 55 ms (-28.6%) | 109 -> 64 ms (-41.3%) |
+| Dereference chain | 20 -> 13 ms (-35.0%) | 32 -> 20 ms (-37.5%) |
+
+Median уменьшилась на всех восьми corpus. p95 уменьшился на семи; JOIN p95
+в одном финальном повторном прогоне вырос на 10.0% при улучшении median на
+19.0%, поэтому это значение явно оставлено как наблюдаемая вариативность.
 
 `dispatch_calls = 0`. Call/depth/constructor/allocation counters оставлены
 `null` с явными причинами: дорогая production instrumentation не добавлялась.
@@ -229,13 +236,14 @@ synthetic recursive runtime functions. Полные данные:
 - `parsergen generate --check`: artifacts current;
 - canonical conflict/diagnostic lists: empty at `k=2`;
 - legacy normalized-row parity/runtime conflicts: green, 10 615 rows;
-- parser YAxUnit: 223/223 GREEN;
-- downstream YAxUnit: 265 total / 262 passed / 3 documented skips;
+- parser YAxUnit (lexer, expression parser, full-query parser): 365/365 GREEN;
+- combined parser/downstream/benchmark YAxUnit: 490 total / 487 passed /
+  3 documented skips;
 - benchmark YAxUnit: 1/1 GREEN;
 - EDT exact revalidation of parser and changed test modules: no errors;
 - generated parser/reference artifact parity: green;
 - generated parser SHA256:
-  `bee278fd4eaa17ff559164ee5dd3ec460b6586d244bb9ef78e3b36928ad4c71a`.
+  `537939b79bc29d77d581b8148973595481f444c1415b082d032e461133736b45`.
 
 ## 11. Manual verification checklist
 
