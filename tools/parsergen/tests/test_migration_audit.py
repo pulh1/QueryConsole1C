@@ -90,6 +90,9 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "Выражение",
                 "ЛогическоеСлагаемое",
                 "ТипСсылочногоПоля",
+                "ОперандВ",
+                "ОператорСравнения",
+                "ШаблонПодобия",
                 "АрифметическоеВыражение",
                 "Слагаемое",
                 "УнарнаяОперация",
@@ -135,12 +138,12 @@ class MigrationAuditProductionTests(unittest.TestCase):
                 "epsilon_alternatives": 67,
                 "formal_parameters": 7,
                 "actual_arguments": 22,
-                "action_blocks": 171,
-                "statements": 187,
-                "constructor_statements": 30,
+                "action_blocks": 160,
+                "statements": 176,
+                "constructor_statements": 29,
                 "collection_statements": 16,
                 "constant_statements": 14,
-                "structural_statements": 124,
+                "structural_statements": 114,
                 "other_assignment_statements": 0,
                 "other_statements": 3,
             },
@@ -195,9 +198,9 @@ class MigrationAuditProductionTests(unittest.TestCase):
             self.report["generated"],
             {
                 "bsl_functions": 116,
-                "bsl_loc": 2780,
+                "bsl_loc": 2726,
                 "constructor_names": 78,
-                "select_rows": 4_904,
+                "select_rows": 4_527,
                 "identifier_rows": 276,
             },
         )
@@ -268,6 +271,8 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 '"Выражение", '
                 '"ЛогическоеСлагаемое", '
                 '"ТипСсылочногоПоля", '
+                '"ОперандВ", "ОператорСравнения", '
+                '"ШаблонПодобия", '
                 '"АрифметическоеВыражение", "Слагаемое", '
                 '"УнарнаяОперация", "Множитель", "Операнд", '
                 '"Поле", "ВыражениеВсеПоляИсточника", '

@@ -30,6 +30,9 @@ MIGRATED_PRODUCTIONS = (
     "Выражение",
     "ЛогическоеСлагаемое",
     "ТипСсылочногоПоля",
+    "ОперандВ",
+    "ОператорСравнения",
+    "ШаблонПодобия",
     "АрифметическоеВыражение",
     "Слагаемое",
     "УнарнаяОперация",
@@ -1660,6 +1663,65 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertIn("ЭтотУзел.ЗапросВыбора =", nested)
         self.assertIn("ЭтотУзел.Псевдоним =", nested)
         self.assertNotIn("ТекущийЭлемент", nested)
+
+    def test_logical_leaf_package_generates_values_without_actions(
+        self,
+    ) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=MIGRATED_PRODUCTIONS,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=MIGRATED_PRODUCTIONS,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        module = generated.module_text
+        in_operand = _generated_function(module, "ОперандВ")
+        self.assertIn("НеТерминалСписокВыражений()", in_operand)
+        self.assertIn("НеТерминалЗапросВыбора()", in_operand)
+        self.assertNotIn("ТекущийЭлемент", in_operand)
+        self.assertNotIn("НомерВариантаПродукции", in_operand)
+
+        comparison = _generated_function(module, "ОператорСравнения")
+        for operator in ("=", "<>", ">", "<", ">=", "<="):
+            with self.subTest(operator=operator):
+                self.assertIn(f'Лексема("{operator}")', comparison)
+        self.assertNotIn("ТекущийЭлемент", comparison)
+        self.assertNotIn("НомерВариантаПродукции", comparison)
+
+        pattern = _generated_function(module, "ШаблонПодобия")
+        self.assertEqual(
+            pattern.count("ЭлементыМоделиЗапроса.НовыйКонстанта("),
+            1,
+        )
+        self.assertIn("ЭтотУзел.Значение =", pattern)
+        self.assertIn("НеТерминалПараметр()", pattern)
+        self.assertNotIn("ТекущийЭлемент", pattern)
+        self.assertNotIn("НомерВариантаПродукции", pattern)
 
 
 if __name__ == "__main__":

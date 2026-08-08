@@ -571,6 +571,11 @@ parser больше не рекурсирует по длине цепочки. 
 миграции всех callers. Exact delta:
 [source-data checkpoint](../superpowers/matrices/2026-08-08-source-data-binding-checkpoint.md).
 
+Logical leaf package затем удалил propagation actions из `ОперандВ`, всех
+comparison terminals и строкового/параметрического `ШаблонПодобия`, сохранив
+те же model node contracts. Exact delta:
+[logical leaf checkpoint](../superpowers/matrices/2026-08-08-logical-leaf-binding-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:
