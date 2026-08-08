@@ -1,5 +1,43 @@
 # Матрица покрытия миграции grammar/query model
 
+## Post-migration evidence — 2026-08-08
+
+Production grammar и query model после systematic migration проверены свежими
+прогонами:
+
+- полный Python suite `tools/parsergen/tests`: **508 passed, 1 skipped,
+  4 558 subtests passed**; единственный skip — системное ограничение Windows на
+  создание symlink (`WinError 1314`);
+- expression/full-query parser YAxUnit:
+  `КОНС_Обр_Парсер_МО` + `КОНС_Обр_ПарсерЗапросов_МО` — **223/223 GREEN**;
+- lexer/model/semantic/executor/codegen/report/other downstream YAxUnit —
+  **265 total / 262 passed / 0 failed / 0 errors / 3 documented skips**;
+- runtime parser after-benchmark — **1/1 GREEN**;
+- суммарный свежий headless integration gate — **489 total / 486 passed /
+  0 failed / 0 errors / 3 documented skips**.
+
+Три skip не скрывают parser/model regressions:
+
+1. `ПредставлениеРабочиеМестаСотрудников.ТекстЗапросаДляСКД` блокируется
+   существующим production-дефектом `.ОписаниеФильтра` при фактическом
+   `.ОписаниеВТФильтр`.
+2. Два exact-call контракта Query Constructor требуют form-only
+   `ДанныеФормыДерево.FindByID`; headless `ДеревоЗначений` этот API не имеет.
+
+Отчёт parser YAxUnit:
+`C:\Users\pkhlu\AppData\Local\Temp\edt-mcp-yaxunit\QueryConsoleZUP_______________5c25e5c01_442e96e48351dc418ba0d9c35affb20b53c54ed5\report.md`.
+Отчёт downstream YAxUnit:
+`C:\Users\pkhlu\AppData\Local\Temp\edt-mcp-yaxunit\QueryConsoleZUP_______________ebf4b34ca_763285d8beaa1e61d69ea862760439d79207470a\report.md`.
+Отчёт benchmark YAxUnit:
+`C:\Users\pkhlu\AppData\Local\Temp\edt-mcp-yaxunit\QueryConsoleZUP_______________8acc9b7ac_cb9a94032232579ef15977ae91f60977c6bea36c\report.md`.
+
+`X01` после миграции повторён на том же runtime/corpus: все восемь median и
+p95 улучшились. Durable evidence:
+[after JSON](2026-08-08-runtime-parser-benchmark-after.json) и
+[before/after report](2026-08-08-runtime-parser-benchmark-after.md).
+Интерактивный Vanessa/form gate остаётся финальной ручной проверкой и не
+заменяет перечисленные headless-контракты.
+
 ## Состояние доказательств
 
 - Python: команда `python -m pytest --collect-only -q -p no:cacheprovider`,
