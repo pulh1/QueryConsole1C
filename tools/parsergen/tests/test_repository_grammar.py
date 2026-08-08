@@ -49,7 +49,7 @@ MIGRATED_PRODUCTIONS = (
     "ТипКонтрольнойТочки",
     "ТипПериодаИтогов",
     "РасширениеСКД",
-    "ТипБлокаСКД",
+    "СписокПолейСКД",
     "Выражение",
     "ЛогическоеСлагаемое",
     "ЛогическийМножитель",
@@ -718,8 +718,8 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 70)
-        self.assertEqual(len(parsed.grammar.productions), 149)
+        self.assertEqual(len(parsed.source_grammar.productions), 69)
+        self.assertEqual(len(parsed.grammar.productions), 150)
         self.assertNotIn(
             "КакОпционально",
             {item.name for item in parsed.source_grammar.productions},
@@ -2209,7 +2209,10 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             self.assertNotIn("НомерВариантаПродукции", function)
 
     def test_dcs_boundary_shell_uses_canonical_dispatch(self) -> None:
-        expected = {"РасширениеСКД", "ТипБлокаСКД"}
+        expected = {
+            "РасширениеСКД",
+            "СписокПолейСКД",
+        }
         self.assertTrue(expected.issubset(MIGRATED_PRODUCTIONS))
 
         parsed = parse_grammar(
@@ -2247,18 +2250,24 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         extension = _generated_function(generated.module_text, "РасширениеСКД")
         self.assertIn('Лексема("{");', extension)
         self.assertIn('Лексема("}");', extension)
+        self.assertIn("НеТерминалСписокПолейСКД()", extension)
         self.assertIn(
-            "НеТерминалТелоБлокаСКД("
-            "Неопределено, Неопределено, Оператор)",
+            "НеТерминалОтборСКД("
+            "Неопределено, Неопределено, Оператор.ОтборыСКД)",
             extension,
         )
 
-        block_type = _generated_function(generated.module_text, "ТипБлокаСКД")
+        fields = _generated_function(generated.module_text, "СписокПолейСКД")
+        self.assertEqual(fields.count("Пока "), 1)
+        self.assertEqual(fields.count("ЭтотУзел.Добавить("), 2)
+        self.assertNotIn("НеТерминалСписокПолейСКД", fields)
+        self.assertNotIn("ЭтотУзел = Родитель", fields)
+
         for token in ("ВЫБРАТЬ", "УПОРЯДОЧИТЬ", "ИТОГИ"):
             with self.subTest(token=token):
-                self.assertIn(f'Терминал("{token}")', block_type)
+                self.assertIn(f'Терминал("{token}")', extension)
 
-        for function in (extension, block_type):
+        for function in (extension, fields):
             self.assertNotIn("ТекущийЭлемент", function)
             self.assertNotIn("НомерВариантаПродукции", function)
 

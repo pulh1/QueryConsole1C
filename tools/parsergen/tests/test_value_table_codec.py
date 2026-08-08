@@ -102,7 +102,7 @@ class ValueTableCodecTests(unittest.TestCase):
                 ColumnKind.NUMBER,
             ],
         )
-        self.assertEqual(len(select.rows), 137)
+        self.assertEqual(len(select.rows), 46)
         self.assertEqual(
             select.rows[0],
             (2, "ОБЪЕДИНИТЬ", "ВСЕ", "ОператорОбъединения", 1),
@@ -113,8 +113,8 @@ class ValueTableCodecTests(unittest.TestCase):
                 2,
                 "ГДЕ",
                 "ЧисловаяКонстанта",
-                "ТелоБлокаСКД",
-                2,
+                "ОтборСКД",
+                1,
             ),
         )
         self.assertEqual(decode_value_table(encode_value_table(select)), select)
