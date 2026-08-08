@@ -88,6 +88,7 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "config",
                 "structural",
                 "canonical",
+                "decision_dag",
                 "legacy",
                 "generated",
                 "artifacts",
@@ -169,6 +170,29 @@ class MigrationAuditUnitTests(unittest.TestCase):
             ],
         )
         self.assertEqual(report["canonical"]["conflicts"], [])
+        self.assertEqual(
+            set(report["decision_dag"]),
+            {
+                "source_states",
+                "dag_states",
+                "shared_states",
+                "max_depth",
+                "decision_regions",
+                "emitted_predicates",
+            },
+        )
+        self.assertGreater(report["decision_dag"]["source_states"], 0)
+        self.assertGreater(report["decision_dag"]["dag_states"], 0)
+        self.assertGreater(report["decision_dag"]["decision_regions"], 0)
+        self.assertGreater(report["decision_dag"]["emitted_predicates"], 0)
+        self.assertEqual(
+            report["canonical"]["stats"]["public_select_expansions"],
+            0,
+        )
+        self.assertEqual(
+            report["canonical"]["stats"]["select_cartesian_materializations"],
+            0,
+        )
         self.assertEqual(report["legacy"]["runtime_conflicts"], [])
         self.assertEqual(report["artifacts"]["changed"], [])
 

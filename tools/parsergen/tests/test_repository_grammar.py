@@ -1100,12 +1100,12 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
                 function = _generated_function(module, production)
                 self.assertEqual(function.count("Пока "), 0)
                 self.assertEqual(function.count(calls[0]), 1)
-                self.assertEqual(function.count(calls[1]), 1)
+                self.assertNotIn(calls[1], function)
                 self.assertEqual(function.count(".Операнд = "), 1)
                 self.assertNotIn("ТекущийЭлемент", function)
                 self.assertNotIn("НомерВариантаПродукции", function)
 
-        logical = _generated_function(module, "ЛогическийОператор")
+        logical = _generated_function(module, "ЛогическийМножитель")
         for constructor in (
             "НовыйОператорМежду",
             "НовыйОператорПроверкиТипа",
@@ -1117,13 +1117,15 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertNotIn("ТекущийЭлемент", logical)
         self.assertNotIn("НомерВариантаПродукции", logical)
 
-        like = _generated_function(module, "ОператорПодобно")
+        like = _generated_function(module, "ОперандСравнения")
         self.assertEqual(like.count(".НовыйОператорПодобно("), 1)
         self.assertEqual(like.count("ЭтотУзел.Инверсия = Истина;"), 1)
         self.assertEqual(like.count("ЭтотУзел.Шаблон ="), 1)
         self.assertNotIn("ЛевыйЭлемент", like.split(")", 1)[1])
         self.assertNotIn("ТекущийЭлемент", like)
         self.assertNotIn("НомерВариантаПродукции", like)
+        self.assertNotIn("Функция НеТерминалЛогическийОператор(", module)
+        self.assertNotIn("Функция НеТерминалОператорПодобно(", module)
 
     def test_expression_list_generates_collection_loop(self) -> None:
         parsed = parse_grammar(

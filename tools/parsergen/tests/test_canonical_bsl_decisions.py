@@ -45,6 +45,39 @@ class CanonicalBslDecisionTests(unittest.TestCase):
         self.assertIn('ТокенРешения0 = "WORD"', rendered)
         self.assertNotIn("ТипТокенаПросмотра(0) =", rendered)
 
+    def test_named_set_candidate_uses_cached_token_and_exact_class(self) -> None:
+        parser_ir = _build_ir(
+            "#ID_Large ::= A | B | C | D | E | F | G | H | I\n"
+            "<S> ::= #ID_Large | END"
+        )
+        production = next(
+            item for item in parser_ir.productions if item.name == "S"
+        )
+        assert production.decision is not None
+        token_types = tuple("ABCDEFGHI")
+        renderer = CanonicalDecisionRenderer(
+            parser_ir.matcher_definitions,
+            named_predicates={token_types: "ID_Large"},
+        )
+        rendered = "\n".join(
+            renderer.render(
+                production.decision,
+                indent="",
+                token_prefix="ТокенРешения",
+                render_leaf=lambda leaf, indent: [f"{indent}// leaf"],
+            )
+        )
+
+        self.assertIn(
+            'ТокенПринадлежитКлассу(ТокенРешения0, "ID_Large")',
+            rendered,
+        )
+        helper_call = next(
+            line for line in rendered.splitlines()
+            if "ТокенПринадлежитКлассу" in line
+        )
+        self.assertNotIn("ТипТокенаПросмотра", helper_call)
+
 
 if __name__ == "__main__":
     unittest.main()
