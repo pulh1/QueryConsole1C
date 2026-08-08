@@ -18,6 +18,7 @@ MIGRATED_PRODUCTIONS = (
     "ПакетЗапросов",
     "ЗапросПакета",
     "ЗапросУничтожения",
+    "ОбъединяемыйЗапрос",
     "ПоляВыборки",
     "ПолеВыборки",
     "ВыражениеВсеПоляВыборки",
@@ -705,8 +706,8 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 90)
-        self.assertEqual(len(parsed.grammar.productions), 139)
+        self.assertEqual(len(parsed.source_grammar.productions), 78)
+        self.assertEqual(len(parsed.grammar.productions), 142)
         self.assertNotIn(
             "КакОпционально",
             {item.name for item in parsed.source_grammar.productions},
@@ -2112,6 +2113,84 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         for function in (extension, block_type):
             self.assertNotIn("ТекущийЭлемент", function)
             self.assertNotIn("НомерВариантаПродукции", function)
+
+    def test_select_operator_inlines_modifiers_and_query_clauses(self) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=MIGRATED_PRODUCTIONS,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=MIGRATED_PRODUCTIONS,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        module = generated.module_text
+        for helper in (
+            "БлокВыбрать",
+            "МодификаторыВыборки",
+            "РазличныеРазрешенныеОпционально",
+            "РазрешенныеОпционально",
+            "ПервыеРазрешенныеОпционально",
+            "ПервыеОпционально",
+            "ПервыеРазличныеОпционально",
+            "РазличныеОпционально",
+            "БлокПоместить",
+            "БлокГде",
+            "БлокСгруппировать",
+            "БлокИмеющие",
+        ):
+            with self.subTest(helper=helper):
+                self.assertNotIn(f"Функция НеТерминал{helper}(", module)
+
+        function = _generated_function(module, "ОбъединяемыйЗапрос")
+        self.assertEqual(
+            function.count(
+                "ЭлементыМоделиЗапроса.НовыйОператорЗапроса("
+            ),
+            1,
+        )
+        for assignment in (
+            "ЭтотУзел.КоличествоПолучаемыхЗаписей =",
+            "ЭтотУзел.ВыбиратьРазличные = Истина;",
+            "ЭтотУзел.__ВыбиратьРазрешенные = Истина;",
+            "ЭтотУзел.ВыбираемыеПоля =",
+            "ЭтотУзел.__ТаблицаДляПомещения =",
+            "ЭтотУзел.Источники =",
+            "ЭтотУзел.Отбор =",
+            "ЭтотУзел.Группировка =",
+            "ЭтотУзел.ОтборСгруппированных =",
+        ):
+            with self.subTest(assignment=assignment):
+                self.assertIn(assignment, function)
+        self.assertIn(
+            "НеТерминалБлокИз()",
+            function,
+        )
+        self.assertNotIn("ТекущийЭлемент", function)
+        self.assertNotIn("НомерВариантаПродукции", function)
 
     def test_totals_control_point_package_generates_nested_optionals_and_bindings(
         self,
