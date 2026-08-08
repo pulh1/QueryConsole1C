@@ -17,7 +17,7 @@
 - Оба parser template переносятся как исходные bytes из commit `59d538f`; их metadata template type — `TextDocument`.
 - Production `QueryConsoleZUP/src/**`, grammar, Parser IR, query model и downstream consumers не изменяются.
 - Corpus содержит ровно девять классов: восемь существующих, включая все 42 embedded `QueryExamples`, и девятый `time_accounting_large` из постоянного `CommonTemplate.КОНС_БенчмаркДанныеУчетаВремени` (один input, `Разобрать`).
-- Внешний import source — `C:\work\1C\мои разработки\Теория копмиляторов\Генерация парсеров АКТУАЛЬНОЕ\заппросы\ДанныеУчетаВремени.txt`; до копирования доказать: raw `289542` bytes, `5489` lines, `160135` chars, raw SHA-256 `43035fda34f0ccb05817d856374beba9e5539a3a99540fef9ba7d70d3656c93e`, normalized UTF-8/LF SHA-256 `5e4a617dd41f8af97434b797bac46c9f8ba3ca1d167db9d81828b6854f1fc9c5`.
+- Внешний import source — `C:\work\1C\мои разработки\Теория копмиляторов\Генерация парсеров АКТУАЛЬНОЕ\заппросы\ДанныеУчетаВремени.txt`; до копирования доказать: raw `289542` bytes, `5489` lines, `165623` raw decoded chars, `160135` chars после нормализации CRLF в LF, raw SHA-256 `43035fda34f0ccb05817d856374beba9e5539a3a99540fef9ba7d70d3656c93e`, normalized UTF-8/LF SHA-256 `5e4a617dd41f8af97434b797bac46c9f8ba3ca1d167db9d81828b6854f1fc9c5`. Exact template path обязан иметь Git attribute `-text`, чтобы committed blob сохранял исходные CRLF bytes независимо от `core.autocrlf`.
 - Постоянный template загружается ровно через `ПолучитьОбщийМакет("КОНС_БенчмаркДанныеУчетаВремени").ПолучитьТекст()` при построении corpus; получение текста не входит в preflight, calibration, warm-ups или samples.
 - Для каждого component/corpus: preflight до измерения, batch calibration до 25 ms, 3 прогрева, 20 samples, median и nearest-rank p95.
 - Один заранее созданный runtime object повторно используется для preflight, calibration, warm-ups и samples внутри запуска реализации; создание объекта не входит в sample.
@@ -935,7 +935,8 @@ text = raw.decode("utf-8")
 normalized = text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
 assert len(raw) == 289542
 assert len(text.splitlines()) == 5489
-assert len(text) == 160135
+assert len(text) == 165623
+assert len(text.replace("\r\n", "\n").replace("\r", "\n")) == 160135
 assert sha256(raw).hexdigest() == "43035fda34f0ccb05817d856374beba9e5539a3a99540fef9ba7d70d3656c93e"
 assert sha256(normalized).hexdigest() == "5e4a617dd41f8af97434b797bac46c9f8ba3ca1d167db9d81828b6854f1fc9c5"
 '@ | python -

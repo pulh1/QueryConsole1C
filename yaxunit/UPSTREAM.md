@@ -39,7 +39,8 @@ remain unchanged except for:
   `src/CommonTemplates/КОНС_БенчмаркДанныеУчетаВремени/Template.txt`.
 - Imported from
   `C:\work\1C\мои разработки\Теория копмиляторов\Генерация парсеров АКТУАЛЬНОЕ\заппросы\ДанныеУчетаВремени.txt`:
-  289542 raw bytes, 5489 lines, 160135 UTF-8/LF-normalized characters,
+  289542 raw bytes, 5489 lines, 165623 raw decoded characters,
+  160135 UTF-8/LF-normalized characters,
   raw SHA-256 `43035fda34f0ccb05817d856374beba9e5539a3a99540fef9ba7d70d3656c93e`,
   normalized SHA-256 `5e4a617dd41f8af97434b797bac46c9f8ba3ca1d167db9d81828b6854f1fc9c5`.
 
