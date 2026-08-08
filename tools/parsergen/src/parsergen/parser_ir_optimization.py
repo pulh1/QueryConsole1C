@@ -20,11 +20,9 @@ from .parser_ir import (
     CanonicalDecision,
     ConcatScalar,
     ConstructNode,
-    DiscardSymbol,
     Dispatch,
     DispatchValue,
     ExtendCollection,
-    FoldLeftValue,
     IncrementScalar,
     LeftFold,
     Operation,
@@ -36,7 +34,6 @@ from .parser_ir import (
     RepeatLoop,
     ReturnConstant,
     UndefinedValue,
-    ValueBranchIr,
     WrapOptional,
     WrapValue,
 )
@@ -182,7 +179,7 @@ def optimize_parser_ir(parser_ir: ParserIr) -> ParserIr:
     )
     result = parser_ir
     for _ in range(max(1, len(parser_ir.productions) * 2)):
-        optimizer = _Optimizer(result, transparent, recursive)
+        optimizer = _Optimizer(result, transparent)
         updated = replace(
             result,
             productions=tuple(
@@ -204,14 +201,12 @@ class _Optimizer:
         self,
         parser_ir: ParserIr,
         transparent: frozenset[str],
-        recursive: frozenset[str],
     ) -> None:
         self.productions = {
             production.name: production
             for production in parser_ir.productions
         }
         self.transparent = transparent
-        self.recursive = recursive
 
     def production(self, production: ProductionIr) -> ProductionIr:
         alternatives = tuple(
