@@ -30,8 +30,20 @@ remain unchanged except for:
 - `КОНС_Обр_Парсер_МО`.
 - `КОНС_Обр_ПарсерЗапросов_МО`.
 - `КОНС_ОМ_ОбработкаМоделиЗапроса`.
+- `КОНС_Обр_БенчмаркПарсера_МО`.
 
-Their metadata and BSL sources are stored under `src/CommonModules/`. The
-compatibility row is required because EDT 2026.1 exports seven internal groups,
-while the pinned YAxUnit 25.12 source contains six. All remaining upstream
-files are unmodified copies of the pinned release.
+### Temporary legacy runtime baseline
+
+The following temporary metadata objects are project-local historical runtime
+baseline dependencies:
+
+- `CommonModule.КОНС_СтарыеЭлементыМоделиЗапроса`;
+- `КОНС_СтарыйЛексическийАнализатор`;
+- `КОНС_СтарыйПарсер`.
+
+The permanent and temporary common-module metadata and BSL sources are stored
+under `src/CommonModules/`; temporary DataProcessor metadata, BSL sources, and
+templates are stored under `src/DataProcessors/`. The compatibility row is
+required because EDT 2026.1 exports seven internal groups, while the pinned
+YAxUnit 25.12 source contains six. All remaining upstream files are unmodified
+copies of the pinned release.

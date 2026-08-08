@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="2e6098c5-0a89-4cad-8e4d-e93188ef8a39">
+  <producedTypes>
+    <objectType typeId="bcc517ca-7378-4690-9fb4-5237af51adb6" valueTypeId="5ecddda7-94d2-49a4-a398-ea9731223178"/>
+    <managerType typeId="79bb23f3-3a69-46a4-8341-c7d8dafb6514" valueTypeId="908d0dfd-cfcb-42aa-82ce-525ae4400c7c"/>
+  </producedTypes>
+  <name>КОНС_СтарыйПарсер</name>
+  <synonym>
+    <key>ru</key>
+    <value>КОНС старый парсер</value>
+  </synonym>
+  <comment>Temporary old_parser runtime baseline object</comment>
+  <useStandardCommands>true</useStandardCommands>
+  <templates uuid="5f5356b3-9ba2-4f54-9bca-49c79a8c1d29">
+    <name>ОпределенияИдентификаторов</name>
+    <synonym>
+      <key>ru</key>
+      <value>Определения идентификаторов</value>
+    </synonym>
+    <templateType>TextDocument</templateType>
+  </templates>
+  <templates uuid="475a93eb-fbe4-4b05-8c6d-0e9981947929">
+    <name>ТаблицаПервыхСимволовВариантов</name>
+    <synonym>
+      <key>ru</key>
+      <value>Таблица первых символов вариантов</value>
+    </synonym>
+    <templateType>TextDocument</templateType>
+  </templates>
+</mdclass:DataProcessor>
