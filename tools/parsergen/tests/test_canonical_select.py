@@ -117,6 +117,18 @@ class CanonicalSelectTests(unittest.TestCase):
         )
         self.assertTrue(_accepts(source, AlternativeOutcome("A", 2), ("$",)))
 
+    def test_saturated_follow_language_rejects_incomplete_prefix(self) -> None:
+        source = build_canonical_decision_source(
+            _analysis("<S> ::= <A> Z\n<A> ::= X | Y", k=2),
+            "A",
+        )
+
+        for alternative, first in ((1, "X"), (2, "Y")):
+            outcome = AlternativeOutcome("A", alternative)
+            with self.subTest(alternative=alternative):
+                self.assertFalse(_accepts(source, outcome, (first,)))
+                self.assertTrue(_accepts(source, outcome, (first, "Z")))
+
     def test_source_and_predicates_are_immutable_and_validated(self) -> None:
         source = build_canonical_decision_source(_analysis("<S> ::= A"), "S")
 

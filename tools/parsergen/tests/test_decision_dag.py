@@ -21,7 +21,7 @@ from parsergen.canonical_select import (
     TokenSetPredicate,
     build_canonical_decision_source,
 )
-from tests.test_canonical_select import _analysis
+from tests.test_canonical_select import _accepts, _analysis
 
 
 def _source(grammar: str, k: int = 1) -> CanonicalDecisionSource:
@@ -82,6 +82,13 @@ class DecisionDagTests(unittest.TestCase):
         source = build_canonical_decision_source(
             _analysis("<S> ::= <A> Z\n<A> ::= X | Y", k=2),
             "A",
+        )
+
+        self.assertFalse(
+            _accepts(source, AlternativeOutcome("A", 1), ("X",))
+        )
+        self.assertTrue(
+            _accepts(source, AlternativeOutcome("A", 1), ("X", "Z"))
         )
 
         dag = build_decision_dag(source)

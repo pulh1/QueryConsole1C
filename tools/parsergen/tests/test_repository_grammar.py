@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import unittest
 
 from parsergen.analysis import (
@@ -14,6 +15,25 @@ from parsergen.resolver import resolve_grammar
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY_GRAMMAR = PACKAGE_ROOT / "grammar/query-language.grammar"
+
+
+def _assert_child_result_pair(
+    test: unittest.TestCase,
+    function: str,
+    child_call: str,
+) -> None:
+    temporaries = re.findall(
+        rf"(Значение\d+) = {re.escape(child_call)};",
+        function,
+    )
+    test.assertGreaterEqual(len(temporaries), 1)
+    for temporary in temporaries:
+        test.assertEqual(
+            function.count(f"РезультатПродукции = {temporary};"),
+            1,
+        )
+
+
 MIGRATED_PRODUCTIONS = (
     "ПакетЗапросов",
     "ЗапросПакета",
@@ -358,16 +378,13 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
 
         function = _generated_function(generated.module_text, "Псевдоним")
         self.assertIn('Терминал("КАК");', function)
-        self.assertIn(
-            'Значение1 = Идентификатор("ID_ПсевдонимРасширенный");',
-            function,
-        )
-        self.assertIn(
-            'Значение2 = Идентификатор("ID_Псевдоним");',
-            function,
-        )
-        self.assertIn("РезультатПродукции = Значение1;", function)
-        self.assertIn("РезультатПродукции = Значение2;", function)
+        for identifier in ("ID_ПсевдонимРасширенный", "ID_Псевдоним"):
+            with self.subTest(identifier=identifier):
+                _assert_child_result_pair(
+                    self,
+                    function,
+                    f'Идентификатор("{identifier}")',
+                )
         self.assertNotIn("ТекущийЭлемент", function)
         self.assertNotIn("НомерВариантаПродукции", function)
 
@@ -491,25 +508,19 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         )
 
         function = _generated_function(generated.module_text, "Операнд")
-        for index, child in enumerate(
-            (
-                "Выбор",
-                "Поле",
-                "Константа",
-                "Параметр",
-                "АгрегатнаяФункция",
-                "Функция",
-            ),
-            start=1,
+        for child in (
+            "Выбор",
+            "Поле",
+            "Константа",
+            "Параметр",
+            "АгрегатнаяФункция",
+            "Функция",
         ):
             with self.subTest(child=child):
-                self.assertIn(
-                    f"Значение{index} = НеТерминал{child}();",
+                _assert_child_result_pair(
+                    self,
                     function,
-                )
-                self.assertIn(
-                    f"РезультатПродукции = Значение{index};",
-                    function,
+                    f"НеТерминал{child}()",
                 )
         self.assertNotIn("ТекущийЭлемент", function)
         self.assertNotIn("НомерВариантаПродукции", function)

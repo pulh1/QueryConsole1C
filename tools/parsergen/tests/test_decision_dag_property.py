@@ -54,6 +54,24 @@ def _leaf(outcome: CanonicalOutcome):
     return CommitAlternative(outcome)
 
 
+def _materialize_language(
+    language: SymbolicLanguage,
+) -> frozenset[tuple[str, ...]]:
+    accepted: set[tuple[str, ...]] = set()
+    pending = [(language.root, ())]
+    while pending:
+        state, prefix = pending.pop()
+        node = language.nodes[state]
+        if node.accepting:
+            accepted.add(prefix)
+        pending.extend(
+            (edge.target, prefix + (token,))
+            for edge in node.edges
+            for token in edge.predicate.token_types
+        )
+    return frozenset(accepted)
+
+
 def _first_singleton_prefix(
     materialized_select: dict[CanonicalOutcome, frozenset[tuple[str, ...]]],
     word: tuple[str, ...],
@@ -343,6 +361,17 @@ class DecisionDagPropertyTests(unittest.TestCase):
                             _leaf(item.outcome),
                         )
 
+    def test_exported_follow_saturation_equals_materialized_select(self) -> None:
+        analysis = _analysis("<S> ::= <A> Z\n<A> ::= X | Y", k=2)
+        source = build_canonical_decision_source(analysis, "A")
+
+        for item in source.languages:
+            with self.subTest(outcome=item.outcome):
+                self.assertEqual(
+                    _materialize_language(item.language),
+                    analysis.select[("A", item.outcome.alternative)],
+                )
+
     def test_serialized_shapes_match_across_python_hash_seeds(self) -> None:
         command = (
             "from tests.test_decision_dag_property import _shape_digest; "
@@ -390,6 +419,13 @@ class DecisionDagPropertyTests(unittest.TestCase):
                 item.outcome: analysis.select[("S", item.outcome.alternative)]
                 for item in source.languages
             }
+
+            for item in source.languages:
+                with self.subTest(index=index, k=k, outcome=item.outcome):
+                    self.assertEqual(
+                        _materialize_language(item.language),
+                        materialized[item.outcome],
+                    )
 
             for outcome, words in materialized.items():
                 for word in words:
