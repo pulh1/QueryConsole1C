@@ -87,7 +87,10 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "ВыражениеВсеПоля",
                 "Псевдоним",
                 "БлокИз",
+                "ИсточникДанныхЗапроса",
                 "СписокСоединений",
+                "ПраваяЧастьСоединения",
+                "ИсточникДанныхСоединения",
                 "ТипСоединения",
                 "ИсточникДанных",
                 "ПрисоединяемаяТаблица",
@@ -162,14 +165,14 @@ class MigrationAuditProductionTests(unittest.TestCase):
                 "productions": 149,
                 "alternatives": 319,
                 "epsilon_alternatives": 75,
-                "formal_parameters": 10,
-                "actual_arguments": 26,
-                "action_blocks": 21,
-                "statements": 25,
-                "constructor_statements": 5,
-                "collection_statements": 4,
-                "constant_statements": 1,
-                "structural_statements": 15,
+                "formal_parameters": 5,
+                "actual_arguments": 17,
+                "action_blocks": 7,
+                "statements": 8,
+                "constructor_statements": 1,
+                "collection_statements": 2,
+                "constant_statements": 0,
+                "structural_statements": 5,
                 "other_assignment_statements": 0,
                 "other_statements": 0,
             },
@@ -209,9 +212,9 @@ class MigrationAuditProductionTests(unittest.TestCase):
             self.report["generated"],
             {
                 "bsl_functions": 82,
-                "bsl_loc": 2200,
+                "bsl_loc": 2171,
                 "constructor_names": 79,
-                "select_rows": 261,
+                "select_rows": 137,
                 "identifier_rows": 276,
             },
         )
@@ -275,7 +278,9 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 '"ЗапросПакета", "ЗапросУничтожения", "ЗапросВыбора", "ОбъединяемыйЗапрос", "ТипОбъединенияЗапроса", '
                 '"ПоляВыборки", "ПолеВыборки", '
                 '"ВыражениеВсеПоляВыборки", "ВыражениеВсеПоля", '
-                '"Псевдоним", "БлокИз", "СписокСоединений", '
+                '"Псевдоним", "БлокИз", '
+                '"ИсточникДанныхЗапроса", "СписокСоединений", '
+                '"ПраваяЧастьСоединения", "ИсточникДанныхСоединения", '
                 '"ТипСоединения", "ИсточникДанных", '
                 '"ПрисоединяемаяТаблица", '
                     '"ИсточникДанныхТаблицаЗначений", '

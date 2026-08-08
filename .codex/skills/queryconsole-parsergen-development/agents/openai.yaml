@@ -1,0 +1,4 @@
+interface:
+  display_name: "QueryConsole parsergen"
+  short_description: "Develop and verify tools/parsergen safely"
+  default_prompt: "Use $queryconsole-parsergen-development to safely change and verify tools/parsergen."
