@@ -197,7 +197,11 @@ class CanonicalBslCodegenTests(unittest.TestCase):
             function,
         )
         self.assertIn("Иначе", function)
-        self.assertIn('ВызватьИсключениеСинтаксическаяОшибка("S")', function)
+        self.assertIn(
+            'ВызватьИсключениеСинтаксическаяОшибкаОжидаемыеТокены('
+            '"""a"", ""b""");',
+            function,
+        )
 
     def test_unique_first_token_commits_before_invalid_second_token(self) -> None:
         generated = _build("<S> ::= A X | B Y", k=2)

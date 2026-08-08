@@ -386,7 +386,13 @@ class _CanonicalBslGenerator:
 
             def render_leaf(leaf, indent: str) -> list[str]:
                 if isinstance(leaf, ImmediateError):
-                    return [self._syntax_error_line(indent, production.name)]
+                    return [
+                        self._syntax_error_line(
+                            indent,
+                            production.name,
+                            leaf.expected,
+                        )
+                    ]
                 if isinstance(leaf, ExitDecision):
                     raise ValueError("production decision must not exit")
                 assert isinstance(leaf, CommitAlternative)
@@ -706,7 +712,13 @@ class _CanonicalBslGenerator:
 
         def render_leaf(leaf, leaf_indent: str) -> list[str]:
             if isinstance(leaf, ImmediateError):
-                return [self._syntax_error_line(leaf_indent, error_label)]
+                return [
+                    self._syntax_error_line(
+                        leaf_indent,
+                        error_label,
+                        leaf.expected,
+                    )
+                ]
             if isinstance(leaf, ExitDecision):
                 raise ValueError("value dispatch must not exit")
             assert isinstance(leaf, CommitAlternative)
@@ -750,7 +762,13 @@ class _CanonicalBslGenerator:
 
         def render_leaf(leaf, leaf_indent: str) -> list[str]:
             if isinstance(leaf, ImmediateError):
-                return [self._syntax_error_line(leaf_indent, error_label)]
+                return [
+                    self._syntax_error_line(
+                        leaf_indent,
+                        error_label,
+                        leaf.expected,
+                    )
+                ]
             if isinstance(leaf, ExitDecision):
                 return [f"{leaf_indent}Прервать;"]
             assert isinstance(leaf, CommitAlternative)
@@ -805,7 +823,13 @@ class _CanonicalBslGenerator:
 
         def render_leaf(leaf, leaf_indent: str) -> list[str]:
             if isinstance(leaf, ImmediateError):
-                return [self._syntax_error_line(leaf_indent, error_label)]
+                return [
+                    self._syntax_error_line(
+                        leaf_indent,
+                        error_label,
+                        leaf.expected,
+                    )
+                ]
             if isinstance(leaf, ExitDecision):
                 raise ValueError("left-fold base decision must not exit")
             assert isinstance(leaf, CommitAlternative)
@@ -902,7 +926,13 @@ class _CanonicalBslGenerator:
 
         def render_leaf(leaf, leaf_indent: str) -> list[str]:
             if isinstance(leaf, ImmediateError):
-                return [self._syntax_error_line(leaf_indent, error_label)]
+                return [
+                    self._syntax_error_line(
+                        leaf_indent,
+                        error_label,
+                        leaf.expected,
+                    )
+                ]
             if isinstance(leaf, ExitDecision):
                 raise ValueError("dispatch must not exit")
             assert isinstance(leaf, CommitAlternative)
@@ -946,7 +976,13 @@ class _CanonicalBslGenerator:
 
         def render_leaf(leaf, leaf_indent: str) -> list[str]:
             if isinstance(leaf, ImmediateError):
-                return [self._syntax_error_line(leaf_indent, error_label)]
+                return [
+                    self._syntax_error_line(
+                        leaf_indent,
+                        error_label,
+                        leaf.expected,
+                    )
+                ]
             if isinstance(leaf, ExitDecision):
                 exit_lines, _ = self._render_operations(
                     optional.exit_operations,
@@ -1017,7 +1053,13 @@ class _CanonicalBslGenerator:
 
         def render_leaf(leaf, leaf_indent: str) -> list[str]:
             if isinstance(leaf, ImmediateError):
-                return [self._syntax_error_line(leaf_indent, error_label)]
+                return [
+                    self._syntax_error_line(
+                        leaf_indent,
+                        error_label,
+                        leaf.expected,
+                    )
+                ]
             if isinstance(leaf, ExitDecision):
                 return []
             assert isinstance(leaf, CommitAlternative)
@@ -1085,7 +1127,13 @@ class _CanonicalBslGenerator:
 
         def render_leaf(leaf, leaf_indent: str) -> list[str]:
             if isinstance(leaf, ImmediateError):
-                return [self._syntax_error_line(leaf_indent, error_label)]
+                return [
+                    self._syntax_error_line(
+                        leaf_indent,
+                        error_label,
+                        leaf.expected,
+                    )
+                ]
             if isinstance(leaf, ExitDecision):
                 return [f"{leaf_indent}{selected} = 0;"]
             assert isinstance(leaf, CommitAlternative)
@@ -1196,7 +1244,13 @@ class _CanonicalBslGenerator:
 
         def render_leaf(leaf, leaf_indent: str) -> list[str]:
             if isinstance(leaf, ImmediateError):
-                return [self._syntax_error_line(leaf_indent, error_label)]
+                return [
+                    self._syntax_error_line(
+                        leaf_indent,
+                        error_label,
+                        leaf.expected,
+                    )
+                ]
             if isinstance(leaf, ExitDecision):
                 return [f"{leaf_indent}Прервать;"]
             assert isinstance(leaf, CommitAlternative)
@@ -1247,7 +1301,34 @@ class _CanonicalBslGenerator:
         self._seen_constructors.add(key)
         self._constructors.append(name)
 
-    def _syntax_error_line(self, indent: str, label: str) -> str:
+    def _syntax_error_line(
+        self,
+        indent: str,
+        label: str,
+        expected: tuple[str, ...] = (),
+    ) -> str:
+        if len(expected) == 1:
+            token = (
+                "конец ввода"
+                if expected[0] == _END_TOKEN
+                else expected[0]
+            )
+            return (
+                f"{indent}ВызватьИсключениеСинтаксическаяОшибка("
+                f"{bsl_string(token)}, Истина);"
+            )
+        if 1 < len(expected) <= 3:
+            rendered = ", ".join(
+                "конец ввода"
+                if token == _END_TOKEN
+                else f'"{token}"'
+                for token in expected
+            )
+            return (
+                f"{indent}"
+                "ВызватьИсключениеСинтаксическаяОшибкаОжидаемыеТокены("
+                f"{bsl_string(rendered)});"
+            )
         return (
             f"{indent}ВызватьИсключениеСинтаксическаяОшибка("
             f"{bsl_string(label)});"

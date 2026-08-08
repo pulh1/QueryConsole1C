@@ -50,7 +50,11 @@ class CanonicalBslEbnfTests(unittest.TestCase):
 
         self.assertIn('ТокенРешения0 = "HEAD"', function)
         self.assertIn('ТокенРешения0 = "END"', function)
-        self.assertIn('ВызватьИсключениеСинтаксическаяОшибка("S")', function)
+        self.assertIn(
+            'ВызватьИсключениеСинтаксическаяОшибкаОжидаемыеТокены('
+            '"""END"", ""HEAD""");',
+            function,
+        )
         self.assertIn('Терминал("END")', function)
 
     def test_repeat_with_multiple_branches_dispatches_inside_loop(self) -> None:
@@ -64,6 +68,32 @@ class CanonicalBslEbnfTests(unittest.TestCase):
         self.assertIn('ТокенРешения0 = "A"', loop)
         self.assertIn('ТокенРешения0 = "B"', loop)
         self.assertIn("Прервать;", loop)
+
+    def test_immediate_error_reports_small_canonical_expected_union(self) -> None:
+        two_tokens = _function(
+            _build("<S> ::= ITEM* END").module_text,
+            "НеТерминалS",
+        )
+        three_tokens_module = _build(
+            "<S> ::= ITEM+ ELSE? END"
+        ).module_text
+        three_tokens = _function(three_tokens_module, "НеТерминалS")
+
+        self.assertIn(
+            'ВызватьИсключениеСинтаксическаяОшибкаОжидаемыеТокены('
+            '"""END"", ""ITEM""");',
+            two_tokens,
+        )
+        self.assertIn(
+            'ВызватьИсключениеСинтаксическаяОшибкаОжидаемыеТокены('
+            '"""ELSE"", ""END"", ""ITEM""");',
+            three_tokens,
+        )
+        self.assertIn(
+            "Процедура "
+            "ВызватьИсключениеСинтаксическаяОшибкаОжидаемыеТокены(",
+            three_tokens_module,
+        )
 
     def test_nested_optional_repeat_and_k3_remain_iterative(self) -> None:
         module = _build(
