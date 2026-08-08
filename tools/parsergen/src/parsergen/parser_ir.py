@@ -5,11 +5,16 @@ from dataclasses import dataclass
 
 from .analysis import (
     AnalysisResult,
-    CanonicalDecisionRow,
     MatcherDefinition,
-    build_canonical_decision_artifact,
     find_canonical_select_conflicts,
 )
+from .canonical_select import (
+    AlternativeOutcome,
+    CanonicalDecisionSource,
+    build_canonical_decision_source,
+    canonical_matcher_definitions,
+)
+from .decision_dag import CanonicalDecisionDag, build_decision_dag
 from .diagnostics import Severity, SourceSpan
 from .lowering import (
     BindingOrigin,
@@ -51,9 +56,8 @@ from .source_model import (
 
 @dataclass(frozen=True, slots=True)
 class CanonicalDecision:
-    production: str
-    rows: tuple[CanonicalDecisionRow, ...]
-    matcher_definitions: tuple[MatcherDefinition, ...]
+    source: CanonicalDecisionSource
+    dag: CanonicalDecisionDag
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,7 +92,7 @@ class ParseBranchValue:
 
 @dataclass(frozen=True, slots=True)
 class ValueBranchIr:
-    alternative: int
+    outcome: AlternativeOutcome
     value: ParseBranchValue
     source_span: SourceSpan
 
@@ -102,7 +106,7 @@ class DispatchValue:
 
 @dataclass(frozen=True, slots=True)
 class BranchIr:
-    alternative: int
+    outcome: AlternativeOutcome
     operations: tuple[Operation, ...]
     result_index: int | None
     source_span: SourceSpan
@@ -119,7 +123,6 @@ class Dispatch:
 class RepeatLoop:
     decision: CanonicalDecision
     branches: tuple[BranchIr, ...]
-    exit_alternative: int
     source_span: SourceSpan
 
 
@@ -127,7 +130,6 @@ class RepeatLoop:
 class OptionalBranch:
     decision: CanonicalDecision
     branches: tuple[BranchIr, ...]
-    exit_alternative: int
     exit_operations: tuple[Operation, ...]
     source_span: SourceSpan
 
@@ -139,7 +141,6 @@ class WrapOptional:
     seed: Operation
     decision: CanonicalDecision
     branches: tuple[BranchIr, ...]
-    exit_alternative: int
     source_span: SourceSpan
 
 
@@ -149,7 +150,6 @@ class LeftFold:
     base_branches: tuple[BranchIr, ...]
     recursive_decision: CanonicalDecision
     recursive_branches: tuple[BranchIr, ...]
-    exit_alternative: int
     source_span: SourceSpan
 
 
@@ -268,6 +268,7 @@ class ParserIr:
     matcher_definitions: tuple[MatcherDefinition, ...]
     lookahead: int
     source_grammar: SourceGrammar
+    entrypoint_productions: frozenset[str]
 
 
 def build_parser_ir(
@@ -277,6 +278,7 @@ def build_parser_ir(
     analysis: AnalysisResult,
     *,
     production_names: Collection[str] | None = None,
+    entrypoint_productions: Collection[str] | None = None,
 ) -> ParserIr:
     if any(
         item.severity is Severity.ERROR
@@ -302,14 +304,17 @@ def build_parser_ir(
     )
     if conflicts:
         raise ValueError("overlapping canonical SELECT prevents Parser IR")
-    artifact = build_canonical_decision_artifact(analysis)
+    protected_entrypoints = frozenset(
+        selected_names
+        if entrypoint_productions is None
+        else entrypoint_productions
+    )
     return _ParserIrBuilder(
         source,
         lowering,
-        artifact.rows,
-        artifact.matcher_definitions,
-        analysis.k,
+        analysis,
         frozenset(selected_names),
+        protected_entrypoints,
     ).build()
 
 
@@ -353,17 +358,20 @@ class _ParserIrBuilder:
         self,
         source: SourceGrammar,
         lowering: LoweringResult,
-        rows: tuple[CanonicalDecisionRow, ...],
-        matcher_definitions: tuple[MatcherDefinition, ...],
-        lookahead: int,
+        analysis: AnalysisResult,
         selected_names: frozenset[str],
+        entrypoint_productions: frozenset[str],
     ) -> None:
         self._source = source
         self._lowering = lowering
-        self._rows = rows
-        self._matcher_definitions = matcher_definitions
-        self._lookahead = lookahead
+        self._analysis = analysis
+        self._matcher_definitions = canonical_matcher_definitions(analysis)
+        self._lookahead = analysis.k
         self._selected_names = selected_names
+        self._entrypoint_productions = entrypoint_productions
+        self._decisions: dict[
+            tuple[str, int | None], CanonicalDecision
+        ] = {}
         self._lowered_left_recursions = {
             item.production: item
             for item in lowering.left_recursions
@@ -381,6 +389,7 @@ class _ParserIrBuilder:
             self._matcher_definitions,
             self._lookahead,
             self._source,
+            self._entrypoint_productions,
         )
 
     def _production(self, production: SourceProduction) -> ProductionIr:
@@ -427,6 +436,7 @@ class _ParserIrBuilder:
 
         base_branches = tuple(
             self._source_branch(
+                production.name,
                 production.alternatives[source_index],
                 canonical_index + 1,
             )
@@ -443,6 +453,7 @@ class _ParserIrBuilder:
                 production,
                 production.alternatives[source_index],
                 recursive_by_index[source_index],
+                lowered.tail_production,
                 canonical_index + 1,
             )
             for canonical_index, source_index in enumerate(
@@ -456,9 +467,11 @@ class _ParserIrBuilder:
                 else None
             ),
             base_branches,
-            self._decision(lowered.tail_production),
+            self._decision(
+                lowered.tail_production,
+                exit_alternative=len(recursive_branches) + 1,
+            ),
             recursive_branches,
-            len(recursive_branches) + 1,
             production.span,
         )
         alternative = AlternativeIr(
@@ -477,12 +490,13 @@ class _ParserIrBuilder:
 
     def _source_branch(
         self,
+        decision_production: str,
         alternative: SourceAlternative,
         canonical_alternative: int,
     ) -> BranchIr:
         operations = self._sequence(alternative.body)
         return BranchIr(
-            canonical_alternative,
+            AlternativeOutcome(decision_production, canonical_alternative),
             operations,
             self._result_index(operations),
             alternative.span,
@@ -493,6 +507,7 @@ class _ParserIrBuilder:
         production: SourceProduction,
         alternative: SourceAlternative,
         recursive: DirectRecursiveAlternative,
+        decision_production: str,
         canonical_alternative: int,
     ) -> BranchIr:
         operations = list(self._sequence(alternative.body))
@@ -541,7 +556,7 @@ class _ParserIrBuilder:
             )
         result = tuple(operations)
         return BranchIr(
-            canonical_alternative,
+            AlternativeOutcome(decision_production, canonical_alternative),
             result,
             self._result_index(result),
             alternative.span,
@@ -609,11 +624,11 @@ class _ParserIrBuilder:
                 else:
                     result.extend(self._binding(item))
             elif isinstance(item, SourceGroup):
-                branches = self._group_branches(item)
                 construct = self._construct(
                     item.span,
                     LoweredConstructKind.GROUP,
                 )
+                branches = self._group_branches(item, construct.production)
                 result.append(
                     Dispatch(
                         self._decision(construct.production),
@@ -628,12 +643,22 @@ class _ParserIrBuilder:
                     item.span,
                     LoweredConstructKind.OPTIONAL,
                 )
-                branches = self._primary_branches(item.body)
+                exit_alternative = len(
+                    item.body.alternatives
+                    if isinstance(item.body, SourceGroup)
+                    else (item.body,)
+                ) + 1
+                branches = self._primary_branches(
+                    item.body,
+                    construct.production,
+                )
                 result.append(
                     OptionalBranch(
-                        self._decision(construct.production),
+                        self._decision(
+                            construct.production,
+                            exit_alternative=exit_alternative,
+                        ),
                         branches,
-                        len(branches) + 1,
                         (),
                         item.span,
                     )
@@ -656,7 +681,15 @@ class _ParserIrBuilder:
             optional.span,
             LoweredConstructKind.OPTIONAL,
         )
-        branches = self._primary_branches(optional.body)
+        exit_alternative = len(
+            optional.body.alternatives
+            if isinstance(optional.body, SourceGroup)
+            else (optional.body,)
+        ) + 1
+        branches = self._primary_branches(
+            optional.body,
+            construct.production,
+        )
         if not all(branch.result_index is not None for branch in branches):
             raise ValueError(
                 "returned-child decorator must produce a semantic child"
@@ -665,9 +698,11 @@ class _ParserIrBuilder:
             binding.property,
             binding.mode is BindingMode.WRAP_PREPEND,
             seed,
-            self._decision(construct.production),
+            self._decision(
+                construct.production,
+                exit_alternative=exit_alternative,
+            ),
             branches,
-            len(branches) + 1,
             binding.span,
         )
 
@@ -698,12 +733,22 @@ class _ParserIrBuilder:
                     optional.span,
                     LoweredConstructKind.OPTIONAL,
                 )
-                branches = self._discard_primary_branches(optional.body)
+                exit_alternative = len(
+                    optional.body.alternatives
+                    if isinstance(optional.body, SourceGroup)
+                    else (optional.body,)
+                ) + 1
+                branches = self._discard_primary_branches(
+                    optional.body,
+                    construct.production,
+                )
                 return (
                     OptionalBranch(
-                        self._decision(construct.production),
+                        self._decision(
+                            construct.production,
+                            exit_alternative=exit_alternative,
+                        ),
                         branches,
-                        len(branches) + 1,
                         (),
                         optional.span,
                     ),
@@ -718,7 +763,10 @@ class _ParserIrBuilder:
                 return (
                     Dispatch(
                         self._decision(construct.production),
-                        self._discard_primary_branches(binding.value),
+                        self._discard_primary_branches(
+                            binding.value,
+                            construct.production,
+                        ),
                         binding.value.span,
                     ),
                 )
@@ -729,7 +777,16 @@ class _ParserIrBuilder:
                 optional.span,
                 LoweredConstructKind.OPTIONAL,
             )
-            branches = self._bound_primary_branches(optional.body, binding)
+            exit_alternative = len(
+                optional.body.alternatives
+                if isinstance(optional.body, SourceGroup)
+                else (optional.body,)
+            ) + 1
+            branches = self._bound_primary_branches(
+                optional.body,
+                binding,
+                construct.production,
+            )
             exit_operations: tuple[Operation, ...] = ()
             if binding.mode is BindingMode.SCALAR:
                 exit_operations = (
@@ -741,9 +798,11 @@ class _ParserIrBuilder:
                 )
             return (
                 OptionalBranch(
-                    self._decision(construct.production),
+                    self._decision(
+                        construct.production,
+                        exit_alternative=exit_alternative,
+                    ),
                     branches,
-                    len(branches) + 1,
                     exit_operations,
                     optional.span,
                 ),
@@ -769,9 +828,13 @@ class _ParserIrBuilder:
         )
         construct = self._construct(repeat.span, kind)
         branches = (
-            self._bound_primary_branches(repeat.body, binding)
+            self._bound_primary_branches(
+                repeat.body,
+                binding,
+                construct.production,
+            )
             if binding is not None
-            else self._primary_branches(repeat.body)
+            else self._primary_branches(repeat.body, construct.production)
         )
         if binding is None and any(
             branch.result_index is not None
@@ -795,11 +858,25 @@ class _ParserIrBuilder:
                 )
             assert construct.tail_production is not None
             decision_production = construct.tail_production
+            branches = tuple(
+                BranchIr(
+                    AlternativeOutcome(
+                        decision_production,
+                        branch.outcome.alternative,
+                    ),
+                    branch.operations,
+                    branch.result_index,
+                    branch.source_span,
+                )
+                for branch in branches
+            )
         result.append(
             RepeatLoop(
-                self._decision(decision_production),
+                self._decision(
+                    decision_production,
+                    exit_alternative=len(branches) + 1,
+                ),
                 branches,
-                len(branches) + 1,
                 repeat.span,
             )
         )
@@ -809,13 +886,20 @@ class _ParserIrBuilder:
         self,
         primary: SourcePrimary,
         binding: SourceBinding,
+        decision_production: str,
     ) -> tuple[BranchIr, ...]:
         if binding.mode is BindingMode.DISCARD:
-            return self._discard_primary_branches(primary)
+            return self._discard_primary_branches(
+                primary,
+                decision_production,
+            )
         if isinstance(primary, SourceGroup):
             return tuple(
                 BranchIr(
-                    alternative.index + 1,
+                    AlternativeOutcome(
+                        decision_production,
+                        alternative.index + 1,
+                    ),
                     (
                         self._binding_operation(
                             binding,
@@ -829,7 +913,7 @@ class _ParserIrBuilder:
             )
         return (
             BranchIr(
-                1,
+                AlternativeOutcome(decision_production, 1),
                 (
                     self._binding_operation(
                         binding,
@@ -844,11 +928,15 @@ class _ParserIrBuilder:
     def _discard_primary_branches(
         self,
         primary: SourcePrimary,
+        decision_production: str,
     ) -> tuple[BranchIr, ...]:
         if isinstance(primary, SourceGroup):
             return tuple(
                 BranchIr(
-                    alternative.index + 1,
+                    AlternativeOutcome(
+                        decision_production,
+                        alternative.index + 1,
+                    ),
                     self._sequence(alternative.body),
                     None,
                     alternative.span,
@@ -857,7 +945,7 @@ class _ParserIrBuilder:
             )
         return (
             BranchIr(
-                1,
+                AlternativeOutcome(decision_production, 1),
                 (DiscardSymbol(primary, primary.span),),
                 None,
                 primary.span,
@@ -874,7 +962,10 @@ class _ParserIrBuilder:
                 self._decision(construct.production),
                 tuple(
                     ValueBranchIr(
-                        alternative.index + 1,
+                        AlternativeOutcome(
+                            construct.production,
+                            alternative.index + 1,
+                        ),
                         self._branch_value(alternative),
                         alternative.span,
                     )
@@ -937,20 +1028,26 @@ class _ParserIrBuilder:
             operation = BindScalar
         return operation(binding.property, value, origin.source_span)
 
-    def _group_branches(self, group: SourceGroup) -> tuple[BranchIr, ...]:
+    def _group_branches(
+        self,
+        group: SourceGroup,
+        decision_production: str,
+    ) -> tuple[BranchIr, ...]:
         return tuple(
-            self._alternative_branch(alternative)
+            self._alternative_branch(alternative, decision_production)
             for alternative in group.alternatives
         )
 
     def _primary_branches(
         self,
         primary: SourcePrimary,
+        decision_production: str,
     ) -> tuple[BranchIr, ...]:
         if isinstance(primary, SourceGroup):
-            return self._group_branches(primary)
+            return self._group_branches(primary, decision_production)
         return (
             self._branch_ir(
+                decision_production,
                 1,
                 (ParseSymbol(primary, primary.span),),
                 primary.span,
@@ -960,9 +1057,11 @@ class _ParserIrBuilder:
     def _alternative_branch(
         self,
         alternative: SourceAlternative,
+        decision_production: str,
     ) -> BranchIr:
         operations = self._sequence(alternative.body)
         return self._branch_ir(
+            decision_production,
             alternative.index + 1,
             operations,
             alternative.span,
@@ -970,12 +1069,13 @@ class _ParserIrBuilder:
 
     def _branch_ir(
         self,
+        decision_production: str,
         alternative: int,
         operations: tuple[Operation, ...],
         source_span: SourceSpan,
     ) -> BranchIr:
         return BranchIr(
-            alternative,
+            AlternativeOutcome(decision_production, alternative),
             operations,
             self._result_index(operations),
             source_span,
@@ -1044,14 +1144,24 @@ class _ParserIrBuilder:
             )
         return matches[0]
 
-    def _decision(self, production: str) -> CanonicalDecision:
-        return CanonicalDecision(
+    def _decision(
+        self,
+        production: str,
+        *,
+        exit_alternative: int | None = None,
+    ) -> CanonicalDecision:
+        key = (production, exit_alternative)
+        cached = self._decisions.get(key)
+        if cached is not None:
+            return cached
+        source = build_canonical_decision_source(
+            self._analysis,
             production,
-            tuple(
-                row for row in self._rows if row.production == production
-            ),
-            self._matcher_definitions,
+            exit_alternative=exit_alternative,
         )
+        decision = CanonicalDecision(source, build_decision_dag(source))
+        self._decisions[key] = decision
+        return decision
 
 
 def _produces_transparent_value(operation: Operation) -> bool:

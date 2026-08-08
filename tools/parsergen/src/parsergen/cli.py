@@ -111,6 +111,7 @@ def generate_from_compilation(
         compilation.resolved,
         compilation.analysis,
         production_names=config.canonical_productions,
+        entrypoint_productions=config.entrypoints.values(),
     )
     return generate_hybrid_parser(
         compilation.source_grammar,

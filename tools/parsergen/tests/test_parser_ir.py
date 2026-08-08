@@ -1,6 +1,9 @@
 import unittest
+from unittest.mock import patch
 
 from parsergen.analysis import compute_analysis
+from parsergen.canonical_select import AlternativeOutcome
+from parsergen.decision_dag import ExitDecision, LookaheadDecision
 from parsergen.grammar_parser import parse_grammar
 from parsergen.parser_ir import (
     Dispatch,
@@ -110,6 +113,10 @@ class ParserIrTests(unittest.TestCase):
         self.assertEqual(
             tuple(item.name for item in parser_ir.productions),
             ("Expr",),
+        )
+        self.assertEqual(
+            parser_ir.entrypoint_productions,
+            frozenset({"Expr"}),
         )
 
     def test_projection_ignores_conflict_owned_by_legacy_island(self) -> None:
@@ -285,9 +292,14 @@ class ParserIrTests(unittest.TestCase):
             [item.symbol.text for item in loop.branches[0].operations],
             [",", "a"],
         )
-        self.assertTrue(loop.decision.production.startswith("__parsergen_ebnf__"))
+        self.assertTrue(
+            loop.decision.source.production.startswith("__parsergen_ebnf__")
+        )
         self.assertEqual(
-            {row.alternative for row in loop.decision.rows},
+            {
+                item.outcome.alternative
+                for item in loop.decision.source.languages
+            },
             {1, 2},
         )
         self.assertFalse(
@@ -325,23 +337,35 @@ class ParserIrTests(unittest.TestCase):
         self.assertEqual([type(item) for item in operations], [Dispatch, ParseSymbol])
         self.assertEqual(len(operations[0].branches), 2)
 
-    def test_canonical_decision_keeps_identifier_matcher_factorized(self) -> None:
-        parser_ir = _build("#ID_A ::= ID | WORD\n<S> ::= #ID_A?")
+    def test_canonical_decision_is_symbolic_and_does_not_materialize_rows(
+        self,
+    ) -> None:
+        with patch(
+            "parsergen.parser_ir.build_canonical_decision_artifact",
+            side_effect=AssertionError("rows are forbidden"),
+            create=True,
+        ):
+            parser_ir = _build("#ID_A ::= ID | WORD\n<S> ::= #ID_A?")
 
         optional = parser_ir.productions[0].alternatives[0].operations[0]
+        self.assertIsInstance(optional, OptionalBranch)
         assert isinstance(optional, OptionalBranch)
-        consuming = [
-            row
-            for row in optional.decision.rows
-            if row.alternative == 1
-        ]
-        self.assertEqual(len(consuming), 1)
-        matcher = next(
-            definition
-            for definition in optional.decision.matcher_definitions
-            if definition.label == consuming[0].matchers[0]
+        self.assertIsInstance(
+            optional.decision.dag.nodes[optional.decision.dag.root],
+            LookaheadDecision,
         )
-        self.assertEqual(matcher.token_types, ("ID", "WORD"))
+        self.assertTrue(
+            any(
+                isinstance(node, ExitDecision)
+                for node in optional.decision.dag.nodes
+            )
+        )
+        self.assertTrue(
+            all(
+                isinstance(branch.outcome, AlternativeOutcome)
+                for branch in optional.branches
+            )
+        )
 
     def test_conflicting_select_prevents_parser_ir_build(self) -> None:
         parsed = parse_grammar("<S> ::= 'a'* 'a'")

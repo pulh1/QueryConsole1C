@@ -1,6 +1,7 @@
 import unittest
 
 from parsergen.analysis import compute_analysis
+from parsergen.decision_dag import ExitDecision
 from parsergen.grammar_parser import parse_grammar
 from parsergen.parser_ir import (
     AppendCollection,
@@ -112,7 +113,12 @@ class BindingParserIrTests(unittest.TestCase):
         append = loop.branches[0].operations[1]
         self.assertEqual(append.property, "Элементы")
         self.assertIsInstance(append.value, ParseSymbol)
-        self.assertEqual(loop.exit_alternative, 2)
+        self.assertTrue(
+            any(
+                isinstance(node, ExitDecision)
+                for node in loop.decision.dag.nodes
+            )
+        )
 
     def test_explicit_binding_makes_other_repeat_calls_syntax_only(self) -> None:
         parser_ir = _build(

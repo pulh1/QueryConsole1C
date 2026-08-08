@@ -2,6 +2,7 @@ from dataclasses import replace
 import unittest
 
 from parsergen.analysis import compute_analysis
+from parsergen.decision_dag import ExitDecision
 from parsergen.grammar_parser import parse_grammar
 from parsergen.parser_ir import (
     BindScalar,
@@ -56,11 +57,11 @@ class LeftFoldParserIrTests(unittest.TestCase):
         fold = _expr_fold(parser_ir)
         self.assertIsNone(fold.base_decision)
         self.assertEqual(len(fold.base_branches), 1)
-        self.assertEqual(fold.base_branches[0].alternative, 1)
+        self.assertEqual(fold.base_branches[0].outcome.alternative, 1)
         self.assertEqual(fold.base_branches[0].result_index, 0)
         self.assertEqual(len(fold.recursive_branches), 1)
         recursive = fold.recursive_branches[0]
-        self.assertEqual(recursive.alternative, 1)
+        self.assertEqual(recursive.outcome.alternative, 1)
         self.assertFalse(
             any(
                 isinstance(operation, ParseSymbol)
@@ -68,10 +69,18 @@ class LeftFoldParserIrTests(unittest.TestCase):
                 for operation in recursive.operations
             )
         )
-        self.assertEqual(fold.exit_alternative, 2)
-        self.assertIn("left_fold_tail", fold.recursive_decision.production)
+        self.assertTrue(
+            any(
+                isinstance(node, ExitDecision)
+                for node in fold.recursive_decision.dag.nodes
+            )
+        )
+        self.assertIn(
+            "left_fold_tail",
+            fold.recursive_decision.source.production,
+        )
         self.assertNotIn(
-            fold.recursive_decision.production,
+            fold.recursive_decision.source.production,
             [item.name for item in parser_ir.productions],
         )
 
@@ -110,16 +119,24 @@ class LeftFoldParserIrTests(unittest.TestCase):
 
         self.assertIsNotNone(fold.base_decision)
         assert fold.base_decision is not None
-        self.assertEqual(fold.base_decision.production, "Expr")
+        self.assertEqual(fold.base_decision.source.production, "Expr")
         self.assertEqual(
-            tuple(branch.alternative for branch in fold.base_branches),
+            tuple(branch.outcome.alternative for branch in fold.base_branches),
             (1, 2),
         )
         self.assertEqual(
-            tuple(branch.alternative for branch in fold.recursive_branches),
+            tuple(
+                branch.outcome.alternative
+                for branch in fold.recursive_branches
+            ),
             (1, 2),
         )
-        self.assertEqual(fold.exit_alternative, 3)
+        self.assertTrue(
+            any(
+                isinstance(node, ExitDecision)
+                for node in fold.recursive_decision.dag.nodes
+            )
+        )
 
     def test_recognition_only_terminal_base_may_have_no_semantic_result(
         self,
