@@ -34,6 +34,17 @@ def _build(source: str, k: int = 1):
 
 
 class ParserIrTests(unittest.TestCase):
+    def test_collection_decorator_marks_optional_wrap_as_append(self) -> None:
+        parser_ir = _build(
+            "<S> ::= <Base> Элементы +=> <Postfix>?\n"
+            "<Base> ::= @НовыйБаза BASE\n"
+            "<Postfix> ::= @НовыйPostfix POSTFIX"
+        )
+
+        operation = parser_ir.productions[0].alternatives[0].operations[0]
+        self.assertIsInstance(operation, WrapOptional)
+        self.assertTrue(operation.prepend)
+
     def test_optional_returned_child_decorator_is_one_semantic_operation(
         self,
     ) -> None:

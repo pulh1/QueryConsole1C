@@ -47,6 +47,20 @@ def _function(module: str, name: str) -> str:
 
 
 class CanonicalBslCodegenTests(unittest.TestCase):
+    def test_optional_collection_decorator_appends_seed_and_returns_wrapper(
+        self,
+    ) -> None:
+        generated = _build(
+            "<S> ::= ('(' <Base> ')') Элементы +=> <Postfix>?\n"
+            "<Base> ::= @НовыйБаза BASE\n"
+            "<Postfix> ::= @НовыйPostfix POSTFIX"
+        )
+
+        function = _function(generated.module_text, "НеТерминалS")
+        self.assertIn(".Элементы.Вставить(0, ", function)
+        self.assertNotIn(".Элементы = ", function)
+        self.assertIn("РезультатПродукции = Значение", function)
+
     def test_optional_returned_child_decorator_wraps_and_returns_seed(self) -> None:
         generated = _build(
             "<S> ::= <Base> Операнд => <Postfix>?\n"
@@ -164,6 +178,27 @@ class CanonicalBslCodegenTests(unittest.TestCase):
         )
         self.assertIn("Иначе", function)
         self.assertIn('ВызватьИсключениеСинтаксическаяОшибка("S")', function)
+
+    def test_unique_first_token_commits_before_invalid_second_token(self) -> None:
+        generated = _build("<S> ::= A X | B Y", k=2)
+
+        function = _function(generated.module_text, "НеТерминалS")
+        self.assertIn(
+            'Если (ТипТокенаПросмотра(0) = "A") Тогда',
+            function,
+        )
+        self.assertIn(
+            'ИначеЕсли (ТипТокенаПросмотра(0) = "B") Тогда',
+            function,
+        )
+        self.assertNotIn(
+            'ТипТокенаПросмотра(1) = "X"',
+            function,
+        )
+        self.assertNotIn(
+            'ТипТокенаПросмотра(1) = "Y"',
+            function,
+        )
 
     def test_returns_explicit_transparent_or_syntax_only_result(self) -> None:
         transparent = _build(

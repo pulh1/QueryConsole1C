@@ -135,6 +135,7 @@ class OptionalBranch:
 @dataclass(frozen=True, slots=True)
 class WrapOptional:
     property: str
+    prepend: bool
     seed: Operation
     decision: CanonicalDecision
     branches: tuple[BranchIr, ...]
@@ -164,6 +165,7 @@ BoundValue = (
 @dataclass(frozen=True, slots=True)
 class WrapValue:
     property: str
+    prepend: bool
     seed: Operation
     value: BoundValue
     source_span: SourceSpan
@@ -591,7 +593,10 @@ class _ParserIrBuilder:
                         )
                     )
             elif isinstance(item, SourceBinding):
-                if item.mode is BindingMode.WRAP:
+                if item.mode in (
+                    BindingMode.WRAP,
+                    BindingMode.WRAP_PREPEND,
+                ):
                     if not result or not _produces_transparent_value(result[-1]):
                         raise ValueError(
                             "returned-child decorator has no semantic seed"
@@ -658,6 +663,7 @@ class _ParserIrBuilder:
             )
         return WrapOptional(
             binding.property,
+            binding.mode is BindingMode.WRAP_PREPEND,
             seed,
             self._decision(construct.production),
             branches,
@@ -676,6 +682,7 @@ class _ParserIrBuilder:
             raise ValueError("returned-child decorator requires a property")
         return WrapValue(
             binding.property,
+            binding.mode is BindingMode.WRAP_PREPEND,
             seed,
             self._bound_value(binding.value),
             binding.span,
@@ -1078,4 +1085,6 @@ def _binding_origin_kind(mode: BindingMode) -> BindingOriginKind:
         return BindingOriginKind.DISCARD
     if mode is BindingMode.WRAP:
         return BindingOriginKind.WRAP
+    if mode is BindingMode.WRAP_PREPEND:
+        return BindingOriginKind.WRAP_PREPEND
     return BindingOriginKind.SCALAR

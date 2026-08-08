@@ -12,9 +12,26 @@ def _validate(source: str):
 
 
 class BindingValidationTests(unittest.TestCase):
+    def test_accepts_collection_returned_child_decorator(self) -> None:
+        report = _validate(
+            "<S> ::= ('(' <Base> ')') Элементы +=> <Postfix>?\n"
+            "<Base> ::= @НовыйБаза BASE\n"
+            "<Postfix> ::= @НовыйPostfix POSTFIX"
+        )
+
+        self.assertEqual(report.diagnostics, ())
+
     def test_accepts_scalar_choice_of_terminal_values(self) -> None:
         report = _validate(
             "<S> ::= @НовыйУзел Операция = ('=' | '<>' | '>=')"
+        )
+
+        self.assertEqual(report.diagnostics, ())
+
+    def test_scalar_group_ignores_separator_after_semantic_child(self) -> None:
+        report = _validate(
+            "<S> ::= @НовыйУзел Значение = (<A> ',' | <B> ';')\n"
+            "<A> ::= @НовыйA A\n<B> ::= @НовыйB B"
         )
 
         self.assertEqual(report.diagnostics, ())

@@ -339,7 +339,7 @@ class _CanonicalBslGenerator:
         else:
             for position, alternative in enumerate(production.alternatives):
                 keyword = "Если" if position == 0 else "ИначеЕсли"
-                condition = self._conditions.for_alternative(
+                condition = self._conditions.for_alternative_with_unique_first(
                     production.decision,
                     alternative.index + 1,
                 )
@@ -651,7 +651,7 @@ class _CanonicalBslGenerator:
         result: str | None = None
         for position, branch in enumerate(dispatch.branches):
             keyword = "Если" if position == 0 else "ИначеЕсли"
-            condition = self._conditions.for_alternative(
+            condition = self._conditions.for_alternative_with_unique_first(
                 dispatch.decision,
                 branch.alternative,
             )
@@ -693,7 +693,7 @@ class _CanonicalBslGenerator:
             branch.alternative
             for branch in fold.recursive_branches
         )
-        consume_condition = self._conditions.for_alternatives(
+        consume_condition = self._conditions.for_alternatives_with_unique_first(
             fold.recursive_decision,
             alternatives,
         )
@@ -714,7 +714,7 @@ class _CanonicalBslGenerator:
                     fold.recursive_branches
                 ):
                     keyword = "Если" if position == 0 else "ИначеЕсли"
-                    condition = self._conditions.for_alternative(
+                    condition = self._conditions.for_alternative_with_unique_first(
                         fold.recursive_decision,
                         branch.alternative,
                     )
@@ -742,17 +742,6 @@ class _CanonicalBslGenerator:
         finally:
             self._fold_left_values.pop()
         lines.append(f"{indent}КонецЦикла;")
-        exit_condition = self._conditions.for_alternative(
-            fold.recursive_decision,
-            fold.exit_alternative,
-        )
-        lines.extend(
-            (
-                f"{indent}Если Не {exit_condition} Тогда",
-                self._syntax_error_line(indent + "\t", error_label),
-                f"{indent}КонецЕсли;",
-            )
-        )
         return lines, accumulator
 
     def _render_left_fold_base(
@@ -777,7 +766,7 @@ class _CanonicalBslGenerator:
         lines: list[str] = []
         for position, branch in enumerate(fold.base_branches):
             keyword = "Если" if position == 0 else "ИначеЕсли"
-            condition = self._conditions.for_alternative(
+            condition = self._conditions.for_alternative_with_unique_first(
                 fold.base_decision,
                 branch.alternative,
             )
@@ -872,7 +861,7 @@ class _CanonicalBslGenerator:
         lines: list[str] = []
         for position, branch in enumerate(dispatch.branches):
             keyword = "Если" if position == 0 else "ИначеЕсли"
-            condition = self._conditions.for_alternative(
+            condition = self._conditions.for_alternative_with_unique_first(
                 dispatch.decision,
                 branch.alternative,
             )
@@ -911,7 +900,7 @@ class _CanonicalBslGenerator:
         lines: list[str] = []
         for position, branch in enumerate(optional.branches):
             keyword = "Если" if position == 0 else "ИначеЕсли"
-            condition = self._conditions.for_alternative(
+            condition = self._conditions.for_alternative_with_unique_first(
                 optional.decision,
                 branch.alternative,
             )
@@ -931,26 +920,17 @@ class _CanonicalBslGenerator:
                 if value is None:
                     raise ValueError("optional branch result has no value")
                 lines.append(f"{indent}\t{result} = {value};")
-        exit_condition = self._conditions.for_alternative(
-            optional.decision,
-            optional.exit_alternative,
-        )
-        lines.append(f"{indent}ИначеЕсли {exit_condition} Тогда")
-        exit_lines, _ = self._render_operations(
-            optional.exit_operations,
-            indent + "\t",
-            error_label,
-        )
-        lines.extend(exit_lines)
-        if result is not None:
-            lines.append(f"{indent}\t{result} = Неопределено;")
-        lines.extend(
-            (
-                f"{indent}Иначе",
-                self._syntax_error_line(indent + "\t", error_label),
-                f"{indent}КонецЕсли;",
+        if optional.exit_operations or result is not None:
+            lines.append(f"{indent}Иначе")
+            exit_lines, _ = self._render_operations(
+                optional.exit_operations,
+                indent + "\t",
+                error_label,
             )
-        )
+            lines.extend(exit_lines)
+            if result is not None:
+                lines.append(f"{indent}\t{result} = Неопределено;")
+        lines.append(f"{indent}КонецЕсли;")
         return lines, result
 
     def _render_wrap_optional(
@@ -971,7 +951,7 @@ class _CanonicalBslGenerator:
         validate_bsl_member_name(optional.property, "wrapped property")
         for position, branch in enumerate(optional.branches):
             keyword = "Если" if position == 0 else "ИначеЕсли"
-            condition = self._conditions.for_alternative(
+            condition = self._conditions.for_alternative_with_unique_first(
                 optional.decision,
                 branch.alternative,
             )
@@ -991,22 +971,15 @@ class _CanonicalBslGenerator:
                 )
             lines.extend(
                 (
-                    f"{indent}\t{wrapped}.{optional.property} = {accumulator};",
+                    (
+                        f"{indent}\t{wrapped}.{optional.property}.Вставить(0, {accumulator});"
+                        if optional.prepend
+                        else f"{indent}\t{wrapped}.{optional.property} = {accumulator};"
+                    ),
                     f"{indent}\t{accumulator} = {wrapped};",
                 )
             )
-        exit_condition = self._conditions.for_alternative(
-            optional.decision,
-            optional.exit_alternative,
-        )
-        lines.extend(
-            (
-                f"{indent}ИначеЕсли {exit_condition} Тогда",
-                f"{indent}Иначе",
-                self._syntax_error_line(indent + "\t", error_label),
-                f"{indent}КонецЕсли;",
-            )
-        )
+        lines.append(f"{indent}КонецЕсли;")
         return lines, accumulator
 
     def _render_wrap_value(
@@ -1028,11 +1001,16 @@ class _CanonicalBslGenerator:
             error_label,
         )
         validate_bsl_member_name(wrapped.property, "wrapped property")
+        binding = (
+            f"{child_value}.{wrapped.property}.Вставить(0, {seed_value});"
+            if wrapped.prepend
+            else f"{child_value}.{wrapped.property} = {seed_value};"
+        )
         return (
             [
                 *seed_lines,
                 *child_lines,
-                f"{indent}{child_value}.{wrapped.property} = {seed_value};",
+                f"{indent}{binding}",
             ],
             child_value,
         )
@@ -1047,7 +1025,7 @@ class _CanonicalBslGenerator:
             branch.alternative
             for branch in repeat.branches
         )
-        consume_condition = self._conditions.for_alternatives(
+        consume_condition = self._conditions.for_alternatives_with_unique_first(
             repeat.decision,
             alternatives,
         )
@@ -1062,7 +1040,7 @@ class _CanonicalBslGenerator:
         else:
             for position, branch in enumerate(repeat.branches):
                 keyword = "Если" if position == 0 else "ИначеЕсли"
-                condition = self._conditions.for_alternative(
+                condition = self._conditions.for_alternative_with_unique_first(
                     repeat.decision,
                     branch.alternative,
                 )
@@ -1083,17 +1061,6 @@ class _CanonicalBslGenerator:
                 )
             )
         lines.append(f"{indent}КонецЦикла;")
-        exit_condition = self._conditions.for_alternative(
-            repeat.decision,
-            repeat.exit_alternative,
-        )
-        lines.extend(
-            (
-                f"{indent}Если Не {exit_condition} Тогда",
-                self._syntax_error_line(indent + "\t", error_label),
-                f"{indent}КонецЕсли;",
-            )
-        )
         return lines, None
 
     def _branch_result_temporary(

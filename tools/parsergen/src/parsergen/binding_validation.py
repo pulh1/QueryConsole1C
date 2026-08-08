@@ -81,7 +81,7 @@ class _BindingValidator:
             item
             for item in bindings
             if isinstance(item, SourceBinding)
-            and item.mode is BindingMode.WRAP
+            and item.mode in (BindingMode.WRAP, BindingMode.WRAP_PREPEND)
         )
         node_bindings = tuple(
             item
@@ -161,7 +161,11 @@ class _BindingValidator:
                 if isinstance(binding, SourceBinding)
                 else BindingMode.SCALAR
             )
-            if mode not in (BindingMode.DISCARD, BindingMode.WRAP):
+            if mode not in (
+                BindingMode.DISCARD,
+                BindingMode.WRAP,
+                BindingMode.WRAP_PREPEND,
+            ):
                 modes.setdefault(binding.property, set()).add(mode)
             if (
                 binding.property is not None
@@ -493,13 +497,15 @@ def _cardinality(value: SourceValue) -> BindingCardinality:
 def _sequence_value_cardinality(
     sequence: SourceSequence,
 ) -> BindingCardinality:
-    semantic = [
+    semantic_children = [
         item
         for item in sequence.items
-        if isinstance(
-            item,
-            (NonterminalCall, IdentifierRef, Constant, Terminal, Lexeme),
-        )
+        if isinstance(item, (NonterminalCall, IdentifierRef, Constant))
+    ]
+    semantic = semantic_children or [
+        item
+        for item in sequence.items
+        if isinstance(item, (Terminal, Lexeme))
     ]
     count = len(semantic)
     return BindingCardinality(count, count)

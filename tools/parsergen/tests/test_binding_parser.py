@@ -14,6 +14,20 @@ from parsergen.source_model import (
 
 
 class BindingParserTests(unittest.TestCase):
+    def test_parses_collection_returned_child_decorator(self) -> None:
+        result = parse_source_grammar(
+            "<S> ::= <Base> Элементы +=> <Postfix>?\n"
+            "<Base> ::= BASE\n<Postfix> ::= POSTFIX"
+        )
+
+        self.assertEqual(result.diagnostics, ())
+        assert result.grammar is not None
+        binding = result.grammar.productions[0].alternatives[0].body.items[1]
+        self.assertIsInstance(binding, SourceBinding)
+        self.assertIs(binding.mode, BindingMode.WRAP_PREPEND)
+        self.assertEqual(binding.property, "Элементы")
+        self.assertIsInstance(binding.value, SourceOptional)
+
     def test_parses_constructor_and_scalar_nonterminal_binding(self) -> None:
         result = parse_source_grammar(
             "<S> ::= @НовыйУзел Значение=<A>\n<A> ::= a",

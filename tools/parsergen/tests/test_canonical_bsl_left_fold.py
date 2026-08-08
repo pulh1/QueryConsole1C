@@ -33,8 +33,8 @@ class CanonicalBslLeftFoldTests(unittest.TestCase):
             f"{accumulator_match.group(1)} = ",
             loop_body.split("КонецЦикла;", 1)[0],
         )
-        self.assertIn("Если Не ", function)
-        self.assertIn("ВызватьИсключениеСинтаксическаяОшибка", function)
+        self.assertNotIn("Если Не ", function)
+        self.assertNotIn("ВызватьИсключениеСинтаксическаяОшибка", function)
 
     def test_semantic_fold_binds_left_then_replaces_accumulator(self) -> None:
         generated = _build(

@@ -218,6 +218,61 @@ class CanonicalBslConditionTests(unittest.TestCase):
         for word in itertools.product(("a", "b", "c", None), repeat=1):
             self.assertLessEqual(len(_matching_alternatives(decision, word)), 1)
 
+    def test_unique_first_prefix_commits_disjoint_alternative(self) -> None:
+        definitions = (
+            MatcherDefinition("A", ("a",)),
+            MatcherDefinition("B", ("b",)),
+            MatcherDefinition("X", ("x",)),
+            MatcherDefinition("Y", ("y",)),
+        )
+        decision = _decision(
+            (
+                CanonicalDecisionRow("Choice", 1, ("A", "X")),
+                CanonicalDecisionRow("Choice", 2, ("B", "Y")),
+            ),
+            definitions,
+        )
+
+        renderer = CanonicalConditionRenderer(definitions)
+
+        self.assertEqual(
+            renderer.for_alternative_with_unique_first(decision, 1),
+            '(ТипТокенаПросмотра(0) = "a")',
+        )
+        self.assertEqual(
+            renderer.for_alternative_with_unique_first(decision, 2),
+            '(ТипТокенаПросмотра(0) = "b")',
+        )
+
+    def test_shared_concrete_first_token_still_requires_full_select(self) -> None:
+        definitions = (
+            MatcherDefinition("ID", ("ID", "WORD")),
+            MatcherDefinition("WORD", ("WORD",)),
+            MatcherDefinition("X", ("x",)),
+            MatcherDefinition("Y", ("y",)),
+        )
+        decision = _decision(
+            (
+                CanonicalDecisionRow("Choice", 1, ("ID", "X")),
+                CanonicalDecisionRow("Choice", 2, ("WORD", "Y")),
+            ),
+            definitions,
+        )
+
+        renderer = CanonicalConditionRenderer(definitions)
+        first = renderer.for_alternative_with_unique_first(decision, 1)
+        second = renderer.for_alternative_with_unique_first(decision, 2)
+
+        self.assertIn('ТипТокенаПросмотра(0) = "ID"', first)
+        self.assertIn('ТипТокенаПросмотра(1) = "x"', first)
+        self.assertIn('ТипТокенаПросмотра(1) = "y"', second)
+        for word in itertools.product(("ID", "WORD", "x", "y"), repeat=2):
+            self.assertLessEqual(
+                int(_condition_matches(first, word))
+                + int(_condition_matches(second, word)),
+                1,
+            )
+
     def test_rejects_incomplete_or_malformed_canonical_artifact(self) -> None:
         cases = (
             (

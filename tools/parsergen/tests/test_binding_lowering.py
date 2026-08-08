@@ -14,6 +14,20 @@ def _lower(source: str):
 
 
 class BindingLoweringTests(unittest.TestCase):
+    def test_collection_wrap_is_explicit_in_lowering_metadata(self) -> None:
+        lowered = _lower(
+            "<S> ::= <Base> Элементы +=> <Postfix>?\n"
+            "<Base> ::= BASE\n<Postfix> ::= POSTFIX"
+        )
+
+        wraps = [
+            item
+            for item in lowered.bindings
+            if item.kind is BindingOriginKind.WRAP_PREPEND
+        ]
+        self.assertEqual(len(wraps), 1)
+        self.assertEqual(wraps[0].property, "Элементы")
+
     def test_semantic_directives_do_not_enter_canonical_cfg(self) -> None:
         lowered = _lower(
             "<S> ::= @НовыйУзел Значение = <A> Флаг := Истина\n"

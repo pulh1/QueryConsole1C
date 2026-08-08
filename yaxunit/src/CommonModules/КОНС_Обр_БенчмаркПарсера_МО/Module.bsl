@@ -2027,12 +2027,12 @@
 
 	Результат = Новый Структура;
 	Результат.Вставить("path", "QueryConsoleZUP/src/DataProcessors/Парсер/ObjectModule.bsl");
-	Результат.Вставить("sha256", "0e65de3faad9ae1d4a40e2b366d6e2baa9eb9c465df421805e26348f293db56f");
-	Результат.Вставить("generated_bsl_loc", 2105);
-	Результат.Вставить("generated_bsl_function_count", 78);
+	Результат.Вставить("sha256", "bee278fd4eaa17ff559164ee5dd3ec460b6586d244bb9ef78e3b36928ad4c71a");
+	Результат.Вставить("generated_bsl_loc", 1949);
+	Результат.Вставить("generated_bsl_function_count", 77);
 	Результат.Вставить("generated_bsl_procedure_count", 5);
-	Результат.Вставить("generated_bsl_routine_count", 83);
-	Результат.Вставить("generated_nonterminal_function_count", 67);
+	Результат.Вставить("generated_bsl_routine_count", 82);
+	Результат.Вставить("generated_nonterminal_function_count", 66);
 	Возврат Результат;
 
 КонецФункции

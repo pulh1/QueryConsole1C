@@ -44,6 +44,47 @@ class CanonicalConditionRenderer:
     ) -> str:
         return self.for_alternatives(decision, (alternative,))
 
+    def for_alternative_with_unique_first(
+        self,
+        decision: CanonicalDecision,
+        alternative: int,
+    ) -> str:
+        return self.for_alternatives_with_unique_first(
+            decision,
+            (alternative,),
+        )
+
+    def for_alternatives_with_unique_first(
+        self,
+        decision: CanonicalDecision,
+        alternatives: tuple[int, ...],
+    ) -> str:
+        exact = self.for_alternatives(decision, alternatives)
+        requested = set(alternatives)
+        requested_tokens = self._first_token_types(
+            decision,
+            requested,
+        )
+        competing_tokens = self._first_token_types(
+            decision,
+            {
+                row.alternative
+                for row in decision.rows
+                if row.alternative not in requested
+            },
+        )
+        unique_tokens = tuple(
+            token
+            for token in requested_tokens
+            if token not in competing_tokens
+        )
+        if not unique_tokens:
+            return exact
+        prefix = self._token_types(unique_tokens, 0)
+        if len(unique_tokens) == len(requested_tokens):
+            return prefix if prefix.startswith("(") else f"({prefix})"
+        return f"({exact} Или {prefix})"
+
     def for_alternatives(
         self,
         decision: CanonicalDecision,
@@ -118,22 +159,48 @@ class CanonicalConditionRenderer:
         return f"({' Или '.join(branches)})"
 
     def _matchers(self, labels: tuple[str, ...], offset: int) -> str:
-        lookahead = f"{_LOOKAHEAD_FUNCTION}({offset})"
-        comparisons: list[str] = []
-        observed: set[str] = set()
+        token_types: list[str] = []
         for label in labels:
-            token_types = self._by_label.get(label)
-            if token_types is None:
+            matched_types = self._by_label.get(label)
+            if matched_types is None:
                 raise ValueError(f"unknown matcher {label!r}")
-            for token_type in token_types:
-                comparison = (
-                    f"{lookahead} = Неопределено"
-                    if label == _END_MATCHER
-                    else f"{lookahead} = {bsl_string(token_type)}"
-                )
-                if comparison not in observed:
-                    observed.add(comparison)
-                    comparisons.append(comparison)
+            for token_type in matched_types:
+                if token_type not in token_types:
+                    token_types.append(token_type)
+        return self._token_types(tuple(token_types), offset)
+
+    def _first_token_types(
+        self,
+        decision: CanonicalDecision,
+        alternatives: set[int],
+    ) -> tuple[str, ...]:
+        result: list[str] = []
+        for row in decision.rows:
+            if row.alternative not in alternatives:
+                continue
+            label = row.matchers[0]
+            matched_types = self._by_label.get(label)
+            if matched_types is None:
+                raise ValueError(f"unknown matcher {label!r}")
+            for token_type in matched_types:
+                if token_type not in result:
+                    result.append(token_type)
+        return tuple(result)
+
+    def _token_types(
+        self,
+        token_types: tuple[str, ...],
+        offset: int,
+    ) -> str:
+        lookahead = f"{_LOOKAHEAD_FUNCTION}({offset})"
+        comparisons = [
+            (
+                f"{lookahead} = Неопределено"
+                if token_type == _END_MATCHER
+                else f"{lookahead} = {bsl_string(token_type)}"
+            )
+            for token_type in token_types
+        ]
         if len(comparisons) == 1:
             return comparisons[0]
         return f"({' Или '.join(comparisons)})"

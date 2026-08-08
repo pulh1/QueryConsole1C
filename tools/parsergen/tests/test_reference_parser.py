@@ -67,13 +67,13 @@ class ReferenceParserTests(unittest.TestCase):
         )
         self.assertIsNotNone(parsed.grammar)
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.grammar.productions), 150)
+        self.assertEqual(len(parsed.grammar.productions), 156)
         self.assertEqual(
             sum(
                 len(production.alternatives)
                 for production in parsed.grammar.productions
             ),
-            322,
+            334,
         )
 
         config = load_config(REPOSITORY_ROOT / "parsergen.toml")

@@ -677,8 +677,12 @@ def _parse_source_sequence(
                                 BindingMode.CONCAT
                                 if operator == "~="
                                 else (
-                                    BindingMode.WRAP
-                                    if operator == "=>"
+                                    (
+                                        BindingMode.WRAP_PREPEND
+                                        if operator == "+=>"
+                                        else BindingMode.WRAP
+                                    )
+                                    if operator in ("=>", "+=>")
                                     else BindingMode.SCALAR
                                 )
                             )
@@ -1026,7 +1030,7 @@ def _binding_prefix(
     operator_start = matched.end()
     while operator_start < len(text) and text[operator_start].isspace():
         operator_start += 1
-    for operator in ("++=", "+=", "*=", "~=", ":=", "=>", "="):
+    for operator in ("+=>", "++=", "+=", "*=", "~=", ":=", "=>", "="):
         if text.startswith(operator, operator_start):
             return (
                 matched.group(0),

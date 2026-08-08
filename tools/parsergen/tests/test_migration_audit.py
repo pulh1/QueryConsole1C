@@ -126,6 +126,7 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "Множитель",
                 "Операнд",
                 "Поле",
+                "РазыменованиеПослеСкобок",
                 "ВыражениеВсеПоляИсточника",
                 "ПоляВложеннойТаблицы",
                 "СписокВыражений",
@@ -158,11 +159,11 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["structural"],
             {
-                "source_productions": 65,
-                "source_alternatives": 141,
-                "productions": 150,
-                "alternatives": 322,
-                "epsilon_alternatives": 77,
+                "source_productions": 66,
+                "source_alternatives": 144,
+                "productions": 156,
+                "alternatives": 334,
+                "epsilon_alternatives": 80,
                 "formal_parameters": 0,
                 "actual_arguments": 0,
                 "action_blocks": 0,
@@ -183,13 +184,13 @@ class MigrationAuditProductionTests(unittest.TestCase):
                 "conflicts": [],
                 "diagnostics": [],
                 "stats": {
-                    "packed_first_rows": 12_125,
-                    "packed_follow_rows": 54_164,
-                    "select_descriptors": 322,
-                    "select_direct_facts": 11_758,
-                    "select_short_complete_prefixes": 367,
-                    "packed_select_upper_bound": 37_559,
-                    "conflict_work_items": 524,
+                    "packed_first_rows": 12_182,
+                    "packed_follow_rows": 61_150,
+                    "select_descriptors": 334,
+                    "select_direct_facts": 11_810,
+                    "select_short_complete_prefixes": 372,
+                    "packed_select_upper_bound": 41_209,
+                    "conflict_work_items": 531,
                     "public_select_expansions": 0,
                     "select_cartesian_materializations": 0,
                 },
@@ -198,7 +199,7 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["legacy"],
             {
-                "matcher_rows": 10_283,
+                "matcher_rows": 10_615,
                 "matcher_definitions": 0,
                 "runtime_conflicts": [],
             },
@@ -209,8 +210,8 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["generated"],
             {
-                "bsl_functions": 76,
-                "bsl_loc": 2108,
+                "bsl_functions": 77,
+                "bsl_loc": 1949,
                 "constructor_names": 79,
                 "select_rows": 0,
                 "identifier_rows": 276,
@@ -304,7 +305,8 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 '"ШаблонПодобия", '
                 '"АрифметическоеВыражение", "Слагаемое", '
                 '"УнарнаяОперация", "Множитель", "Операнд", '
-                '"Поле", "ВыражениеВсеПоляИсточника", '
+                '"Поле", "РазыменованиеПослеСкобок", '
+                '"ВыражениеВсеПоляИсточника", '
                 '"ПоляВложеннойТаблицы", "СписокВыражений", '
                 '"ВыражениеМоделиЗапроса", '
                 '"СписокВыраженийМодели", "ПриведениеТипа", '

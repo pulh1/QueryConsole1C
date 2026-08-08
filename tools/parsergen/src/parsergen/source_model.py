@@ -21,6 +21,7 @@ class BindingMode(StrEnum):
     INCREMENT = "increment"
     DISCARD = "discard"
     WRAP = "wrap"
+    WRAP_PREPEND = "wrap_prepend"
 
 
 @dataclass(frozen=True, slots=True)
