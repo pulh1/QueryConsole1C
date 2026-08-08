@@ -559,6 +559,12 @@ scalar bindings и EBNF optionals. Три helper-productions параметро�
 строки удалены с сохранением defaults и формы `ЧИСЛО(10,)`. Exact delta:
 [type-cast checkpoint](../superpowers/matrices/2026-08-08-type-cast-binding-checkpoint.md).
 
+Пакет разыменований затем перевёл `Поле` на collection bindings и EBNF-loop,
+удалил parameterized `ОперацияРазыменования` и оформил `.*`/`.(...)` как
+предметные semantic child-productions. Query model сохранена, а generated
+parser больше не рекурсирует по длине цепочки. Exact delta:
+[field dereference checkpoint](../superpowers/matrices/2026-08-08-field-dereference-binding-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:

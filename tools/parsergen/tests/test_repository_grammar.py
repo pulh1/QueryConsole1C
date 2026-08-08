@@ -31,7 +31,11 @@ MIGRATED_PRODUCTIONS = (
     "УнарнаяОперация",
     "Множитель",
     "Операнд",
+    "Поле",
+    "ВыражениеВсеПоляИсточника",
+    "ПоляВложеннойТаблицы",
     "СписокВыражений",
+    "ВыражениеМоделиЗапроса",
     "СписокВыраженийМодели",
     "ПриведениеТипа",
     "ОписаниеТипа",
@@ -678,8 +682,8 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 103)
-        self.assertEqual(len(parsed.grammar.productions), 127)
+        self.assertEqual(len(parsed.source_grammar.productions), 104)
+        self.assertEqual(len(parsed.grammar.productions), 133)
 
         resolution = resolve_grammar(parsed.grammar)
         self.assertEqual(resolution.diagnostics, ())
@@ -1474,6 +1478,93 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertIn("ЭтотУзел.Таблица = Значение2;", function)
         self.assertNotIn("ТекущийЭлемент", function)
         self.assertNotIn("НомерВариантаПродукции", function)
+
+    def test_field_dereference_package_generates_loops_and_bindings(
+        self,
+    ) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=MIGRATED_PRODUCTIONS,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=MIGRATED_PRODUCTIONS,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        module = generated.module_text
+        self.assertNotIn(
+            "Функция НеТерминалОперацияРазыменования(",
+            module,
+        )
+
+        field = _generated_function(module, "Поле")
+        self.assertEqual(
+            field.count("ЭлементыМоделиЗапроса.НовыйРазыменование("),
+            1,
+        )
+        self.assertEqual(field.count("Пока "), 1)
+        self.assertIn("ЭтотУзел.Элементы.Добавить(", field)
+        self.assertNotIn("ТекущийЭлемент", field)
+        self.assertNotIn("НомерВариантаПродукции", field)
+
+        all_fields = _generated_function(
+            module,
+            "ВыражениеВсеПоляИсточника",
+        )
+        self.assertEqual(
+            all_fields.count(
+                "ЭлементыМоделиЗапроса.НовыйВыражениеВсеПоляИсточника("
+            ),
+            1,
+        )
+        self.assertIn('Лексема("*");', all_fields)
+        self.assertNotIn("ТекущийЭлемент", all_fields)
+
+        nested_fields = _generated_function(module, "ПоляВложеннойТаблицы")
+        self.assertEqual(
+            nested_fields.count(
+                "ЭлементыМоделиЗапроса.НовыйПоляВложеннойТаблицы("
+            ),
+            1,
+        )
+        self.assertIn("ЭтотУзел.Элементы =", nested_fields)
+        self.assertNotIn("ТекущийЭлемент", nested_fields)
+
+        model_expression = _generated_function(
+            module,
+            "ВыражениеМоделиЗапроса",
+        )
+        self.assertEqual(
+            model_expression.count(
+                "ЭлементыМоделиЗапроса.НовыйВыражениеМоделиЗапроса("
+            ),
+            1,
+        )
+        self.assertIn("ЭтотУзел.Значение =", model_expression)
+        self.assertNotIn("ТекущийЭлемент", model_expression)
 
 
 if __name__ == "__main__":
