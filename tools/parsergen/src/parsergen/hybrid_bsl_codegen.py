@@ -14,6 +14,7 @@ from .source_model import SourceGrammar
 
 _SYNTHETIC_PREFIX = "__parsergen_ebnf__"
 _LEGACY_ABI = ("Родитель", "ЛевыйЭлемент")
+_LEGACY_CALL_PREFIX = ("Неопределено", "Неопределено")
 _CANONICAL_ERROR = "ВызватьИсключениеCanonicalСинтаксическаяОшибка"
 _CANONICAL_SUPPORT = """Функция ТипТокенаПросмотра(Смещение)
 	Индекс = БуферТокенов.ИндексТекущегоЭлемента + Смещение;
@@ -76,6 +77,7 @@ def generate_hybrid_parser(
         source,
         parser_ir,
         abi_parameters=_LEGACY_ABI,
+        call_argument_prefix=_LEGACY_CALL_PREFIX,
     )
     overrides = _split_function_fragment(
         canonical.module_fragment.replace(

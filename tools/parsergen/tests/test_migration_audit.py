@@ -78,6 +78,7 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "ПакетЗапросов",
                 "ЗапросПакета",
                 "ЗапросУничтожения",
+                "ПоляВыборки",
                 "ПолеВыборки",
                 "ВыражениеВсеПоляВыборки",
                 "ВыражениеВсеПоля",
@@ -94,6 +95,7 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "СписокЭлементовУпорядочивания",
                 "ЭлементУпорядочивания",
                 "НаправлениеУпорядочивания",
+                "ПоляИтогов",
                 "КонтрольныеТочкиИтогов",
                 "КонтрольнаяТочкаИтогов",
                 "ТипКонтрольнойТочки",
@@ -144,16 +146,16 @@ class MigrationAuditProductionTests(unittest.TestCase):
             self.report["structural"],
             {
                 "source_productions": 90,
-                "source_alternatives": 211,
-                "productions": 136,
-                "alternatives": 298,
-                "epsilon_alternatives": 67,
-                "formal_parameters": 7,
-                "actual_arguments": 22,
-                "action_blocks": 102,
-                "statements": 115,
-                "constructor_statements": 17,
-                "collection_statements": 10,
+                "source_alternatives": 210,
+                "productions": 139,
+                "alternatives": 303,
+                "epsilon_alternatives": 69,
+                "formal_parameters": 9,
+                "actual_arguments": 25,
+                "action_blocks": 98,
+                "statements": 111,
+                "constructor_statements": 15,
+                "collection_statements": 8,
                 "constant_statements": 14,
                 "structural_statements": 71,
                 "other_assignment_statements": 0,
@@ -168,13 +170,13 @@ class MigrationAuditProductionTests(unittest.TestCase):
                 "conflicts": [],
                 "diagnostics": [],
                 "stats": {
-                    "packed_first_rows": 11_268,
-                    "packed_follow_rows": 51_047,
-                    "select_descriptors": 298,
-                    "select_direct_facts": 10_932,
-                    "select_short_complete_prefixes": 336,
-                    "packed_select_upper_bound": 34_725,
-                    "conflict_work_items": 516,
+                    "packed_first_rows": 11_752,
+                    "packed_follow_rows": 51_089,
+                    "select_descriptors": 303,
+                    "select_direct_facts": 11_405,
+                    "select_short_complete_prefixes": 347,
+                    "packed_select_upper_bound": 35_248,
+                    "conflict_work_items": 518,
                     "public_select_expansions": 0,
                     "select_cartesian_materializations": 0,
                 },
@@ -183,7 +185,7 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["legacy"],
             {
-                "matcher_rows": 9_572,
+                "matcher_rows": 9_908,
                 "matcher_definitions": 0,
                 "runtime_conflicts": [],
             },
@@ -195,9 +197,9 @@ class MigrationAuditProductionTests(unittest.TestCase):
             self.report["generated"],
             {
                 "bsl_functions": 102,
-                "bsl_loc": 2477,
+                "bsl_loc": 2486,
                 "constructor_names": 78,
-                "select_rows": 2_087,
+                "select_rows": 1_596,
                 "identifier_rows": 276,
             },
         )
@@ -258,7 +260,7 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 "lookahead = 2\n\n"
                 "[migration]\n"
                 'canonical_productions = ["ПакетЗапросов", '
-                '"ЗапросПакета", "ЗапросУничтожения", "ПолеВыборки", '
+                '"ЗапросПакета", "ЗапросУничтожения", "ПоляВыборки", "ПолеВыборки", '
                 '"ВыражениеВсеПоляВыборки", "ВыражениеВсеПоля", '
                 '"Псевдоним", '
                 '"ТипСоединения", "ИсточникДанных", '
@@ -271,6 +273,7 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 '"СписокЭлементовУпорядочивания", '
                 '"ЭлементУпорядочивания", '
                 '"НаправлениеУпорядочивания", '
+                '"ПоляИтогов", '
                 '"КонтрольныеТочкиИтогов", '
                 '"КонтрольнаяТочкаИтогов", "ТипКонтрольнойТочки", '
                 '"ТипПериодаИтогов", '

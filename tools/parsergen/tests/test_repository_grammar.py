@@ -18,6 +18,7 @@ MIGRATED_PRODUCTIONS = (
     "ПакетЗапросов",
     "ЗапросПакета",
     "ЗапросУничтожения",
+    "ПоляВыборки",
     "ПолеВыборки",
     "ВыражениеВсеПоляВыборки",
     "ВыражениеВсеПоля",
@@ -34,6 +35,7 @@ MIGRATED_PRODUCTIONS = (
     "СписокЭлементовУпорядочивания",
     "ЭлементУпорядочивания",
     "НаправлениеУпорядочивания",
+    "ПоляИтогов",
     "КонтрольныеТочкиИтогов",
     "КонтрольнаяТочкаИтогов",
     "ТипКонтрольнойТочки",
@@ -702,7 +704,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
         self.assertEqual(len(parsed.source_grammar.productions), 90)
-        self.assertEqual(len(parsed.grammar.productions), 136)
+        self.assertEqual(len(parsed.grammar.productions), 139)
         self.assertNotIn(
             "КакОпционально",
             {item.name for item in parsed.source_grammar.productions},
@@ -1986,6 +1988,74 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         )
         self.assertIn('Лексема("*");', all_fields)
         self.assertNotIn("ТекущийЭлемент", all_fields)
+
+    def test_query_field_lists_generate_canonical_loops_with_legacy_context(
+        self,
+    ) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        selected = {*MIGRATED_PRODUCTIONS, "ПоляВыборки", "ПоляИтогов"}
+        canonical = tuple(
+            production.name
+            for production in parsed.source_grammar.productions
+            if production.name in selected
+        )
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=canonical,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=canonical,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        select_fields = _generated_function(
+            generated.module_text,
+            "ПоляВыборки",
+        )
+        self.assertIn("Оператор = Неопределено", select_fields)
+        self.assertEqual(select_fields.count("Пока "), 1)
+        self.assertEqual(select_fields.count("ЭтотУзел.Добавить("), 2)
+        self.assertEqual(
+            select_fields.count(
+                "НеТерминалРасширениеСКД("
+                "Неопределено, Неопределено, Оператор)"
+            ),
+            2,
+        )
+
+        totals_fields = _generated_function(
+            generated.module_text,
+            "ПоляИтогов",
+        )
+        self.assertEqual(totals_fields.count("Пока "), 1)
+        self.assertEqual(totals_fields.count("ЭтотУзел.Добавить("), 2)
+        self.assertIn("Если ", totals_fields)
+
+        for function in (select_fields, totals_fields):
+            self.assertNotIn("ТекущийЭлемент", function)
+            self.assertNotIn("НомерВариантаПродукции", function)
 
     def test_totals_control_point_package_generates_nested_optionals_and_bindings(
         self,

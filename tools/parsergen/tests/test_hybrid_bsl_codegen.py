@@ -40,6 +40,33 @@ def _generate(*args, **kwargs):
 
 
 class HybridBslCodegenTests(unittest.TestCase):
+    def test_canonical_call_to_legacy_island_preserves_legacy_abi_slots(
+        self,
+    ) -> None:
+        parsed, resolved, analysis, parser_ir = _parts(
+            "<S> ::= <List>(Owner)\n"
+            "<List>(Owner) ::= @НовыйСписок Элементы += <Item>(Owner)\n"
+            "<Item>(Owner) ::= {ЭтотУзел = Owner} ITEM",
+            ("List",),
+        )
+
+        generated = _generate(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolved,
+            analysis,
+            parser_ir,
+            canonical_productions=("List",),
+            entrypoints={"Разобрать": "S"},
+        )
+
+        function = _function(generated.module_text, "НеТерминалList")
+        self.assertIn(
+            "НеТерминалItem(Неопределено, Неопределено, Owner)",
+            function,
+        )
+
     def test_links_legacy_canonical_legacy_calls_and_isolates_matcher_rows(
         self,
     ) -> None:

@@ -275,6 +275,10 @@ Direct LR:
 - Unbound separators и keywords не попадают в AST.
 - Alternative без constructor и с одним semantic child прозрачна.
 - Alternative с constructor явно связывает все значимые children.
+- Внутри EBNF branch наличие явного AST binding делает остальные unbound
+  calls syntax-only для определения результата branch. Это позволяет после
+  bound element вызвать переходный compatibility nonterminal, не добавляя его
+  результат в collection и не создавая неявный второй semantic result.
 - `=` присваивает одно значение либо `Неопределено` для отсутствующего
   optional.
 - `+=` добавляет каждое значение в collection property.
@@ -433,6 +437,11 @@ Legacy island        ──→ Legacy Adapter      ──→ compatibility funct
 - Production family с `Родитель`, `ЛевыйЭлемент` или accumulator parameters
   мигрируется целиком.
 - Canonical production не передаёт новый AST accumulator в legacy island.
+- Если canonical production временно вызывает parameterized legacy island,
+  hybrid adapter добавляет два `Неопределено` на места legacy ABI
+  `Родитель`/`ЛевыйЭлемент`; через boundary проходят только явно записанные
+  formal arguments source grammar. Standalone canonical codegen этой
+  адаптации не содержит.
 - Каждый boundary покрывается migration contract tests.
 - После последнего island hybrid assembly становится чистым canonical parser.
 

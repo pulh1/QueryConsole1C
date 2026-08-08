@@ -823,7 +823,20 @@ class _ParserIrBuilder:
         self,
         operations: tuple[Operation, ...],
     ) -> int | None:
-        if any(isinstance(item, ConstructNode) for item in operations):
+        if any(
+            isinstance(
+                item,
+                (
+                    ConstructNode,
+                    BindScalar,
+                    AppendCollection,
+                    ConcatScalar,
+                    IncrementScalar,
+                    AssignConstant,
+                ),
+            )
+            for item in operations
+        ):
             return None
         semantic_indices = tuple(
             index

@@ -114,6 +114,23 @@ class BindingParserIrTests(unittest.TestCase):
         self.assertIsInstance(append.value, ParseSymbol)
         self.assertEqual(loop.exit_alternative, 2)
 
+    def test_explicit_binding_makes_other_repeat_calls_syntax_only(self) -> None:
+        parser_ir = _build(
+            "<S> ::= @НовыйСписок Элементы += <A> "
+            "(';' Элементы += <A> <Extension>)*\n"
+            "<A> ::= ITEM\n"
+            "<Extension> ::= EXTRA | ПУСТО"
+        )
+
+        loop = parser_ir.productions[0].alternatives[0].operations[2]
+        assert isinstance(loop, RepeatLoop)
+        branch = loop.branches[0]
+        self.assertIsNone(branch.result_index)
+        self.assertEqual(
+            [type(item) for item in branch.operations],
+            [ParseSymbol, AppendCollection, ParseSymbol],
+        )
+
     def test_root_collection_append_is_explicit_operation(self) -> None:
         parser_ir = _build(
             "<S> ::= @НовыйСписок += <A> (',' += <A>)*\n<A> ::= ITEM"

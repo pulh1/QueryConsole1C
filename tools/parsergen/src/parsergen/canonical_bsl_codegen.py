@@ -91,9 +91,11 @@ def generate_canonical_functions(
     parser_ir: ParserIr,
     *,
     abi_parameters: tuple[str, ...] = (),
+    call_argument_prefix: tuple[str, ...] = (),
 ) -> CanonicalGeneratedFunctions:
     return _CanonicalBslGenerator(source, parser_ir, {}).generate_functions(
-        abi_parameters
+        abi_parameters,
+        call_argument_prefix,
     )
 
 
@@ -115,6 +117,7 @@ class _CanonicalBslGenerator:
         self._seen_constructors: set[str] = set()
         self._fold_left_values: list[str] = []
         self._abi_parameters: tuple[str, ...] = ()
+        self._call_argument_prefix: tuple[str, ...] = ()
 
     def generate(self) -> CanonicalGeneratedParser:
         self._validate_inputs()
@@ -134,10 +137,19 @@ class _CanonicalBslGenerator:
     def generate_functions(
         self,
         abi_parameters: tuple[str, ...],
+        call_argument_prefix: tuple[str, ...],
     ) -> CanonicalGeneratedFunctions:
         self._abi_parameters = tuple(abi_parameters)
+        self._call_argument_prefix = tuple(call_argument_prefix)
         self._validate_common_inputs()
         self._validate_abi_parameters()
+        if (
+            self._call_argument_prefix
+            and len(self._call_argument_prefix) != len(self._abi_parameters)
+        ):
+            raise ValueError(
+                "call argument prefix must match ABI parameter count"
+            )
         self._validate_generated_symbols(
             include_template=False,
             include_entrypoints=False,
@@ -388,7 +400,7 @@ class _CanonicalBslGenerator:
                 and index != required_result_index
             ):
                 rendered = [
-                    f"{indent}{_symbol_call(operation.symbol)};"
+                    f"{indent}{self._symbol_call(operation.symbol)};"
                 ]
                 value = None
             else:
@@ -412,7 +424,7 @@ class _CanonicalBslGenerator:
             return (
                 [
                     f"{indent}{temporary} = "
-                    f"{_symbol_call(operation.symbol)};"
+                    f"{self._symbol_call(operation.symbol)};"
                 ],
                 temporary,
             )
@@ -462,7 +474,7 @@ class _CanonicalBslGenerator:
             validate_bsl_member_name(operation.property, "bound property")
             return (
                 [
-                    f"{indent}{_symbol_call(operation.value.symbol)};",
+                    f"{indent}{self._symbol_call(operation.value.symbol)};",
                     f"{indent}ЭтотУзел.{operation.property} = "
                     f"ЭтотУзел.{operation.property} + 1;",
                 ],
@@ -506,6 +518,16 @@ class _CanonicalBslGenerator:
         raise ValueError(
             f"unsupported canonical operation {type(operation).__name__}"
         )
+
+    def _symbol_call(self, symbol: SyntaxSymbol) -> str:
+        if not isinstance(symbol, NonterminalCall):
+            return _symbol_call(symbol)
+        arguments = (
+            (*self._call_argument_prefix, *symbol.arguments)
+            if symbol.arguments
+            else ()
+        )
+        return f"НеТерминал{symbol.name}({', '.join(arguments)})"
 
     def _render_binding(
         self,

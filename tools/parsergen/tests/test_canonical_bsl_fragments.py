@@ -74,6 +74,17 @@ class CanonicalBslFragmentTests(unittest.TestCase):
                 abi_parameters=("context",),
             )
 
+    def test_rejects_call_prefix_with_wrong_abi_arity(self) -> None:
+        source, parser_ir = _projected("<S> ::= ITEM", ("S",))
+
+        with self.assertRaisesRegex(ValueError, "must match ABI parameter"):
+            canonical_bsl_codegen.generate_canonical_functions(
+                source,
+                parser_ir,
+                abi_parameters=("Родитель", "ЛевыйЭлемент"),
+                call_argument_prefix=("Неопределено",),
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
