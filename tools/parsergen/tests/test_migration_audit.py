@@ -78,7 +78,9 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "ПакетЗапросов",
                 "ЗапросПакета",
                 "ЗапросУничтожения",
+                "ЗапросВыбора",
                 "ОбъединяемыйЗапрос",
+                "ТипОбъединенияЗапроса",
                 "ПоляВыборки",
                 "ПолеВыборки",
                 "ВыражениеВсеПоляВыборки",
@@ -150,19 +152,19 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["structural"],
             {
-                "source_productions": 77,
-                "source_alternatives": 178,
-                "productions": 143,
-                "alternatives": 310,
+                "source_productions": 73,
+                "source_alternatives": 169,
+                "productions": 144,
+                "alternatives": 311,
                 "epsilon_alternatives": 72,
                 "formal_parameters": 10,
                 "actual_arguments": 26,
-                "action_blocks": 64,
-                "statements": 74,
-                "constructor_statements": 14,
-                "collection_statements": 6,
-                "constant_statements": 7,
-                "structural_statements": 47,
+                "action_blocks": 51,
+                "statements": 61,
+                "constructor_statements": 11,
+                "collection_statements": 4,
+                "constant_statements": 6,
+                "structural_statements": 40,
                 "other_assignment_statements": 0,
                 "other_statements": 0,
             },
@@ -175,12 +177,12 @@ class MigrationAuditProductionTests(unittest.TestCase):
                 "conflicts": [],
                 "diagnostics": [],
                 "stats": {
-                    "packed_first_rows": 11_778,
-                    "packed_follow_rows": 52_481,
-                    "select_descriptors": 310,
-                    "select_direct_facts": 11_425,
+                    "packed_first_rows": 11_780,
+                    "packed_follow_rows": 52_570,
+                    "select_descriptors": 311,
+                    "select_direct_facts": 11_427,
                     "select_short_complete_prefixes": 353,
-                    "packed_select_upper_bound": 37_059,
+                    "packed_select_upper_bound": 37_061,
                     "conflict_work_items": 520,
                     "public_select_expansions": 0,
                     "select_cartesian_materializations": 0,
@@ -190,7 +192,7 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["legacy"],
             {
-                "matcher_rows": 10_023,
+                "matcher_rows": 10_025,
                 "matcher_definitions": 0,
                 "runtime_conflicts": [],
             },
@@ -201,10 +203,10 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["generated"],
             {
-                "bsl_functions": 89,
-                "bsl_loc": 2330,
+                "bsl_functions": 85,
+                "bsl_loc": 2277,
                 "constructor_names": 79,
-                "select_rows": 1_364,
+                "select_rows": 1_261,
                 "identifier_rows": 276,
             },
         )
@@ -265,7 +267,7 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 "lookahead = 2\n\n"
                 "[migration]\n"
                 'canonical_productions = ["ПакетЗапросов", '
-                '"ЗапросПакета", "ЗапросУничтожения", "ОбъединяемыйЗапрос", '
+                '"ЗапросПакета", "ЗапросУничтожения", "ЗапросВыбора", "ОбъединяемыйЗапрос", "ТипОбъединенияЗапроса", '
                 '"ПоляВыборки", "ПолеВыборки", '
                 '"ВыражениеВсеПоляВыборки", "ВыражениеВсеПоля", '
                 '"Псевдоним", "БлокИз", "СписокСоединений", '
