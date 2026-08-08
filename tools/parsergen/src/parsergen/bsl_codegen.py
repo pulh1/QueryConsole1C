@@ -91,6 +91,7 @@ class BslGenerator:
         matcher_productions: frozenset[str] | None = None,
         additional_constructor_names: tuple[str, ...] = (),
         allow_synthetic_cfg: bool = False,
+        legacy_entrypoint_abi: bool = True,
     ) -> None:
         self._grammar = grammar
         self._resolved = resolved
@@ -102,6 +103,7 @@ class BslGenerator:
         self._matcher_productions = matcher_productions
         self._additional_constructor_names = additional_constructor_names
         self._allow_synthetic_cfg = allow_synthetic_cfg
+        self._legacy_entrypoint_abi = legacy_entrypoint_abi
         self._constructors: list[str] = []
         self._seen_constructors: set[str] = set()
 
@@ -323,11 +325,11 @@ class BslGenerator:
             self._entrypoints.items()
         ):
             production = production_by_name[production_name]
-            call_arguments = (
-                "Неопределено, Неопределено"
-                if production.parameters or position > 0
-                else ""
-            )
+            call_arguments = ""
+            if self._legacy_entrypoint_abi and (
+                production.parameters or position > 0
+            ):
+                call_arguments = "Неопределено, Неопределено"
             # Legacy compatibility: the supplied module has asymmetric
             # whitespace and an explicit two-argument second entry call.
             ending_whitespace = "   " if position == 0 else ""

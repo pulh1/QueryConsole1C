@@ -458,6 +458,10 @@ Legacy island        ──→ Legacy Adapter      ──→ compatibility funct
   `Родитель`/`ЛевыйЭлемент`; через boundary проходят только явно записанные
   formal arguments source grammar. Standalone canonical codegen этой
   адаптации не содержит.
+- При полном canonical ownership assembly отключает legacy ABI: production
+  nonterminal functions и entrypoint calls не содержат `Родитель`,
+  `ЛевыйЭлемент` и фиктивных аргументов. Двухслотовый ABI остаётся только
+  в partial-hybrid compatibility tests.
 - Каждый boundary покрывается migration contract tests.
 - После последнего island hybrid assembly становится чистым canonical parser.
 

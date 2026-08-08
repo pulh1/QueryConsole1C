@@ -1005,7 +1005,8 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         )
         self.assertEqual(function.count("Пока "), 1)
         self.assertNotIn("НомерВариантаПродукции", function)
-        self.assertEqual(function.count("ЛевыйЭлемент"), 1)
+        self.assertNotIn("ЛевыйЭлемент", function)
+        self.assertNotIn("Родитель", function)
         self.assertNotIn("ТекущийЭлемент", function)
         self.assertEqual(
             function.count("ЭлементыМоделиЗапроса.НовыйБинарнаяОперация("),
@@ -1026,7 +1027,8 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             negation,
         )
         self.assertEqual(negation.count("ЭтотУзел.Выражение ="), 1)
-        self.assertEqual(negation.count("ЛевыйЭлемент"), 1)
+        self.assertNotIn("ЛевыйЭлемент", negation)
+        self.assertNotIn("Родитель", negation)
         self.assertNotIn("ТекущийЭлемент", negation)
 
     def test_postfix_predicates_generate_max_one_canonical_wrappers(self) -> None:

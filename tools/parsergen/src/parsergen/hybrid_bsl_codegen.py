@@ -57,6 +57,13 @@ def generate_hybrid_parser(
     if lowering.grammar != grammar:
         raise ValueError("lowering does not match hybrid grammar")
 
+    source_names = frozenset(
+        production.name for production in source.productions
+    )
+    full_canonical_ownership = (
+        frozenset(canonical_names) == source_names
+    )
+
     owned_synthetic = _owned_synthetic_productions(
         lowering,
         frozenset(canonical_names),
@@ -76,8 +83,12 @@ def generate_hybrid_parser(
     canonical = generate_canonical_functions(
         source,
         parser_ir,
-        abi_parameters=_LEGACY_ABI,
-        call_argument_prefix=_LEGACY_CALL_PREFIX,
+        abi_parameters=()
+        if full_canonical_ownership
+        else _LEGACY_ABI,
+        call_argument_prefix=()
+        if full_canonical_ownership
+        else _LEGACY_CALL_PREFIX,
     )
     overrides = _split_function_fragment(
         canonical.module_fragment.replace(
@@ -102,6 +113,7 @@ def generate_hybrid_parser(
         matcher_productions=legacy_productions,
         additional_constructor_names=canonical.constructor_names,
         allow_synthetic_cfg=True,
+        legacy_entrypoint_abi=not full_canonical_ownership,
     ).generate()
 
 

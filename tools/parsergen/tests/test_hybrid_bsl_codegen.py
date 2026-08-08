@@ -7,7 +7,11 @@ from parsergen.parser_ir import build_parser_ir
 from parsergen.resolver import resolve_grammar
 
 
-def _parts(source: str, canonical_names: tuple[str, ...]):
+def _parts(
+    source: str,
+    canonical_names: tuple[str, ...],
+    start_productions: tuple[str, ...] = ("S",),
+):
     parsed = parse_grammar(source, "grammar.txt")
     assert parsed.diagnostics == ()
     assert parsed.grammar is not None
@@ -16,7 +20,7 @@ def _parts(source: str, canonical_names: tuple[str, ...]):
     resolution = resolve_grammar(parsed.grammar)
     assert resolution.diagnostics == ()
     assert resolution.grammar is not None
-    analysis = compute_analysis(resolution.grammar, 1, ("S",))
+    analysis = compute_analysis(resolution.grammar, 1, start_productions)
     parser_ir = build_parser_ir(
         parsed.source_grammar,
         parsed.lowering,
@@ -40,6 +44,30 @@ def _generate(*args, **kwargs):
 
 
 class HybridBslCodegenTests(unittest.TestCase):
+    def test_full_canonical_ownership_removes_legacy_production_abi(self) -> None:
+        parsed, resolved, analysis, parser_ir = _parts(
+            "<S> ::= <Item>\n<Item> ::= @НовыйЭлемент ITEM",
+            ("S", "Item"),
+            ("S", "Item"),
+        )
+
+        generated = _generate(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolved,
+            analysis,
+            parser_ir,
+            canonical_productions=("S", "Item"),
+            entrypoints={"Разобрать": "S", "РазобратьЭлемент": "Item"},
+        )
+
+        self.assertIn("Функция НеТерминалS()", generated.module_text)
+        self.assertIn("Функция НеТерминалItem()", generated.module_text)
+        self.assertIn("Результат = НеТерминалS();", generated.module_text)
+        self.assertIn("Результат = НеТерминалItem();", generated.module_text)
+        self.assertEqual(generated.select_table.rows, ())
+
     def test_canonical_call_to_legacy_island_preserves_legacy_abi_slots(
         self,
     ) -> None:
