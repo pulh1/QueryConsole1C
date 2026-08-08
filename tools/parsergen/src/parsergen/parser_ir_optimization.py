@@ -269,29 +269,28 @@ class _Optimizer:
         stack: tuple[str, ...],
     ) -> Operation:
         if isinstance(operation, Dispatch):
-            decision, branches = self.control(
-                operation.decision,
-                operation.branches,
-                stack,
-            )
-            return replace(operation, decision=decision, branches=branches)
-        if isinstance(operation, RepeatLoop):
-            decision, branches = self.control(
-                operation.decision,
-                operation.branches,
-                stack,
-            )
-            return replace(operation, decision=decision, branches=branches)
-        if isinstance(operation, OptionalBranch):
-            decision, branches = self.control(
-                operation.decision,
-                operation.branches,
-                stack,
-            )
             return replace(
                 operation,
-                decision=decision,
-                branches=branches,
+                branches=tuple(
+                    self.branch(branch, stack)
+                    for branch in operation.branches
+                ),
+            )
+        if isinstance(operation, RepeatLoop):
+            return replace(
+                operation,
+                branches=tuple(
+                    self.branch(branch, stack)
+                    for branch in operation.branches
+                ),
+            )
+        if isinstance(operation, OptionalBranch):
+            return replace(
+                operation,
+                branches=tuple(
+                    self.branch(branch, stack)
+                    for branch in operation.branches
+                ),
                 exit_operations=self.operations(operation.exit_operations, stack),
             )
         if isinstance(operation, WrapOptional):
@@ -366,6 +365,7 @@ class _Optimizer:
                 callee is None
                 or callee.parameters
                 or _production_contains_left_fold(callee)
+                or _has_repeated_leading_semantic_action(callee)
             ):
                 continue
             callee_alternatives = tuple(
@@ -476,6 +476,49 @@ def _production_contains_left_fold(production: ProductionIr) -> bool:
         for alternative in production.alternatives
         for operation in alternative.operations
     )
+
+
+def _has_repeated_leading_semantic_action(
+    production: ProductionIr,
+) -> bool:
+    """Reject composition that would duplicate an unfactored action prefix.
+
+    Canonical production rendering can emit an identical leading semantic
+    action once before its alternative decision.  The specialized branch
+    renderer has no equivalent common-prefix proof, so copying such branches
+    would lose the exact-once textual action region.  Comparing the semantic
+    operation itself, rather than production names, keeps eligibility
+    structural.
+    """
+    seen: set[tuple[object, ...]] = set()
+    for alternative in production.alternatives:
+        if not alternative.operations:
+            continue
+        signature = _leading_semantic_action_signature(
+            alternative.operations[0]
+        )
+        if signature is None:
+            continue
+        if signature in seen:
+            return True
+        seen.add(signature)
+    return False
+
+
+def _leading_semantic_action_signature(
+    operation: Operation,
+) -> tuple[object, ...] | None:
+    if isinstance(operation, ConstructNode):
+        return (ConstructNode, operation.constructor)
+    if isinstance(operation, AssignConstant):
+        return (
+            AssignConstant,
+            operation.property,
+            operation.value,
+        )
+    if isinstance(operation, ReturnConstant):
+        return (ReturnConstant, operation.value)
+    return None
 
 
 def _rename_outcome(

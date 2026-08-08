@@ -70,8 +70,9 @@ class CanonicalBslCodegenTests(unittest.TestCase):
 
         function = _function(generated.module_text, "НеТерминалS")
         self.assertEqual(function.count("НеТерминалBase()"), 1)
-        self.assertEqual(function.count("НеТерминалPostfix()"), 1)
-        self.assertIn(".Операнд = ", function)
+        self.assertNotIn("НеТерминалPostfix()", function)
+        self.assertEqual(function.count("НовыйPostfix"), 1)
+        self.assertEqual(function.count(".Операнд = "), 1)
         self.assertIn('POSTFIX', function)
         self.assertIn("РезультатПродукции = Значение", function)
         self.assertNotIn("НомерВариантаПродукции", function)

@@ -421,6 +421,24 @@ class ParserIrSpecializationTests(unittest.TestCase):
         self.assertEqual(function.count("НовыйB"), 1)
         self.assertEqual(function.count(".Child = "), 1)
 
+    def test_repeated_semantic_action_without_common_prefix_proof_is_unchanged(self) -> None:
+        parser_ir = _build(
+            "<S> ::= <Base> Child => <Choice>?\n"
+            "<Base> ::= @НовыйBase BASE\n"
+            "<Choice> ::= @НовыйChild A X | @НовыйChild B Y",
+            2,
+        )
+        generated = generate_canonical_parser(
+            parser_ir.source_grammar,
+            parser_ir,
+            {"Parse": "S"},
+        )
+        function = _function(generated.module_text, "S")
+
+        self.assertIn("НеТерминалChoice()", function)
+        self.assertIn("Функция НеТерминалChoice(", generated.module_text)
+        self.assertEqual(generated.module_text.count("НовыйChild"), 2)
+
     def test_success_exit_and_committed_failure_preserve_action_traces(self) -> None:
         before = _build_raw(self.GRAMMAR, 2)
         after = optimize_parser_ir(before)
