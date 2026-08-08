@@ -107,7 +107,8 @@ def _export_language(
                     )
                 )
         nodes[node_index] = SymbolicLanguageNode(
-            compressed.factor_state_terminal(state),
+            depth == compressed.k
+            or compressed.factor_state_terminal(state),
             tuple(
                 sorted(
                     edges,

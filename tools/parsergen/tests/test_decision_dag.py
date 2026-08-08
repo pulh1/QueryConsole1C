@@ -76,6 +76,25 @@ class DecisionDagTests(unittest.TestCase):
             CommitAlternative(AlternativeOutcome("S", 1)),
         )
 
+    def test_saturated_follow_prefix_remains_viable_at_lookahead_limit(
+        self,
+    ) -> None:
+        source = build_canonical_decision_source(
+            _analysis("<S> ::= <A> Z\n<A> ::= X | Y", k=2),
+            "A",
+        )
+
+        dag = build_decision_dag(source)
+
+        self.assertEqual(
+            evaluate_decision(dag, ("X", "Z")),
+            CommitAlternative(AlternativeOutcome("A", 1)),
+        )
+        self.assertEqual(
+            evaluate_decision(dag, ("Y", "Z")),
+            CommitAlternative(AlternativeOutcome("A", 2)),
+        )
+
     def test_exit_and_immediate_error_are_distinct_leaves(self) -> None:
         source = build_canonical_decision_source(
             _analysis("<S> ::= A | ПУСТО"),
