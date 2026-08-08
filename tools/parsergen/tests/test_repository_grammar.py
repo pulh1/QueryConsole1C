@@ -20,6 +20,10 @@ MIGRATED_PRODUCTIONS = (
     "ЗапросУничтожения",
     "Псевдоним",
     "ТипСоединения",
+    "ИсточникДанных",
+    "ПрисоединяемаяТаблица",
+    "ИсточникДанныхВременнаяТаблица",
+    "ИсточникДанныхВложенныйЗапрос",
     "ЭлементУпорядочивания",
     "НаправлениеУпорядочивания",
     "ТипКонтрольнойТочки",
@@ -683,7 +687,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
         self.assertEqual(len(parsed.source_grammar.productions), 104)
-        self.assertEqual(len(parsed.grammar.productions), 133)
+        self.assertEqual(len(parsed.grammar.productions), 134)
 
         resolution = resolve_grammar(parsed.grammar)
         self.assertEqual(resolution.diagnostics, ())
@@ -1565,6 +1569,97 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         )
         self.assertIn("ЭтотУзел.Значение =", model_expression)
         self.assertNotIn("ТекущийЭлемент", model_expression)
+
+    def test_source_data_package_generates_dispatch_and_bindings(
+        self,
+    ) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=MIGRATED_PRODUCTIONS,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=MIGRATED_PRODUCTIONS,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        module = generated.module_text
+        source_data = _generated_function(module, "ИсточникДанных")
+        for child in (
+            "ИсточникДанныхТаблицаЗначений",
+            "ИсточникДанныхТаблица",
+            "ИсточникДанныхВложенныйЗапрос",
+            "ИсточникДанныхВременнаяТаблица",
+        ):
+            with self.subTest(production="ИсточникДанных", child=child):
+                self.assertIn(f"НеТерминал{child}()", source_data)
+        self.assertNotIn("ТекущийЭлемент", source_data)
+        self.assertNotIn("НомерВариантаПродукции", source_data)
+
+        joinable = _generated_function(module, "ПрисоединяемаяТаблица")
+        for child in (
+            "ИсточникДанныхТаблица",
+            "ИсточникДанныхВложенныйЗапрос",
+            "ИсточникДанныхВременнаяТаблица",
+        ):
+            with self.subTest(
+                production="ПрисоединяемаяТаблица",
+                child=child,
+            ):
+                self.assertIn(f"НеТерминал{child}()", joinable)
+        self.assertNotIn("ТекущийЭлемент", joinable)
+        self.assertNotIn("НомерВариантаПродукции", joinable)
+
+        temporary = _generated_function(
+            module,
+            "ИсточникДанныхВременнаяТаблица",
+        )
+        self.assertEqual(
+            temporary.count(
+                "ЭлементыМоделиЗапроса.НовыйИсточникДанныхВременнаяТаблица("
+            ),
+            1,
+        )
+        self.assertIn("ЭтотУзел.ИмяТаблицы =", temporary)
+        self.assertIn("ЭтотУзел.Псевдоним =", temporary)
+        self.assertNotIn("НеТерминалПсевдонимОпционально", temporary)
+        self.assertNotIn("ТекущийЭлемент", temporary)
+
+        nested = _generated_function(
+            module,
+            "ИсточникДанныхВложенныйЗапрос",
+        )
+        self.assertEqual(
+            nested.count(
+                "ЭлементыМоделиЗапроса.НовыйИсточникДанныхВложенныйЗапрос("
+            ),
+            1,
+        )
+        self.assertIn("ЭтотУзел.ЗапросВыбора =", nested)
+        self.assertIn("ЭтотУзел.Псевдоним =", nested)
+        self.assertNotIn("ТекущийЭлемент", nested)
 
 
 if __name__ == "__main__":

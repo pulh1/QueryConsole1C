@@ -565,6 +565,12 @@ scalar bindings и EBNF optionals. Три helper-productions параметро�
 parser больше не рекурсирует по длине цепочки. Exact delta:
 [field dereference checkpoint](../superpowers/matrices/2026-08-08-field-dereference-binding-checkpoint.md).
 
+Следующий source-data package перевёл abstract dispatch и полностью
+декларативные temporary/nested sources на canonical path. Sentinel-based
+`ПсевдонимОпционально` оставлен только в legacy island до одновременной
+миграции всех callers. Exact delta:
+[source-data checkpoint](../superpowers/matrices/2026-08-08-source-data-binding-checkpoint.md).
+
 ## CLI
 
 Из корня репозитория после установки пакета:
