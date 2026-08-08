@@ -12,7 +12,7 @@ legacy matcher, не вызывает `НомерВариантаПродукц�
 
 Query model источников теперь отражает предметное дерево JOIN, а не плоский
 parser accumulator. Все найденные non-form consumers мигрированы и защищены
-headless tests; интерактивные формы оставлены отдельным финальным gate.
+headless tests; интерактивные формы проверены финальным Vanessa/manual gate.
 
 ## 1. Impact analysis
 
@@ -56,9 +56,9 @@ source. Compatibility wrapper старой модели не создавалс�
 | Expression + full parser | 223/223 YAxUnit GREEN | Нет headless gap |
 | Lexer/model/semantic/executor/generation/report/other consumers | 265 total / 262 passed / 3 skips | Один старый production defect; два form-only API blockers |
 | Runtime benchmark | 1/1 YAxUnit GREEN | Дорогие production counters намеренно не внедрялись |
-| Query Constructor/forms | Non-form logic покрыта; exact blockers зафиксированы | Финальный interactive Vanessa/manual gate |
+| Query Constructor/forms | Non-form logic покрыта; Vanessa прошла, изменение JOIN и удаление источников проверены вручную | Два form-data API contract остаются недоступны headless |
 
-Свежий суммарный headless gate: **489 total / 486 passed / 0 failed /
+Свежий суммарный headless gate: **494 total / 491 passed / 0 failed /
 0 errors / 3 documented skips**. Детализация всех C01–C18 и X01 находится в
 [coverage matrix](2026-08-07-grammar-query-model-coverage.md).
 
@@ -160,6 +160,11 @@ migration больше не является препятствием.
   `Операторы[0].ОтборыСКД`; characterization test закрывает потерю результата,
   возникшую при замене старого parameter-side-effect на discard binding;
 - технический `ИсточникиЗапроса.Элементы` и UUID JOIN-link удалены;
+- builder возвращает отсоединённое JOIN-поддерево в корни, поэтому изменение
+  владельца связи и перевод источника обратно в корневые таблицы не теряют узлы;
+- Query Constructor корректно обрабатывает запрос уничтожения без коллекции
+  колонок, а Universal Report сохраняет преобразованные executable views внутри
+  вложенного `ВТФильтр` при формировании СКД;
 - production grammar содержит 66 source productions вместо 124; число 66
   включает semantic decorator `РазыменованиеПослеСкобок`, а не continuation
   plumbing;
@@ -237,7 +242,7 @@ synthetic recursive runtime functions. Полные данные:
 - canonical conflict/diagnostic lists: empty at `k=2`;
 - legacy normalized-row parity/runtime conflicts: green, 10 615 rows;
 - parser YAxUnit (lexer, expression parser, full-query parser): 365/365 GREEN;
-- combined parser/downstream/benchmark YAxUnit: 490 total / 487 passed /
+- combined parser/downstream/benchmark YAxUnit: 494 total / 491 passed /
   3 documented skips;
 - benchmark YAxUnit: 1/1 GREEN;
 - EDT exact revalidation of parser and changed test modules: no errors;
@@ -245,30 +250,25 @@ synthetic recursive runtime functions. Полные данные:
 - generated parser SHA256:
   `537939b79bc29d77d581b8148973595481f444c1415b082d032e461133736b45`.
 
-## 11. Manual verification checklist
+## 11. Manual verification
 
-Только form/interactive gap:
+Финальный интерактивный gate выполнен пользователем:
 
-- открыть существующий query в Query Constructor;
-- один и несколько sources;
-- JOIN и nested JOIN;
-- добавить/удалить fields, проверить expressions;
-- WHERE, GROUP BY, HAVING, ORDER BY;
-- UNION и nested query;
-- сформировать query text обратно;
-- выполнить query через constructor/console workflow;
-- прогнать Vanessa-наборы console/code-generation/constructor после
-  подключения интерактивного runner.
+- полный Vanessa-набор прошёл;
+- изменение владельца JOIN проверено в Query Constructor;
+- удаление источников проверено в Query Constructor;
+- формирование Universal Report после исправления вложенного executable view
+  передано на повторную прикладную проверку.
 
 ## 12. Remaining limitations
 
 - indirect и nullable-prefix left recursion не поддерживаются;
 - legacy compatibility APIs и hybrid fixtures пока остаются, но production
   parser от них не зависит;
-- два Query Constructor tree contracts требуют настоящих form data objects;
+- два Query Constructor tree contracts требуют настоящих form data objects для
+  headless-вызова; интерактивный Vanessa gate при этом пройден;
 - один manager SKD contract заблокирован существующим именем свойства
   `.ОписаниеФильтра` вместо `.ОписаниеВТФильтр`;
-- интерактивный Vanessa/form regression ещё не выполнен;
 - internal runtime call/depth/allocation counters не измерены, чтобы не
   оставлять expensive instrumentation в production.
 
