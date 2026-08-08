@@ -108,6 +108,28 @@ def _make_sidecar(component: str) -> dict[str, object]:
             "wall_clock_median_ms": 1.0,
             "wall_clock_p95_ms": 1.0,
         }
+        if corpus_id == "time_accounting_large":
+            manifest = {
+                "metadata_object": "CommonTemplate.КОНС_БенчмаркДанныеУчетаВремени",
+                "path": "yaxunit/src/CommonTemplates/КОНС_БенчмаркДанныеУчетаВремени/Template.txt",
+                "external_source_path": "C:\\work\\1C\\мои разработки\\Теория копмиляторов\\Генерация парсеров АКТУАЛЬНОЕ\\заппросы\\ДанныеУчетаВремени.txt",
+                "raw_bytes": 289542,
+                "line_count": 5489,
+                "character_count": 160135,
+                "raw_sha256": "43035fda34f0ccb05817d856374beba9e5539a3a99540fef9ba7d70d3656c93e",
+                "normalized_utf8_lf_sha256": "5e4a617dd41f8af97434b797bac46c9f8ba3ca1d167db9d81828b6854f1fc9c5",
+            }
+            corpus["provenance"] = (
+                "Permanent CommonTemplate time-accounting query imported from verified external source"
+            )
+            corpus["generator_parameters"] = dict(manifest)
+            inputs[0]["id"] = "time_accounting_large_1"
+            inputs[0]["input_length"] = 160135
+            inputs[0]["provenance"] = {
+                "type": "common_template_text_document",
+                **manifest,
+            }
+            corpus["input_length"] = 160135
         if component == "lexer":
             corpus["token_count"] = input_count
             corpus["token_reads_per_iteration"] = input_count * 2
@@ -154,6 +176,57 @@ def _make_sidecar(component: str) -> dict[str, object]:
 
 
 class LegacyRuntimeBaselineTests(unittest.TestCase):
+    def test_bsl_harness_registers_old_and_current_modes(self) -> None:
+        text = baseline.BENCHMARK_MODULE.read_text(encoding="utf-8")
+        for test_name in (
+            "RuntimeBaselineСтарогоЛексераФормируется",
+            "RuntimeBaselineСтарогоПарсераФормируется",
+            "RuntimeBaselineЛексераФормируется",
+            "RuntimeBaselineПарсераФормируется",
+        ):
+            self.assertIn(f'ДобавитьСерверныйТест("{test_name}")', text)
+        self.assertIn("Функция ВыполнитьБенчмарк(ОписаниеРеализации)", text)
+        self.assertIn('Токен.Тип = Неопределено', text)
+        self.assertIn(
+            'ПолучитьОбщийМакет("КОНС_БенчмаркДанныеУчетаВремени").ПолучитьТекст()',
+            text,
+        )
+        self.assertIn('"time_accounting_large", "Разобрать"', text)
+        self.assertIn(
+            '"current_model_factory", "CommonModule.ЭлементыМоделиЗапроса"',
+            text,
+        )
+        self.assertEqual(
+            text.count(
+                'ПолучитьОбщийМакет("КОНС_БенчмаркДанныеУчетаВремени").ПолучитьТекст()'
+            ),
+            1,
+        )
+        self.assertNotIn("Метаданные.НайтиПоТипу", text)
+
+    def test_time_accounting_corpus_manifest_is_strict(self) -> None:
+        self.assertEqual(
+            baseline.EXPECTED_CORPUS_IDS[-1],
+            "time_accounting_large",
+        )
+        self.assertEqual(len(baseline.EXPECTED_CORPUS_IDS), 9)
+        self.assertEqual(
+            baseline.EXPECTED_TIME_ACCOUNTING_LARGE["raw_sha256"],
+            "43035fda34f0ccb05817d856374beba9e5539a3a99540fef9ba7d70d3656c93e",
+        )
+        self.assertEqual(
+            baseline.EXPECTED_TIME_ACCOUNTING_LARGE["character_count"],
+            160135,
+        )
+
+    def test_sidecar_rejects_time_accounting_manifest_drift(self) -> None:
+        for component in ("lexer", "parser"):
+            with self.subTest(component=component):
+                sidecar = _make_sidecar(component)
+                sidecar["corpora"][-1]["generator_parameters"]["raw_sha256"] = "0" * 64
+                with self.assertRaisesRegex(ValueError, "time_accounting_large"):
+                    baseline.validate_sidecar(sidecar, component)
+
     def test_dynamic_loader_imports_dataclass_and_restores_sys_modules(self) -> None:
         if PREVIOUS_MODULE is MISSING_MODULE:
             self.assertNotIn(MODULE_NAME, sys.modules)

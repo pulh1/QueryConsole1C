@@ -121,6 +121,20 @@ EXPECTED_CORPUS_IDS = (
     "arithmetic_chain",
     "logical_chain",
     "dereference_chain",
+    "time_accounting_large",
+)
+EXPECTED_TIME_ACCOUNTING_LARGE = {
+    "metadata_object": "CommonTemplate.КОНС_БенчмаркДанныеУчетаВремени",
+    "path": "yaxunit/src/CommonTemplates/КОНС_БенчмаркДанныеУчетаВремени/Template.txt",
+    "external_source_path": "C:\\work\\1C\\мои разработки\\Теория копмиляторов\\Генерация парсеров АКТУАЛЬНОЕ\\заппросы\\ДанныеУчетаВремени.txt",
+    "raw_bytes": 289542,
+    "line_count": 5489,
+    "character_count": 160135,
+    "raw_sha256": "43035fda34f0ccb05817d856374beba9e5539a3a99540fef9ba7d70d3656c93e",
+    "normalized_utf8_lf_sha256": "5e4a617dd41f8af97434b797bac46c9f8ba3ca1d167db9d81828b6854f1fc9c5",
+}
+EXPECTED_TIME_ACCOUNTING_PROVENANCE = (
+    "Permanent CommonTemplate time-accounting query imported from verified external source"
 )
 EXPECTED_CLOCK = "ТекущаяУниверсальнаяДатаВМиллисекундах"
 EXPECTED_ARTIFACT_FIELDS = (
@@ -411,6 +425,12 @@ def _validate_corpus(corpus: object, component: str, index: int) -> None:
             raise ValueError(f"{input_prefix} missing required fields")
         if component == "lexer" and not _positive_integer(item.get("token_count")):
             raise ValueError(f"{input_prefix}.token_count must be positive")
+    if corpus["operation_count_per_iteration"] != corpus["input_count"]:
+        raise ValueError(f"{prefix}.operation_count_per_iteration mismatch")
+    if corpus["operations_per_sample"] != (
+        corpus["iterations_per_sample"] * corpus["input_count"]
+    ):
+        raise ValueError(f"{prefix}.operations_per_sample mismatch")
     for field in (
         "input_length",
         "operation_count_per_iteration",
@@ -432,8 +452,37 @@ def _validate_corpus(corpus: object, component: str, index: int) -> None:
     if component == "lexer":
         if not _positive_integer(corpus.get("token_count")):
             raise ValueError(f"{prefix}.token_count must be positive")
-        if not _positive_integer(corpus.get("token_reads_per_iteration")):
-            raise ValueError(f"{prefix}.token_reads_per_iteration must be positive")
+        input_token_count = sum(item["token_count"] for item in inputs)
+        if corpus["token_count"] != input_token_count:
+            raise ValueError(f"{prefix}.token_count mismatch")
+        if corpus.get("token_reads_per_iteration") != input_token_count + corpus["input_count"]:
+            raise ValueError(f"{prefix}.token_reads_per_iteration mismatch")
+    elif corpus.get("parse_calls_per_sample") != corpus["operations_per_sample"]:
+        raise ValueError(f"{prefix}.parse_calls_per_sample mismatch")
+    if corpus["id"] == "time_accounting_large":
+        _validate_time_accounting_corpus(corpus, prefix)
+
+
+def _validate_time_accounting_corpus(corpus: dict[str, Any], prefix: str) -> None:
+    if corpus["entrypoint"] != "Разобрать":
+        raise ValueError(f"{prefix} time_accounting_large entrypoint mismatch")
+    if corpus["provenance"] != EXPECTED_TIME_ACCOUNTING_PROVENANCE:
+        raise ValueError(f"{prefix} time_accounting_large provenance mismatch")
+    if corpus["generator_parameters"] != EXPECTED_TIME_ACCOUNTING_LARGE:
+        raise ValueError(f"{prefix} time_accounting_large generator manifest mismatch")
+    if corpus["input_count"] != 1 or corpus["input_length"] != 160135:
+        raise ValueError(f"{prefix} time_accounting_large input dimensions mismatch")
+    item = corpus["inputs"][0]
+    expected_provenance = {
+        "type": "common_template_text_document",
+        **EXPECTED_TIME_ACCOUNTING_LARGE,
+    }
+    if item.get("id") != "time_accounting_large_1":
+        raise ValueError(f"{prefix} time_accounting_large input id mismatch")
+    if item.get("input_length") != 160135:
+        raise ValueError(f"{prefix} time_accounting_large input length mismatch")
+    if item.get("provenance") != expected_provenance:
+        raise ValueError(f"{prefix} time_accounting_large input provenance mismatch")
 
 
 def validate_sidecar(document: object, component: str) -> None:
