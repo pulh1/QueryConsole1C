@@ -206,3 +206,78 @@ production BSL artifact не изменяется.
 поэтому runtime action выполняется ровно один раз. Устранение такого текстового
 повтора относится к Wave 3 composition/optimization, который здесь намеренно
 не выполнялся.
+
+## Fix round 1
+
+### Findings и root cause
+
+1. Saturated regression защищал DAG outcome только на полных `("X", "Z")` и
+   `("Y", "Z")`. Validator сравнивает DAG с уже exported source, поэтому
+   согласованное overaccepting изменение exporter/validator осталось бы
+   незамеченным. Production exporter после `6d1331a` уже exact; дефектом был
+   недостаточный независимый test oracle.
+2. Alias и три operand subtests привязывали semantic contract к pre-DAG
+   ordinal `Значение1`. Реальный invariant: temporary, куда записан каждый
+   expected child call, должен быть передан в `РезультатПродукции`.
+
+### RED evidence
+
+- До изменения repository assertions alias test и operand subtests `Выбор`,
+  `Параметр`, `АгрегатнаяФункция` падали на ожидании
+  `Значение1`; generated branches содержали child call и paired return под
+  другим номером.
+- Первая версия semantic helper дала адресный RED:
+  `1 failed, 6 passed, 23462 subtests passed`: `НеТерминалПоле()` законно
+  присутствовал в трёх взаимоисключающих leaves. Helper уточнён: он не
+  требует text deduplication, но проверяет pairing для каждого emitted call.
+- Для exporter tests выполнён mutation RED: temporary mutation
+  `accepting = depth > 0 or terminal` дала `4 failed, 2 passed`. Exporter-level
+  assertions поймали `_accepts(..., ("X",)) is True`, а independent materializer
+  нашёл лишние `("X",)` и `("Y",)` относительно `analysis.select`. Mutation
+  сразу удалена; production diff в round отсутствует.
+
+### Changes и commit
+
+- `tools/parsergen/tests/test_canonical_select.py`: incomplete saturated prefixes ложны,
+  full depth-`k` paths истинны.
+- `tools/parsergen/tests/test_decision_dag.py`: source exactness проверяется отдельно от
+  сохранённого early-commit evaluator behavior.
+- `tools/parsergen/tests/test_decision_dag_property.py`: symbolic languages материализуются
+  независимым DFS и exact сравниваются с `analysis.select` в targeted и 200
+  deterministic randomized cases.
+- `tools/parsergen/tests/test_repository_grammar.py`: alias/operand assertions извлекают
+  actual `ЗначениеN` для каждого expected child call и проверяют ровно одно
+  парное result assignment.
+- Commit: `c6cc1ba` — `Уточнить exact-language контракты Decision DAG`.
+
+### GREEN и final verification
+
+- Covering files и exact repository cases: `31 passed, 23469 subtests passed`.
+- Wave 1 + Wave 2 focused: `129 passed, 23463 subtests passed`.
+- Единственный full pytest этого round: `7 failed, 528 passed, 1 skipped,
+  27672 subtests passed` за `48.52s`. Фактический remaining set ровно разрешённый:
+  - Task 13 (3):
+    `MigrationAuditUnitTests::test_build_report_has_separate_canonical_and_legacy_sections`,
+    `MigrationAuditProductionTests::test_canonical_and_legacy_contracts_are_separate`,
+    `ReferenceParserTests::test_full_extended_grammar_matches_reference_parser`;
+  - Task 12 audit baseline (1):
+    `MigrationAuditProductionTests::test_generated_shape_baseline_is_explicit`;
+  - Task 11 wrapper specialization (3): two subtests (`ЛогическийМножитель`,
+    `ОперандСравнения`) и aggregate failure в
+    `RepositoryGrammarCompatibilityTests::test_postfix_predicates_generate_max_one_canonical_wrappers`.
+- Repository import: `tools/parsergen/src/parsergen/__init__.py`.
+- `python -m parsergen validate --config parsergen.toml`: exit `0`.
+- `git diff --check`: exit `0`.
+- Production/reference artifacts не регенерировались; wrapper production code не изменялся.
+
+### Self-review
+
+- Expected language берётся напрямую из public `analysis.select`; materializer не использует
+  exporter/DAG evaluator logic и поэтому не является mirror assertion.
+- Property comparison охватывает каждый outcome language, включая nullable/EOF,
+  exact `#ID_*` predicates и `k = 1..3`.
+- `_accepts(..., ("X",)) is False` проверяет только symbolic source. DAG evaluator
+  по-прежнему может early-commit по единственной viable alternative; контракт не
+  ослаблен.
+- Temporary helper не фиксирует ordinal и не требует Wave 3 text deduplication;
+  каждый фактически emitted child call остаётся связан с одним result assignment.
