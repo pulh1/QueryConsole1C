@@ -366,6 +366,120 @@ def evaluate_decision(
     return node
 
 
+@dataclass(frozen=True, slots=True)
+class _VerifyState:
+    offset: int
+    remaining: int
+    residuals: tuple[tuple[int, frozenset[int]], ...]
+
+
+def _verifier_leaf(outcome: CanonicalOutcome) -> DecisionLeaf:
+    if isinstance(outcome, ExitOutcome):
+        return ExitDecision(outcome)
+    return CommitAlternative(outcome)
+
+
+def _verifier_derivative(
+    language: SymbolicLanguage,
+    residual: frozenset[int],
+    token: str,
+) -> frozenset[int]:
+    targets: set[int] = set()
+    for node_id in residual:
+        for edge in language.nodes[node_id].edges:
+            if token in edge.predicate.token_types:
+                targets.add(edge.target)
+    return frozenset(targets)
+
+
+def _verifier_can_finish(
+    language: SymbolicLanguage,
+    residual: frozenset[int],
+    remaining: int,
+) -> bool:
+    frontier = set(residual)
+    for depth in range(remaining + 1):
+        if any(language.nodes[node_id].accepting for node_id in frontier):
+            return True
+        if depth == remaining:
+            break
+        frontier = {
+            edge.target
+            for node_id in frontier
+            for edge in language.nodes[node_id].edges
+        }
+        if not frontier:
+            return False
+    return False
+
+
+def _normalize_verify_state(
+    source: CanonicalDecisionSource,
+    state: _VerifyState,
+) -> _VerifyState:
+    return _VerifyState(
+        state.offset,
+        state.remaining,
+        tuple(
+            (language_id, residual)
+            for language_id, residual in state.residuals
+            if _verifier_can_finish(
+                source.languages[language_id].language,
+                residual,
+                state.remaining,
+            )
+        ),
+    )
+
+
+def _verifier_expected_tokens(
+    source: CanonicalDecisionSource,
+    state: _VerifyState,
+) -> tuple[str, ...]:
+    tokens: set[str] = set()
+    for language_id, residual in state.residuals:
+        language = source.languages[language_id].language
+        for node_id in residual:
+            for edge in language.nodes[node_id].edges:
+                tokens.update(edge.predicate.token_types)
+    return tuple(sorted(tokens))
+
+
+def _verifier_successor(
+    source: CanonicalDecisionSource,
+    state: _VerifyState,
+    token: str,
+) -> _VerifyState:
+    return _VerifyState(
+        state.offset + 1,
+        state.remaining - 1,
+        tuple(
+            (
+                language_id,
+                _verifier_derivative(
+                    source.languages[language_id].language,
+                    residual,
+                    token,
+                ),
+            )
+            for language_id, residual in state.residuals
+        ),
+    )
+
+
+def _verifier_eof_outcomes(
+    source: CanonicalDecisionSource,
+    state: _VerifyState,
+) -> tuple[CanonicalOutcome, ...]:
+    outcomes: list[CanonicalOutcome] = []
+    for language_id, residual in state.residuals:
+        item = source.languages[language_id]
+        derivative = _verifier_derivative(item.language, residual, "$")
+        if any(item.language.nodes[node_id].accepting for node_id in derivative):
+            outcomes.append(item.outcome)
+    return tuple(outcomes)
+
+
 def validate_decision_dag(
     source: CanonicalDecisionSource,
     dag: CanonicalDecisionDag,
@@ -383,23 +497,33 @@ def validate_decision_dag(
         ):
             raise ValueError("DAG edge is out of range")
 
-    semantics = _DecisionSemantics(source)
-    checked: set[tuple[_BuildState, int]] = set()
+    initial = _VerifyState(
+        0,
+        source.lookahead,
+        tuple(
+            (language_id, frozenset({item.language.root}))
+            for language_id, item in enumerate(source.languages)
+        ),
+    )
+    checked: set[tuple[_VerifyState, int]] = set()
 
-    def visit(raw_state: _BuildState, node_id: int) -> None:
-        state = semantics.normalize(raw_state)
+    def visit(raw_state: _VerifyState, node_id: int) -> None:
+        state = _normalize_verify_state(source, raw_state)
         key = (state, node_id)
         if key in checked:
             return
         checked.add(key)
         node = dag.nodes[node_id]
-        viable = tuple(outcome for outcome, _ in state.residuals)
+        viable = tuple(
+            source.languages[language_id].outcome
+            for language_id, _ in state.residuals
+        )
         if not viable:
             if not isinstance(node, ImmediateError):
                 raise ValueError("DAG must reject a state without outcomes")
             return
         if len(viable) == 1:
-            if node != _leaf_for_outcome(viable[0]):
+            if node != _verifier_leaf(viable[0]):
                 raise ValueError("DAG singleton outcome does not match source")
             return
         if state.remaining <= 0:
@@ -410,7 +534,7 @@ def validate_decision_dag(
             raise ValueError("DAG commits while multiple outcomes remain")
         if node.offset != state.offset:
             raise ValueError("DAG lookahead offset does not match source")
-        expected = semantics.expected_tokens(state)
+        expected = _verifier_expected_tokens(source, state)
         if node.expected != expected:
             raise ValueError("DAG expected tokens do not match source")
         targets: dict[str, int] = {}
@@ -424,19 +548,19 @@ def validate_decision_dag(
         for token in expected:
             target = targets[token]
             if token == "$":
-                outcomes = semantics.end_outcomes(state)
+                outcomes = _verifier_eof_outcomes(source, state)
                 if len(outcomes) > 1:
                     raise ValueError(
                         "canonical decision remains ambiguous at lookahead limit"
                     )
                 expected_leaf: DecisionLeaf = (
-                    _leaf_for_outcome(outcomes[0])
+                    _verifier_leaf(outcomes[0])
                     if outcomes
                     else ImmediateError(expected)
                 )
                 if dag.nodes[target] != expected_leaf:
                     raise ValueError("DAG EOF outcome does not match source")
             else:
-                visit(semantics.successor(state, token), target)
+                visit(_verifier_successor(source, state, token), target)
 
-    visit(semantics.initial_state(), dag.root)
+    visit(initial, dag.root)

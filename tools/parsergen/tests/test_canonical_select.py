@@ -51,9 +51,15 @@ class CanonicalSelectTests(unittest.TestCase):
         compressed = analysis._compressed
         assert compressed is not None
 
-        with patch(
-            "parsergen.analysis.build_canonical_decision_artifact",
-            side_effect=AssertionError("row materialization is forbidden"),
+        with (
+            patch(
+                "parsergen.analysis.build_canonical_decision_artifact",
+                side_effect=AssertionError("artifact materialization is forbidden"),
+            ),
+            patch(
+                "parsergen.analysis._CompressedAnalysis.iter_matcher_rows",
+                side_effect=AssertionError("row enumeration is forbidden"),
+            ),
         ):
             source = build_canonical_decision_source(analysis, "S")
 
@@ -65,8 +71,25 @@ class CanonicalSelectTests(unittest.TestCase):
         }
         self.assertIn(("ID", "ГДЕ"), predicates)
         self.assertIn(("END",), predicates)
-        self.assertEqual(compressed.stats["public_select_expansions"], 0)
-        self.assertEqual(compressed.stats["artifact_matcher_rows"], 0)
+        self.assertEqual(
+            {
+                key: compressed.stats[key]
+                for key in (
+                    "public_select_expansions",
+                    "select_cartesian_materializations",
+                    "select_packed_product_rows",
+                    "artifact_matcher_materializations",
+                    "artifact_matcher_rows",
+                )
+            },
+            {
+                "public_select_expansions": 0,
+                "select_cartesian_materializations": 0,
+                "select_packed_product_rows": 0,
+                "artifact_matcher_materializations": 0,
+                "artifact_matcher_rows": 0,
+            },
+        )
 
     def test_equal_token_sets_ignore_matcher_provenance(self) -> None:
         source = build_canonical_decision_source(
