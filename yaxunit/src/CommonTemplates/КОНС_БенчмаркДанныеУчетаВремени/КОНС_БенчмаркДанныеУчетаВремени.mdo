@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:CommonTemplate xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="5be59e2e-b65f-4943-bd42-b11d1a0ae973">
+  <name>КОНС_БенчмаркДанныеУчетаВремени</name>
+  <synonym>
+    <key>ru</key>
+    <value>КОНС бенчмарк данные учета времени</value>
+  </synonym>
+  <comment>Permanent time-accounting benchmark corpus</comment>
+  <templateType>TextDocument</templateType>
+</mdclass:CommonTemplate>

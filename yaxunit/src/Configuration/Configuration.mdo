@@ -48,6 +48,7 @@
   <commonPictures>CommonPicture.ЮТУпал</commonPictures>
   <commonPictures>CommonPicture.ЮТУспешно</commonPictures>
   <commonPictures>CommonPicture.ЮТЭлементыТестов</commonPictures>
+  <commonTemplates>CommonTemplate.КОНС_БенчмаркДанныеУчетаВремени</commonTemplates>
   <commonTemplates>CommonTemplate.ЮТ_СловарьПодражателя_Компании_Наименования_ru</commonTemplates>
   <commonTemplates>CommonTemplate.ЮТ_СловарьПодражателя_Компании_ПрефиксыНаименований_ru</commonTemplates>
   <commonTemplates>CommonTemplate.ЮТ_СловарьПодражателя_Люди_ЖенскиеИмена_ru</commonTemplates>
