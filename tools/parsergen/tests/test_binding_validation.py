@@ -28,6 +28,14 @@ class BindingValidationTests(unittest.TestCase):
             ["BIND201"],
         )
 
+    def test_rejects_discard_binding_without_constructor(self) -> None:
+        report = _validate("<S> ::= -= <A>\n<A> ::= a")
+
+        self.assertEqual(
+            [item.code for item in report.diagnostics],
+            ["BIND201"],
+        )
+
     def test_rejects_binding_before_constructor_and_duplicate_constructor(
         self,
     ) -> None:

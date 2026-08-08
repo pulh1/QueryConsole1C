@@ -81,6 +81,21 @@ class BindingLoweringTests(unittest.TestCase):
         self.assertEqual(len(production.alternatives), 2)
         self.assertEqual(production.alternatives[1].syntax_symbols, ())
 
+    def test_discard_binding_is_explicit_in_lowering_metadata(self) -> None:
+        lowered = _lower(
+            "<S> ::= @НовыйУзел -= <A> (',' -= <A>)*\n<A> ::= a"
+        )
+
+        self.assertEqual(lowered.diagnostics, ())
+        self.assertEqual(
+            [
+                item.kind
+                for item in lowered.bindings
+                if item.kind is BindingOriginKind.DISCARD
+            ],
+            [BindingOriginKind.DISCARD, BindingOriginKind.DISCARD],
+        )
+
     def test_parse_facade_returns_bound_lowering_without_temporary_gate(self) -> None:
         result = parse_grammar(
             "<S> ::= @НовыйУзел Значение = <A>\n<A> ::= a"

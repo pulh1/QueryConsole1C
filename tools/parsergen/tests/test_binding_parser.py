@@ -87,6 +87,28 @@ class BindingParserTests(unittest.TestCase):
         self.assertIs(repeated.mode, BindingMode.APPEND)
         self.assertIsNone(repeated.property)
 
+    def test_parses_explicit_discard_binding_inside_repeat(self) -> None:
+        result = parse_source_grammar(
+            "<S> ::= @НовыйУзел -= <Item> (',' -= <Item>)*\n"
+            "<Item> ::= ITEM"
+        )
+
+        self.assertEqual(result.diagnostics, ())
+        assert result.grammar is not None
+        items = result.grammar.productions[0].alternatives[0].body.items
+        first = items[1]
+        self.assertIsInstance(first, SourceBinding)
+        self.assertIs(first.mode, BindingMode.DISCARD)
+        self.assertIsNone(first.property)
+        repeat = items[2]
+        self.assertIsInstance(repeat, SourceRepeat)
+        assert isinstance(repeat, SourceRepeat)
+        assert isinstance(repeat.body, SourceGroup)
+        repeated = repeat.body.alternatives[0].body.items[1]
+        self.assertIsInstance(repeated, SourceBinding)
+        self.assertIs(repeated.mode, BindingMode.DISCARD)
+        self.assertIsNone(repeated.property)
+
     def test_parses_scalar_concat_binding_inside_repeat(self) -> None:
         result = parse_source_grammar(
             "#ID_Name ::= ID\n"
@@ -189,6 +211,7 @@ class BindingParserTests(unittest.TestCase):
             "<S> ::= Значение *= <A>",
             "<S> ::= ~= <A>",
             "<S> ::= ++= <A>",
+            "<S> ::= -=",
             "<S> ::= Значение :=",
             "<S> ::= :=",
         )

@@ -82,7 +82,8 @@ FIRST/FOLLOW/SELECT не переписываются без отдельной 
   корректную incremental конфигурацию запуска.
 - EDT и Serena подтвердили 43 BSL-файла и 751 прямое употребление пяти
   центральных model API.
-- Factory `ЭлементыМоделиЗапроса` содержит 91 export-конструктор.
+- Factory `ЭлементыМоделиЗапроса` содержит 92 export-функции, включая
+  базовую helper-функцию, и 91 конкретный constructor.
 - Expression dispatcher обрабатывает 29 типов, visitor template содержит 59
   callbacks. Все три concrete visitors реализуют полный template.
 - Не подтверждено, что единственным manual-only consumer является Query
@@ -232,6 +233,7 @@ Constructor задаётся декларативно:
 Свойство = <Узел>       scalar/optional assignment
 Элементы += <Узел>      append to collection
 += <Узел>               append to constructed root collection
+-= <Узел>               parse and explicitly discard semantic result
 Свойство ~= &Токен       concatenate token text to scalar property
 Свойство ++= Токен      consume token and increment numeric property
 Свойство = &Токен       terminal/token value
@@ -284,6 +286,11 @@ Direct LR:
 - `+=` добавляет каждое значение в collection property.
 - `+=` без property добавляет значение непосредственно в constructed root
   collection; scalar root binding не поддерживается.
+- `-=` явно помечает semantic result как syntax-only. Это требуется на
+  временной canonical/legacy boundary, когда legacy island изменяет переданный
+  domain object и его возвращаемое значение не должно становиться частью AST.
+  Discard binding требует active constructor и не ослабляет проверку unbound
+  repeated semantic values.
 - `~=` добавляет text разобранного token/identifier к scalar string
   property. Binding требует property и constructor, может исполняться
   в repeat и не смешивается с `=`/`+=` для одного property. На первой
@@ -479,7 +486,7 @@ Legacy island        ──→ Legacy Adapter      ──→ compatibility funct
 | Expression parser | 27 YAxUnit procedures, 84 historical cases | добавить затрагиваемые chains/AST observations |
 | Full-query parser | 31 procedures, 97 historical cases | добавить properties будущих slices и corpus gate |
 | Semantic analyzer | 12 pure-expression cases | sources, aliases, joins, fields, nested, union, parser handshake |
-| Factory/dispatcher/template | factory 91 exports, dispatcher 29 types, template 59 callbacks | completeness/unknown-node contract |
+| Factory/dispatcher/template | factory 92 exports (91 concrete constructors), dispatcher 29 types, template 59 callbacks | completeness/unknown-node contract |
 | Три concrete visitors | template реализован полностью | headless behavior contracts для изменяемых nodes |
 | Builder | BDD через формы | direct headless builder/mutation tests |
 | Query/expression generation | BDD round-trip косвенно | headless semantic round-trip и unknown-node error |

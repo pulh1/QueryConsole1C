@@ -63,6 +63,12 @@ class ParseSymbol:
 
 
 @dataclass(frozen=True, slots=True)
+class DiscardSymbol:
+    symbol: SyntaxSymbol
+    source_span: SourceSpan
+
+
+@dataclass(frozen=True, slots=True)
 class UndefinedValue:
     value: str
     source_span: SourceSpan
@@ -194,6 +200,7 @@ class ReturnConstant:
 
 Operation = (
     ParseSymbol
+    | DiscardSymbol
     | Dispatch
     | RepeatLoop
     | OptionalBranch
@@ -594,6 +601,38 @@ class _ParserIrBuilder:
     def _binding(self, binding: SourceBinding) -> tuple[Operation, ...]:
         kind = _binding_origin_kind(binding.mode)
         origin = self._binding_origin(binding.span, kind)
+        if binding.mode is BindingMode.DISCARD:
+            if isinstance(binding.value, SourceOptional):
+                optional = binding.value
+                construct = self._construct(
+                    optional.span,
+                    LoweredConstructKind.OPTIONAL,
+                )
+                branches = self._discard_primary_branches(optional.body)
+                return (
+                    OptionalBranch(
+                        self._decision(construct.production),
+                        branches,
+                        len(branches) + 1,
+                        (),
+                        optional.span,
+                    ),
+                )
+            if isinstance(binding.value, SourceRepeat):
+                return self._repeat(binding.value, binding)
+            if isinstance(binding.value, SourceGroup):
+                construct = self._construct(
+                    binding.value.span,
+                    LoweredConstructKind.GROUP,
+                )
+                return (
+                    Dispatch(
+                        self._decision(construct.production),
+                        self._discard_primary_branches(binding.value),
+                        binding.value.span,
+                    ),
+                )
+            return (DiscardSymbol(binding.value, origin.source_span),)
         if isinstance(binding.value, SourceOptional):
             optional = binding.value
             construct = self._construct(
@@ -681,6 +720,8 @@ class _ParserIrBuilder:
         primary: SourcePrimary,
         binding: SourceBinding,
     ) -> tuple[BranchIr, ...]:
+        if binding.mode is BindingMode.DISCARD:
+            return self._discard_primary_branches(primary)
         if isinstance(primary, SourceGroup):
             return tuple(
                 BranchIr(
@@ -705,6 +746,29 @@ class _ParserIrBuilder:
                         ParseSymbol(primary, primary.span),
                     ),
                 ),
+                None,
+                primary.span,
+            ),
+        )
+
+    def _discard_primary_branches(
+        self,
+        primary: SourcePrimary,
+    ) -> tuple[BranchIr, ...]:
+        if isinstance(primary, SourceGroup):
+            return tuple(
+                BranchIr(
+                    alternative.index + 1,
+                    self._sequence(alternative.body),
+                    None,
+                    alternative.span,
+                )
+                for alternative in primary.alternatives
+            )
+        return (
+            BranchIr(
+                1,
+                (DiscardSymbol(primary, primary.span),),
                 None,
                 primary.span,
             ),
@@ -914,4 +978,6 @@ def _binding_origin_kind(mode: BindingMode) -> BindingOriginKind:
         return BindingOriginKind.CONCAT
     if mode is BindingMode.INCREMENT:
         return BindingOriginKind.INCREMENT
+    if mode is BindingMode.DISCARD:
+        return BindingOriginKind.DISCARD
     return BindingOriginKind.SCALAR

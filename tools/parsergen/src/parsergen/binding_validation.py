@@ -140,7 +140,8 @@ class _BindingValidator:
                 if isinstance(binding, SourceBinding)
                 else BindingMode.SCALAR
             )
-            modes.setdefault(binding.property, set()).add(mode)
+            if mode is not BindingMode.DISCARD:
+                modes.setdefault(binding.property, set()).add(mode)
             if isinstance(binding, SourceConstantBinding):
                 if not _valid_constant(binding.value):
                     self._add(

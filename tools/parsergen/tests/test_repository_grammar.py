@@ -24,6 +24,8 @@ MIGRATED_PRODUCTIONS = (
     "ВыражениеВсеПоляВыборки",
     "ВыражениеВсеПоля",
     "Псевдоним",
+    "БлокИз",
+    "СписокСоединений",
     "ТипСоединения",
     "ИсточникДанных",
     "ПрисоединяемаяТаблица",
@@ -706,8 +708,8 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 78)
-        self.assertEqual(len(parsed.grammar.productions), 142)
+        self.assertEqual(len(parsed.source_grammar.productions), 77)
+        self.assertEqual(len(parsed.grammar.productions), 143)
         self.assertNotIn(
             "КакОпционально",
             {item.name for item in parsed.source_grammar.productions},
@@ -2191,6 +2193,95 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         )
         self.assertNotIn("ТекущийЭлемент", function)
         self.assertNotIn("НомерВариантаПродукции", function)
+
+    def test_source_and_join_family_generates_iterative_canonical_code(self) -> None:
+        parsed = parse_grammar(
+            REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
+            str(REPOSITORY_GRAMMAR),
+        )
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        assert parsed.grammar is not None
+        resolution = resolve_grammar(parsed.grammar)
+        assert resolution.grammar is not None
+        analysis = compute_analysis(
+            resolution.grammar,
+            2,
+            ("ПакетЗапросов", "Выражение"),
+        )
+        canonical = MIGRATED_PRODUCTIONS
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolution.grammar,
+            analysis,
+            production_names=canonical,
+        )
+        generated = generate_hybrid_parser(
+            parsed.source_grammar,
+            parsed.lowering,
+            parsed.grammar,
+            resolution.grammar,
+            analysis,
+            parser_ir,
+            canonical_productions=canonical,
+            entrypoints={"Разобрать": "ПакетЗапросов"},
+        )
+
+        module = generated.module_text
+        for removed_helper in ("СписокТаблиц", "Соединение"):
+            with self.subTest(helper=removed_helper):
+                self.assertNotIn(
+                    f"Функция НеТерминал{removed_helper}(",
+                    module,
+                )
+
+        sources = _generated_function(module, "БлокИз")
+        self.assertEqual(
+            sources.count("ЭлементыМоделиЗапроса.НовыйИсточникиЗапроса("),
+            1,
+        )
+        self.assertIn("Пока ", sources)
+        self.assertNotIn("НомерВариантаПродукции", sources)
+
+        joins = _generated_function(module, "СписокСоединений")
+        self.assertEqual(
+            joins.count("ЭлементыМоделиЗапроса.НовыйСписокСоединений("),
+            1,
+        )
+        self.assertIn("ЭтотУзел.Добавить(", joins)
+        self.assertIn("Пока ", joins)
+        self.assertNotIn("НомерВариантаПродукции", joins)
+
+        root_source = _generated_function(module, "ИсточникДанныхЗапроса")
+        self.assertEqual(
+            root_source.count("ЭлементыМоделиЗапроса.НовыйИсточник("),
+            1,
+        )
+        self.assertIn("ЭтотУзел.Источник = ТекущийЭлемент;", root_source)
+        self.assertIn("ЭтотУзел.Соединения = ТекущийЭлемент;", root_source)
+        self.assertIn("НеТерминалСписокСоединений(", root_source)
+        self.assertNotIn("НеТерминалСоединение(", root_source)
+
+        join = _generated_function(module, "ПраваяЧастьСоединения")
+        self.assertEqual(
+            join.count("ЭлементыМоделиЗапроса.НовыйСоединениеИсточника("),
+            2,
+        )
+        self.assertIn("ЭтотУзел.ТипСоединения = ТекущийЭлемент;", join)
+        self.assertIn("ЭтотУзел.Источник = ТекущийЭлемент.ИдентификаторИсточника;", join)
+        self.assertIn("ЭтотУзел.Условие = ТекущийЭлемент;", join)
+        self.assertIn("ЭтотУзел.Опционально = Истина;", join)
+
+        joined_source = _generated_function(module, "ИсточникДанныхСоединения")
+        self.assertEqual(
+            joined_source.count("ЭлементыМоделиЗапроса.НовыйИсточник("),
+            1,
+        )
+        self.assertIn("ЭтотУзел.Источник = ТекущийЭлемент;", joined_source)
+        self.assertIn("ЭтотУзел.Соединения = ТекущийЭлемент;", joined_source)
+        self.assertIn("НеТерминалСписокСоединений(", joined_source)
+        self.assertNotIn("НеТерминалСоединение(", joined_source)
 
     def test_totals_control_point_package_generates_nested_optionals_and_bindings(
         self,

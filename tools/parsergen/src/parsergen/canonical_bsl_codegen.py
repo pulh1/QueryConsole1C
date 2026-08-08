@@ -31,6 +31,7 @@ from .parser_ir import (
     ConstructNode,
     Dispatch,
     DispatchValue,
+    DiscardSymbol,
     FoldLeftValue,
     IncrementScalar,
     LeftFold,
@@ -395,7 +396,12 @@ class _CanonicalBslGenerator:
         lines: list[str] = []
         values: list[str | None] = []
         for index, operation in enumerate(operations):
-            if (
+            if isinstance(operation, DiscardSymbol):
+                rendered = [
+                    f"{indent}{self._symbol_call(operation.symbol)};"
+                ]
+                value = None
+            elif (
                 isinstance(operation, ParseSymbol)
                 and index != required_result_index
             ):

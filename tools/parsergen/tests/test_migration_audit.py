@@ -84,6 +84,8 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "ВыражениеВсеПоляВыборки",
                 "ВыражениеВсеПоля",
                 "Псевдоним",
+                "БлокИз",
+                "СписокСоединений",
                 "ТипСоединения",
                 "ИсточникДанных",
                 "ПрисоединяемаяТаблица",
@@ -148,21 +150,21 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["structural"],
             {
-                "source_productions": 78,
-                "source_alternatives": 181,
-                "productions": 142,
-                "alternatives": 309,
+                "source_productions": 77,
+                "source_alternatives": 178,
+                "productions": 143,
+                "alternatives": 310,
                 "epsilon_alternatives": 72,
-                "formal_parameters": 9,
+                "formal_parameters": 10,
                 "actual_arguments": 26,
                 "action_blocks": 64,
-                "statements": 77,
+                "statements": 74,
                 "constructor_statements": 14,
-                "collection_statements": 8,
+                "collection_statements": 6,
                 "constant_statements": 7,
-                "structural_statements": 45,
+                "structural_statements": 47,
                 "other_assignment_statements": 0,
-                "other_statements": 3,
+                "other_statements": 0,
             },
         )
 
@@ -173,13 +175,13 @@ class MigrationAuditProductionTests(unittest.TestCase):
                 "conflicts": [],
                 "diagnostics": [],
                 "stats": {
-                    "packed_first_rows": 11_765,
-                    "packed_follow_rows": 52_279,
-                    "select_descriptors": 309,
-                    "select_direct_facts": 11_413,
-                    "select_short_complete_prefixes": 352,
-                    "packed_select_upper_bound": 36_827,
-                    "conflict_work_items": 521,
+                    "packed_first_rows": 11_778,
+                    "packed_follow_rows": 52_481,
+                    "select_descriptors": 310,
+                    "select_direct_facts": 11_425,
+                    "select_short_complete_prefixes": 353,
+                    "packed_select_upper_bound": 37_059,
+                    "conflict_work_items": 520,
                     "public_select_expansions": 0,
                     "select_cartesian_materializations": 0,
                 },
@@ -188,7 +190,7 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["legacy"],
             {
-                "matcher_rows": 10_010,
+                "matcher_rows": 10_023,
                 "matcher_definitions": 0,
                 "runtime_conflicts": [],
             },
@@ -199,10 +201,10 @@ class MigrationAuditProductionTests(unittest.TestCase):
         self.assertEqual(
             self.report["generated"],
             {
-                "bsl_functions": 90,
-                "bsl_loc": 2328,
-                "constructor_names": 78,
-                "select_rows": 1_487,
+                "bsl_functions": 89,
+                "bsl_loc": 2330,
+                "constructor_names": 79,
+                "select_rows": 1_364,
                 "identifier_rows": 276,
             },
         )
@@ -266,7 +268,7 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 '"ЗапросПакета", "ЗапросУничтожения", "ОбъединяемыйЗапрос", '
                 '"ПоляВыборки", "ПолеВыборки", '
                 '"ВыражениеВсеПоляВыборки", "ВыражениеВсеПоля", '
-                '"Псевдоним", '
+                '"Псевдоним", "БлокИз", "СписокСоединений", '
                 '"ТипСоединения", "ИсточникДанных", '
                 '"ПрисоединяемаяТаблица", '
                     '"ИсточникДанныхТаблицаЗначений", '

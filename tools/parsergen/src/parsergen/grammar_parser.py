@@ -591,6 +591,22 @@ def _parse_source_sequence(
             index += 2
             continue
 
+        if pending_binding is None and body.startswith("-=", index):
+            operator_span = _span(
+                text,
+                path,
+                start_offset + index,
+                start_offset + index + 2,
+            )
+            pending_binding = (
+                None,
+                BindingMode.DISCARD,
+                symbol_start,
+                operator_span,
+            )
+            index += 2
+            continue
+
         binding_prefix = (
             _binding_prefix(body, index)
             if pending_binding is None
