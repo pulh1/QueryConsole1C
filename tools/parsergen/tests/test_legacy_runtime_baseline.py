@@ -448,6 +448,17 @@ class LegacyRuntimeBaselineTests(unittest.TestCase):
             baseline._write_json({"тест": "значение"})
         self.assertEqual(json.loads(output.getvalue()), {"тест": "значение"})
 
+    def test_sidecar_loader_accepts_utf8_bom_emitted_by_1c(self) -> None:
+        sidecar = _make_sidecar("lexer")
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "lexer.json"
+            path.write_bytes(
+                b"\xef\xbb\xbf"
+                + json.dumps(sidecar, ensure_ascii=False).encode("utf-8")
+            )
+            loaded = baseline._load_sidecar(path)
+        self.assertEqual(loaded, sidecar)
+
     def test_parser_artifact_alias_equals_parser_role_artifact(self) -> None:
         sidecar = _make_sidecar("parser")
         sidecar["parser_artifact"] = dict(sidecar["parser_artifact"])

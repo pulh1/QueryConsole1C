@@ -534,8 +534,12 @@ def validate_sidecar(document: object, component: str) -> None:
         _validate_corpus(corpus, component, index)
 
 
+def _load_json_bytes(payload: bytes) -> Any:
+    return json.loads(payload.decode("utf-8-sig"))
+
+
 def _load_sidecar(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_bytes().decode("utf-8"))
+    value = _load_json_bytes(path.read_bytes())
     if not isinstance(value, dict):
         raise ValueError(f"sidecar must be a JSON object: {path}")
     return value
@@ -619,8 +623,8 @@ def publish(repo: Path, lexer_path: Path, parser_path: Path, output_dir: Path) -
     lexer_bytes = durable_lexer.read_bytes()
     parser_bytes = durable_parser.read_bytes()
     markdown = render_markdown(
-        json.loads(lexer_bytes.decode("utf-8")),
-        json.loads(parser_bytes.decode("utf-8")),
+        _load_json_bytes(lexer_bytes),
+        _load_json_bytes(parser_bytes),
         _sha256(lexer_bytes),
         _sha256(parser_bytes),
     )
@@ -631,8 +635,8 @@ def publish(repo: Path, lexer_path: Path, parser_path: Path, output_dir: Path) -
 def validate_durable(lexer_path: Path, parser_path: Path, report_path: Path) -> None:
     lexer_bytes = lexer_path.read_bytes()
     parser_bytes = parser_path.read_bytes()
-    lexer_document = json.loads(lexer_bytes.decode("utf-8"))
-    parser_document = json.loads(parser_bytes.decode("utf-8"))
+    lexer_document = _load_json_bytes(lexer_bytes)
+    parser_document = _load_json_bytes(parser_bytes)
     validate_sidecar(lexer_document, "lexer")
     validate_sidecar(parser_document, "parser")
     expected_report = render_markdown(
