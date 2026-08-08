@@ -20,6 +20,7 @@ MIGRATED_PRODUCTIONS = (
     "ЗапросУничтожения",
     "ЗапросВыбора",
     "ОбъединяемыйЗапрос",
+    "ОператорОбъединения",
     "ТипОбъединенияЗапроса",
     "ПоляВыборки",
     "ПолеВыборки",
@@ -2431,9 +2432,12 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
 
         union = _generated_function(module, "ОператорОбъединения")
         self.assertIn(
-            "ТекущийЭлемент.ТипОбъединения = ТипОбъединения;",
+            ".ТипОбъединения = Значение",
             union,
         )
+        self.assertEqual(union.count("НеТерминалТипОбъединенияЗапроса()"), 1)
+        self.assertEqual(union.count("НеТерминалОбъединяемыйЗапрос()"), 1)
+        self.assertNotIn("ТекущийЭлемент", union)
         self.assertNotIn("НомерВариантаПродукции", union)
         self.assertNotIn("НеТерминалБлокОбъединить(", union)
 

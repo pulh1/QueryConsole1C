@@ -23,11 +23,21 @@ class BindingValidationTests(unittest.TestCase):
 
         self.assertEqual(report.diagnostics, ())
 
-    def test_rejects_returned_child_decorator_without_seed_or_optional(self) -> None:
+    def test_accepts_required_returned_child_decorator_without_constructor(
+        self,
+    ) -> None:
+        report = _validate(
+            "<S> ::= <Seed> Тип => <Child>\n"
+            "<Seed> ::= @НовыйТип TYPE\n"
+            "<Child> ::= @НовыйУзел CHILD"
+        )
+
+        self.assertEqual(report.diagnostics, ())
+
+    def test_rejects_returned_child_decorator_without_seed(self) -> None:
         cases = (
             "<S> ::= Операнд => <Postfix>?\n<Postfix> ::= POSTFIX",
-            "<S> ::= <Base> Операнд => <Postfix>\n"
-            "<Base> ::= BASE\n<Postfix> ::= POSTFIX",
+            "<S> ::= Операнд => <Postfix>\n<Postfix> ::= POSTFIX",
         )
         for source in cases:
             with self.subTest(source=source):
@@ -36,6 +46,17 @@ class BindingValidationTests(unittest.TestCase):
                     [item.code for item in report.diagnostics],
                     ["BIND210"],
                 )
+
+    def test_rejects_repeated_returned_child_decorator(self) -> None:
+        report = _validate(
+            "<S> ::= <Seed> Тип => <Child>*\n"
+            "<Seed> ::= TYPE\n<Child> ::= CHILD"
+        )
+
+        self.assertEqual(
+            [item.code for item in report.diagnostics],
+            ["BIND210"],
+        )
 
     def test_rejects_binding_without_constructor(self) -> None:
         report = _validate("<S> ::= Значение = <A>\n<A> ::= a")

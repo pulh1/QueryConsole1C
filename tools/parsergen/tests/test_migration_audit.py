@@ -80,6 +80,7 @@ class MigrationAuditUnitTests(unittest.TestCase):
                 "ЗапросУничтожения",
                 "ЗапросВыбора",
                 "ОбъединяемыйЗапрос",
+                "ОператорОбъединения",
                 "ТипОбъединенияЗапроса",
                 "ПоляВыборки",
                 "ПолеВыборки",
@@ -167,12 +168,12 @@ class MigrationAuditProductionTests(unittest.TestCase):
                 "epsilon_alternatives": 75,
                 "formal_parameters": 5,
                 "actual_arguments": 16,
-                "action_blocks": 3,
-                "statements": 4,
+                "action_blocks": 1,
+                "statements": 1,
                 "constructor_statements": 0,
                 "collection_statements": 1,
                 "constant_statements": 0,
-                "structural_statements": 3,
+                "structural_statements": 0,
                 "other_assignment_statements": 0,
                 "other_statements": 0,
             },
@@ -212,9 +213,9 @@ class MigrationAuditProductionTests(unittest.TestCase):
             self.report["generated"],
             {
                 "bsl_functions": 81,
-                "bsl_loc": 2155,
+                "bsl_loc": 2147,
                 "constructor_names": 79,
-                "select_rows": 46,
+                "select_rows": 44,
                 "identifier_rows": 276,
             },
         )
@@ -275,7 +276,7 @@ class MigrationAuditCompatibilityTests(unittest.TestCase):
                 "lookahead = 2\n\n"
                 "[migration]\n"
                 'canonical_productions = ["ПакетЗапросов", '
-                '"ЗапросПакета", "ЗапросУничтожения", "ЗапросВыбора", "ОбъединяемыйЗапрос", "ТипОбъединенияЗапроса", '
+                '"ЗапросПакета", "ЗапросУничтожения", "ЗапросВыбора", "ОбъединяемыйЗапрос", "ОператорОбъединения", "ТипОбъединенияЗапроса", '
                 '"ПоляВыборки", "ПолеВыборки", '
                 '"ВыражениеВсеПоляВыборки", "ВыражениеВсеПоля", '
                 '"Псевдоним", "БлокИз", '

@@ -62,6 +62,22 @@ class CanonicalBslCodegenTests(unittest.TestCase):
         self.assertIn("РезультатПродукции = Значение", function)
         self.assertNotIn("НомерВариантаПродукции", function)
 
+    def test_required_returned_child_decorator_wraps_and_returns_child(
+        self,
+    ) -> None:
+        generated = _build(
+            "<S> ::= <Seed> Тип => <Child>\n"
+            "<Seed> ::= @НовыйТип TYPE\n"
+            "<Child> ::= @НовыйУзел CHILD"
+        )
+
+        function = _function(generated.module_text, "НеТерминалS")
+        self.assertEqual(function.count("НеТерминалSeed()"), 1)
+        self.assertEqual(function.count("НеТерминалChild()"), 1)
+        self.assertIn(".Тип = ", function)
+        self.assertIn("РезультатПродукции = Значение", function)
+        self.assertNotIn("НомерВариантаПродукции", function)
+
     def test_generates_canonical_runtime_without_legacy_matcher(self) -> None:
         generated = _build("<S> ::= ITEM", k=3)
 

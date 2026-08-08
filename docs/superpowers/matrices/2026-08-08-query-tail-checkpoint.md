@@ -1,5 +1,9 @@
 # Checkpoint: canonical query tail
 
+> Follow-up: temporary UNION action described below was removed by the
+> required returned-child decorator migration documented in
+> `2026-08-08-union-returned-child-checkpoint.md`.
+
 Дата: 2026-08-08.
 
 ## Результат

@@ -235,20 +235,20 @@ class _BindingValidator:
     ) -> None:
         for binding in bindings:
             valid = constructor is None and binding in sequence.items
-            valid = valid and isinstance(binding.value, SourceOptional)
             if valid:
                 index = sequence.items.index(binding)
                 before = SourceSequence(sequence.items[:index], sequence.span)
                 after = SourceSequence(sequence.items[index + 1 :], sequence.span)
                 valid = semantic_child_counts(before) == (1,)
                 valid = valid and semantic_child_counts(after) == (0,)
-                optional = binding.value
-                assert isinstance(optional, SourceOptional)
-                valid = valid and _value_semantic_counts(optional.body) == (1,)
+                value = binding.value
+                valid = valid and not isinstance(value, SourceRepeat)
+                child = value.body if isinstance(value, SourceOptional) else value
+                valid = valid and _value_semantic_counts(child) == (1,)
             if not valid:
                 self._add(
                     "BIND210",
-                    "returned-child decorator requires one seed and one optional semantic child",
+                    "returned-child decorator requires one seed and one semantic child",
                     binding.span,
                     binding.property,
                 )

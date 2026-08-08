@@ -8,6 +8,7 @@ from parsergen.parser_ir import (
     ParseSymbol,
     RepeatLoop,
     WrapOptional,
+    WrapValue,
     build_parser_ir,
 )
 from parsergen.resolver import resolve_grammar
@@ -44,6 +45,20 @@ class ParserIrTests(unittest.TestCase):
         alternative = parser_ir.productions[0].alternatives[0]
         self.assertEqual(len(alternative.operations), 1)
         self.assertIsInstance(alternative.operations[0], WrapOptional)
+        self.assertEqual(alternative.result_index, 0)
+
+    def test_required_returned_child_decorator_is_one_semantic_operation(
+        self,
+    ) -> None:
+        parser_ir = _build(
+            "<S> ::= <Seed> Тип => <Child>\n"
+            "<Seed> ::= @НовыйТип TYPE\n"
+            "<Child> ::= @НовыйУзел CHILD"
+        )
+
+        alternative = parser_ir.productions[0].alternatives[0]
+        self.assertEqual(len(alternative.operations), 1)
+        self.assertIsInstance(alternative.operations[0], WrapValue)
         self.assertEqual(alternative.result_index, 0)
 
     def test_projection_builds_only_selected_production_and_skips_legacy_actions(

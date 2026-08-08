@@ -44,6 +44,7 @@ from .parser_ir import (
     RepeatLoop,
     ReturnConstant,
     WrapOptional,
+    WrapValue,
     UndefinedValue,
 )
 from .source_model import SourceGrammar
@@ -516,6 +517,12 @@ class _CanonicalBslGenerator:
                 indent,
                 error_label,
             )
+        if isinstance(operation, WrapValue):
+            return self._render_wrap_value(
+                operation,
+                indent,
+                error_label,
+            )
         if isinstance(operation, RepeatLoop):
             return self._render_repeat(
                 operation,
@@ -980,6 +987,34 @@ class _CanonicalBslGenerator:
             )
         )
         return lines, accumulator
+
+    def _render_wrap_value(
+        self,
+        wrapped: WrapValue,
+        indent: str,
+        error_label: str,
+    ) -> tuple[list[str], str]:
+        seed_lines, seed_value = self._render_operation(
+            wrapped.seed,
+            indent,
+            error_label,
+        )
+        if seed_value is None:
+            raise ValueError("returned-child decorator seed has no value")
+        child_lines, child_value = self._render_bound_value(
+            wrapped.value,
+            indent,
+            error_label,
+        )
+        validate_bsl_member_name(wrapped.property, "wrapped property")
+        return (
+            [
+                *seed_lines,
+                *child_lines,
+                f"{indent}{child_value}.{wrapped.property} = {seed_value};",
+            ],
+            child_value,
+        )
 
     def _render_repeat(
         self,

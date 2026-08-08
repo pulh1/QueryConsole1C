@@ -239,6 +239,7 @@ Constructor задаётся декларативно:
 Свойство = &Токен       terminal/token value
 Свойство := Истина      constant value
 Свойство := Типы.Все    enum/symbolic constant
+Свойство => <Узел>    attach seed to returned child
 := Неопределено         transparent constant production result
 ```
 
@@ -305,6 +306,9 @@ Direct LR:
   alternative. Он не требует constructor и должен быть единственным
   semantic result на своем execution path; основной production use case —
   сохранение пустых slots в declarative root collections.
+- `=>` берет единственный ранее разобранный semantic seed,
+  присваивает его property следующего обязательного или optional
+  semantic child и возвращает child. Repeat в этой форме запрещён.
 - Constructor recursive alternative вызывается один раз на итерацию left fold.
 - Canonical production не поддерживает arbitrary BSL escape hatch.
 

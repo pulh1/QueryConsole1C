@@ -162,6 +162,14 @@ BoundValue = (
 
 
 @dataclass(frozen=True, slots=True)
+class WrapValue:
+    property: str
+    seed: Operation
+    value: BoundValue
+    source_span: SourceSpan
+
+
+@dataclass(frozen=True, slots=True)
 class ConstructNode:
     constructor: str
     source_span: SourceSpan
@@ -215,6 +223,7 @@ Operation = (
     | RepeatLoop
     | OptionalBranch
     | WrapOptional
+    | WrapValue
     | ConstructNode
     | BindScalar
     | AppendCollection
@@ -580,7 +589,10 @@ class _ParserIrBuilder:
                             "returned-child decorator has no semantic seed"
                         )
                     seed = result.pop()
-                    result.append(self._wrap_optional(item, seed))
+                    if isinstance(item.value, SourceOptional):
+                        result.append(self._wrap_optional(item, seed))
+                    else:
+                        result.append(self._wrap_value(item, seed))
                 else:
                     result.extend(self._binding(item))
             elif isinstance(item, SourceGroup):
@@ -642,6 +654,22 @@ class _ParserIrBuilder:
             self._decision(construct.production),
             branches,
             len(branches) + 1,
+            binding.span,
+        )
+
+    def _wrap_value(
+        self,
+        binding: SourceBinding,
+        seed: Operation,
+    ) -> WrapValue:
+        if isinstance(binding.value, (SourceOptional, SourceRepeat)):
+            raise ValueError("required returned-child decorator has invalid value")
+        if binding.property is None:
+            raise ValueError("returned-child decorator requires a property")
+        return WrapValue(
+            binding.property,
+            seed,
+            self._bound_value(binding.value),
             binding.span,
         )
 
@@ -1015,7 +1043,7 @@ def _produces_transparent_value(operation: Operation) -> bool:
             branch.result_index is not None
             for branch in operation.branches
         )
-    if isinstance(operation, WrapOptional):
+    if isinstance(operation, (WrapOptional, WrapValue)):
         return True
     return False
 
