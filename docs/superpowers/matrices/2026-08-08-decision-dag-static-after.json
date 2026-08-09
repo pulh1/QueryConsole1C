@@ -110,12 +110,17 @@
     }
   },
   "decision_dag": {
-    "source_states": 33718,
-    "dag_states": 415,
+    "source_states": 33659,
+    "dag_states": 406,
     "shared_states": 89,
     "max_depth": 2,
-    "decision_regions": 112,
-    "emitted_predicates": 316
+    "decision_regions": 109,
+    "emitted_predicates": 310
+  },
+  "decision_path": {
+    "specialized_paths": 6,
+    "known_symbol_consumes": 11,
+    "redundant_validations": 0
   },
   "legacy": {
     "matcher_rows": 10615,
@@ -124,15 +129,15 @@
   },
   "generated": {
     "bsl_functions": 74,
-    "bsl_loc": 2460,
+    "bsl_loc": 2463,
     "constructor_names": 79,
     "select_rows": 0,
     "identifier_rows": 276,
-    "lookahead_calls": 132,
-    "decision_lines": 375,
-    "predicate_atoms": 3783,
+    "lookahead_calls": 130,
+    "decision_lines": 366,
+    "predicate_atoms": 3779,
     "nonterminal_functions": 63,
-    "nonterminal_call_sites": 176,
+    "nonterminal_call_sites": 180,
     "max_condition_chars": 2551,
     "max_condition_predicate_atoms": 88,
     "max_condition_lookahead_calls": 1,

@@ -230,18 +230,7 @@ class MigrationAuditUnitTests(unittest.TestCase):
             0,
         )
         self.assertEqual(report["legacy"]["runtime_conflicts"], [])
-        self.assertEqual(
-            report["artifacts"]["changed"],
-            [
-                str(
-                    Path("QueryConsoleZUP")
-                    / "src"
-                    / "DataProcessors"
-                    / "Парсер"
-                    / "ObjectModule.bsl"
-                )
-            ],
-        )
+        self.assertEqual(report["artifacts"]["changed"], [])
 
 
 class MigrationAuditProductionTests(unittest.TestCase):
@@ -311,18 +300,7 @@ class MigrationAuditProductionTests(unittest.TestCase):
                 "emitted_predicates": 310,
             },
         )
-        self.assertEqual(
-            self.report["artifacts"]["changed"],
-            [
-                str(
-                    Path("QueryConsoleZUP")
-                    / "src"
-                    / "DataProcessors"
-                    / "Парсер"
-                    / "ObjectModule.bsl"
-                )
-            ],
-        )
+        self.assertEqual(self.report["artifacts"]["changed"], [])
 
     def test_decision_path_baseline_is_explicit(self) -> None:
         self.assertEqual(
