@@ -204,6 +204,25 @@ class LegacyRuntimeBaselineTests(unittest.TestCase):
         )
         self.assertNotIn("Метаданные.НайтиПоТипу", text)
 
+    def test_current_parser_benchmark_pins_decision_dag_artifact(self) -> None:
+        text = baseline.BENCHMARK_MODULE.read_text(encoding="utf-8")
+        self.assertIn(
+            '"f536869601e718ca02f026d0ecb8f733d8688ecd038f70f6b5e8cd08dbe4fbbf", "normalized_utf8_lf"',
+            text,
+        )
+        self.assertIn(
+            'Возврат НовоеОписаниеРеализации("current-parser-5a054c2", "parser", Парсер,',
+            text,
+        )
+        self.assertIn(
+            '"feature/parser-lexer-optimization", "5a054c2d69d46ee261553c3c9ea696f89e65bb23"',
+            text,
+        )
+        self.assertIn(
+            '"runtime-parser-decision-dag.json", "runtime-parser-decision-dag"',
+            text,
+        )
+
     def test_time_accounting_corpus_manifest_is_strict(self) -> None:
         self.assertEqual(
             baseline.EXPECTED_CORPUS_IDS[-1],

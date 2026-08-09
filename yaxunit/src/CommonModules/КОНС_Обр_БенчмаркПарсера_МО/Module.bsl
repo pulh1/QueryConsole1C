@@ -114,8 +114,8 @@
 	Парсер = Обработки.Парсер.Создать();
 	Артефакты = Новый Массив;
 	Артефакты.Добавить(НовыйАртефакт("parser", "DataProcessor.Парсер", "QueryConsoleZUP/src/DataProcessors/Парсер/ObjectModule.bsl",
-		"07d7f88f2926cb9fab32ab7eda6506a7cdbfb897eb4e87e9abdc70a21dd695f0", "normalized_utf8_lf",
-		"QueryConsoleZUP/src/DataProcessors/Парсер/ObjectModule.bsl", "07d7f88f2926cb9fab32ab7eda6506a7cdbfb897eb4e87e9abdc70a21dd695f0"));
+		"f536869601e718ca02f026d0ecb8f733d8688ecd038f70f6b5e8cd08dbe4fbbf", "normalized_utf8_lf",
+		"QueryConsoleZUP/src/DataProcessors/Парсер/ObjectModule.bsl", "f536869601e718ca02f026d0ecb8f733d8688ecd038f70f6b5e8cd08dbe4fbbf"));
 	Артефакты.Добавить(НовыйАртефакт("lexer", "DataProcessor.ЛексическийАнализатор",
 		"QueryConsoleZUP/src/DataProcessors/ЛексическийАнализатор/ObjectModule.bsl",
 		"434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20", "normalized_utf8_lf",
@@ -140,9 +140,9 @@
 	ИменаОбъектовМетаданных.Добавить("DataProcessor.Парсер");
 	ИменаОбъектовМетаданных.Добавить("DataProcessor.ЛексическийАнализатор");
 	ИменаОбъектовМетаданных.Добавить("CommonModule.ЭлементыМоделиЗапроса");
-	Возврат НовоеОписаниеРеализации("current-parser-17c105d", "parser", Парсер,
-		"17c105d", "17c105dcc864ea475353c350088e3cdbe97a3761", ИменаОбъектовМетаданных, Артефакты,
-		"runtime-parser-benchmark-after.json", "runtime-parser-benchmark-after",
+	Возврат НовоеОписаниеРеализации("current-parser-5a054c2", "parser", Парсер,
+		"feature/parser-lexer-optimization", "5a054c2d69d46ee261553c3c9ea696f89e65bb23", ИменаОбъектовМетаданных, Артефакты,
+		"runtime-parser-decision-dag.json", "runtime-parser-decision-dag",
 		"Разобрать/РазобратьВыражение вместе с внутренней токенизацией; создание parser object вне sample");
 КонецФункции
 
