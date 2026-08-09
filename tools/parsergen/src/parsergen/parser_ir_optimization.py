@@ -65,6 +65,12 @@ class TransparencyResult:
     reason: str
 
 
+@dataclass(frozen=True, slots=True)
+class _PathSpecializationResult:
+    branches: tuple[BranchIr, ...]
+    profitability_rejected: bool
+
+
 _SEMANTIC_OPERATIONS = (
     ConstructNode,
     BindScalar,
@@ -444,22 +450,26 @@ class _Optimizer:
             updated_decision = CanonicalDecision(
                 source,
                 build_decision_dag(source),
+                caller_callee_composed=True,
             )
-            return updated_decision, self._specialize_decision_paths(
+            specialization = self._specialize_decision_paths(
                 updated_decision,
                 tuple(updated_branches),
             )
+            if specialization.profitability_rejected:
+                continue
+            return updated_decision, specialization.branches
         return decision, transformed
 
     def _specialize_decision_paths(
         self,
         decision: CanonicalDecision,
         branches: tuple[BranchIr, ...],
-    ) -> tuple[BranchIr, ...]:
+    ) -> _PathSpecializationResult:
         branches_by_outcome: dict[AlternativeOutcome, BranchIr] = {}
         for branch in branches:
             if branch.outcome in branches_by_outcome:
-                return branches
+                return _PathSpecializationResult(branches, False)
             branches_by_outcome[branch.outcome] = branch
 
         paths_by_outcome: dict[AlternativeOutcome, list[DecisionPath]] = {}
@@ -477,7 +487,7 @@ class _Optimizer:
         for outcome in outcome_order:
             branch = branches_by_outcome.get(outcome)
             if branch is None:
-                return branches
+                return _PathSpecializationResult(branches, False)
             candidates = tuple(
                 self._specialize_branch_path(branch, path.facts)
                 for path in paths_by_outcome[outcome]
@@ -510,12 +520,12 @@ class _Optimizer:
             if branch.outcome not in expanded_outcomes
         )
         result = tuple(expanded)
-        extra_cost = _branches_operation_tree_cost(result) - (
+        projected_extra_cost = _branches_operation_tree_cost(result) - (
             _branches_operation_tree_cost(branches)
         )
-        if extra_cost > MAX_PATH_SPECIALIZATION_EXTRA_OPERATIONS:
-            return branches
-        return result
+        if projected_extra_cost > MAX_PATH_SPECIALIZATION_EXTRA_OPERATIONS:
+            return _PathSpecializationResult(branches, True)
+        return _PathSpecializationResult(result, False)
 
     def _specialize_branch_path(
         self,
@@ -570,7 +580,10 @@ class _Optimizer:
                 result.append(known)
                 cursor += 1
                 continue
-            if isinstance(operation, (ConstructNode, AssignConstant, ReturnConstant)):
+            if isinstance(
+                operation,
+                (ConstructNode, AssignConstant, ReturnConstant, UndefinedValue),
+            ):
                 result.append(operation)
                 continue
             if isinstance(operation, (Dispatch, OptionalBranch)):
@@ -722,15 +735,23 @@ class _Optimizer:
             leaf,
             ExitDecision,
         ):
+            exit_operations = operation.exit_operations
+            exit_result_index = _result_index(exit_operations)
+            if _produces_value(operation):
+                exit_result_index = len(exit_operations)
+                exit_operations = (
+                    *exit_operations,
+                    UndefinedValue("Неопределено", operation.source_span),
+                )
             operations, cursor, stopped = self._partial_evaluate_operations(
-                operation.exit_operations,
-                _result_index(operation.exit_operations),
+                exit_operations,
+                exit_result_index,
                 facts,
                 cursor,
             )
             return (
                 operations,
-                _result_index(operations),
+                exit_result_index,
                 cursor,
                 stopped,
             )
@@ -896,7 +917,10 @@ def _result_index(operations: tuple[Operation, ...]) -> int | None:
 
 
 def _produces_value(operation: Operation) -> bool:
-    if isinstance(operation, (LeftFold, ReturnConstant, WrapOptional, WrapValue)):
+    if isinstance(
+        operation,
+        (LeftFold, ReturnConstant, UndefinedValue, WrapOptional, WrapValue),
+    ):
         return True
     if isinstance(operation, ParseSymbol):
         return isinstance(

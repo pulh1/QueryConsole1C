@@ -64,6 +64,7 @@ from .source_model import (
 class CanonicalDecision:
     source: CanonicalDecisionSource
     dag: CanonicalDecisionDag
+    caller_callee_composed: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -274,6 +275,7 @@ Operation = (
     | DiscardSymbol
     | ConsumeKnownSymbol
     | ResolvedRegion
+    | UndefinedValue
     | Dispatch
     | RepeatLoop
     | OptionalBranch

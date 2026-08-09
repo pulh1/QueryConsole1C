@@ -31,7 +31,9 @@ from parsergen.artifacts import compare_artifacts, render_artifacts
 from parsergen.cli import compile_from_config, generate_from_compilation
 from parsergen.config import load_config
 from parsergen.decision_dag import (
+    CommitAlternative,
     aggregate_decision_dag_metrics,
+    decision_paths,
     emitted_predicate_token_sets,
 )
 from parsergen.hybrid_bsl_codegen import generate_hybrid_parser
@@ -336,14 +338,40 @@ def decision_path_metrics(parser_ir) -> dict[str, int]:
             for branch in value.branches:
                 visit_bound_value(branch.value)
 
-    def visit_branch(branch: BranchIr) -> None:
+    def visit_branch(
+        branch: BranchIr,
+        decision: CanonicalDecision | None,
+    ) -> None:
         if branch.path_facts is not None:
             counts["specialized_paths"] += 1
             counts["redundant_validations"] += redundant_in_operations(
                 branch.operations,
                 branch.path_facts,
             )
+        elif decision is not None:
+            for path in decision_paths(decision.dag):
+                if (
+                    isinstance(path.leaf, CommitAlternative)
+                    and path.leaf.outcome == branch.outcome
+                ):
+                    counts["redundant_validations"] += redundant_in_operations(
+                        branch.operations,
+                        path.facts,
+                    )
         visit_operations(branch.operations)
+
+    def visit_control_branches(branches, decision) -> None:
+        fallback_decision = (
+            decision
+            if decision is not None
+            and (
+                decision.caller_callee_composed
+                or any(branch.path_facts is not None for branch in branches)
+            )
+            else None
+        )
+        for branch in branches:
+            visit_branch(branch, fallback_decision)
 
     def visit_operations(operations) -> None:
         for operation in operations:
@@ -352,25 +380,34 @@ def decision_path_metrics(parser_ir) -> dict[str, int]:
             elif isinstance(operation, ResolvedRegion):
                 visit_operations(operation.operations)
             elif isinstance(operation, (Dispatch, RepeatLoop)):
-                for branch in operation.branches:
-                    visit_branch(branch)
+                visit_control_branches(
+                    operation.branches,
+                    operation.decision,
+                )
             elif isinstance(operation, OptionalBranch):
-                for branch in operation.branches:
-                    visit_branch(branch)
+                visit_control_branches(
+                    operation.branches,
+                    operation.decision,
+                )
                 visit_operations(operation.exit_operations)
             elif isinstance(operation, WrapOptional):
                 visit_operations((operation.seed,))
-                for branch in operation.branches:
-                    visit_branch(branch)
+                visit_control_branches(
+                    operation.branches,
+                    operation.decision,
+                )
             elif isinstance(operation, WrapValue):
                 visit_operations((operation.seed,))
                 visit_bound_value(operation.value)
             elif isinstance(operation, LeftFold):
-                for branch in (
-                    *operation.base_branches,
-                    *operation.recursive_branches,
-                ):
-                    visit_branch(branch)
+                visit_control_branches(
+                    operation.base_branches,
+                    operation.base_decision,
+                )
+                visit_control_branches(
+                    operation.recursive_branches,
+                    operation.recursive_decision,
+                )
             elif isinstance(
                 operation,
                 (

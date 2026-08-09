@@ -1,3 +1,4 @@
+from dataclasses import replace
 from importlib.util import module_from_spec, spec_from_file_location
 import json
 from pathlib import Path
@@ -8,8 +9,18 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+from parsergen.analysis import compute_analysis
 from parsergen.artifacts import artifact_paths
+from parsergen.decision_dag import CommitAlternative, decision_paths
 from parsergen.grammar_parser import parse_grammar
+from parsergen.parser_ir import (
+    ConsumeKnownSymbol,
+    Dispatch,
+    ParseSymbol,
+    WrapOptional,
+    build_parser_ir,
+)
+from parsergen.resolver import resolve_grammar
 
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
@@ -22,6 +33,132 @@ SPEC.loader.exec_module(audit_migration)
 
 
 class MigrationAuditUnitTests(unittest.TestCase):
+    def test_redundant_validations_include_unspecialized_fallback_commit_paths(
+        self,
+    ) -> None:
+        parsed = parse_grammar("<S> ::= (A | B)", "grammar.txt")
+        assert parsed.diagnostics == ()
+        assert parsed.grammar is not None
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        resolved = resolve_grammar(parsed.grammar)
+        assert resolved.diagnostics == ()
+        assert resolved.grammar is not None
+        analysis = compute_analysis(resolved.grammar, 1, ("S",))
+        with patch(
+            "parsergen.parser_ir_optimization.optimize_parser_ir",
+            side_effect=lambda parser_ir: parser_ir,
+        ):
+            parser_ir = build_parser_ir(
+                parsed.source_grammar,
+                parsed.lowering,
+                resolved.grammar,
+                analysis,
+                entrypoint_productions=("S",),
+            )
+
+        production = parser_ir.productions[0]
+        alternative = production.alternatives[0]
+        dispatch = alternative.operations[0]
+        assert isinstance(dispatch, Dispatch)
+        first_branch, fallback_branch = dispatch.branches
+        first_parse = first_branch.operations[0]
+        assert isinstance(first_parse, ParseSymbol)
+        first_path = next(
+            path
+            for path in decision_paths(dispatch.decision.dag)
+            if isinstance(path.leaf, CommitAlternative)
+            and path.leaf.outcome == first_branch.outcome
+        )
+        known = ConsumeKnownSymbol(
+            first_parse.symbol,
+            False,
+            first_path.facts[0].predicate.token_types,
+            first_parse.source_span,
+        )
+        specialized_branch = replace(
+            first_branch,
+            operations=(known,),
+            path_facts=first_path.facts,
+        )
+        dispatch = replace(
+            dispatch,
+            branches=(specialized_branch, fallback_branch),
+        )
+        alternative = replace(alternative, operations=(dispatch,))
+        production = replace(production, alternatives=(alternative,))
+        parser_ir = replace(parser_ir, productions=(production,))
+
+        self.assertEqual(
+            audit_migration.decision_path_metrics(parser_ir),
+            {
+                "specialized_paths": 1,
+                "known_symbol_consumes": 1,
+                "redundant_validations": 1,
+            },
+        )
+
+    def test_redundant_validations_include_single_collapsed_composed_fallback(
+        self,
+    ) -> None:
+        parsed = parse_grammar(
+            "#ID_Name ::= A\n"
+            "<S> ::= <Base> Child => <Choice>?\n"
+            "<Base> ::= @НовыйBase BASE\n"
+            "<Choice> ::= @НовыйChoice #ID_Name",
+            "grammar.txt",
+        )
+        assert parsed.diagnostics == ()
+        assert parsed.grammar is not None
+        assert parsed.source_grammar is not None
+        assert parsed.lowering is not None
+        resolved = resolve_grammar(parsed.grammar)
+        assert resolved.diagnostics == ()
+        assert resolved.grammar is not None
+        analysis = compute_analysis(resolved.grammar, 1, ("S",))
+        parser_ir = build_parser_ir(
+            parsed.source_grammar,
+            parsed.lowering,
+            resolved.grammar,
+            analysis,
+            entrypoint_productions=("S",),
+        )
+
+        production = parser_ir.productions[0]
+        alternative = production.alternatives[0]
+        wrapper = alternative.operations[0]
+        assert isinstance(wrapper, WrapOptional)
+        self.assertEqual(len(wrapper.branches), 1)
+        fallback = wrapper.branches[0]
+        self.assertIsNone(fallback.path_facts)
+        self.assertEqual(fallback.outcome.production, "Choice")
+        self.assertNotEqual(
+            wrapper.decision.source.production,
+            fallback.outcome.production,
+        )
+        self.assertNotIn("Choice", {item.name for item in parser_ir.productions})
+        known_index, known = next(
+            (index, operation)
+            for index, operation in enumerate(fallback.operations)
+            if isinstance(operation, ConsumeKnownSymbol)
+        )
+        operations = list(fallback.operations)
+        operations[known_index] = ParseSymbol(known.symbol, known.source_span)
+        fallback = replace(fallback, operations=tuple(operations))
+        wrapper = replace(wrapper, branches=(fallback,))
+        alternative = replace(alternative, operations=(wrapper,))
+        production = replace(production, alternatives=(alternative,))
+        parser_ir = replace(parser_ir, productions=(production,))
+
+        self.assertEqual(
+            audit_migration.decision_path_metrics(parser_ir),
+            {
+                "specialized_paths": 0,
+                "known_symbol_consumes": 0,
+                "redundant_validations": 1,
+            },
+        )
+
     def test_predicate_strategy_benchmark_selects_measured_exact_policy(
         self,
     ) -> None:

@@ -526,6 +526,8 @@ class _CanonicalBslGenerator:
                 if operation.result_index is None
                 else values[operation.result_index],
             )
+        if isinstance(operation, UndefinedValue):
+            return [], operation.value
         if isinstance(operation, ConstructNode):
             validate_bsl_identifier(operation.constructor, "constructor")
             self._record_constructor(operation.constructor)

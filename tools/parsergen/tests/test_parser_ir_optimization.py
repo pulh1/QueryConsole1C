@@ -239,6 +239,8 @@ class _ActionTraceEvaluator:
                         else None
                     )
                 )
+            elif isinstance(operation, parser_ir_module.UndefinedValue):
+                values.append(None)
             else:
                 raise AssertionError(type(operation))
         return values, current
@@ -432,6 +434,14 @@ class ParserIrSpecializationTests(unittest.TestCase):
         "<Tail> ::= VALUE"
     )
 
+    VALUE_PRODUCING_OPTIONAL_EXIT_GRAMMAR = (
+        "#ID_Name ::= ID | WORD\n"
+        "<S> ::= <Base> Child => <Choice>?\n"
+        "<Base> ::= @НовыйBase BASE\n"
+        "<Choice> ::= #ID_Name? X\n"
+        "<Choice> ::= @НовыйOther #ID_Name Y"
+    )
+
     def test_known_symbol_and_resolved_region_validate_their_contracts(self) -> None:
         raw = _build_raw("<S> ::= A")
         operation = raw.productions[0].alternatives[0].operations[0]
@@ -569,7 +579,72 @@ class ParserIrSpecializationTests(unittest.TestCase):
                         0,
                     )
 
-    def test_path_expansion_cost_33_keeps_outcome_branch_unspecialized(self) -> None:
+    def test_value_producing_optional_exit_keeps_undefined_in_specialized_path(
+        self,
+    ) -> None:
+        before = _build_raw(self.VALUE_PRODUCING_OPTIONAL_EXIT_GRAMMAR, 2)
+        after = optimize_parser_ir(before)
+        wrapper = after.productions[0].alternatives[0].operations[0]
+        assert isinstance(wrapper, WrapOptional)
+        choice_1 = tuple(
+            branch
+            for branch in wrapper.branches
+            if branch.outcome == AlternativeOutcome("Choice", 1)
+        )
+        self.assertEqual(len(choice_1), 2)
+        self.assertTrue(all(branch.path_facts is not None for branch in choice_1))
+        exit_branch = next(
+            branch
+            for branch in choice_1
+            if tuple(
+                fact.predicate.token_types
+                for fact in branch.path_facts or ()
+            )
+            == (("X",),)
+        )
+
+        generated = generate_canonical_parser(
+            after.source_grammar,
+            after,
+            {"Parse": "S"},
+        )
+        function = _function(generated.module_text, "S")
+        self.assertNotIn("НеТерминалChoice()", function)
+        self.assertNotIn("Функция НеТерминалChoice(", generated.module_text)
+        self.assertEqual(generated.module_text.count("НовыйBase"), 1)
+        self.assertEqual(function.count(".Child = "), 1)
+
+        region = exit_branch.operations[0]
+        self.assertIsInstance(region, parser_ir_module.ResolvedRegion)
+        assert isinstance(region, parser_ir_module.ResolvedRegion)
+        self.assertIsNotNone(region.result_index)
+        assert region.result_index is not None
+        self.assertIsInstance(
+            region.operations[region.result_index],
+            parser_ir_module.UndefinedValue,
+        )
+        self.assertEqual(
+            sum(
+                isinstance(operation, parser_ir_module.ConsumeKnownSymbol)
+                for operation in exit_branch.operations
+            ),
+            1,
+        )
+
+        before_evaluator = _ActionTraceEvaluator(before, ("X",))
+        before_result = before_evaluator.execute("Choice")
+        after_evaluator = _ActionTraceEvaluator(after, ("X",))
+        values, current = after_evaluator._operations(exit_branch.operations)
+        self.assertIsNone(current)
+        assert exit_branch.result_index is not None
+        after_result = values[exit_branch.result_index]
+        self.assertEqual(after_result, before_result)
+        self.assertEqual(after_evaluator.trace, before_evaluator.trace)
+        self.assertEqual(after_evaluator.position, before_evaluator.position)
+
+    def test_path_expansion_cost_33_rejects_composition_without_emitted_duplication(
+        self,
+    ) -> None:
         # The two source branches cost 37 operations recursively.  Their
         # direct paths each remove two optional-branch operations, so cloning
         # direct and inverted fragments adds exactly 37 - 4 = 33 operations.
@@ -589,16 +664,34 @@ class ParserIrSpecializationTests(unittest.TestCase):
             "<Tail> ::= VALUE",
             2,
         )
+        generated = generate_canonical_parser(
+            parser_ir.source_grammar,
+            parser_ir,
+            {"Parse": "S"},
+        )
+        function = _function(generated.module_text, "S")
+
+        self.assertNotIn("НовыйBetween", function)
+        self.assertNotIn("НовыйIn", function)
+        self.assertNotIn(".BetweenFlag0 = Истина;", function)
+        self.assertNotIn(".InFlag0 = Истина;", function)
+        self.assertNotIn('Терминал("VALUE")', function)
+        self.assertEqual(function.count("НеТерминалChoice()"), 1)
+        self.assertIn("Функция НеТерминалChoice(", generated.module_text)
+
         wrapper = parser_ir.productions[0].alternatives[0].operations[0]
         assert isinstance(wrapper, WrapOptional)
-
-        choice_1 = tuple(
-            branch
-            for branch in wrapper.branches
-            if branch.outcome == AlternativeOutcome("Choice", 1)
-        )
-        self.assertEqual(len(choice_1), 1)
-        self.assertIsNone(choice_1[0].path_facts)
+        self.assertEqual(len(wrapper.branches), 1)
+        caller_branch = wrapper.branches[0]
+        self.assertIsNone(caller_branch.path_facts)
+        self.assertEqual(len(caller_branch.operations), 1)
+        call = caller_branch.operations[0]
+        self.assertIsInstance(call, ParseSymbol)
+        assert isinstance(call, ParseSymbol)
+        self.assertIsInstance(call.symbol, NonterminalCall)
+        assert isinstance(call.symbol, NonterminalCall)
+        self.assertEqual(call.symbol.name, "Choice")
+        self.assertIn("Choice", {item.name for item in parser_ir.productions})
 
     def test_symbolic_specialization_intersects_languages_and_retains_exit(self) -> None:
         parser_ir = _build_raw(self.GRAMMAR, 2)
