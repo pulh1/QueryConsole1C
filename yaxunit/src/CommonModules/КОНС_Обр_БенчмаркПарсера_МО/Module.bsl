@@ -104,14 +104,14 @@
 	Артефакты = Новый Массив;
 	Артефакты.Добавить(НовыйАртефакт("lexer", "DataProcessor.ЛексическийАнализатор",
 		"QueryConsoleZUP/src/DataProcessors/ЛексическийАнализатор/ObjectModule.bsl",
-		"434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20", "normalized_utf8_lf",
+		"292fba5ee0565340fff717e391200c98b8fb2bf8a75bebcee03e5acc81d2a005", "normalized_utf8_lf",
 		"QueryConsoleZUP/src/DataProcessors/ЛексическийАнализатор/ObjectModule.bsl",
-		"434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20"));
+		"292fba5ee0565340fff717e391200c98b8fb2bf8a75bebcee03e5acc81d2a005"));
 	ИменаОбъектовМетаданных = Новый Массив;
 	ИменаОбъектовМетаданных.Добавить("DataProcessor.ЛексическийАнализатор");
-	Возврат НовоеОписаниеРеализации("current-lexer-17c105d", "lexer", Лексер,
-		"17c105d", "17c105dcc864ea475353c350088e3cdbe97a3761", ИменаОбъектовМетаданных, Артефакты,
-		"runtime-lexer-benchmark-after.json", "runtime-lexer-benchmark-after",
+	Возврат НовоеОписаниеРеализации("current-lexer-1cb7b20", "lexer", Лексер,
+		"feature/parser-lexer-optimization", "1cb7b20465dcdde68fccd64627a0edf0875a74b8", ИменаОбъектовМетаданных, Артефакты,
+		"runtime-new-lexer-batch.json", "runtime-new-lexer-batch",
 		"Полная токенизация: установка текста и чтение содержательных и конечного токена");
 КонецФункции
 
