@@ -204,22 +204,36 @@ class LegacyRuntimeBaselineTests(unittest.TestCase):
         )
         self.assertNotIn("Метаданные.НайтиПоТипу", text)
 
-    def test_current_parser_benchmark_pins_decision_dag_artifact(self) -> None:
+    def test_current_benchmarks_pin_lazy_lexer_artifact(self) -> None:
         text = baseline.BENCHMARK_MODULE.read_text(encoding="utf-8")
         self.assertIn(
             '"f536869601e718ca02f026d0ecb8f733d8688ecd038f70f6b5e8cd08dbe4fbbf", "normalized_utf8_lf"',
             text,
         )
         self.assertIn(
-            'Возврат НовоеОписаниеРеализации("current-parser-5a054c2", "parser", Парсер,',
+            '"f954b1bb7b619052c553bf42699ed5fbbc3d5a7b64cd6ef4386b1970ca5e967d", "normalized_utf8_lf"',
             text,
         )
         self.assertIn(
-            '"feature/parser-lexer-optimization", "5a054c2d69d46ee261553c3c9ea696f89e65bb23"',
+            'Возврат НовоеОписаниеРеализации("current-lazy-lexer-f6abfbe", "lexer", Лексер,',
             text,
         )
         self.assertIn(
-            '"runtime-parser-decision-dag.json", "runtime-parser-decision-dag"',
+            'Возврат НовоеОписаниеРеализации("current-parser-lazy-lexer-f6abfbe", "parser", Парсер,',
+            text,
+        )
+        self.assertEqual(
+            text.count(
+                '"feature/parser-lexer-optimization", "f6abfbecc1156bbd12eaedf36cc5ac6765d1eee6"'
+            ),
+            2,
+        )
+        self.assertIn(
+            '"runtime-new-lexer-batch.json", "runtime-new-lexer-batch"',
+            text,
+        )
+        self.assertIn(
+            '"runtime-parser-after-batch.json", "runtime-parser-after-batch"',
             text,
         )
 
