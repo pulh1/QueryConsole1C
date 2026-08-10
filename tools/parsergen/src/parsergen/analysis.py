@@ -1392,6 +1392,28 @@ class _CompressedAnalysis:
         except KeyError:
             raise KeyError(key) from None
 
+    def select_positions(self, production: str) -> tuple[tuple[int, int], ...]:
+        return tuple(
+            (position, alternative)
+            for position, (owner, alternative) in enumerate(self.select_keys)
+            if owner == production
+        )
+
+    def descriptor_root(self, position: int) -> _FactorState:
+        return self._descriptor_state(position)
+
+    def factor_state_terminal(self, state: _FactorState) -> bool:
+        return self._terminal(state)
+
+    def factor_state_children(
+        self,
+        state: _FactorState,
+    ) -> tuple[tuple[int, _FactorState], ...]:
+        return self._children(state)
+
+    def matcher_token_types(self, matcher_id: int) -> tuple[str, ...]:
+        return self.matcher_tokens[matcher_id]
+
     def select_descriptor(self, key: tuple[str, int]) -> _SelectDescriptor:
         return self.select_descriptors[self.select_position(key)]
 

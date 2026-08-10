@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import unittest
 
 from parsergen.analysis import (
@@ -14,6 +15,25 @@ from parsergen.resolver import resolve_grammar
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY_GRAMMAR = PACKAGE_ROOT / "grammar/query-language.grammar"
+
+
+def _assert_child_result_pair(
+    test: unittest.TestCase,
+    function: str,
+    child_call: str,
+) -> None:
+    temporaries = re.findall(
+        rf"(Значение\d+) = {re.escape(child_call)};",
+        function,
+    )
+    test.assertGreaterEqual(len(temporaries), 1)
+    for temporary in temporaries:
+        test.assertEqual(
+            function.count(f"РезультатПродукции = {temporary};"),
+            1,
+        )
+
+
 MIGRATED_PRODUCTIONS = (
     "ПакетЗапросов",
     "ЗапросПакета",
@@ -358,16 +378,13 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
 
         function = _generated_function(generated.module_text, "Псевдоним")
         self.assertIn('Терминал("КАК");', function)
-        self.assertIn(
-            'Значение1 = Идентификатор("ID_ПсевдонимРасширенный");',
-            function,
-        )
-        self.assertIn(
-            'Значение2 = Идентификатор("ID_Псевдоним");',
-            function,
-        )
-        self.assertIn("РезультатПродукции = Значение1;", function)
-        self.assertIn("РезультатПродукции = Значение2;", function)
+        for identifier in ("ID_ПсевдонимРасширенный", "ID_Псевдоним"):
+            with self.subTest(identifier=identifier):
+                _assert_child_result_pair(
+                    self,
+                    function,
+                    f'Идентификатор("{identifier}")',
+                )
         self.assertNotIn("ТекущийЭлемент", function)
         self.assertNotIn("НомерВариантаПродукции", function)
 
@@ -491,25 +508,19 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         )
 
         function = _generated_function(generated.module_text, "Операнд")
-        for index, child in enumerate(
-            (
-                "Выбор",
-                "Поле",
-                "Константа",
-                "Параметр",
-                "АгрегатнаяФункция",
-                "Функция",
-            ),
-            start=1,
+        for child in (
+            "Выбор",
+            "Поле",
+            "Константа",
+            "Параметр",
+            "АгрегатнаяФункция",
+            "Функция",
         ):
             with self.subTest(child=child):
-                self.assertIn(
-                    f"Значение{index} = НеТерминал{child}();",
+                _assert_child_result_pair(
+                    self,
                     function,
-                )
-                self.assertIn(
-                    f"РезультатПродукции = Значение{index};",
-                    function,
+                    f"НеТерминал{child}()",
                 )
         self.assertNotIn("ТекущийЭлемент", function)
         self.assertNotIn("НомерВариантаПродукции", function)
@@ -1034,7 +1045,9 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertNotIn("Родитель", negation)
         self.assertNotIn("ТекущийЭлемент", negation)
 
-    def test_postfix_predicates_generate_max_one_canonical_wrappers(self) -> None:
+    def test_logical_postfix_predicates_generate_path_specialized_wrappers(
+        self,
+    ) -> None:
         parsed = parse_grammar(
             REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
             str(REPOSITORY_GRAMMAR),
@@ -1055,6 +1068,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             resolution.grammar,
             analysis,
             production_names=MIGRATED_PRODUCTIONS,
+            entrypoint_productions=("ПакетЗапросов", "Выражение"),
         )
         generated = generate_hybrid_parser(
             parsed.source_grammar,
@@ -1089,30 +1103,66 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
                 function = _generated_function(module, production)
                 self.assertEqual(function.count("Пока "), 0)
                 self.assertEqual(function.count(calls[0]), 1)
-                self.assertEqual(function.count(calls[1]), 1)
+                self.assertNotIn(calls[1], function)
                 self.assertEqual(function.count(".Операнд = "), 1)
                 self.assertNotIn("ТекущийЭлемент", function)
                 self.assertNotIn("НомерВариантаПродукции", function)
 
-        logical = _generated_function(module, "ЛогическийОператор")
-        for constructor in (
-            "НовыйОператорМежду",
-            "НовыйОператорПроверкиТипа",
-            "НовыйОператорПроверкиНаNULL",
-            "НовыйОператорВ",
+        logical = _generated_function(module, "ЛогическийМножитель")
+        self.assertNotIn("НеТерминалЛогическийОператор()", logical)
+        self.assertEqual(logical.count("ТипТокенаПросмотра(1)"), 2)
+        second_lookaheads = [
+            match.start()
+            for match in re.finditer("ТипТокенаПросмотра\\(1\\)", logical)
+        ]
+        self.assertLess(
+            logical.index('ТокенРешения0 = "НЕ"'),
+            second_lookaheads[0],
+        )
+        self.assertLess(
+            logical.index('ТокенРешения0 = "ССЫЛКА"'),
+            second_lookaheads[1],
+        )
+        self.assertNotIn('Терминал("МЕЖДУ")', logical)
+        self.assertNotIn('Терминал("В")', logical)
+        for constructor, expected_count in (
+            ("НовыйОператорМежду", 2),
+            ("НовыйОператорПроверкиТипа", 1),
+            ("НовыйОператорПроверкиНаNULL", 1),
+            ("НовыйОператорВ", 2),
         ):
-            self.assertEqual(logical.count(f".{constructor}("), 1)
+            self.assertEqual(
+                logical.count(f".{constructor}("),
+                expected_count,
+            )
         self.assertNotIn("ЛевыйЭлемент", logical.split(")", 1)[1])
         self.assertNotIn("ТекущийЭлемент", logical)
         self.assertNotIn("НомерВариантаПродукции", logical)
+        self.assertEqual(logical.count(".Операнд = "), 1)
+        self.assertGreater(
+            logical.index(".Операнд = "),
+            max(
+                logical.rfind("ЭтотУзел.Инверсия = Истина;"),
+                logical.rfind("НеТерминалОперандВ()"),
+            ),
+        )
+        is_null = logical.split(".НовыйОператорПроверкиНаNULL(", 1)[1].split(
+            ".НовыйОператорВ(",
+            1,
+        )[0]
+        self.assertIn("ТипТокенаПросмотра(0)", is_null)
+        self.assertIn('ТокенРешения0 = "НЕ"', is_null)
+        self.assertIn('Терминал("NULL")', is_null)
 
-        like = _generated_function(module, "ОператорПодобно")
-        self.assertEqual(like.count(".НовыйОператорПодобно("), 1)
+        like = _generated_function(module, "ОперандСравнения")
+        self.assertEqual(like.count(".НовыйОператорПодобно("), 2)
         self.assertEqual(like.count("ЭтотУзел.Инверсия = Истина;"), 1)
-        self.assertEqual(like.count("ЭтотУзел.Шаблон ="), 1)
+        self.assertEqual(like.count("ЭтотУзел.Шаблон ="), 2)
         self.assertNotIn("ЛевыйЭлемент", like.split(")", 1)[1])
         self.assertNotIn("ТекущийЭлемент", like)
         self.assertNotIn("НомерВариантаПродукции", like)
+        self.assertNotIn("Функция НеТерминалЛогическийОператор(", module)
+        self.assertNotIn("Функция НеТерминалОператорПодобно(", module)
 
     def test_expression_list_generates_collection_loop(self) -> None:
         parsed = parse_grammar(

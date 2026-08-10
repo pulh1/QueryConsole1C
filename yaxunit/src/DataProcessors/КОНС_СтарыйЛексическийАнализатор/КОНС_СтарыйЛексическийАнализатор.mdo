@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="30bbe32e-cf33-4c29-87b9-9cfb6eed2eee">
+  <producedTypes>
+    <objectType typeId="9854176e-f26b-4592-baf6-72447c2f62a0" valueTypeId="ca9a2164-5010-4c7f-b6c1-3ca9d0138d9a"/>
+    <managerType typeId="311f788b-89f4-403b-b053-c83754fc4d20" valueTypeId="25fe3a50-5c00-47ad-ac23-7a7f89f315f2"/>
+  </producedTypes>
+  <name>КОНС_СтарыйЛексическийАнализатор</name>
+  <synonym>
+    <key>ru</key>
+    <value>КОНС старый лексический анализатор</value>
+  </synonym>
+  <comment>Temporary old_parser runtime baseline object</comment>
+  <useStandardCommands>true</useStandardCommands>
+</mdclass:DataProcessor>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:CommonModule xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="12a0c144-11a8-4ae9-b550-5c2d2afc4d28">
+  <name>КОНС_СтарыеЭлементыМоделиЗапроса</name>
+  <synonym>
+    <key>ru</key>
+    <value>КОНС старые элементы модели запроса</value>
+  </synonym>
+  <comment>Temporary old_parser model-factory runtime baseline object</comment>
+  <clientManagedApplication>true</clientManagedApplication>
+  <server>true</server>
+  <externalConnection>true</externalConnection>
+  <clientOrdinaryApplication>true</clientOrdinaryApplication>
+</mdclass:CommonModule>

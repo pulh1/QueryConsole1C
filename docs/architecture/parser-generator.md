@@ -21,17 +21,19 @@ EDT-обработка `QueryConsoleZUP/src/DataProcessors/Парсер` вла�
 5. `resolver.py` разрешает нетерминалы, терминалы, классы идентификаторов и типы констант только в canonical CFG.
 6. `analysis.py` вычисляет nullable, FIRST(k), FOLLOW(k) и SELECT(k), затем ищет пересечения SELECT alternatives.
 7. `validation.py` объединяет диагностики разбора, разрешения, анализа и проверки точек входа и отображает synthetic diagnostics обратно на source spans. Productive direct left recursion проходит отдельную source validation; indirect и nullable-prefix left recursion остаются неподдерживаемыми.
-8. `parser_ir.py` после успешной canonical validation строит runtime IR с `Dispatch`, `RepeatLoop`, `OptionalBranch`, `LeftFold` и declarative AST operations, не включая synthetic productions в список runtime functions.
-9. `canonical_bsl_conditions.py` превращает factorized canonical decision rows в inline BSL predicates, а `canonical_bsl_codegen.py` генерирует отдельный optimized runtime из Parser IR.
-10. `semantic_actions.py` и `bsl_codegen.py` обслуживают только legacy BNF path и существующие встроенные BSL-действия.
-11. `value_table_codec.py` сериализует таблицы в формат, читаемый 1С через `ЗначениеИзСтрокиВнутр`.
-12. `artifacts.py` сравнивает или транзакционно заменяет только три разрешённых файла.
+8. `canonical_select.py` экспортирует factorized SELECT как точные symbolic token-set languages, не материализуя matcher rows или Cartesian product.
+9. `decision_dag.py` строит и независимо валидирует early-commit Decision DAG с outcomes alternative, exit и syntax error.
+10. `parser_ir.py` связывает листья DAG с `Dispatch`, `RepeatLoop`, `OptionalBranch`, `LeftFold` и declarative AST operations; `parser_ir_optimization.py` сохраняет доказанные path facts в executable leaves, специализирует доказуемые caller/callee decisions и удаляет только semantic-transparent недостижимые wrappers. Canonical leaves при этом path facts не содержат.
+11. `canonical_bsl_decisions.py` и `canonical_bsl_codegen.py` превращают DAG непосредственно в structured BSL control flow с cached lookahead, без runtime DAG objects или таблиц решений.
+12. `semantic_actions.py` и `bsl_codegen.py` обслуживают только legacy BNF path и существующие встроенные BSL-действия.
+13. `value_table_codec.py` сериализует таблицы в формат, читаемый 1С через `ЗначениеИзСтрокиВнутр`.
+14. `artifacts.py` сравнивает или транзакционно заменяет только три разрешённых файла.
 
 При сравнении `ObjectModule.bsl` окончания строк LF и CRLF считаются эквивалентными; остальной текст модуля должен совпадать. ValueTable сравниваются по колонкам и мультимножеству строк, поскольку штатный сериализатор 1С сохраняет внутренние идентификаторы и порядок строк, не относящиеся к семантике парсера.
 
 ## Анализ LL(k)
 
-Вычисление реализовано как fixed-point поверх очередей работ. Новые факты передаются как delta, поэтому уже обработанные факты не прогоняются повторно через все зависимости. FIRST/FOLLOW хранятся в упакованном виде, а SELECT — в факторизованном; полное декартово разворачивание выполняется лениво и ограничивается вызывающей стороной.
+Вычисление реализовано как fixed-point поверх очередей работ. Новые факты передаются как delta, поэтому уже обработанные факты не прогоняются повторно через все зависимости. FIRST/FOLLOW хранятся в упакованном виде, а SELECT — в факторизованном. Production Decision DAG потребляет symbolic representation напрямую; полное декартово разворачивание не входит в этот pipeline.
 
 Nullable/FIRST/FOLLOW/SELECT и диагностика LLK202 — канонические контракты LL(k). `find_select_conflicts` не зависит от представления и символически пересекает канонические SELECT-наборы непосредственно в сжатом представлении. Встроенная статистика фиксирует количество work items, delta-фактов, packed rows, descriptors и случаи материализации.
 
@@ -90,14 +92,13 @@ SELECT_k(alt_i) intersection SELECT_k(alt_j) = empty, i != j
 
 Порядок generated `Если` никогда не разрешает пересечение.
 
-`build_canonical_decision_artifact` публикует factorized matcher rows и token
-set definitions без concrete Cartesian expansion, legacy normalization,
-shadowing, cycle-prefix injection и longest-prefix fallback. `parser_ir.py`
-использует только этот API. Canonical BSL backend получает high-level
-`RepeatLoop`/`OptionalBranch` из Parser IR, поэтому synthetic CFG не создаёт
-runtime functions. Production generation пока остаётся на legacy BNF path.
-Legacy backend явно отклоняет grammar с synthetic EBNF productions, чтобы они
-случайно не превратились в recursive BSL functions.
+`build_canonical_decision_source` публикует точные symbolic languages и token
+sets без matcher-row или concrete Cartesian expansion. `build_decision_dag`
+строит factorized решение, hash-conses одинаковые residual states и проверяет
+его независимым validator. Parser IR связывает outcomes с semantic actions и
+может специализировать caller/callee decision только при доказанном сохранении
+action trace. Synthetic CFG остаётся analysis model и не создаёт runtime
+functions. Legacy matcher artifact не участвует в production canonical path.
 
 Production-грамматика при `lookahead = 2` не имеет canonical SELECT conflicts.
 Ранее найденные пересечения устранены уточнением предметных identifier-классов:
@@ -202,14 +203,17 @@ SourceGrammar + ParserIr + entrypoints
 ```
 
 Он использует отдельный `templates/canonical_parser_module.bsl` и не читает
-legacy matcher artifact. Каждая decision строится из canonical SELECT:
+legacy matcher artifact. Каждая decision строится из validated symbolic DAG:
 
 - alternatives обязаны иметь pairwise-disjoint SELECT; порядок
   `Если`/`ИначеЕсли` не разрешает конфликт;
-- matcher rows длиной до настроенного конечного `k` становятся inline
-  predicates над `ТипТокенаПросмотра(offset)`;
+- общий prefix alternatives проверяется один раз, а следующий lookahead
+  читается только в неоднозначной ветке;
+- token-set edges становятся exact inline predicates над заранее сохранённым
+  `ТокенРешенияN`;
 - `$` сравнивается с `Неопределено` и означает EOF;
-- token-set matcher вызывает generated identifier-set predicate;
+- literal/class и class/class пересечения разрешаются точной set algebra, а не
+  порядком generated branches;
 - input вне union SELECT всегда вызывает syntax error.
 
 High-level control flow сохраняется до codegen. `X*` и хвост `X+` становятся
@@ -225,6 +229,33 @@ Declarative operations напрямую создают узел через
 generated temporary; grouped dispatch пишет явно выбранный result в общий
 temporary. Canonical backend не переносит arbitrary source actions,
 `Родитель`, `ЛевыйЭлемент` или неявный `ТекущийЭлемент` contract.
+
+### Decision path facts
+
+Canonical Decision DAG сохраняет outcomes `alternative | exit | error` и не
+знает о semantic actions. Точные facts пройденных token predicates появляются
+только после outcome/action binding в optimized Parser IR. Если fact полностью
+доказывает terminal matcher, `ConsumeKnownSymbol` сохраняет semantic value и
+ровно один сдвиг token buffer, но не выполняет повторную runtime validation.
+Facts перестают действовать после первого недоказанного consume, parser call
+или другого изменения текущей позиции.
+
+Production checkpoint содержит 6 специализированных executable paths, 11
+known-symbol consumes и 0 redundant validations. После устранения трёх
+вложенных decision regions итоговый DAG содержит 33 659 source states, 406 DAG
+states, 89 shared states, глубину 2, 109 decision regions и 310 emitted
+predicates. Generated shape: 74 functions, 2 463 LOC, 130 lookahead calls, 366
+decision lines, 3 779 predicate atoms, 63 nonterminal functions и 180 call
+sites. Production и reference `ObjectModule.bsl` byte-identical, SHA-256
+`358A6123F91CD9068A08C76B3849FFAD69F10EB0C7B2ED90B650F87304B960E8`.
+
+Repository-local validate, generation check и migration audit проходят без
+canonical/legacy conflicts, SELECT expansions или materializations. Python
+suite: 578 passed, 1 known Windows symlink privilege skip, 27 756 subtests
+passed. EDT revalidation `DataProcessor.Парсер` не даёт scoped errors;
+functional YAxUnit gate трёх parser-модулей: 232 passed, 0 failed, 0 errors,
+0 skipped. Runtime и lexer benchmarks отложены до обновления методики и в этом
+checkpoint не запускаются.
 
 На checkpoint Phase 5 Python shape/IR/codegen tests и synthetic long-repeat
 tests зелёные. Generated canonical module ещё не встроен в EDT processing и
@@ -293,9 +324,11 @@ Canonical API:
 - `compute_analysis`;
 - `find_canonical_select_conflicts`;
 - `find_select_conflicts` — canonical compatibility alias;
-- `build_canonical_decision_artifact`;
+- `build_canonical_decision_source`;
+- `build_decision_dag` и `validate_decision_dag`;
 - `build_parser_ir`;
-- `generate_canonical_parser`.
+- `optimize_parser_ir`;
+- `generate_canonical_parser`;
 - `generate_canonical_functions`.
 
 Hybrid migration API:

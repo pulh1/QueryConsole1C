@@ -50,13 +50,18 @@ def generate_hybrid_parser(
     *,
     canonical_productions: Collection[str],
     entrypoints: Mapping[str, str],
+    named_predicates: Mapping[tuple[str, ...], str] | None = None,
 ) -> GeneratedParser:
     canonical_names = _canonical_names(canonical_productions)
     ir_names = tuple(production.name for production in parser_ir.productions)
-    if canonical_names != ir_names:
+    ir_name_set = frozenset(ir_names)
+    if tuple(
+        name for name in canonical_names if name in ir_name_set
+    ) != ir_names:
         raise ValueError(
             "canonical production ownership does not match Parser IR"
         )
+    removed_canonical = frozenset(canonical_names).difference(ir_name_set)
     if lowering.grammar != grammar:
         raise ValueError("lowering does not match hybrid grammar")
 
@@ -88,6 +93,7 @@ def generate_hybrid_parser(
             source,
             parser_ir,
             entrypoints,
+            named_predicates=named_predicates,
         )
         return GeneratedParser(
             canonical.module_text,
@@ -101,13 +107,14 @@ def generate_hybrid_parser(
         parser_ir,
         abi_parameters=_LEGACY_ABI,
         call_argument_prefix=_LEGACY_CALL_PREFIX,
+        named_predicates=named_predicates,
     )
     overrides = _split_function_fragment(
         canonical.module_fragment.replace(
             "ВызватьИсключениеСинтаксическаяОшибка",
             _CANONICAL_ERROR,
         ),
-        canonical_names,
+        ir_names,
     )
     legacy_productions = frozenset(
         production.name
@@ -122,7 +129,7 @@ def generate_hybrid_parser(
         analysis,
         entrypoints,
         function_overrides=overrides,
-        omitted_productions=owned_synthetic,
+        omitted_productions=owned_synthetic.union(removed_canonical),
         support_fragment=_CANONICAL_SUPPORT,
         matcher_productions=legacy_productions,
         additional_constructor_names=canonical.constructor_names,

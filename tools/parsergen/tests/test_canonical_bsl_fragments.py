@@ -74,6 +74,25 @@ class CanonicalBslFragmentTests(unittest.TestCase):
                 abi_parameters=("context",),
             )
 
+    def test_rejects_decision_token_generated_local_collisions(self) -> None:
+        source, parser_ir = _projected(
+            "<S>(ТокенРешения0) ::= ITEM",
+            ("S",),
+        )
+        with self.assertRaisesRegex(ValueError, "collides with generated local"):
+            canonical_bsl_codegen.generate_canonical_functions(
+                source,
+                parser_ir,
+            )
+
+        source, parser_ir = _projected("<S> ::= ITEM", ("S",))
+        with self.assertRaisesRegex(ValueError, "collides with generated local"):
+            canonical_bsl_codegen.generate_canonical_functions(
+                source,
+                parser_ir,
+                abi_parameters=("ТокенРешения1",),
+            )
+
     def test_rejects_call_prefix_with_wrong_abi_arity(self) -> None:
         source, parser_ir = _projected("<S> ::= ITEM", ("S",))
 

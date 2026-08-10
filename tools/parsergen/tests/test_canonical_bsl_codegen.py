@@ -1,3 +1,4 @@
+import re
 import unittest
 
 from parsergen.analysis import compute_analysis
@@ -11,6 +12,7 @@ def _build(
     source: str,
     k: int = 1,
     entrypoints: dict[str, str] | None = None,
+    named_predicates: dict[tuple[str, ...], str] | None = None,
 ):
     entries = entrypoints or {"Разобрать": "S"}
     parsed = parse_grammar(source, "grammar.txt")
@@ -36,6 +38,7 @@ def _build(
         parsed.source_grammar,
         parser_ir,
         entries,
+        named_predicates=named_predicates,
     )
 
 
@@ -47,6 +50,32 @@ def _function(module: str, name: str) -> str:
 
 
 class CanonicalBslCodegenTests(unittest.TestCase):
+    PATH_FACTS_GRAMMAR = (
+        "<S> ::= <Base> Child => <Choice>?\n"
+        "<Base> ::= @НовыйBase BASE\n"
+        "<Choice> ::= @НовыйBetween (NOT Inverted := Истина)? "
+        "BETWEEN <Tail>\n"
+        "<Choice> ::= @НовыйIn (NOT Inverted := Истина)? IN <Tail>\n"
+        "<Tail> ::= VALUE"
+    )
+
+    def test_named_token_set_helper_uses_cached_token_only(self) -> None:
+        generated = _build(
+            "#ID_Large ::= A | B | C | D | E | F | G | H | I\n"
+            "<S> ::= #ID_Large | END",
+            named_predicates={tuple("ABCDEFGHI"): "ID_Large"},
+        )
+
+        helper = _function(
+            generated.module_text,
+            "ТокенПринадлежитКлассу(ТипТокена, ИмяКласса)",
+        )
+        self.assertIn(
+            "ОпределенияИдентификаторов.НайтиСтроки",
+            helper,
+        )
+        self.assertNotIn("ТипТокенаПросмотра", helper)
+
     def test_optional_collection_decorator_appends_seed_and_returns_wrapper(
         self,
     ) -> None:
@@ -70,8 +99,9 @@ class CanonicalBslCodegenTests(unittest.TestCase):
 
         function = _function(generated.module_text, "НеТерминалS")
         self.assertEqual(function.count("НеТерминалBase()"), 1)
-        self.assertEqual(function.count("НеТерминалPostfix()"), 1)
-        self.assertIn(".Операнд = ", function)
+        self.assertNotIn("НеТерминалPostfix()", function)
+        self.assertEqual(function.count("НовыйPostfix"), 1)
+        self.assertEqual(function.count(".Операнд = "), 1)
         self.assertIn('POSTFIX', function)
         self.assertIn("РезультатПродукции = Значение", function)
         self.assertNotIn("НомерВариантаПродукции", function)
@@ -169,26 +199,26 @@ class CanonicalBslCodegenTests(unittest.TestCase):
 
         function = _function(generated.module_text, "НеТерминалS")
         self.assertIn(
-            'Если (ТипТокенаПросмотра(0) = "a") Тогда',
+            'Если ТокенРешения0 = "a" Тогда',
             function,
         )
         self.assertIn(
-            'ИначеЕсли (ТипТокенаПросмотра(0) = "b") Тогда',
+            'ИначеЕсли ТокенРешения0 = "b" Тогда',
             function,
         )
         self.assertIn("Иначе", function)
-        self.assertIn('ВызватьИсключениеСинтаксическаяОшибка("S")', function)
+        self.assertIn(
+            'ВызватьИсключениеСинтаксическаяОшибкаОжидаемыеТокены('
+            '"""a"", ""b""");',
+            function,
+        )
 
     def test_unique_first_token_commits_before_invalid_second_token(self) -> None:
         generated = _build("<S> ::= A X | B Y", k=2)
 
         function = _function(generated.module_text, "НеТерминалS")
         self.assertIn(
-            'Если (ТипТокенаПросмотра(0) = "A") Тогда',
-            function,
-        )
-        self.assertIn(
-            'ИначеЕсли (ТипТокенаПросмотра(0) = "B") Тогда',
+            'ТокенРешения0 = "A"',
             function,
         )
         self.assertNotIn(
@@ -199,6 +229,100 @@ class CanonicalBslCodegenTests(unittest.TestCase):
             'ТипТокенаПросмотра(1) = "Y"',
             function,
         )
+
+    def test_specialized_paths_render_proven_prefixes_and_one_continuation(
+        self,
+    ) -> None:
+        function = _function(
+            _build(self.PATH_FACTS_GRAMMAR, k=2).module_text,
+            "НеТерминалS",
+        )
+
+        self.assertEqual(function.count("ТипТокенаПросмотра(1)"), 1)
+        self.assertRegex(
+            function,
+            r'Если ТокенРешения0 = "NOT" Тогда\s+'
+            r'ТокенРешения1 = ТипТокенаПросмотра\(1\);',
+        )
+        for token in ("NOT", "BETWEEN", "IN"):
+            with self.subTest(checked_helper=token):
+                self.assertNotIn(f'Терминал("{token}")', function)
+        self.assertEqual(function.count("УстановитьТекущийТокен();"), 6)
+        self.assertEqual(function.count("НеТерминалTail()"), 4)
+        self.assertNotRegex(
+            function,
+            r"Если Значение\d+ = [1-9]\d* Тогда",
+        )
+        self.assertNotIn("НомерВариантаПродукции", function)
+        self.assertEqual(function.count(".Child = "), 1)
+        self.assertGreater(
+            function.rfind(".Child = "),
+            function.rfind("НеТерминалTail()"),
+        )
+        self.assertNotIn("Попытка", function)
+
+    def test_known_symbol_consumes_capture_original_semantic_values(
+        self,
+    ) -> None:
+        function = _function(
+            _build(
+                "#ID_Name ::= ID\n"
+                "<S> ::= <Base> Child => <Choice>?\n"
+                "<Base> ::= @НовыйBase BASE\n"
+                "<Choice> ::= @НовыйTerminal Тип = WORD\n"
+                "<Choice> ::= @НовыйLexeme Тип = 'exact'\n"
+                "<Choice> ::= @НовыйConstant Значение = &NUMBER\n"
+                "<Choice> ::= @НовыйIdentifier Значение = #ID_Name\n"
+                "<Choice> ::= @НовыйDiscard DISCARD",
+                k=2,
+            ).module_text,
+            "НеТерминалS",
+        )
+
+        self.assertEqual(
+            len(
+                re.findall(
+                    r"Значение\d+ = ТекущийТокен\.Тип;\s+"
+                    r"УстановитьТекущийТокен\(\);",
+                    function,
+                )
+            ),
+            2,
+        )
+        self.assertRegex(
+            function,
+            r"Значение\d+ = ТекущийТокен\.Значение;\s+"
+            r"УстановитьТекущийТокен\(\);",
+        )
+        self.assertRegex(
+            function,
+            r"Значение\d+ = ТекущийТокен\.Лексема;\s+"
+            r"УстановитьТекущийТокен\(\);",
+        )
+        self.assertRegex(
+            function,
+            r"НовыйDiscard\(ТекущийТокен\);\s+"
+            r"УстановитьТекущийТокен\(\);",
+        )
+        for helper in (
+            'Терминал("WORD")',
+            'Лексема("exact")',
+            'Константа("NUMBER")',
+            'Идентификатор("ID_Name")',
+            'Терминал("DISCARD")',
+        ):
+            with self.subTest(checked_helper=helper):
+                self.assertNotIn(helper, function)
+
+    def test_shared_prefix_is_rendered_as_one_decision_region(self) -> None:
+        function = _function(
+            _build("<S> ::= A X | A Y | B Z", k=2).module_text,
+            "НеТерминалS",
+        )
+
+        self.assertEqual(function.count("ТипТокенаПросмотра(0)"), 1)
+        self.assertEqual(function.count("ТипТокенаПросмотра(1)"), 1)
+        self.assertIn('ТокенРешения0 = "A"', function)
 
     def test_returns_explicit_transparent_or_syntax_only_result(self) -> None:
         transparent = _build(

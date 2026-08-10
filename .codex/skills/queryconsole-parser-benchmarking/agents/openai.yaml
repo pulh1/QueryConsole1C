@@ -1,0 +1,4 @@
+interface:
+  display_name: "QueryConsole parser benchmark"
+  short_description: "Run reproducible parser and lexer benchmarks"
+  default_prompt: "Use $queryconsole-parser-benchmarking to run and validate a reproducible parser benchmark."

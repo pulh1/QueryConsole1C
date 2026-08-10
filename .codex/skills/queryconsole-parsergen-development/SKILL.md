@@ -8,6 +8,10 @@ description: Use when changing, diagnosing, generating, benchmarking, or reviewi
 ## Core contract
 
 Read the active design/plan under `docs/superpowers/` before changing code.
+**REQUIRED SUB-SKILL:** Use `queryconsole-parser-benchmarking` for runtime
+parser/lexer measurements, YAxUnit benchmark execution, sidecar validation or
+performance comparisons.
+
 Keep canonical nullable/FIRST/FOLLOW/SELECT and legacy runtime matcher semantics
 separate. SELECT alternatives must be disjoint; generated branch order never
 resolves a conflict. Keep production lookahead at the configured value unless

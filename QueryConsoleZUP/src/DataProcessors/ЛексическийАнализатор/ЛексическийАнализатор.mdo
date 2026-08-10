@@ -10,14 +10,4 @@
     <value>Лексический анализатор</value>
   </synonym>
   <useStandardCommands>true</useStandardCommands>
-  <defaultForm>DataProcessor.ЛексическийАнализатор.Form.Форма</defaultForm>
-  <forms uuid="b4a463b7-111d-4173-b808-aef624929f08">
-    <name>Форма</name>
-    <synonym>
-      <key>ru</key>
-      <value>Форма</value>
-    </synonym>
-    <usePurposes>PersonalComputer</usePurposes>
-    <usePurposes>MobileDevice</usePurposes>
-  </forms>
 </mdclass:DataProcessor>

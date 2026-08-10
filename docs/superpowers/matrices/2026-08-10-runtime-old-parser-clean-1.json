@@ -1,0 +1,1092 @@
+﻿{
+"schema_version": 2,
+"benchmark_id": "runtime-old-parser-baseline",
+"component": "parser",
+"measurement_scope": "Разобрать/РазобратьВыражение вместе с внутренней токенизацией; создание parser object вне sample",
+"implementation_id": "old-parser-59d538f",
+"source_ref": "origin/old_parser",
+"source_commit": "59d538fd974c723c6b1cf336c61b0fea1aec8453",
+"metadata_object_names": [
+"DataProcessor.КОНС_СтарыйПарсер",
+"DataProcessor.КОНС_СтарыйЛексическийАнализатор",
+"CommonModule.КОНС_СтарыеЭлементыМоделиЗапроса"
+],
+"artifacts": [
+{
+"role": "parser",
+"metadata_object": "DataProcessor.КОНС_СтарыйПарсер",
+"path": "yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/ObjectModule.bsl",
+"sha256": "dc401e271105eb34b4b2234c75b13fcdfd0341bb3b6766507d9f8cb1eb62e8b7",
+"hash_scope": "normalized_utf8_lf",
+"source_path": "QueryConsoleZUP/src/DataProcessors/Парсер/ObjectModule.bsl",
+"source_sha256": "0c365e1e521322554b63e400379be47c0dc5ecaa7f60dd6951dc84bc7cccd084"
+},
+{
+"role": "lexer",
+"metadata_object": "DataProcessor.КОНС_СтарыйЛексическийАнализатор",
+"path": "yaxunit/src/DataProcessors/КОНС_СтарыйЛексическийАнализатор/ObjectModule.bsl",
+"sha256": "434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20",
+"hash_scope": "normalized_utf8_lf",
+"source_path": "QueryConsoleZUP/src/DataProcessors/ЛексическийАнализатор/ObjectModule.bsl",
+"source_sha256": "434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20"
+},
+{
+"role": "legacy_model_factory",
+"metadata_object": "CommonModule.КОНС_СтарыеЭлементыМоделиЗапроса",
+"path": "yaxunit/src/CommonModules/КОНС_СтарыеЭлементыМоделиЗапроса/Module.bsl",
+"sha256": "62213fee493659cd38c8678db5cb25a1ec6e79d2075d5128d1a396c6cea9c313",
+"hash_scope": "normalized_utf8_lf",
+"source_path": "QueryConsoleZUP/src/CommonModules/ЭлементыМоделиЗапроса/Module.bsl",
+"source_sha256": "62213fee493659cd38c8678db5cb25a1ec6e79d2075d5128d1a396c6cea9c313"
+},
+{
+"role": "first_symbols_template",
+"metadata_object": "DataProcessor.КОНС_СтарыйПарсер.Template.ТаблицаПервыхСимволовВариантов",
+"path": "yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/Templates/ТаблицаПервыхСимволовВариантов/Template.txt",
+"sha256": "4e3f87f15291de1a0d216773f2dc3d69144759d56796504473fdd8bfb74dc3ed",
+"hash_scope": "original_bytes",
+"source_path": "QueryConsoleZUP/src/DataProcessors/Парсер/Templates/ТаблицаПервыхСимволовВариантов/Template.txt",
+"source_sha256": "4e3f87f15291de1a0d216773f2dc3d69144759d56796504473fdd8bfb74dc3ed"
+},
+{
+"role": "identifiers_template",
+"metadata_object": "DataProcessor.КОНС_СтарыйПарсер.Template.ОпределенияИдентификаторов",
+"path": "yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/Templates/ОпределенияИдентификаторов/Template.txt",
+"sha256": "7c08a5a520ab66c1b931a9e401f06c3acbd9f1652c3acefe101fc38181e58152",
+"hash_scope": "original_bytes",
+"source_path": "QueryConsoleZUP/src/DataProcessors/Парсер/Templates/ОпределенияИдентификаторов/Template.txt",
+"source_sha256": "7c08a5a520ab66c1b931a9e401f06c3acbd9f1652c3acefe101fc38181e58152"
+}
+],
+"captured_at_platform_ms": 63921991434256,
+"warmup_count": 3,
+"sample_count": 20,
+"clock": "ТекущаяУниверсальнаяДатаВМиллисекундах",
+"clock_resolution_ms": 1,
+"batch_calibration_target_ms": 25,
+"runtime": {
+"platform_version": "8.3.27.2170",
+"runtime_version": "8.3.27.2170",
+"platform_type": "Windows x86-64",
+"execution_context": "YAxUnit server test"
+},
+"internal_counters": {
+"nonterminal_calls": {
+"value": null,
+"unavailable_reason": "Generated НеТерминал* functions do not expose a test-only call counter; production edits are forbidden."
+},
+"dispatch_calls": {
+"value": 0,
+"unavailable_reason": null
+},
+"maximum_recursion_depth": {
+"value": null,
+"unavailable_reason": "Generated parser exposes no test-only stack-depth hook; production edits are forbidden."
+},
+"constructor_action_executions": {
+"value": null,
+"unavailable_reason": "Inline semantic constructors expose no test-only execution counter; production edits are forbidden."
+},
+"ast_node_container_allocations": {
+"value": null,
+"unavailable_reason": "1C runtime exposes no scoped allocation counter for parser AST/container objects to this server test."
+}
+},
+"corpora": [
+{
+"id": "query_examples_all_42",
+"entrypoint": "Разобрать",
+"provenance": "Все логические XML /querylist/query/text из 42 QueryExamples/*.q1c, embedded exact text",
+"generator_parameters": {
+"file_count": 42,
+"xpath": "/querylist/query/text"
+},
+"inputs": [
+{
+"id": "query_example_01",
+"input_length": 3126,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ДанныеОВремениИИнтервалыРегистра.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "КадроваяИсторияСотрудниковСрезПоследних",
+"embedded_sha256": "3cdcc0152b4fa3b18a7d1ede7366de472cf8a5d14aabbe6aae29c9bbe86ca33b",
+"expected_input_length": 3126
+}
+},
+{
+"id": "query_example_02",
+"input_length": 1955,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ДанныеУчетаВремениПоПШР.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "КадроваяИсторияСотрудниковСрезПоследних",
+"embedded_sha256": "c1872968938339e75ab77ac48ad321a017e41124548ced172d32d90eabf2fd90",
+"expected_input_length": 1955
+}
+},
+{
+"id": "query_example_03",
+"input_length": 1689,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ДвеТаблицыКадровыхДанныхВОдномЗапросе.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "ДанныеСотрудников",
+"embedded_sha256": "c889fd6d319e6aa44372ab8744d65487e563809914c2a035d1721f0de10e515e",
+"expected_input_length": 1689
+}
+},
+{
+"id": "query_example_04",
+"input_length": 1545,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ЗапросДанныеУчетаВремениСотрудников.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "ДанныеУчетаВремениСотрудников",
+"embedded_sha256": "39e57bf70704d71de0f3ed79266e413702c675a850cec719d8e51b8fa5f3d193",
+"expected_input_length": 1545
+}
+},
+{
+"id": "query_example_05",
+"input_length": 737,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/КадровыеДанные.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "ДанныеСотрудников",
+"embedded_sha256": "9f34e2fa91799faf7ac91f340cce248885272405949409f27a999bcd070f39e6",
+"expected_input_length": 737
+}
+},
+{
+"id": "query_example_06",
+"input_length": 842,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/СведенияОДоходахНДФЛНарастающийИтог.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "АвансовыеПлатежиИностранцевПоНДФЛНарастазщиеИтоги",
+"embedded_sha256": "6e0371dd5b9bcc97b3c7ab65a4bae4e7145621e2bcb21cb59bf39a3216cab9c7",
+"expected_input_length": 842
+}
+},
+{
+"id": "query_example_07",
+"input_length": 1308,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/СрезСОтборами.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "КадроваяИсторияСотрудниковСрезПоследних",
+"embedded_sha256": "119e14b2b819896dc3188ec29f66625f96e5df0cf0e32c53b3195c5995534b94",
+"expected_input_length": 1308
+}
+},
+{
+"id": "query_example_08",
+"input_length": 183,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестВТПериоды.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "Периоды",
+"embedded_sha256": "6342d75b39ad505113abb1100c5d99501e9c34643d1ef1cca68492d0534512d3",
+"expected_input_length": 183
+}
+},
+{
+"id": "query_example_09",
+"input_length": 1372,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестГенерацияСрезаДляСКД.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "КадроваяИсторияСотрудниковСрезПоследних",
+"embedded_sha256": "2f68e72a8c70060e2666722957d1b48b803db9c59eae181b40441c3d47421b16",
+"expected_input_length": 1372
+}
+},
+{
+"id": "query_example_10",
+"input_length": 1545,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестДанныеУчетаВремени.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "ДанныеУчетаВремениСотрудников",
+"embedded_sha256": "39e57bf70704d71de0f3ed79266e413702c675a850cec719d8e51b8fa5f3d193",
+"expected_input_length": 1545
+}
+},
+{
+"id": "query_example_11",
+"input_length": 1545,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестДанныеУчетаВремениСПараметрами.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "ДанныеУчетаВремениСотрудников",
+"embedded_sha256": "39e57bf70704d71de0f3ed79266e413702c675a850cec719d8e51b8fa5f3d193",
+"expected_input_length": 1545
+}
+},
+{
+"id": "query_example_12",
+"input_length": 843,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестЗаписиРегистраЗапросБезВТ.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "КадроваяИсторияСотрудниковСрезПоследних",
+"embedded_sha256": "e48c0f64deade6524641726453dc0ba6f8d90451b5fc0c322429880ff0797d0e",
+"expected_input_length": 843
+}
+},
+{
+"id": "query_example_13",
+"input_length": 1212,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестЗапросаВТШтатноеРасписание.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "ДанныеПозицийШтатногоРасписания",
+"embedded_sha256": "537ee62d47a9e584cae49248e08a3268ad951e2835b96d08f29547696e9c4767",
+"expected_input_length": 1212
+}
+},
+{
+"id": "query_example_14",
+"input_length": 1708,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестЗапросаВТШтатноеРасписаниеДляСКД.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "ДанныеПозицийШтатногоРасписания",
+"embedded_sha256": "59f1af1a1827ce7a68f2ae3ffc7f0c775dd4e4ea8b4c4bc3c8b895947bb7e3f4",
+"expected_input_length": 1708
+}
+},
+{
+"id": "query_example_15",
+"input_length": 745,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестЗапросаДанныеФизическихЛиц.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "ДанныеФизическихЛиц",
+"embedded_sha256": "68f4320eed20a36e3d563166d4bb9895d329006bfbef51387bb5f87bd3d0fc6a",
+"expected_input_length": 745
+}
+},
+{
+"id": "query_example_16",
+"input_length": 1671,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестЗапросаНачисленияУдержания.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "ОплаченноеВремя",
+"embedded_sha256": "57e88a62c22c9b4779e6657597381f03492bbe31534acecc8bb179ead37169a7",
+"expected_input_length": 1671
+}
+},
+{
+"id": "query_example_17",
+"input_length": 2599,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестЗапросаНачисленияУдержания_И_КадроваяИстория.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "ОплаченноеВремя",
+"embedded_sha256": "9f847f0598cb27cf29c502b54c3f3dce80f0dfc2c74b04b62899eba8a075526d",
+"expected_input_length": 2599
+}
+},
+{
+"id": "query_example_18",
+"input_length": 3036,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестЗапросаНачисленияУдержания_И_КадроваяИсторияДляСКД.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "ОплаченноеВремя",
+"embedded_sha256": "b9f16f610b9b3c404693e47b5da7c9f519624a50c78dbd900c8a560e4cff1637",
+"expected_input_length": 3036
+}
+},
+{
+"id": "query_example_19",
+"input_length": 1511,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестЗапросаНачисленияУдержанияАвансом.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "ОплаченноеВремя",
+"embedded_sha256": "9c592c68d24c669ee4262917c9abe6bbb9cbf0dfd9b0862e7a6552b02a0fe9ed",
+"expected_input_length": 1511
+}
+},
+{
+"id": "query_example_20",
+"input_length": 789,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестЗапросаОплаченноеВремя.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "ОплаченноеВремя",
+"embedded_sha256": "738ee246f1b121008e20e3012701ea1d0d369c842e99796c655b4931adceca02",
+"expected_input_length": 789
+}
+},
+{
+"id": "query_example_21",
+"input_length": 863,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестЗапросаПлановоеВремя.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "ПлановоеВремяСотрудников",
+"embedded_sha256": "bea182add5ae434d1ea8f5cad671af8fd997eefffb436d30a7f9269c9f829003",
+"expected_input_length": 863
+}
+},
+{
+"id": "query_example_22",
+"input_length": 1295,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестЗапросаРабочиеМестаСотрудников.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "РабочиеМестаСотрудников",
+"embedded_sha256": "a520aca36704858f1e495ec57ab776dbac189560169ea0ef940fd2a7fa4f2077",
+"expected_input_length": 1295
+}
+},
+{
+"id": "query_example_23",
+"input_length": 1206,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестЗапросаРабочиеМестаСотрудниковБезОтбораПоСотр.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "РабочиеМестаСотрудников",
+"embedded_sha256": "aa46dc07f52c79e61f7d0cba14034031c4786a5efc3997f9b47950a607aa945c",
+"expected_input_length": 1206
+}
+},
+{
+"id": "query_example_24",
+"input_length": 1016,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестЗапросаФактическиеОтпуска.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "ФактическиеОтпускаСотрудников",
+"embedded_sha256": "f77593010a6c40be8d16d6433effd186b4eb2297e55a7b50d5a07bb79a510557",
+"expected_input_length": 1016
+}
+},
+{
+"id": "query_example_25",
+"input_length": 415,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестЗапросОстаткиОтпусков.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "ОстаткиОтпусков",
+"embedded_sha256": "d52c0fbb9ec5fa0c6bde8f2eff0ff9fddcde4606ceb9cec49e844e50da97117d",
+"expected_input_length": 415
+}
+},
+{
+"id": "query_example_26",
+"input_length": 1381,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестИндексыИПсевдониымПолей.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "КадроваяИсторияСотрудниковСрезПоследних",
+"embedded_sha256": "ec492cde71719ffeba975b1cc1df6aad13a93878bcfcb350f733a6708e07bcfd",
+"expected_input_length": 1381
+}
+},
+{
+"id": "query_example_27",
+"input_length": 911,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестИнтервалыРегистраЗапросБезВТ.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "КадроваяИсторияСотрудниковСрезПоследних",
+"embedded_sha256": "41c8f22e64a18ea312b99a1135ad9c7206e3674a214462e36bb7c9694689ab38",
+"expected_input_length": 911
+}
+},
+{
+"id": "query_example_28",
+"input_length": 602,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестКадровыеДанные.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "ДанныеСотрудников",
+"embedded_sha256": "d7d4a73e33e224ecaecf8887409f3092f33162ec5666415ff6b178aeff9c0f3e",
+"expected_input_length": 602
+}
+},
+{
+"id": "query_example_29",
+"input_length": 3415,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестКадровыеДанныеБезИспользованияВТ.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "ДанныеСотрудников",
+"embedded_sha256": "9508e5784e0d5fc286c521b2ebc5a33f7238316451e2d51ed357b9a01e6ca658",
+"expected_input_length": 3415
+}
+},
+{
+"id": "query_example_30",
+"input_length": 4183,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестКадровыеДанныеСПараметрами.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "ДанныеСотрудников",
+"embedded_sha256": "e8f9eaa2ed9c1ed2db22ed6c2e45d9ee06b5a36ec56634e1afa0f9b8d5297970",
+"expected_input_length": 4183
+}
+},
+{
+"id": "query_example_31",
+"input_length": 3975,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестКадровыеДанныеСПараметрами_БезФормированияДопЗапроса.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "ДанныеСотрудников",
+"embedded_sha256": "d71bc2021ce8d44182e33b062c0f35c9ce6867bf09ddf18a879a37e128731232",
+"expected_input_length": 3975
+}
+},
+{
+"id": "query_example_32",
+"input_length": 8170,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестПакетЗапрсов.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "СотрудникиОрганизации",
+"embedded_sha256": "eaa7b288488810f7a0c2337379aa03e9c295293f66b6a3ca3b7635cf615a81d8",
+"expected_input_length": 8170
+}
+},
+{
+"id": "query_example_33",
+"input_length": 1562,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестПараметрыЗаписиРегистра.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "КадроваяИсторияСотрудниковСрезПоследних",
+"embedded_sha256": "d67c2e6a23e3b6632a28808a63e6330dc75350fcaab403cfd99e3ecd427da392",
+"expected_input_length": 1562
+}
+},
+{
+"id": "query_example_34",
+"input_length": 1758,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестПараметрыИнтервалыРегистра.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "КадроваяИсторияСотрудниковСрезПоследних",
+"embedded_sha256": "310be360c7a544ce0c8cd143cd540285812ad31765eb0eb881e1cb3bf3737275",
+"expected_input_length": 1758
+}
+},
+{
+"id": "query_example_35",
+"input_length": 1414,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестПараметрыСрезаПоследних.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "КадроваяИсторияСотрудниковСрезПоследних",
+"embedded_sha256": "0134c5ce8a511a876699b531e66f178538219e1035716a45b48085d27ca0f728",
+"expected_input_length": 1414
+}
+},
+{
+"id": "query_example_36",
+"input_length": 742,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестРасчетБазы.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "НачисленияБаза",
+"embedded_sha256": "ae510b7258cfd1e989af1064849d35ed652d607bbb525f75c3930efce25525c8",
+"expected_input_length": 742
+}
+},
+{
+"id": "query_example_37",
+"input_length": 720,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестРасчетБазыУдержаний.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "НачисленияБаза",
+"embedded_sha256": "38faa9d7a078f77f69f71a8cacfdb30d777058439a4163ed0f950ded0feda7db",
+"expected_input_length": 720
+}
+},
+{
+"id": "query_example_38",
+"input_length": 571,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестСотрудникиОрганизацииБезВТФизлица.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "СотрудникиОрганизации",
+"embedded_sha256": "841f3e3a6d3ba4b4106c237431231fa006ef46e8874c5d5a3793b661908b8533",
+"expected_input_length": 571
+}
+},
+{
+"id": "query_example_39",
+"input_length": 673,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестСотрудникиОрганизацииПоВТФизлица.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "СотрудникиОрганизации",
+"embedded_sha256": "5bc18b5be175ec6dee7e3b1ce1e8e01483d701459ecaba566d6c012e57c692a2",
+"expected_input_length": 673
+}
+},
+{
+"id": "query_example_40",
+"input_length": 779,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестСрезНаКаждыйДень.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "Периоды",
+"embedded_sha256": "213d12d4d0c2a9aaf553551702b504b1edf663ac120e99115a0061b2edf55f57",
+"expected_input_length": 779
+}
+},
+{
+"id": "query_example_41",
+"input_length": 791,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестСрезРегистраЗапросБезВТ.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "КадроваяИсторияСотрудниковСрезПоследних",
+"embedded_sha256": "8785de1f854ed9f93ad499564cee5564efc003be80b921fe676afab8f3d5197e",
+"expected_input_length": 791
+}
+},
+{
+"id": "query_example_42",
+"input_length": 850,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестСтажиФизическихЛиц.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "СтажиФизическихЛиц",
+"embedded_sha256": "49f7864302390338e8fbc8308ecd274f3dd99ddb634d8c80a737fb6d8bd64ccc",
+"expected_input_length": 850
+}
+}
+],
+"input_count": 42,
+"input_length": 67253,
+"operation_count_per_iteration": 42,
+"operations_per_sample": 42,
+"iterations_per_sample": 1,
+"parse_calls_per_sample": 42,
+"warmup_count": 3,
+"sample_count": 20,
+"samples_ms": [
+927,
+1168,
+917,
+1026,
+1064,
+939,
+1037,
+960,
+972,
+1063,
+1048,
+1032,
+1021,
+999,
+1083,
+1003,
+965,
+1017,
+959,
+1034
+],
+"wall_clock_median_ms": 1019,
+"wall_clock_p95_ms": 1083
+},
+{
+"id": "large_package",
+"entrypoint": "Разобрать",
+"provenance": "Largest real QueryExamples package: QueryExamples/ТестПакетЗапрсов.q1c",
+"generator_parameters": {
+"source_path": "QueryExamples/ТестПакетЗапрсов.q1c",
+"query_name": "СотрудникиОрганизации"
+},
+"inputs": [
+{
+"id": "query_example_32",
+"input_length": 8170,
+"provenance": {
+"type": "query_example_xml",
+"path": "QueryExamples/ТестПакетЗапрсов.q1c",
+"xpath": "/querylist/query/text",
+"query_name": "СотрудникиОрганизации",
+"embedded_sha256": "eaa7b288488810f7a0c2337379aa03e9c295293f66b6a3ca3b7635cf615a81d8",
+"expected_input_length": 8170
+}
+}
+],
+"input_count": 1,
+"input_length": 8170,
+"operation_count_per_iteration": 1,
+"operations_per_sample": 1,
+"iterations_per_sample": 1,
+"parse_calls_per_sample": 1,
+"warmup_count": 3,
+"sample_count": 20,
+"samples_ms": [
+92,
+87,
+87,
+104,
+86,
+94,
+122,
+105,
+88,
+139,
+100,
+88,
+89,
+96,
+92,
+85,
+101,
+96,
+92,
+90
+],
+"wall_clock_median_ms": 92,
+"wall_clock_p95_ms": 122
+},
+{
+"id": "long_field_list",
+"entrypoint": "Разобрать",
+"provenance": "Synthetic deterministic SELECT field list",
+"generator_parameters": {
+"field_count": 200
+},
+"inputs": [
+{
+"id": "long_field_list_200",
+"input_length": 3190,
+"provenance": {
+"type": "synthetic",
+"generator": "ПостроитьДлинныйСписокПолей",
+"parameters": {
+"field_count": 200
+}
+}
+}
+],
+"input_count": 1,
+"input_length": 3190,
+"operation_count_per_iteration": 1,
+"operations_per_sample": 1,
+"iterations_per_sample": 1,
+"parse_calls_per_sample": 1,
+"warmup_count": 3,
+"sample_count": 20,
+"samples_ms": [
+88,
+87,
+93,
+86,
+99,
+126,
+103,
+92,
+90,
+97,
+109,
+95,
+130,
+100,
+102,
+90,
+124,
+98,
+87,
+89
+],
+"wall_clock_median_ms": 96,
+"wall_clock_p95_ms": 126
+},
+{
+"id": "join_chain",
+"entrypoint": "Разобрать",
+"provenance": "Synthetic deterministic LEFT JOIN chain",
+"generator_parameters": {
+"join_count": 40
+},
+"inputs": [
+{
+"id": "join_chain_40",
+"input_length": 2962,
+"provenance": {
+"type": "synthetic",
+"generator": "ПостроитьЦепочкуСоединений",
+"parameters": {
+"join_count": 40
+}
+}
+}
+],
+"input_count": 1,
+"input_length": 2962,
+"operation_count_per_iteration": 1,
+"operations_per_sample": 1,
+"iterations_per_sample": 1,
+"parse_calls_per_sample": 1,
+"warmup_count": 3,
+"sample_count": 20,
+"samples_ms": [
+52,
+51,
+51,
+111,
+88,
+52,
+61,
+56,
+51,
+56,
+56,
+56,
+63,
+50,
+53,
+49,
+52,
+51,
+55,
+51
+],
+"wall_clock_median_ms": 52.5,
+"wall_clock_p95_ms": 88
+},
+{
+"id": "union_package_chain",
+"entrypoint": "Разобрать",
+"provenance": "Synthetic deterministic two-query package with UNION ALL chains",
+"generator_parameters": {
+"package_query_count": 2,
+"union_branches_per_query": 40
+},
+"inputs": [
+{
+"id": "union_package_2x40",
+"input_length": 3081,
+"provenance": {
+"type": "synthetic",
+"generator": "ПостроитьЦепочкуОбъединений",
+"parameters": {
+"package_query_count": 2,
+"union_branches_per_query": 40
+}
+}
+}
+],
+"input_count": 1,
+"input_length": 3081,
+"operation_count_per_iteration": 1,
+"operations_per_sample": 1,
+"iterations_per_sample": 1,
+"parse_calls_per_sample": 1,
+"warmup_count": 3,
+"sample_count": 20,
+"samples_ms": [
+57,
+55,
+63,
+55,
+64,
+78,
+73,
+58,
+58,
+57,
+77,
+54,
+64,
+56,
+55,
+85,
+92,
+56,
+56,
+55
+],
+"wall_clock_median_ms": 57.5,
+"wall_clock_p95_ms": 85
+},
+{
+"id": "arithmetic_chain",
+"entrypoint": "РазобратьВыражение",
+"provenance": "Synthetic deterministic left-associative arithmetic chain",
+"generator_parameters": {
+"term_count": 200
+},
+"inputs": [
+{
+"id": "arithmetic_chain_200",
+"input_length": 1089,
+"provenance": {
+"type": "synthetic",
+"generator": "ПостроитьАрифметическуюЦепочку",
+"parameters": {
+"term_count": 200
+}
+}
+}
+],
+"input_count": 1,
+"input_length": 1089,
+"operation_count_per_iteration": 1,
+"operations_per_sample": 1,
+"iterations_per_sample": 1,
+"parse_calls_per_sample": 1,
+"warmup_count": 3,
+"sample_count": 20,
+"samples_ms": [
+36,
+40,
+39,
+38,
+36,
+38,
+38,
+40,
+37,
+40,
+36,
+38,
+37,
+39,
+38,
+44,
+82,
+37,
+39,
+41
+],
+"wall_clock_median_ms": 38,
+"wall_clock_p95_ms": 44
+},
+{
+"id": "logical_chain",
+"entrypoint": "РазобратьВыражение",
+"provenance": "Synthetic deterministic AND chain",
+"generator_parameters": {
+"predicate_count": 120
+},
+"inputs": [
+{
+"id": "logical_chain_120",
+"input_length": 1221,
+"provenance": {
+"type": "synthetic",
+"generator": "ПостроитьЛогическуюЦепочку",
+"parameters": {
+"predicate_count": 120
+}
+}
+}
+],
+"input_count": 1,
+"input_length": 1221,
+"operation_count_per_iteration": 1,
+"operations_per_sample": 1,
+"iterations_per_sample": 1,
+"parse_calls_per_sample": 1,
+"warmup_count": 3,
+"sample_count": 20,
+"samples_ms": [
+103,
+76,
+60,
+57,
+62,
+55,
+62,
+56,
+56,
+69,
+84,
+58,
+66,
+59,
+55,
+57,
+55,
+59,
+62,
+57
+],
+"wall_clock_median_ms": 59,
+"wall_clock_p95_ms": 84
+},
+{
+"id": "dereference_chain",
+"entrypoint": "РазобратьВыражение",
+"provenance": "Synthetic deterministic dereference chain",
+"generator_parameters": {
+"part_count": 120
+},
+"inputs": [
+{
+"id": "dereference_chain_120",
+"input_length": 854,
+"provenance": {
+"type": "synthetic",
+"generator": "ПостроитьЦепочкуРазыменований",
+"parameters": {
+"part_count": 120
+}
+}
+}
+],
+"input_count": 1,
+"input_length": 854,
+"operation_count_per_iteration": 1,
+"operations_per_sample": 1,
+"iterations_per_sample": 1,
+"parse_calls_per_sample": 1,
+"warmup_count": 3,
+"sample_count": 20,
+"samples_ms": [
+17,
+14,
+16,
+16,
+14,
+15,
+16,
+15,
+17,
+15,
+15,
+15,
+14,
+16,
+15,
+15,
+13,
+14,
+15,
+14
+],
+"wall_clock_median_ms": 15,
+"wall_clock_p95_ms": 17
+},
+{
+"id": "time_accounting_large",
+"entrypoint": "Разобрать",
+"provenance": "Permanent CommonTemplate time-accounting query imported from verified external source",
+"generator_parameters": {
+"metadata_object": "CommonTemplate.КОНС_БенчмаркДанныеУчетаВремени",
+"path": "yaxunit/src/CommonTemplates/КОНС_БенчмаркДанныеУчетаВремени/Template.txt",
+"external_source_path": "C:\\work\\1C\\мои разработки\\Теория копмиляторов\\Генерация парсеров АКТУАЛЬНОЕ\\заппросы\\ДанныеУчетаВремени.txt",
+"raw_bytes": 289542,
+"line_count": 5489,
+"character_count": 160135,
+"raw_sha256": "43035fda34f0ccb05817d856374beba9e5539a3a99540fef9ba7d70d3656c93e",
+"normalized_utf8_lf_sha256": "5e4a617dd41f8af97434b797bac46c9f8ba3ca1d167db9d81828b6854f1fc9c5"
+},
+"inputs": [
+{
+"id": "time_accounting_large_1",
+"input_length": 160135,
+"provenance": {
+"type": "common_template_text_document",
+"metadata_object": "CommonTemplate.КОНС_БенчмаркДанныеУчетаВремени",
+"path": "yaxunit/src/CommonTemplates/КОНС_БенчмаркДанныеУчетаВремени/Template.txt",
+"external_source_path": "C:\\work\\1C\\мои разработки\\Теория копмиляторов\\Генерация парсеров АКТУАЛЬНОЕ\\заппросы\\ДанныеУчетаВремени.txt",
+"raw_bytes": 289542,
+"line_count": 5489,
+"character_count": 160135,
+"raw_sha256": "43035fda34f0ccb05817d856374beba9e5539a3a99540fef9ba7d70d3656c93e",
+"normalized_utf8_lf_sha256": "5e4a617dd41f8af97434b797bac46c9f8ba3ca1d167db9d81828b6854f1fc9c5"
+}
+}
+],
+"input_count": 1,
+"input_length": 160135,
+"operation_count_per_iteration": 1,
+"operations_per_sample": 1,
+"iterations_per_sample": 1,
+"parse_calls_per_sample": 1,
+"warmup_count": 3,
+"sample_count": 20,
+"samples_ms": [
+2470,
+2781,
+2677,
+2629,
+2528,
+2790,
+2651,
+2929,
+2698,
+2769,
+2666,
+2869,
+2843,
+2538,
+2594,
+2847,
+2704,
+2643,
+2589,
+2532
+],
+"wall_clock_median_ms": 2671.5,
+"wall_clock_p95_ms": 2869
+}
+],
+"parser_artifact": {
+"role": "parser",
+"metadata_object": "DataProcessor.КОНС_СтарыйПарсер",
+"path": "yaxunit/src/DataProcessors/КОНС_СтарыйПарсер/ObjectModule.bsl",
+"sha256": "dc401e271105eb34b4b2234c75b13fcdfd0341bb3b6766507d9f8cb1eb62e8b7",
+"hash_scope": "normalized_utf8_lf",
+"source_path": "QueryConsoleZUP/src/DataProcessors/Парсер/ObjectModule.bsl",
+"source_sha256": "0c365e1e521322554b63e400379be47c0dc5ecaa7f60dd6951dc84bc7cccd084"
+}
+}

@@ -48,6 +48,7 @@
   <commonPictures>CommonPicture.ЮТУпал</commonPictures>
   <commonPictures>CommonPicture.ЮТУспешно</commonPictures>
   <commonPictures>CommonPicture.ЮТЭлементыТестов</commonPictures>
+  <commonTemplates>CommonTemplate.КОНС_БенчмаркДанныеУчетаВремени</commonTemplates>
   <commonTemplates>CommonTemplate.ЮТ_СловарьПодражателя_Компании_Наименования_ru</commonTemplates>
   <commonTemplates>CommonTemplate.ЮТ_СловарьПодражателя_Компании_ПрефиксыНаименований_ru</commonTemplates>
   <commonTemplates>CommonTemplate.ЮТ_СловарьПодражателя_Люди_ЖенскиеИмена_ru</commonTemplates>
@@ -73,6 +74,7 @@
   <commonModules>CommonModule.КОНС_Обр_ПотребителиПредставлений_МО</commonModules>
   <commonModules>CommonModule.КОНС_Обр_ПрикладныеПотребителиЗапроса_МО</commonModules>
   <commonModules>CommonModule.КОНС_ОМ_ОбработкаМоделиЗапроса</commonModules>
+  <commonModules>CommonModule.КОНС_СтарыеЭлементыМоделиЗапроса</commonModules>
   <commonModules>CommonModule.КОНС_ТестовыеФабрикиСлужебный</commonModules>
   <commonModules>CommonModule.Мокито</commonModules>
   <commonModules>CommonModule.МокитоОбучение</commonModules>
@@ -183,6 +185,8 @@
   <commonModules>CommonModule.ЮТЧитательСлужебный</commonModules>
   <commonModules>CommonModule.ЮТЧитательСлужебныйВызовСервера</commonModules>
   <commonModules>CommonModule.ЮТЧитательСлужебныйКлиент</commonModules>
+  <dataProcessors>DataProcessor.КОНС_СтарыйЛексическийАнализатор</dataProcessors>
+  <dataProcessors>DataProcessor.КОНС_СтарыйПарсер</dataProcessors>
   <dataProcessors>DataProcessor.ЮТHTTPServiceRequest</dataProcessors>
   <dataProcessors>DataProcessor.ЮТHTTPОтвет</dataProcessors>
   <dataProcessors>DataProcessor.ЮТHTTPСервисЗапрос</dataProcessors>

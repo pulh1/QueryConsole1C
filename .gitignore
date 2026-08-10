@@ -8,6 +8,7 @@
 /.mcp.json
 /.v8-project.json
 /.codex/cache/
+/.worktrees/
 *.log
 
 # Python parser-generator local state
