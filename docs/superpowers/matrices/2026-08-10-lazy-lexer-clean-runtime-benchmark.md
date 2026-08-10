@@ -16,6 +16,20 @@ corpus. На двух основных реальных сценариях:
 run содержит 3 warm-up и 20 timed samples. Для этих двух corpus batch size равен
 одной corpus iteration во всех девяти запусках.
 
+Отдельная interleaved order-varied серия полного пути `lexer + parser` с
+порядком ABA также показала устойчивое улучшение:
+
+| Сценарий | Historical parser + lexer | Current parser + lazy lexer | Ускорение |
+| --- | ---: | ---: | ---: |
+| `query_examples_all_42` | 1 019 мс | 600 мс | 1,70x |
+| `large_package` | 92 мс | 61,5 мс | 1,50x |
+| `time_accounting_large` | 2 671,5 мс | 1 738 мс | 1,54x |
+
+Это медианы трёх run medians из отдельной шестизапусковой серии. Current path
+оказался быстрее в каждой из трёх пар запусков на каждом corpus. Порядок ABA не
+является полностью сбалансированным, поэтому величина ускорения ниже считается
+descriptive и order-sensitive; устойчивым выводом является направление эффекта.
+
 ## Условия и матрица
 
 - Runtime: 1С:Предприятие 8.3.27.2170, Windows x86-64.
@@ -27,7 +41,10 @@ run содержит 3 warm-up и 20 timed samples. Для этих двух cor
 - Series 1: historical lexer, lazy lexer, parser + lazy lexer.
 - Series 2: lazy lexer, historical lexer, parser + lazy lexer.
 - Series 3: historical lexer, lazy lexer, parser + lazy lexer.
-- Historical parser и полный semantic frontend намеренно не измерялись.
+- Full-path series 1: historical parser + lexer, current parser + lazy lexer.
+- Full-path series 2: current parser + lazy lexer, historical parser + lexer.
+- Full-path series 3: historical parser + lexer, current parser + lazy lexer.
+- Полный semantic frontend намеренно не измерялся.
 
 Измеряемый lexer path включает установку исходного текста, batch regex scan,
 последовательное чтение и materialization всех содержательных токенов и EOF.
@@ -39,6 +56,10 @@ Parser path включает `Разобрать`/`РазобратьВыраж�
 - Historical lexer: `old-lexer-59d538f`, commit
   `59d538fd974c723c6b1cf336c61b0fea1aec8453`, normalized SHA-256
   `434c0230717cb61bc4a5c7e5c3a0cc2e926a20f4bbefc8a0892f5d5aa73c3c20`.
+- Historical parser: `old-parser-59d538f`, materialized normalized SHA-256
+  `dc401e271105eb34b4b2234c75b13fcdfd0341bb3b6766507d9f8cb1eb62e8b7`;
+  historical source SHA-256
+  `0c365e1e521322554b63e400379be47c0dc5ecaa7f60dd6951dc84bc7cccd084`.
 - Lazy lexer: `current-lazy-lexer-f6abfbe`, implementation commit
   `f6abfbecc1156bbd12eaedf36cc5ac6765d1eee6`, normalized SHA-256
   `f954b1bb7b619052c553bf42699ed5fbbc3d5a7b64cd6ef4386b1970ca5e967d`.
@@ -47,11 +68,19 @@ Parser path включает `Разобрать`/`РазобратьВыраж�
 - Benchmark provenance preparation: commit
   `18df5672df137cabd632b1d9ffacbef1b779e0e8`.
 
+Для двух current parser templates sidecar `original_bytes` SHA относится к
+CRLF-байтам Windows checkout. Git blobs implementation commit имеют LF и другие
+raw SHA, но их содержимое побайтно совпадает после нормализации CRLF/CR в LF.
+Следовательно, commit provenance для templates является normalized-content
+provenance, а не равенством raw bytes.
+
 ## Результаты по всем corpus
 
 `median/p95` — median трёх run medians и median трёх run p95. Время относится к
 одной corpus iteration; `query_examples_all_42` выполняет 42 операции за одну
-iteration. CV — median коэффициента вариации raw samples по трём runs.
+iteration. p95 внутри run вычисляется nearest-rank методом. CV — median
+коэффициента вариации raw samples по трём runs с sample standard deviation
+(`n-1`). Batch — median трёх значений `iterations_per_sample`.
 
 | Corpus | Токены | Old median/p95, мс | Lazy median/p95, мс | Ускорение | Parser+lazy median/p95, мс | CV old/lazy/parser | Batch old/lazy/parser |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -77,12 +106,46 @@ Run medians основных сценариев:
 | `large_package` | 70,5; 51,5; 77 | 20; 19; 20,5 | 70; 65,5; 64 |
 | `time_accounting_large` | 1 503,5; 1 370; 1 305 | 588,5; 579,5; 506 | 1 584; 1 644,5; 1 520 |
 
+## Полный путь lexer + parser
+
+Эта таблица использует только отдельную interleaved order-varied серию
+old/current parser с порядком ABA, а не contextual parser values из lexer-серии
+выше. Ускорения являются descriptive/order-sensitive оценками; current path
+быстрее во всех 27 парных сравнениях (3 runs x 9 corpus).
+
+| Corpus | Old parser+lexer median/p95, мс | Current parser+lazy median/p95, мс | Ускорение | CV old/current | Batch old/current |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `query_examples_all_42` | 1 019 / 1 083 | 600 / 662 | 1,70x | 6,0% / 6,8% | 1 / 1 |
+| `large_package` | 92 / 122 | 61,5 / 83 | 1,50x | 13,7% / 16,7% | 1 / 1 |
+| `long_field_list` | 96 / 126 | 75 / 94 | 1,28x | 13,4% / 14,6% | 1 / 1 |
+| `join_chain` | 52,5 / 88 | 50 / 60 | 1,05x | 23,6% / 25,1% | 1 / 1 |
+| `union_package_chain` | 57,5 / 85 | 48 / 63 | 1,20x | 17,9% / 19,6% | 1 / 1 |
+| `arithmetic_chain` | 38 / 44 | 33 / 40 | 1,15x | 22,0% / 24,0% | 1 / 1 |
+| `logical_chain` | 59 / 84 | 48 / 55 | 1,23x | 18,9% / 22,6% | 1 / 1 |
+| `dereference_chain` | 15 / 17 | 14,625 / 17,25 | 1,03x | 7,0% / 25,6% | 2 / 4 |
+| `time_accounting_large` | 2 671,5 / 2 869 | 1 738 / 1 856 | 1,54x | 4,8% / 8,1% | 1 / 1 |
+
+Run medians основных full-path сценариев:
+
+| Сценарий | Historical parser + lexer, мс | Current parser + lazy lexer, мс |
+| --- | --- | --- |
+| `query_examples_all_42` | 1 019; 1 480,5; 858 | 652,5; 600; 495 |
+| `large_package` | 92; 158,5; 86 | 75; 61,5; 61,5 |
+| `time_accounting_large` | 2 671,5; 3 725,5; 2 223,5 | 1 738; 1 771; 1 494,5 |
+
+Во второй паре заметен общий всплеск historical timings. Он не скрыт и не
+отфильтрован: итог использует median трёх runs, а raw medians приведены выше.
+Направление результата не зависит от этой пары — current path быстрее во всех
+трёх парных сериях.
+
 ## Validation
 
-Все девять timed registrations завершились с `Total=1`, `Passed=1`,
-`Failed=0`, `Errors=0`, `Skipped=0`.
+Во время выполнения `run_yaxunit_tests` сообщил для каждой из пятнадцати timed
+registrations `Total=1`, `Passed=1`, `Failed=0`, `Errors=0`, `Skipped=0`.
+Runner reports были transient и не включены в durable evidence; raw sidecar
+самостоятельно доказывает завершённое измерение и данные, но не YAxUnit outcome.
 
-Проверка 9/9 raw JSON подтвердила:
+Проверка 15/15 raw JSON подтвердила:
 
 - schema version, implementation id, source ref/commit и artifact hashes;
 - одинаковые runtime и methodology;
@@ -109,3 +172,9 @@ semantic frontend также не входил в измеряемую матр�
 | `2026-08-10-runtime-parser-lazy-lexer-clean-1.json` | `9c816e65c83eb5c470128baba3394bab1b602ffd7474a7010078714917541380` |
 | `2026-08-10-runtime-parser-lazy-lexer-clean-2.json` | `4362a8aa3a6a7424f8b740585ed64da74c779ea2cf3d7374e9087d380fb7eb96` |
 | `2026-08-10-runtime-parser-lazy-lexer-clean-3.json` | `d31e9834310406e8ce9b9aa0eaa366d63ac110e620fcfe873fea37aeb8c35ef2` |
+| `2026-08-10-runtime-old-parser-clean-1.json` | `5090e61dd02d76a867ca6346e75742a4322b7ea52303e40ac3427e6ee64b0a11` |
+| `2026-08-10-runtime-old-parser-clean-2.json` | `8ccecfe8d33e09f1f2e89fc584ecbeb6f0f2646345413a494d0cebfc47933926` |
+| `2026-08-10-runtime-old-parser-clean-3.json` | `77ed06f762fd994de75ce4604d70f6ba9bb2f668d1a24024fe5d58768711f5ac` |
+| `2026-08-10-runtime-parser-lazy-lexer-comparison-1.json` | `27487e8d7fd3fd6dd9277e22cb29fcd335125e5dc27f59c1bc5652186d424a4f` |
+| `2026-08-10-runtime-parser-lazy-lexer-comparison-2.json` | `937dbe2893a5a0cfb9aa2f1473ca13da4ca115e810a47b672b2af8bcc1fdd8b6` |
+| `2026-08-10-runtime-parser-lazy-lexer-comparison-3.json` | `16717fd04e08a0f9cccd7cc023556e78708120e45ef4b8ac21dbfdf8368ab1c5` |
