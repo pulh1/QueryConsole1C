@@ -16,8 +16,15 @@ corpus. На двух основных реальных сценариях:
 run содержит 3 warm-up и 20 timed samples. Для этих двух corpus batch size равен
 одной corpus iteration во всех девяти запусках.
 
+> **Correction 2026-08-11:** standalone lexer speedup подтверждён только для
+> lexer registration. Опубликованная ниже historical parser+lexer → current
+> parser+lazy lexer разница не изолирует влияние lexer, потому что одновременно
+> меняется parser implementation. Поэтому она не является доказательством
+> ускорения полного пути за счёт lexer. Full-path lexer performance verdict по
+> этой серии: **не установлен**.
+
 Отдельная interleaved order-varied серия полного пути `lexer + parser` с
-порядком ABA также показала устойчивое улучшение:
+порядком ABA измерила общую historical → current эволюцию:
 
 | Сценарий | Historical parser + lexer | Current parser + lazy lexer | Ускорение |
 | --- | ---: | ---: | ---: |
@@ -28,7 +35,8 @@ run содержит 3 warm-up и 20 timed samples. Для этих двух cor
 Это медианы трёх run medians из отдельной шестизапусковой серии. Current path
 оказался быстрее в каждой из трёх пар запусков на каждом corpus. Порядок ABA не
 является полностью сбалансированным, поэтому величина ускорения ниже считается
-descriptive и order-sensitive; устойчивым выводом является направление эффекта.
+descriptive и order-sensitive. Кроме того, сравнение смешивает две независимые
+переменные — parser и lexer — и не позволяет приписать эффект lexer.
 
 ## Условия и матрица
 
@@ -111,7 +119,9 @@ Run medians основных сценариев:
 Эта таблица использует только отдельную interleaved order-varied серию
 old/current parser с порядком ABA, а не contextual parser values из lexer-серии
 выше. Ускорения являются descriptive/order-sensitive оценками; current path
-быстрее во всех 27 парных сравнениях (3 runs x 9 corpus).
+быстрее во всех 27 парных сравнениях (3 runs x 9 corpus). Таблица характеризует
+общую замену historical parser+lexer на current parser+lazy lexer, но не эффект
+lexer при фиксированном parser.
 
 | Corpus | Old parser+lexer median/p95, мс | Current parser+lazy median/p95, мс | Ускорение | CV old/current | Batch old/current |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -137,6 +147,42 @@ Run medians основных full-path сценариев:
 отфильтрован: итог использует median трёх runs, а raw medians приведены выше.
 Направление результата не зависит от этой пары — current path быстрее во всех
 трёх парных сериях.
+
+## Контроль с фиксированным Decision DAG parser
+
+После сопоставления с ранее сохранёнными measurements обнаружено, что parser
+SHA-256 во всех трёх группах одинаков:
+`f536869601e718ca02f026d0ecb8f733d8688ecd038f70f6b5e8cd08dbe4fbbf`.
+Меняется только lexer artifact:
+
+- before batch: `434c0230...`;
+- eager batch: `292fba5e...`;
+- lazy batch: `f954b1bb...`.
+
+| Corpus | Decision DAG + old lexer | Decision DAG + eager batch | Decision DAG + lazy batch |
+| --- | ---: | ---: | ---: |
+| `query_examples_all_42` | 557,5 мс | 559,5 мс | 600 мс |
+| `large_package` | 62 мс | 63,5 мс | 61,5 мс |
+| `time_accounting_large` | 1 551 мс | 1 486,5 мс | 1 738 мс |
+
+Это median трёх run medians из сохранённых групп:
+
+- old lexer: `2026-08-09-runtime-parser-before-batch-{1,2,3}.json`;
+- eager batch: локальные
+  `2026-08-10-runtime-parser-after-batch-{1,2,3}.json`;
+- lazy batch: `2026-08-10-runtime-parser-lazy-lexer-comparison-{1,2,3}.json`.
+
+Относительно fixed-parser old-lexer группы lazy результат составляет примерно
+`+7,6%` для 42 запросов, `-0,8%` для 843 токенов и `+12,1%` для большого
+запроса, где плюс означает замедление. Эти группы запускались не в одной
+counterbalanced серии и имели разные launch conditions, поэтому числа являются
+только диагностическим cross-series наблюдением. Они не доказывают регрессию,
+и не подтверждают дополнительный full-path speedup. Ранее заявленный verdict
+отозван из-за confounding parser+lexer в historical→current baseline.
+
+Для окончательного verdict нужен новый clean benchmark, в котором один и тот же
+Decision DAG parser чередуется только между old и lazy lexer, без изменения
+parser artifact, corpus, runtime и launch configuration.
 
 ## Validation
 
