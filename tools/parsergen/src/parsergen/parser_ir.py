@@ -57,6 +57,7 @@ from .source_model import (
     SourceProduction,
     SourceRepeat,
     SourceSequence,
+    SourceValue,
 )
 
 
@@ -358,6 +359,54 @@ def build_parser_ir(
         else entrypoint_productions
     )
     parser_ir = _ParserIrBuilder(
+        source,
+        lowering,
+        analysis,
+        frozenset(selected_names),
+        protected_entrypoints,
+    ).build()
+    from .parser_ir_optimization import optimize_parser_ir
+
+    return optimize_parser_ir(parser_ir)
+
+
+def build_syntax_parser_ir(
+    source: SourceGrammar,
+    lowering: LoweringResult,
+    resolved: ResolvedGrammar,
+    analysis: AnalysisResult,
+    *,
+    production_names: Collection[str] | None = None,
+    entrypoint_productions: Collection[str] | None = None,
+) -> ParserIr:
+    """Build canonical control-flow IR while deliberately discarding values."""
+    if any(item.severity is Severity.ERROR for item in lowering.diagnostics):
+        raise ValueError("source grammar has EBNF validation errors")
+    if lower_source_grammar(source) != lowering:
+        raise ValueError("source grammar does not match lowering result")
+    reparsed = resolve_grammar(lowering.grammar)
+    if reparsed.grammar is None or reparsed.grammar != resolved:
+        raise ValueError("lowered grammar does not match resolved grammar")
+    if analysis._resolved_grammar is not resolved:
+        raise ValueError("analysis is not bound to the resolved grammar")
+    selected_names = _selected_production_names(source, production_names)
+    required_decisions = _required_decision_productions(
+        lowering,
+        frozenset(selected_names),
+    )
+    conflicts = tuple(
+        conflict
+        for conflict in find_canonical_select_conflicts(resolved, analysis)
+        if conflict.production in required_decisions
+    )
+    if conflicts:
+        raise ValueError("overlapping canonical SELECT prevents Parser IR")
+    protected_entrypoints = frozenset(
+        selected_names
+        if entrypoint_productions is None
+        else entrypoint_productions
+    )
+    parser_ir = _SyntaxParserIrBuilder(
         source,
         lowering,
         analysis,
@@ -1213,6 +1262,137 @@ class _ParserIrBuilder:
         decision = CanonicalDecision(source, build_decision_dag(source))
         self._decisions[key] = decision
         return decision
+
+
+class _SyntaxParserIrBuilder(_ParserIrBuilder):
+    """Builds Parser IR for targets that validate syntax without AST values."""
+
+    def _sequence(self, sequence: SourceSequence) -> tuple[Operation, ...]:
+        result: list[Operation] = []
+        for item in sequence.items:
+            if isinstance(item, (Action, SourceConstructor, SourceConstantBinding)):
+                continue
+            if isinstance(item, SourceBinding):
+                result.extend(self._syntax_value(item.value))
+            else:
+                result.extend(self._syntax_value(item))
+        return tuple(result)
+
+    def _syntax_value(self, value: SourceValue | SourceItem) -> tuple[Operation, ...]:
+        if isinstance(value, SourceGroup):
+            construct = self._construct(value.span, LoweredConstructKind.GROUP)
+            return (
+                Dispatch(
+                    self._decision(construct.production),
+                    self._syntax_branches(value, construct.production),
+                    value.span,
+                ),
+            )
+        if isinstance(value, SourceOptional):
+            construct = self._construct(value.span, LoweredConstructKind.OPTIONAL)
+            branches = self._syntax_primary_branches(
+                value.body,
+                construct.production,
+            )
+            return (
+                OptionalBranch(
+                    self._decision(
+                        construct.production,
+                        exit_alternative=len(branches) + 1,
+                    ),
+                    branches,
+                    (),
+                    value.span,
+                ),
+            )
+        if isinstance(value, SourceRepeat):
+            return self._syntax_repeat(value)
+        assert isinstance(value, (Terminal, Lexeme, Constant, IdentifierRef, NonterminalCall))
+        return (DiscardSymbol(value, value.span),)
+
+    def _syntax_repeat(self, repeat: SourceRepeat) -> tuple[Operation, ...]:
+        kind = (
+            LoweredConstructKind.STAR
+            if repeat.kind.value == "star"
+            else LoweredConstructKind.PLUS
+        )
+        construct = self._construct(repeat.span, kind)
+        branches = self._syntax_primary_branches(
+            repeat.body,
+            construct.production,
+        )
+        result: list[Operation] = []
+        decision_production = construct.production
+        if kind is LoweredConstructKind.PLUS:
+            if len(branches) == 1:
+                result.extend(branches[0].operations)
+            else:
+                result.append(
+                    Dispatch(
+                        self._decision(construct.production),
+                        branches,
+                        repeat.span,
+                    )
+                )
+            assert construct.tail_production is not None
+            decision_production = construct.tail_production
+            branches = tuple(
+                BranchIr(
+                    AlternativeOutcome(
+                        decision_production,
+                        branch.outcome.alternative,
+                    ),
+                    branch.operations,
+                    None,
+                    branch.source_span,
+                )
+                for branch in branches
+            )
+        result.append(
+            RepeatLoop(
+                self._decision(
+                    decision_production,
+                    exit_alternative=len(branches) + 1,
+                ),
+                branches,
+                repeat.span,
+            )
+        )
+        return tuple(result)
+
+    def _syntax_primary_branches(
+        self,
+        primary: SourcePrimary,
+        decision_production: str,
+    ) -> tuple[BranchIr, ...]:
+        if isinstance(primary, SourceGroup):
+            return self._syntax_branches(primary, decision_production)
+        return (
+            BranchIr(
+                AlternativeOutcome(decision_production, 1),
+                self._syntax_value(primary),
+                None,
+                primary.span,
+            ),
+        )
+
+    def _syntax_branches(
+        self,
+        group: SourceGroup,
+        decision_production: str,
+    ) -> tuple[BranchIr, ...]:
+        return tuple(
+            BranchIr(
+                AlternativeOutcome(
+                    decision_production,
+                    alternative.index + 1,
+                ),
+                self._sequence(alternative.body),
+                None,
+                alternative.span,
+            )
+            for alternative in group.alternatives
+        )
 
 
 def _produces_transparent_value(operation: Operation) -> bool:
