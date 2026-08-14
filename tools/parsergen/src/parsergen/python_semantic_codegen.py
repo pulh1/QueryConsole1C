@@ -63,12 +63,18 @@ class GeneratedPythonSemanticParser:
 _RESERVED_CLASSES = frozenset(
     {
         "AST_CLASSES",
+        "DECISIONS",
+        "ENTRYPOINTS",
         "GeneratedParseError",
         "GeneratedParser",
+        "NODE_DEFAULTS",
+        "PRODUCTIONS",
         "SourceSpan",
+        "_Builder",
+        "_Frame",
     }
 )
-_RESERVED_FIELDS = frozenset({"span"})
+_RESERVED_FIELDS = frozenset({"items", "span"})
 
 
 def generate_python_semantic_parser(
@@ -112,6 +118,9 @@ def _validate_entrypoints(
 class _SchemaBuilder:
     def __init__(self, parser_ir: ParserIr) -> None:
         self.parser_ir = parser_ir
+        self.productions_by_name = {
+            item.name: item for item in parser_ir.productions
+        }
         self.order: list[str] = []
         self.fields: dict[str, list[AstFieldSchema]] = {}
 
@@ -143,6 +152,7 @@ class _SchemaBuilder:
                     current,
                     "items" if operation.property is None else operation.property,
                     "collection",
+                    root_collection=operation.property is None,
                 )
             elif isinstance(operation, ConcatScalar):
                 self._field(current, operation.property, "concat")
@@ -165,14 +175,14 @@ class _SchemaBuilder:
                 for branch in operation.branches:
                     targets.update(self._result_constructors(branch.operations))
                     self._operations(branch.operations, None)
-                for target in targets:
+                for target in sorted(targets):
                     self._field(
                         target,
                         operation.property,
                         "collection" if operation.prepend else "scalar",
                     )
             elif isinstance(operation, WrapValue):
-                for target in self._value_constructors(operation.value):
+                for target in sorted(self._value_constructors(operation.value)):
                     self._field(
                         target,
                         operation.property,
@@ -213,9 +223,12 @@ class _SchemaBuilder:
             if isinstance(symbol, NonterminalCall):
                 if symbol.name in seen:
                     return set()
-                production = next(
-                    item for item in self.parser_ir.productions if item.name == symbol.name
-                )
+                try:
+                    production = self.productions_by_name[symbol.name]
+                except KeyError as error:
+                    raise ValueError(
+                        f"unknown production {symbol.name!r}"
+                    ) from error
                 return {
                     name
                     for alternative in production.alternatives
@@ -260,11 +273,20 @@ class _SchemaBuilder:
             self.order.append(name)
             self.fields[name] = []
 
-    def _field(self, constructor: str | None, name: str, category: str) -> None:
+    def _field(
+        self,
+        constructor: str | None,
+        name: str,
+        category: str,
+        *,
+        root_collection: bool = False,
+    ) -> None:
         if constructor is None:
             raise ValueError("semantic binding has no active constructor")
         _validate_identifier(name, "field")
-        if name in _RESERVED_FIELDS:
+        if name in _RESERVED_FIELDS and not (
+            name == "items" and root_collection
+        ):
             raise ValueError(f"field name is reserved: {name}")
         fields = self.fields[constructor]
         existing = next((item for item in fields if item.name == name), None)

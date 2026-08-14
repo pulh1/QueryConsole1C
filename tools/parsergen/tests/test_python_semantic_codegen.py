@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, FrozenInstanceError
+from dataclasses import dataclass, FrozenInstanceError, replace
+import os
+from pathlib import Path
+import subprocess
 import sys
 
 import pytest
@@ -102,11 +105,107 @@ def test_generation_is_deterministic_and_rejects_incompatible_ir() -> None:
         )
 
 
+def test_schema_errors_are_deterministic_for_multi_constructor_wrap() -> None:
+    script = """
+from parsergen.analysis import compute_analysis
+from parsergen.grammar_parser import parse_grammar
+from parsergen.parser_ir import build_parser_ir
+from parsergen.python_semantic_codegen import generate_python_semantic_parser
+from parsergen.resolver import resolve_grammar
+
+source = (
+    "<S> ::= <Seed> Child => <Wrapper>?\\n"
+    "<Seed> ::= @Seed Value = SEED\\n"
+    "<Wrapper> ::= @Zulu Child += Z | @Alpha Child += A"
+)
+parsed = parse_grammar(source, "grammar.txt")
+resolved = resolve_grammar(parsed.grammar)
+analysis = compute_analysis(resolved.grammar, 1, ("S",))
+parser_ir = build_parser_ir(
+    parsed.source_grammar,
+    parsed.lowering,
+    resolved.grammar,
+    analysis,
+    entrypoint_productions=("S",),
+)
+try:
+    generate_python_semantic_parser(
+        parsed.source_grammar,
+        parser_ir,
+        {"start": "S"},
+    )
+except ValueError as error:
+    print(error)
+"""
+    outputs = []
+    for seed in (1, 3):
+        environment = os.environ.copy()
+        environment["PYTHONHASHSEED"] = str(seed)
+        environment["PYTHONPATH"] = str(Path(__file__).parents[1] / "src")
+        completed = subprocess.run(
+            [sys.executable, "-c", script],
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        outputs.append(completed.stdout.strip())
+
+    assert outputs == [
+        "field Alpha.Child has incompatible binding categories",
+        "field Alpha.Child has incompatible binding categories",
+    ]
+
+
+def test_malformed_ir_reports_unknown_value_production() -> None:
+    parsed, parser_ir, _, _ = _generate(
+        "<S> ::= <Seed> Child => <Wrapper>\n"
+        "<Seed> ::= @Seed Value = SEED\n"
+        "<Wrapper> ::= @Wrapper WRAP"
+    )
+    production = parser_ir.productions[0]
+    alternative = production.alternatives[0]
+    wrap = alternative.operations[0]
+    missing_value = replace(
+        wrap.value,
+        symbol=replace(wrap.value.symbol, name="Missing"),
+    )
+    malformed = replace(
+        parser_ir,
+        productions=(
+            replace(
+                production,
+                alternatives=(
+                    replace(
+                        alternative,
+                        operations=(replace(wrap, value=missing_value),),
+                    ),
+                ),
+            ),
+            *parser_ir.productions[1:],
+        ),
+    )
+
+    with pytest.raises(ValueError, match="unknown production 'Missing'"):
+        generate_python_semantic_parser(
+            parsed.source_grammar,
+            malformed,
+            {"start": "S"},
+        )
+
+
 @pytest.mark.parametrize(
     ("source", "message"),
     [
         ("<S> ::= @GeneratedParser Value = ITEM", "reserved"),
+        ("<S> ::= @ENTRYPOINTS Value = ITEM", "reserved"),
+        ("<S> ::= @PRODUCTIONS Value = ITEM", "reserved"),
+        ("<S> ::= @DECISIONS Value = ITEM", "reserved"),
+        ("<S> ::= @NODE_DEFAULTS Value = ITEM", "reserved"),
+        ("<S> ::= @_Builder Value = ITEM", "reserved"),
+        ("<S> ::= @_Frame Value = ITEM", "reserved"),
         ("<S> ::= @Node span = ITEM", "reserved"),
+        ("<S> ::= @Node items = ITEM", "reserved"),
     ],
 )
 def test_rejects_reserved_generated_names(source: str, message: str) -> None:
