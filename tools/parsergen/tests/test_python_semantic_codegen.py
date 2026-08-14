@@ -279,6 +279,7 @@ def test_required_and_optional_wrap_return_frozen_wrapper_nodes() -> None:
     assert type(seed) is optional_namespace["Seed"]
     assert type(wrapped) is optional_namespace["Wrapper"]
     assert type(wrapped.Child) is optional_namespace["Seed"]
+    assert wrapped.span == optional_namespace["SourceSpan"](5, 9)
 
 
 def test_direct_left_recursion_builds_left_associative_ast_iteratively() -> None:

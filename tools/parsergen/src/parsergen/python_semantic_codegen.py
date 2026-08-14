@@ -203,30 +203,43 @@ class _SchemaBuilder:
                 for branch in (*operation.base_branches, *operation.recursive_branches):
                     self._discover_constructors(branch.operations)
 
-    def _value_constructors(self, value: object) -> set[str]:
+    def _value_constructors(
+        self,
+        value: object,
+        seen: frozenset[str] = frozenset(),
+    ) -> set[str]:
         if isinstance(value, ParseSymbol):
             symbol = value.symbol
             if isinstance(symbol, NonterminalCall):
+                if symbol.name in seen:
+                    return set()
                 production = next(
                     item for item in self.parser_ir.productions if item.name == symbol.name
                 )
                 return {
                     name
                     for alternative in production.alternatives
-                    for name in self._result_constructors(alternative.operations)
+                    for name in self._result_constructors(
+                        alternative.operations,
+                        seen | {symbol.name},
+                    )
                 }
             return set()
         if isinstance(value, ParseBranchValue):
-            return self._result_constructors(value.operations)
+            return self._result_constructors(value.operations, seen)
         if isinstance(value, DispatchValue):
             return {
                 name
                 for branch in value.branches
-                for name in self._value_constructors(branch.value)
+                for name in self._value_constructors(branch.value, seen)
             }
         return set()
 
-    def _result_constructors(self, operations: tuple[Operation, ...]) -> set[str]:
+    def _result_constructors(
+        self,
+        operations: tuple[Operation, ...],
+        seen: frozenset[str] = frozenset(),
+    ) -> set[str]:
         result: set[str] = set()
         for operation in operations:
             if isinstance(operation, ConstructNode):
@@ -234,9 +247,9 @@ class _SchemaBuilder:
             elif isinstance(operation, ParseSymbol) and isinstance(
                 operation.symbol, NonterminalCall
             ):
-                result.update(self._value_constructors(operation))
+                result.update(self._value_constructors(operation, seen))
             elif isinstance(operation, ResolvedRegion):
-                result.update(self._result_constructors(operation.operations))
+                result.update(self._result_constructors(operation.operations, seen))
         return result
 
     def _constructor(self, name: str) -> None:
@@ -265,7 +278,11 @@ class _SchemaBuilder:
 
 
 def _validate_identifier(value: str, label: str) -> None:
-    if not value.isidentifier() or keyword.iskeyword(value):
+    if (
+        not value.isidentifier()
+        or keyword.iskeyword(value)
+        or (value.startswith("__") and value.endswith("__"))
+    ):
         raise ValueError(f"{label} is not a valid Python identifier: {value!r}")
 
 
@@ -705,6 +722,7 @@ class GeneratedParser:
             if leaf[0] != "commit":
                 self._raise(())
             branch = self._select_branch(operation[2], leaf)
+            has_construct = self._has_construct(branch[2])
             tasks.append(
                 (
                     "sequence",
@@ -712,9 +730,9 @@ class GeneratedParser:
                         branch[2],
                         branch[3],
                         receiver,
-                        frame.start,
+                        self._offset() if has_construct else frame.start,
                         builder=frame.builder,
-                        prefer_builder=False,
+                        prefer_builder=has_construct,
                     ),
                 )
             )
@@ -727,6 +745,7 @@ class GeneratedParser:
                 operations, result_index = branch[2], branch[3]
             else:
                 self._raise(())
+            has_construct = self._has_construct(operations)
             tasks.append(
                 (
                     "sequence",
@@ -734,9 +753,9 @@ class GeneratedParser:
                         operations,
                         result_index,
                         receiver,
-                        frame.start,
+                        self._offset() if has_construct else frame.start,
                         builder=frame.builder,
-                        prefer_builder=False,
+                        prefer_builder=has_construct,
                     ),
                 )
             )
@@ -810,6 +829,7 @@ class GeneratedParser:
         if leaf[0] != "commit":
             self._raise(())
         branch = self._select_branch(operation[5], leaf)
+        has_construct = self._has_construct(branch[2])
         tasks.append(
             (
                 "sequence",
@@ -823,8 +843,8 @@ class GeneratedParser:
                         operation[2],
                         receiver,
                     ),
-                    frame.start,
-                    prefer_builder=self._has_construct(branch[2]),
+                    self._offset() if has_construct else frame.start,
+                    prefer_builder=has_construct,
                 ),
             )
         )
