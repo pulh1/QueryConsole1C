@@ -197,3 +197,137 @@ def test_semantic_parser_trampolines_direct_right_recursion() -> None:
 
     assert parser.parse([Token("ITEM") for _ in range(5_000)], "start") is None
     assert sys.getrecursionlimit() == original_limit
+
+
+def test_executes_dispatch_optional_repeat_concat_and_increment() -> None:
+    _, _, _, namespace = _generate(
+        "#Name ::= ID\n"
+        "<S> ::= @List Choice = (A | B) Maybe = FLAG? "
+        "Items += ITEM (',' Items += ITEM)* "
+        "Path ~= #Name (Path ~= '.' Path ~= #Name)* "
+        "(Count ++= MARK)*"
+    )
+    parser = namespace["GeneratedParser"]()
+
+    node = parser.parse(
+        [
+            Token("B"),
+            Token("ITEM", "first"),
+            Token(","),
+            Token("ITEM", "second"),
+            Token("ID", "Root"),
+            Token(".", "."),
+            Token("ID", "Leaf"),
+            Token("MARK"),
+            Token("MARK"),
+        ],
+        "start",
+    )
+
+    assert node.Choice == "B"
+    assert node.Maybe is None
+    assert node.Items == ("ITEM", "ITEM")
+    assert node.Path == "Root.Leaf"
+    assert node.Count == 2
+
+
+def test_optional_present_and_long_repeat_are_iterative() -> None:
+    _, _, _, namespace = _generate(
+        "<S> ::= @List Maybe = FLAG? Items += ITEM (',' Items += ITEM)*"
+    )
+    parser = namespace["GeneratedParser"]()
+    tokens = [Token("FLAG"), Token("ITEM")]
+    tokens.extend(
+        token
+        for _ in range(4_999)
+        for token in (Token(","), Token("ITEM"))
+    )
+    original_limit = sys.getrecursionlimit()
+
+    node = parser.parse(tokens, "start")
+
+    assert node.Maybe == "FLAG"
+    assert len(node.Items) == 5_000
+    assert sys.getrecursionlimit() == original_limit
+
+
+def test_required_and_optional_wrap_return_frozen_wrapper_nodes() -> None:
+    _, _, _, required_namespace = _generate(
+        "<S> ::= <Seed> Child => <Wrapper>\n"
+        "<Seed> ::= @Seed Value = SEED\n"
+        "<Wrapper> ::= @Wrapper WRAP"
+    )
+    required = required_namespace["GeneratedParser"]().parse(
+        [Token("SEED", start=0, end=4), Token("WRAP", start=5, end=9)],
+        "start",
+    )
+    assert type(required) is required_namespace["Wrapper"]
+    assert type(required.Child) is required_namespace["Seed"]
+    assert required.Child.Value == "SEED"
+
+    _, _, _, optional_namespace = _generate(
+        "<S> ::= <Seed> Child => <Wrapper>?\n"
+        "<Seed> ::= @Seed Value = SEED\n"
+        "<Wrapper> ::= @Wrapper WRAP"
+    )
+    parser = optional_namespace["GeneratedParser"]()
+    seed = parser.parse([Token("SEED", start=0, end=4)], "start")
+    wrapped = parser.parse(
+        [Token("SEED", start=0, end=4), Token("WRAP", start=5, end=9)],
+        "start",
+    )
+    assert type(seed) is optional_namespace["Seed"]
+    assert type(wrapped) is optional_namespace["Wrapper"]
+    assert type(wrapped.Child) is optional_namespace["Seed"]
+
+
+def test_direct_left_recursion_builds_left_associative_ast_iteratively() -> None:
+    _, _, _, namespace = _generate(
+        "<S> ::= <Expr>\n"
+        "<Expr> ::= @Binary Left = <Expr> Operator = '+' Right = <Term> | <Term>\n"
+        "<Term> ::= @Term Value = ITEM"
+    )
+    parser = namespace["GeneratedParser"]()
+    tokens = [Token("ITEM", start=0, end=1)]
+    tokens.extend(
+        token
+        for index in range(1, 2_000)
+        for token in (
+            Token("+", start=index * 2 - 1, end=index * 2),
+            Token("ITEM", start=index * 2, end=index * 2 + 1),
+        )
+    )
+    original_limit = sys.getrecursionlimit()
+
+    node = parser.parse(tokens, "start")
+
+    assert type(node) is namespace["Binary"]
+    assert type(node.Left) is namespace["Binary"]
+    assert type(node.Right) is namespace["Term"]
+    assert node.span == namespace["SourceSpan"](0, 3_999)
+    assert sys.getrecursionlimit() == original_limit
+
+
+def test_root_collection_extend_and_prepend_wrap_use_immutable_tuples() -> None:
+    _, _, _, extend_namespace = _generate(
+        "<S> ::= @Node Items *= <Values>\n"
+        "<Values> ::= @Values += ITEM (',' += ITEM)*"
+    )
+    extended = extend_namespace["GeneratedParser"]().parse(
+        [Token("ITEM"), Token(","), Token("ITEM")],
+        "start",
+    )
+    assert extended.Items == ("ITEM", "ITEM")
+
+    _, _, _, wrap_namespace = _generate(
+        "<S> ::= <Base> Elements +=> <Postfix>?\n"
+        "<Base> ::= @Base Value = BASE\n"
+        "<Postfix> ::= @Postfix POSTFIX"
+    )
+    wrapped = wrap_namespace["GeneratedParser"]().parse(
+        [Token("BASE"), Token("POSTFIX")],
+        "start",
+    )
+    assert type(wrapped) is wrap_namespace["Postfix"]
+    assert len(wrapped.Elements) == 1
+    assert type(wrapped.Elements[0]) is wrap_namespace["Base"]

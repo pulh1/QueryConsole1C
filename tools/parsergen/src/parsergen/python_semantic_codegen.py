@@ -118,6 +118,9 @@ class _SchemaBuilder:
     def build(self) -> tuple[AstNodeSchema, ...]:
         for production in self.parser_ir.productions:
             for alternative in production.alternatives:
+                self._discover_constructors(alternative.operations)
+        for production in self.parser_ir.productions:
+            for alternative in production.alternatives:
                 self._operations(alternative.operations, None)
         return tuple(
             AstNodeSchema(name, tuple(self.fields[name])) for name in self.order
@@ -158,12 +161,83 @@ class _SchemaBuilder:
                 for branch in operation.branches:
                     self._operations(branch.operations, current)
             elif isinstance(operation, WrapOptional):
+                targets: set[str] = set()
                 for branch in operation.branches:
+                    targets.update(self._result_constructors(branch.operations))
                     self._operations(branch.operations, None)
+                for target in targets:
+                    self._field(
+                        target,
+                        operation.property,
+                        "collection" if operation.prepend else "scalar",
+                    )
+            elif isinstance(operation, WrapValue):
+                for target in self._value_constructors(operation.value):
+                    self._field(
+                        target,
+                        operation.property,
+                        "collection" if operation.prepend else "scalar",
+                    )
             elif isinstance(operation, LeftFold):
                 for branch in (*operation.base_branches, *operation.recursive_branches):
                     self._operations(branch.operations, None)
         return current
+
+    def _discover_constructors(self, operations: tuple[Operation, ...]) -> None:
+        for operation in operations:
+            if isinstance(operation, ConstructNode):
+                self._constructor(operation.constructor)
+            elif isinstance(operation, ResolvedRegion):
+                self._discover_constructors(operation.operations)
+            elif isinstance(operation, (Dispatch, RepeatLoop)):
+                for branch in operation.branches:
+                    self._discover_constructors(branch.operations)
+            elif isinstance(operation, OptionalBranch):
+                for branch in operation.branches:
+                    self._discover_constructors(branch.operations)
+                self._discover_constructors(operation.exit_operations)
+            elif isinstance(operation, WrapOptional):
+                for branch in operation.branches:
+                    self._discover_constructors(branch.operations)
+            elif isinstance(operation, LeftFold):
+                for branch in (*operation.base_branches, *operation.recursive_branches):
+                    self._discover_constructors(branch.operations)
+
+    def _value_constructors(self, value: object) -> set[str]:
+        if isinstance(value, ParseSymbol):
+            symbol = value.symbol
+            if isinstance(symbol, NonterminalCall):
+                production = next(
+                    item for item in self.parser_ir.productions if item.name == symbol.name
+                )
+                return {
+                    name
+                    for alternative in production.alternatives
+                    for name in self._result_constructors(alternative.operations)
+                }
+            return set()
+        if isinstance(value, ParseBranchValue):
+            return self._result_constructors(value.operations)
+        if isinstance(value, DispatchValue):
+            return {
+                name
+                for branch in value.branches
+                for name in self._value_constructors(branch.value)
+            }
+        return set()
+
+    def _result_constructors(self, operations: tuple[Operation, ...]) -> set[str]:
+        result: set[str] = set()
+        for operation in operations:
+            if isinstance(operation, ConstructNode):
+                result.add(operation.constructor)
+            elif isinstance(operation, ParseSymbol) and isinstance(
+                operation.symbol, NonterminalCall
+            ):
+                result.update(self._value_constructors(operation))
+            elif isinstance(operation, ResolvedRegion):
+                result.update(self._result_constructors(operation.operations))
+        return result
 
     def _constructor(self, name: str) -> None:
         _validate_identifier(name, "constructor")
@@ -343,9 +417,32 @@ class _SemanticGenerator:
                 self._decision_id(operation.decision),
                 self._branches(operation.branches),
             )
-        if isinstance(operation, (WrapValue, WrapOptional, LeftFold)):
-            raise ValueError(
-                f"Python semantic target does not support {type(operation).__name__} yet"
+        if isinstance(operation, WrapValue):
+            return (
+                "wrap_value",
+                operation.property,
+                operation.prepend,
+                self._operation(operation.seed),
+                self._value(operation.value),
+            )
+        if isinstance(operation, WrapOptional):
+            return (
+                "wrap_optional",
+                operation.property,
+                operation.prepend,
+                self._operation(operation.seed),
+                self._decision_id(operation.decision),
+                self._branches(operation.branches),
+            )
+        if isinstance(operation, LeftFold):
+            return (
+                "left_fold",
+                None
+                if operation.base_decision is None
+                else self._decision_id(operation.base_decision),
+                self._branches(operation.base_branches),
+                self._decision_id(operation.recursive_decision),
+                self._branches(operation.recursive_branches),
             )
         raise TypeError(type(operation))
 
@@ -416,7 +513,7 @@ def _render_ast_classes(schema: tuple[AstNodeSchema, ...]) -> str:
     lines = [
         "from __future__ import annotations",
         "",
-        "from dataclasses import dataclass",
+        "from dataclasses import dataclass, replace",
         "",
         "",
         "@dataclass(frozen=True, slots=True)",
@@ -469,7 +566,7 @@ class _Builder:
 class _Frame:
     __slots__ = (
         "operations", "result_index", "receiver", "start", "index",
-        "values", "builder", "prefer_builder",
+        "values", "builder", "prefer_builder", "fold_value",
     )
 
     def __init__(
@@ -481,6 +578,7 @@ class _Frame:
         *,
         builder=None,
         prefer_builder=True,
+        fold_value=None,
     ):
         self.operations = operations
         self.result_index = result_index
@@ -490,6 +588,7 @@ class _Frame:
         self.values = []
         self.builder = builder
         self.prefer_builder = prefer_builder
+        self.fold_value = fold_value
 
 
 class GeneratedParser:
@@ -511,6 +610,14 @@ class GeneratedParser:
                 self._run_sequence(tasks, task[1])
             elif kind == "operation":
                 self._run_operation(tasks, task[1], task[2], task[3])
+            elif kind == "repeat":
+                self._run_repeat(tasks, task[1], task[2], task[3])
+            elif kind == "wrap_value":
+                self._run_wrap_value(tasks, *task[1:])
+            elif kind == "wrap_optional":
+                self._run_wrap_optional(tasks, *task[1:])
+            elif kind == "left_fold_loop":
+                self._run_left_fold_loop(tasks, *task[1:])
             else:
                 raise RuntimeError(f"unknown semantic parser task {kind!r}")
         if self.position != len(self.tokens):
@@ -593,8 +700,182 @@ class GeneratedParser:
                 raise RuntimeError("assign has no active constructor")
             frame.builder.values[operation[1]] = self._constant(operation[2])
             self._deliver(receiver, None)
+        elif kind == "dispatch":
+            leaf = self._decide(operation[1])
+            if leaf[0] != "commit":
+                self._raise(())
+            branch = self._select_branch(operation[2], leaf)
+            tasks.append(
+                (
+                    "sequence",
+                    _Frame(
+                        branch[2],
+                        branch[3],
+                        receiver,
+                        frame.start,
+                        builder=frame.builder,
+                        prefer_builder=False,
+                    ),
+                )
+            )
+        elif kind == "optional":
+            leaf = self._decide(operation[1])
+            if leaf[0] == "exit":
+                operations, result_index = operation[3], None
+            elif leaf[0] == "commit":
+                branch = self._select_branch(operation[2], leaf)
+                operations, result_index = branch[2], branch[3]
+            else:
+                self._raise(())
+            tasks.append(
+                (
+                    "sequence",
+                    _Frame(
+                        operations,
+                        result_index,
+                        receiver,
+                        frame.start,
+                        builder=frame.builder,
+                        prefer_builder=False,
+                    ),
+                )
+            )
+        elif kind == "repeat":
+            tasks.append(("repeat", operation, frame, receiver))
+        elif kind == "wrap_value":
+            seed = []
+            tasks.append(("wrap_value", operation, frame, receiver, seed))
+            tasks.append(("operation", operation[3], frame, ("box", seed)))
+        elif kind == "wrap_optional":
+            seed = []
+            tasks.append(("wrap_optional", operation, frame, receiver, seed))
+            tasks.append(("operation", operation[3], frame, ("box", seed)))
+        elif kind == "left_fold":
+            accumulator = []
+            base = self._left_fold_base(operation)
+            tasks.append(
+                ("left_fold_loop", operation, frame, receiver, accumulator)
+            )
+            tasks.append(
+                (
+                    "sequence",
+                    _Frame(
+                        base[2],
+                        base[3],
+                        ("box", accumulator),
+                        frame.start,
+                        prefer_builder=self._has_construct(base[2]),
+                    ),
+                )
+            )
         else:
             raise RuntimeError(f"unsupported semantic operation {kind!r}")
+
+    def _run_repeat(self, tasks, operation, frame, receiver):
+        leaf = self._decide(operation[1])
+        if leaf[0] == "exit":
+            self._deliver(receiver, None)
+            return
+        if leaf[0] != "commit":
+            self._raise(())
+        branch = self._select_branch(operation[2], leaf)
+        tasks.append(("repeat", operation, frame, receiver))
+        tasks.append(
+            (
+                "sequence",
+                _Frame(
+                    branch[2],
+                    branch[3],
+                    ("ignore",),
+                    frame.start,
+                    builder=frame.builder,
+                    prefer_builder=False,
+                ),
+            )
+        )
+
+    def _run_wrap_value(self, tasks, operation, frame, receiver, seed):
+        self._run_bound_value(
+            tasks,
+            operation[4],
+            frame,
+            ("wrap_apply", seed[0], operation[1], operation[2], receiver),
+        )
+
+    def _run_wrap_optional(self, tasks, operation, frame, receiver, seed):
+        leaf = self._decide(operation[4])
+        if leaf[0] == "exit":
+            self._deliver(receiver, seed[0])
+            return
+        if leaf[0] != "commit":
+            self._raise(())
+        branch = self._select_branch(operation[5], leaf)
+        tasks.append(
+            (
+                "sequence",
+                _Frame(
+                    branch[2],
+                    branch[3],
+                    (
+                        "wrap_apply",
+                        seed[0],
+                        operation[1],
+                        operation[2],
+                        receiver,
+                    ),
+                    frame.start,
+                    prefer_builder=self._has_construct(branch[2]),
+                ),
+            )
+        )
+
+    def _left_fold_base(self, operation):
+        if operation[1] is None:
+            return operation[2][0]
+        leaf = self._decide(operation[1])
+        if leaf[0] != "commit":
+            self._raise(())
+        return self._select_branch(operation[2], leaf)
+
+    def _run_left_fold_loop(
+        self,
+        tasks,
+        operation,
+        frame,
+        receiver,
+        accumulator,
+    ):
+        current = accumulator[0]
+        leaf = self._decide(operation[3])
+        if leaf[0] == "exit":
+            self._deliver(receiver, current)
+            return
+        if leaf[0] != "commit":
+            self._raise(())
+        branch = self._select_branch(operation[4], leaf)
+        next_accumulator = []
+        tasks.append(
+            (
+                "left_fold_loop",
+                operation,
+                frame,
+                receiver,
+                next_accumulator,
+            )
+        )
+        tasks.append(
+            (
+                "sequence",
+                _Frame(
+                    branch[2],
+                    branch[3],
+                    ("fold_result", current, next_accumulator),
+                    frame.start,
+                    prefer_builder=self._has_construct(branch[2]),
+                    fold_value=current,
+                ),
+            )
+        )
 
     def _run_bound_value(self, tasks, value, frame, receiver):
         kind = value[0]
@@ -619,6 +900,21 @@ class GeneratedParser:
                     ),
                 )
             )
+        elif kind == "dispatch_value":
+            leaf = self._decide(value[1])
+            if leaf[0] != "commit":
+                self._raise(())
+            outcome = (leaf[1], leaf[2])
+            selected = next(
+                (branch_value for branch_outcome, branch_value in value[2]
+                 if branch_outcome == outcome),
+                None,
+            )
+            if selected is None:
+                raise RuntimeError("value decision outcome has no branch")
+            self._run_bound_value(tasks, selected, frame, receiver)
+        elif kind == "fold_value":
+            self._deliver(receiver, frame.fold_value)
         else:
             raise RuntimeError(f"unsupported bound value {kind!r}")
 
@@ -648,12 +944,34 @@ class GeneratedParser:
             if kind == "root":
                 self.result = value
                 return
+            if kind == "ignore":
+                return
+            if kind == "box":
+                receiver[1].append(value)
+                return
+            if kind == "fold_result":
+                receiver[2].append(receiver[1] if value is None else value)
+                return
             if kind == "frame":
                 receiver[1].values.append(value)
                 return
             if kind == "discard":
                 receiver = receiver[1]
                 value = None
+                continue
+            if kind == "wrap_apply":
+                seed, field, prepend, receiver = (
+                    receiver[1],
+                    receiver[2],
+                    receiver[3],
+                    receiver[4],
+                )
+                if prepend:
+                    current = getattr(value, field)
+                    replacement = (seed, *(current or ()))
+                else:
+                    replacement = seed
+                value = replace(value, **{field: replacement})
                 continue
             builder, field, receiver = receiver[1], receiver[2], receiver[3]
             if kind == "bind":
@@ -662,7 +980,9 @@ class GeneratedParser:
                 builder.values[field].append(value)
             elif kind == "extend":
                 if value is not None:
-                    builder.values[field].extend(value)
+                    builder.values[field].extend(
+                        value.items if hasattr(value, "items") else value
+                    )
             elif kind == "concat":
                 builder.values[field] += value
             elif kind == "increment":
@@ -670,6 +990,22 @@ class GeneratedParser:
             else:
                 raise RuntimeError(f"unknown semantic receiver {kind!r}")
             value = None
+
+    def _has_construct(self, operations):
+        return any(operation[0] == "construct" for operation in operations)
+
+    def _select_branch(self, branches, leaf):
+        outcome = (leaf[1], leaf[2])
+        for branch in branches:
+            if branch[0] != outcome:
+                continue
+            facts = branch[1]
+            if facts is None or all(
+                self._lookahead(offset) in token_types
+                for offset, token_types in facts
+            ):
+                return branch
+        raise RuntimeError(f"decision outcome has no semantic branch: {outcome!r}")
 
     def _freeze(self, builder):
         values = []
