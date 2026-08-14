@@ -57,4 +57,4 @@
 - [x] Document one canonical `build_parser_ir()` end state; keep `build_syntax_parser_ir()` only as a compatibility bridge until the strict BSL grammar has complete bindings.
 - [x] Run focused tests, the complete parsergen suite, compileall, and diff-check.
 - [x] Confirm existing generated BSL and Python syntax artifacts are unchanged.
-- [ ] Use verification/review skills, push the feature branch, and create a ready (non-draft) PR against `master`.
+- [x] Use verification/review skills, push the feature branch, and create a ready (non-draft) PR against `master`.
