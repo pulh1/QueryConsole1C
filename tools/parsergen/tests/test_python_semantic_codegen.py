@@ -157,6 +157,27 @@ def test_parses_constructor_bindings_constants_and_input_span() -> None:
     assert node.span == namespace["SourceSpan"](0, 10)
 
 
+def test_child_span_ends_at_consumed_token_not_next_token_start() -> None:
+    _, _, _, namespace = _generate(
+        "#Name ::= ID\n"
+        "<S> ::= @Assignment Target = <Target> '=' Value = <Target>\n"
+        "<Target> ::= @Target Name = #Name"
+    )
+
+    node = namespace["GeneratedParser"]().parse(
+        [
+            Token("ID", "Result", 0, 6),
+            Token("=", "=", 17, 18),
+            Token("ID", "Value", 26, 31),
+        ],
+        "start",
+    )
+
+    assert node.Target.span == namespace["SourceSpan"](0, 6)
+    assert node.Value.span == namespace["SourceSpan"](26, 31)
+    assert node.span == namespace["SourceSpan"](0, 31)
+
+
 def test_transparent_nonterminal_returns_child_ast() -> None:
     _, _, _, namespace = _generate(
         "#Name ::= ID\n<S> ::= <Item>\n<Item> ::= @Item Value = #Name"

@@ -1034,7 +1034,7 @@ class GeneratedParser:
             values.append(tuple(value) if category == "collection" else value)
         return AST_CLASSES[builder.name](
             *values,
-            SourceSpan(builder.start, self._offset()),
+            SourceSpan(builder.start, self._end_offset(builder.start)),
         )
 
     def _decide(self, decision):
@@ -1065,6 +1065,13 @@ class GeneratedParser:
         if self.tokens:
             return self.tokens[-1].end
         return 0
+
+    def _end_offset(self, start):
+        if self.position:
+            end = self.tokens[self.position - 1].end
+            if end >= start:
+                return end
+        return start
 
     def _constant(self, value):
         normalized = value.casefold()
