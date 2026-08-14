@@ -25,7 +25,7 @@ class Token:
     value: object | None = None
 
 
-def _generate(source: str):
+def _generate(source: str, *, k: int = 1):
     parsed = parse_grammar(source, "grammar.txt")
     assert parsed.diagnostics == ()
     assert parsed.grammar is not None
@@ -34,7 +34,7 @@ def _generate(source: str):
     resolved = resolve_grammar(parsed.grammar)
     assert resolved.diagnostics == ()
     assert resolved.grammar is not None
-    analysis = compute_analysis(resolved.grammar, 1, ("S",))
+    analysis = compute_analysis(resolved.grammar, k, ("S",))
     parser_ir = build_parser_ir(
         parsed.source_grammar,
         parsed.lowering,
@@ -308,6 +308,23 @@ def test_generated_semantic_parser_reports_syntax_error_and_full_consumption() -
         parser.parse([Token("ITEM", "ok"), Token("ITEM", "extra")], "start")
     assert caught.value.position == 1
     assert caught.value.expected == ("$",)
+
+
+def test_generated_semantic_parser_uses_k2_decision_dag() -> None:
+    _, _, _, namespace = _generate(
+        "<S> ::= @AB First = 'a' Second = 'b' "
+        "| @AC First = 'a' Second = 'c'",
+        k=2,
+    )
+
+    node = namespace["GeneratedParser"]().parse(
+        [Token("a"), Token("c")],
+        "start",
+    )
+
+    assert type(node) is namespace["AC"]
+    assert node.First == "a"
+    assert node.Second == "c"
 
 
 def test_semantic_parser_trampolines_direct_right_recursion() -> None:

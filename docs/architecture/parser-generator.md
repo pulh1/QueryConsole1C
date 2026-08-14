@@ -640,11 +640,10 @@ from parsergen import generate_python_semantic_parser
 It accepts a `build_parser_ir()` result. Notebook binding, 1C runtime contexts,
 RDBG, worker routing and MCP are deliberately outside this package boundary.
 
-The final architecture has one canonical semantic `build_parser_ir()` used by
-both Python targets. The syntax recognizer projects away semantic operations;
-the semantic target executes them. `build_syntax_parser_ir()` remains a
-temporary compatibility bridge while syntax-only grammars receive complete
-declarative bindings and is not a second permanent IR definition.
+The final architecture has one canonical semantic `build_parser_ir()` and one
+Python parser target. `python_semantic_codegen.py` executes the semantic IR;
+the former syntax-only generator and `build_syntax_parser_ir()` compatibility
+bridge have been removed.
 
 ## CLI
 
