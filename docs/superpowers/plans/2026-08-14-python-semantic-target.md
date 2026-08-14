@@ -16,10 +16,10 @@
 - Create: `tools/parsergen/src/parsergen/python_semantic_codegen.py`
 - Create: `tools/parsergen/tests/test_python_semantic_codegen.py`
 
-- [ ] Write RED tests for distinct constructor classes, inferred scalar/collection/concat/increment fields, deterministic ordering, reserved-name rejection, and source/IR binding.
-- [ ] Implement immutable schema extraction and deterministic dataclass emission without a node-type field.
-- [ ] Execute generated modules and inspect published `AST_CLASSES`.
-- [ ] Run focused tests GREEN and commit.
+- [x] Write RED tests for distinct constructor classes, inferred scalar/collection/concat/increment fields, deterministic ordering, reserved-name rejection, and source/IR binding.
+- [x] Implement immutable schema extraction and deterministic dataclass emission without a node-type field.
+- [x] Execute generated modules and inspect published `AST_CLASSES`.
+- [x] Run focused tests GREEN and commit.
 
 ### Task 2: Iterative core semantic execution
 
@@ -27,11 +27,11 @@
 - Modify: `tools/parsergen/src/parsergen/python_semantic_codegen.py`
 - Modify: `tools/parsergen/tests/test_python_semantic_codegen.py`
 
-- [ ] Add RED cases for constructors, scalar/constant fields, transparent values, terminal/identifier/constant capture, exact spans, syntax diagnostics, and full-consumption checks.
-- [ ] Serialize productions, canonical DAGs, symbols, regions, and binding operations.
-- [ ] Implement explicit task/frame execution for production calls, consume, construct, scalar/constant/append/extend/concat/increment, and result delivery.
-- [ ] Prove 5,000 direct-right-recursive calls without changing recursion limit.
-- [ ] Run focused tests GREEN and commit.
+- [x] Add RED cases for constructors, scalar/constant fields, transparent values, terminal/identifier/constant capture, exact spans, syntax diagnostics, and full-consumption checks.
+- [x] Serialize productions, canonical DAGs, symbols, regions, and binding operations.
+- [x] Implement explicit task/frame execution for production calls, consume, construct, scalar/constant/append/extend/concat/increment, and result delivery.
+- [x] Prove 5,000 direct-right-recursive calls without changing recursion limit.
+- [x] Run focused tests GREEN and commit.
 
 ### Task 3: Canonical control flow and complete semantic IR
 
@@ -39,11 +39,11 @@
 - Modify: `tools/parsergen/src/parsergen/python_semantic_codegen.py`
 - Modify: `tools/parsergen/tests/test_python_semantic_codegen.py`
 
-- [ ] Add grouped RED cases for dispatch, optional present/absent, repeat/plus, bound branch values, wrap/prepend, and direct-left-recursion folds.
-- [ ] Implement all canonical semantic operation/value variants using continuations on the same explicit task loop.
-- [ ] Prove 5,000 repeat items and a long left fold do not consume Python stack.
-- [ ] Add malformed-IR fail-closed mutations and deterministic-source checks.
-- [ ] Run focused tests GREEN and commit.
+- [x] Add grouped RED cases for dispatch, optional present/absent, repeat/plus, bound branch values, wrap/prepend, and direct-left-recursion folds.
+- [x] Implement all canonical semantic operation/value variants using continuations on the same explicit task loop.
+- [x] Prove 5,000 repeat items and a long left fold do not consume Python stack.
+- [x] Add malformed-IR fail-closed mutations and deterministic-source checks.
+- [x] Run focused tests GREEN and commit.
 
 ### Task 4: Public integration and regression
 
@@ -52,9 +52,9 @@
 - Modify: `docs/architecture/parser-generator.md`
 - Modify: `tools/parsergen/tests/test_python_codegen.py` only for byte-identity regression if needed.
 
-- [ ] Export the semantic target result/function without changing the syntax target API.
-- [ ] Document token, AST class, source-span, and semantic-operation contracts.
-- [ ] Document one canonical `build_parser_ir()` end state; keep `build_syntax_parser_ir()` only as a compatibility bridge until the strict BSL grammar has complete bindings.
-- [ ] Run focused tests, the complete parsergen suite, compileall, and diff-check.
-- [ ] Confirm existing generated BSL and Python syntax artifacts are unchanged.
+- [x] Export the semantic target result/function without changing the syntax target API.
+- [x] Document token, AST class, source-span, and semantic-operation contracts.
+- [x] Document one canonical `build_parser_ir()` end state; keep `build_syntax_parser_ir()` only as a compatibility bridge until the strict BSL grammar has complete bindings.
+- [x] Run focused tests, the complete parsergen suite, compileall, and diff-check.
+- [x] Confirm existing generated BSL and Python syntax artifacts are unchanged.
 - [ ] Use verification/review skills, push the feature branch, and create a ready (non-draft) PR against `master`.
