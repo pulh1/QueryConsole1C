@@ -616,8 +616,6 @@ alternatives; generated parser больше не создаёт runtime helper f
 границ, дополнения периодами и псевдонима. Exact delta:
 [totals control-point checkpoint](../superpowers/matrices/2026-08-08-totals-control-point-binding-checkpoint.md).
 
-## CLI
-
 ## Python semantic target
 
 `parsergen.python_semantic_codegen` is a separate backend over canonical
