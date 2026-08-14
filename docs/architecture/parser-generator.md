@@ -618,6 +618,38 @@ alternatives; generated parser больше не создаёт runtime helper f
 
 ## CLI
 
+## Python semantic target
+
+`parsergen.python_semantic_codegen` is a separate backend over canonical
+semantic Parser IR and decision DAGs. It generates a standalone Python module
+with an explicit-stack parser, `SourceSpan`, and one frozen slotted dataclass
+per declarative grammar constructor. Python class identity is the AST node type;
+the generated nodes do not contain a duplicate string discriminator.
+
+The semantic runtime implements constructor, scalar/constant, collection,
+concat/increment, dispatch, optional, repeat, wrap and direct-left-fold IR
+operations. Nonterminal recursion and EBNF loops use one `while tasks:`
+trampoline. Terminal-like values follow the canonical backend contract:
+normalized terminal type, identifier text, and constant value. Node spans use
+input token offsets rather than grammar-definition coordinates.
+
+The public generator is:
+
+```python
+from parsergen import generate_python_semantic_parser
+```
+
+It accepts a `build_parser_ir()` result. Notebook binding, 1C runtime contexts,
+RDBG, worker routing and MCP are deliberately outside this package boundary.
+
+The final architecture has one canonical semantic `build_parser_ir()` used by
+both Python targets. The syntax recognizer projects away semantic operations;
+the semantic target executes them. `build_syntax_parser_ir()` remains a
+temporary compatibility bridge while syntax-only grammars receive complete
+declarative bindings and is not a second permanent IR definition.
+
+## CLI
+
 Из корня репозитория после установки пакета:
 
 ```powershell

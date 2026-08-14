@@ -54,6 +54,7 @@
 
 - [ ] Export the semantic target result/function without changing the syntax target API.
 - [ ] Document token, AST class, source-span, and semantic-operation contracts.
+- [ ] Document one canonical `build_parser_ir()` end state; keep `build_syntax_parser_ir()` only as a compatibility bridge until the strict BSL grammar has complete bindings.
 - [ ] Run focused tests, the complete parsergen suite, compileall, and diff-check.
 - [ ] Confirm existing generated BSL and Python syntax artifacts are unchanged.
 - [ ] Use verification/review skills, push the feature branch, and create a ready (non-draft) PR against `master`.

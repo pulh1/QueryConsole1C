@@ -5,6 +5,7 @@ import sys
 
 import pytest
 
+from parsergen import generate_python_semantic_parser as public_generate
 from parsergen.analysis import compute_analysis
 from parsergen.grammar_parser import parse_grammar
 from parsergen.parser_ir import build_parser_ir
@@ -49,6 +50,7 @@ def _generate(source: str):
 
 
 def test_generates_distinct_frozen_ast_classes_and_schema() -> None:
+    assert public_generate is generate_python_semantic_parser
     _, _, generated, namespace = _generate(
         "#Name ::= ID\n"
         "<S> ::= @Module Title = #Name Items += <Item> "

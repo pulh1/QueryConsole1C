@@ -10,6 +10,11 @@ knowledge.
 
 The existing `python_codegen.py` remains the fast syntax-only recognizer. The
 semantic backend is a new module rather than a mode flag in the recognizer.
+Both targets must ultimately consume the same `build_parser_ir()` result:
+syntax codegen projects away semantic operations while semantic codegen
+executes them. `build_syntax_parser_ir()` is retained only as a compatibility
+bridge until the current syntax-only BSL grammar and benchmark adapter are
+migrated; it is not a second long-term IR contract.
 
 ## Public boundary
 
@@ -125,3 +130,8 @@ The full parsergen suite must remain green and the syntax-only target output for
 the existing BSL grammar must remain byte-identical. This milestone does not
 edit the runtime BSL grammar or implement notebook lowering; those are separate
 consumer-side changes after the semantic generator is published.
+
+The follow-up grammar migration must make the strict BSL grammar semantically
+complete enough for `build_parser_ir()`. After the syntax target consumes that
+same IR with semantic operations projected away, the compatibility
+`build_syntax_parser_ir()` entry point can be deprecated and then removed.
