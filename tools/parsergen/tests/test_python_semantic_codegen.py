@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import FrozenInstanceError
+from dataclasses import dataclass, FrozenInstanceError
+import sys
 
 import pytest
 
@@ -9,6 +10,15 @@ from parsergen.grammar_parser import parse_grammar
 from parsergen.parser_ir import build_parser_ir
 from parsergen.python_semantic_codegen import generate_python_semantic_parser
 from parsergen.resolver import resolve_grammar
+
+
+@dataclass(frozen=True)
+class Token:
+    type: str
+    text: str = ""
+    start: int = 0
+    end: int = 0
+    value: object | None = None
 
 
 def _generate(source: str):
@@ -119,3 +129,71 @@ def test_rejects_reserved_generated_names(source: str, message: str) -> None:
             parser_ir,
             {"start": "S"},
         )
+
+
+def test_parses_constructor_bindings_constants_and_input_span() -> None:
+    _, _, _, namespace = _generate(
+        "#Name ::= ID\n"
+        "<S> ::= @Assignment Name = #Name '=' Number = &NUMBER "
+        "Enabled := Истина"
+    )
+    parser = namespace["GeneratedParser"]()
+
+    node = parser.parse(
+        [
+            Token("ID", "Total", 0, 5),
+            Token("=", "=", 6, 7),
+            Token("NUMBER", "42", 8, 10, 42),
+        ],
+        "start",
+    )
+
+    assert type(node) is namespace["Assignment"]
+    assert node.Name == "Total"
+    assert node.Number == 42
+    assert node.Enabled is True
+    assert node.span == namespace["SourceSpan"](0, 10)
+
+
+def test_transparent_nonterminal_returns_child_ast() -> None:
+    _, _, _, namespace = _generate(
+        "#Name ::= ID\n<S> ::= <Item>\n<Item> ::= @Item Value = #Name"
+    )
+
+    node = namespace["GeneratedParser"]().parse(
+        [Token("ID", "value", 4, 9)],
+        "start",
+    )
+
+    assert type(node) is namespace["Item"]
+    assert node.Value == "value"
+    assert node.span == namespace["SourceSpan"](4, 9)
+
+
+def test_generated_semantic_parser_reports_syntax_error_and_full_consumption() -> None:
+    _, _, _, namespace = _generate("<S> ::= @Node Value = ITEM")
+    parser = namespace["GeneratedParser"]()
+    error_type = namespace["GeneratedParseError"]
+
+    with pytest.raises(error_type) as caught:
+        parser.parse([Token("OTHER", "secret", 7, 13)], "start")
+    assert caught.value.position == 0
+    assert caught.value.actual == "OTHER"
+    assert caught.value.expected == ("ITEM",)
+    assert "secret" not in str(caught.value)
+
+    with pytest.raises(error_type) as caught:
+        parser.parse([Token("ITEM", "ok"), Token("ITEM", "extra")], "start")
+    assert caught.value.position == 1
+    assert caught.value.expected == ("$",)
+
+
+def test_semantic_parser_trampolines_direct_right_recursion() -> None:
+    _, _, _, namespace = _generate(
+        "<S> ::= ITEM <Tail>\n<Tail> ::= ITEM <Tail> | ПУСТО"
+    )
+    parser = namespace["GeneratedParser"]()
+    original_limit = sys.getrecursionlimit()
+
+    assert parser.parse([Token("ITEM") for _ in range(5_000)], "start") is None
+    assert sys.getrecursionlimit() == original_limit
