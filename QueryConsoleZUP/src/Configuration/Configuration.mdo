@@ -145,6 +145,7 @@
   <dataProcessors>DataProcessor.ОбработчикРазыменованийДляСКДПосетитель</dataProcessors>
   <dataProcessors>DataProcessor.РеестрПоставщиковМетаданныхТаблиц</dataProcessors>
   <dataProcessors>DataProcessor.ПоставщикМетаданныхСтандартныхТаблиц</dataProcessors>
+  <dataProcessors>DataProcessor.ПоставщикМетаданныхИсполняемыхПредставлений</dataProcessors>
   <informationRegisters>InformationRegister.БухучетЗарплатыСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ВидыЗанятостиСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ГрафикРаботыСотрудников</informationRegisters>
