@@ -144,6 +144,7 @@
   <dataProcessors>DataProcessor.ИсполнительУниверсальногоОтчета</dataProcessors>
   <dataProcessors>DataProcessor.ОбработчикРазыменованийДляСКДПосетитель</dataProcessors>
   <dataProcessors>DataProcessor.РеестрПоставщиковМетаданныхТаблиц</dataProcessors>
+  <dataProcessors>DataProcessor.ПоставщикМетаданныхСтандартныхТаблиц</dataProcessors>
   <informationRegisters>InformationRegister.БухучетЗарплатыСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ВидыЗанятостиСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ГрафикРаботыСотрудников</informationRegisters>
