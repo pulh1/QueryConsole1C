@@ -190,7 +190,7 @@
 	ДобавитьАртефактСемантическогоКонвейера(Артефакты, "metadata_contract",
 		"CommonModule.МетаданныеТаблицЗапроса",
 		"QueryConsoleZUP/src/CommonModules/МетаданныеТаблицЗапроса/Module.bsl",
-		"a4929791b7df277e4c75077168d7b2b0f16a34e6231c959d5c8a0fdf8cc4d5a4");
+		"3404b03ffa2b7c3d30a4ed3f99ac3bded31cc22e1f98a250c98c1bd1be46a3e1");
 	ДобавитьАртефактСемантическогоКонвейера(Артефакты, "representation_processing",
 		"CommonModule.ОбработкаПредставлениеЗапросов",
 		"QueryConsoleZUP/src/CommonModules/ОбработкаПредставлениеЗапросов/Module.bsl",
@@ -204,10 +204,10 @@
 	//@skip-check server-execution-safe-mode
 	МодульОбработкиМодели = Вычислить("ОбработкаМоделиЗапроса");
 	Возврат НовоеОписаниеРеализации(
-		"metadata-provider-semantics-lazy-88994ee", "semantic_pipeline", МодульОбработкиМодели,
-		"feature/metadata-provider-semantics", "88994ee6265b13e997279379133be61d5f084356",
+		"metadata-provider-semantics-lazy-60e6101", "semantic_pipeline", МодульОбработкиМодели,
+		"feature/metadata-provider-semantics", "60e610164c01e52198015d9d88ae53c2b9599863",
 		ИменаОбъектовМетаданных, Артефакты,
-		"full-semantic-pipeline-lazy-feature-88994ee.json", "full-semantic-pipeline-feature-fixed",
+		"full-semantic-pipeline-lazy-feature-60e6101.json", "full-semantic-pipeline-feature-fixed",
 		"Полный public path ОбработкаМоделиЗапроса.РазобратьЗапрос от текста до непустой семантической модели");
 
 КонецФункции
