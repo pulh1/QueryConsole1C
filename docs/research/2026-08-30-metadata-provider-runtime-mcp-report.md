@@ -10,9 +10,11 @@ semantic-ветки: установленный `OnecInteractiveRuntime` CFE п�
 Это классифицировано как несовместимость platform/base/CFE, а не регрессия
 metadata-provider кода.
 
-Semantic acceptance выполнен напрямую через EDT-MCP/YAxUnit: единый запуск пяти
-затронутых suites дал 70 тестов, 68 passed, 0 failed, 0 errors и 2 известных UI
-skip. Ни один runtime probe standard/executable/repeated/unknown не
+Semantic acceptance текущей lazy-ветки выполнен напрямую через EDT-MCP/YAxUnit:
+единый финальный запуск четырёх затронутых suites дал 65 tests, 65 passed,
+0 failed, 0 errors и 0 skipped. Полный performance-контур от текста запроса до
+непустой семантической модели измерен тем же YAxUnit harness без debugger.
+Ни один runtime probe standard/executable/repeated/unknown не
 интерпретировался без выполнения precondition «runtime extension загружен».
 
 ## Граница проверки
@@ -20,8 +22,10 @@ skip. Ни один runtime probe standard/executable/repeated/unknown не
 - Runtime service/repository не изменялся.
 - Повторные `runtime.ensure`/restart не выполнялись после установления причины.
 - Credentials, process identifiers и business data в отчёт не включены.
-- Отдельный полный performance benchmark не относится к Task 9 и здесь не
-  запускался; benchmark harness не добавлялся.
+- Runtime MCP не использовался при реализации lazy lookup, записи BSL,
+  функциональном acceptance или performance benchmark.
+- Performance benchmark выполнен отдельно через EDT-MCP/YAxUnit: две
+  контрбалансированные серии, включая повтор с симметричным preconditioning.
 
 ## Наблюдения frontend и service
 
@@ -89,13 +93,27 @@ mode и перестроение client cache — не активировали 
 | --- | --- | --- |
 | EDT source/structure/references | Актуальные BSL modules, `contentHash`, composition points и references | Статическая модель, не runtime semantics |
 | EDT revalidation/diagnostics | Все 10 production/consumer и 5 test objects найдены; severe diagnostic counts не выросли | Большой существующий workspace background |
-| YAxUnit через EDT-MCP | 70 total, 68 passed, 2 известных UI skip, 0 failed/errors | Не заменяет отдельный runtime product transport |
+| YAxUnit через EDT-MCP | 65/65 в финальном semantic acceptance; полный benchmark в двух контрбалансированных сериях | Не заменяет отдельный runtime product transport |
 | Runtime MCP | Точно классифицировал несовместимость установленного CFE и frontend defects | Semantic smoke неприменим без загруженного runtime extension |
 
 Для acceptance metadata-provider semantics EDT-MCP/YAxUnit оказался более
 надёжным прямым gate. Runtime MCP полезен как дополнительный probe только после
 того, как новая session подтверждает загрузку ожидаемых runtime и semantic
 extensions.
+
+## Где runtime MCP использовался в этой работе
+
+Runtime MCP использовался только до реализации lazy semantic path — для
+проверки запуска service/frontend, наличия runtime extension в active session и
+получения точной платформенной причины отказа применения CFE. Он не участвовал
+в прототипировании контракта `НайтиТаблицу`/`НайтиПоле`, TDD-циклах,
+редактировании модулей, финальных 65 тестах или измерениях производительности.
+
+Практическая польза состояла в том, что инфраструктурный timeout удалось не
+смешать с регрессией семантики. Практический вред — затраты времени на stale
+service/client state, несовпадение frontend/service contract и эксперименты,
+которые не могли сделать несовместимый CFE применимым. Для этой ветки
+runtime MCP не дал дополнительного доказательства сверх EDT-MCP/YAxUnit.
 
 ## Рекомендация
 
