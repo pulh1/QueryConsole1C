@@ -164,13 +164,13 @@ git commit -am "feat: expose executable view catalog"
 - `ДобавитьТаблицыЗапроса`, `ДобавитьТаблицу`, `ЗаполнитьДочерниеЭлементыДереваДоступныхТаблиц`, and tree mapping helpers consume this context rather than raw `ДоступныеТаблицыИБ`.
 - Provider nodes are mapped to existing columns/flags; neutral fields are mapped without `ДанныеПоставщика`.
 
-- [ ] **Step 1: Add failing server tests for pure facade boundaries**
+- [x] **Step 1: Add failing server tests for pure facade boundaries**
 
 Add tests for mapping catalog nodes and neutral fields into an intermediate row-description structure: standard group, standard table, executable group/table, nested field, and absence of raw properties. Keep actual `ДанныеФормыДерево` behavior for Vanessa because `ДеревоЗначений` does not implement `НайтиПоИдентификатору`.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
-- [ ] **Step 3: Implement UI context and mapping helpers**
+- [x] **Step 3: Implement UI context and mapping helpers**
 
 The context is created per server form operation and never stored in a form attribute. `ЗаполнитьДочерние...` chooses:
 
@@ -180,13 +180,13 @@ The context is created per server form operation and never stored in a form attr
 - temporary/local source → existing local helpers;
 - nested query → existing model traversal.
 
-- [ ] **Step 4: Preserve lazy placeholders and root order**
+- [x] **Step 4: Preserve lazy placeholders and root order**
 
 Only add an empty child row when `ЕстьДочерние = Истина`. Add `Представления` after all standard roots. Leave temporary-table insertion to the form so it remains last and conditional.
 
-- [ ] **Step 5: Run focused provider/facade tests and EDT diagnostics**
+- [x] **Step 5: Run focused provider/facade tests and EDT diagnostics**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git commit -am "refactor: route query constructor trees through providers"
