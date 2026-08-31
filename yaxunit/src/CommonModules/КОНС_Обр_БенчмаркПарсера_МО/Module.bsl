@@ -167,11 +167,11 @@
 		"f954b1bb7b619052c553bf42699ed5fbbc3d5a7b64cd6ef4386b1970ca5e967d");
 	ДобавитьАртефактСемантическогоКонвейера(Артефакты, "pipeline", "CommonModule.ОбработкаМоделиЗапроса",
 		"QueryConsoleZUP/src/CommonModules/ОбработкаМоделиЗапроса/Module.bsl",
-		"348dc4dfc01662f4274b41352bcabe1d9185a335a87a6bb8922e142c23aa6bc9");
+		"d52c45c25262319750585e962ac227b96abdff1f840c47baaeeed5abf1005c8f");
 	ДобавитьАртефактСемантическогоКонвейера(Артефакты, "semantic_visitor",
 		"CommonModule.СемантическийАнализВыраженийУтилиты",
 		"QueryConsoleZUP/src/CommonModules/СемантическийАнализВыраженийУтилиты/Module.bsl",
-		"8d0fdb38af98ef40f00d852bfdf5d07e3055d4c29c771ae0762cda8612954b6f");
+		"d06be1a9ea66582ad59b655f734fdc88e5f51955e7946fdab6a95e76483ec71e");
 	ДобавитьАртефактСемантическогоКонвейера(Артефакты, "model_builder", "DataProcessor.ПостроительМоделиЗапроса",
 		"QueryConsoleZUP/src/DataProcessors/ПостроительМоделиЗапроса/ObjectModule.bsl",
 		"a6057544b3430aa71bc4e62e27744145370459a6496a88b472bec75b8a401683");
@@ -182,7 +182,7 @@
 	ДобавитьАртефактСемантическогоКонвейера(Артефакты, "standard_provider",
 		"DataProcessor.ПоставщикМетаданныхСтандартныхТаблиц",
 		"QueryConsoleZUP/src/DataProcessors/ПоставщикМетаданныхСтандартныхТаблиц/ObjectModule.bsl",
-		"4976675c564a0765ed841b936025157a1cbecd7a4ce704cb2ce95d8029d32dea");
+		"6b35375c0fd1149179d5b2e148c11bdd2d6f8245d04f523c6d1481aa852cbfa0");
 	ДобавитьАртефактСемантическогоКонвейера(Артефакты, "executable_provider",
 		"DataProcessor.ПоставщикМетаданныхИсполняемыхПредставлений",
 		"QueryConsoleZUP/src/DataProcessors/ПоставщикМетаданныхИсполняемыхПредставлений/ObjectModule.bsl",
@@ -196,10 +196,10 @@
 	//@skip-check server-execution-safe-mode
 	МодульОбработкиМодели = Вычислить("ОбработкаМоделиЗапроса");
 	Возврат НовоеОписаниеРеализации(
-		"metadata-provider-semantics-feature-0889254", "semantic_pipeline", МодульОбработкиМодели,
-		"feature/metadata-provider-semantics", "0889254d9784ea3973d1548b6ecfbc111410a437",
+		"metadata-provider-semantics-fixed-c0bbd9a", "semantic_pipeline", МодульОбработкиМодели,
+		"feature/metadata-provider-semantics", "c0bbd9acbb8c73bdba6e2a04976e3e8d0c496c4e",
 		ИменаОбъектовМетаданных, Артефакты,
-		"full-semantic-pipeline-feature.json", "full-semantic-pipeline",
+		"full-semantic-pipeline-feature-fixed-c0bbd9a.json", "full-semantic-pipeline-feature-fixed",
 		"Полный public path ОбработкаМоделиЗапроса.РазобратьЗапрос от текста до непустой семантической модели");
 
 КонецФункции
