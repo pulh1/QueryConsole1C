@@ -133,21 +133,21 @@ git commit -am "feat: expose lazy standard table catalog"
 - Group expansion returns child groups followed by leaf table nodes.
 - Leaf nodes contain full `ИмяТаблицы`; the method never builds full table descriptions.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Add `КаталогИсполняемыхПредставленийСохраняетГруппыИТаблицы` and `КаталогИсполняемыхПредставленийНеРаскрываетПоляЗаранее`. Use the real provider and literal known view `ИсполняемоеПредставление.РегистрНакопления.СведенияОДоходахНДФЛ.НарастающиеИтоги`.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Expected: FAIL because `ДочерниеЭлементы` is absent.
 
-- [ ] **Step 3: Implement catalog mapping**
+- [x] **Step 3: Implement catalog mapping**
 
 Map `ГруппыИсполняемыхПредставлений()`, `ИменаДочернихГрупп()`, and `ИменаТаблицПредставленийВходящихВГруппу()` to the shared seven-field node contract. Use the last identifier segment only for display.
 
-- [ ] **Step 4: Run GREEN and provider regression module**
+- [x] **Step 4: Run GREEN and provider regression module**
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git commit -am "feat: expose executable view catalog"
