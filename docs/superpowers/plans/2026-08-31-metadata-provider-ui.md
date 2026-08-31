@@ -96,26 +96,26 @@ git commit -am "feat: add transport-safe metadata catalog node"
 - Segment call returns table nodes only for that segment; names ending in `.Изменения` are excluded.
 - Table fields are not returned by this method.
 
-- [ ] **Step 1: Write two failing tests**
+- [x] **Step 1: Write two failing tests**
 
 Add:
 
 - `СтандартныйКаталогВозвращаетСтатическиеКорневыеГруппы`: root nodes equal the literal static segment list, are groups, and contain no provider data.
 - `СтандартныйКаталогЛенивоВозвращаетТаблицыСегмента`: expanding `Справочник` includes leaf `Справочник.ФизическиеЛица`, while the root call contains no table leaf.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Expected: FAIL because `ДочерниеЭлементы` is absent.
 
-- [ ] **Step 3: Implement root and segment expansion**
+- [x] **Step 3: Implement root and segment expansion**
 
 Create catalog nodes with `МетаданныеТаблицЗапроса.НовыйЭлементКаталога`. Root identifiers are segment names. On segment expansion traverse only the selected platform group/subtree and return table identifiers/full names; do not call `ОписаниеТаблицы()`.
 
-- [ ] **Step 4: Run GREEN plus existing provider module**
+- [x] **Step 4: Run GREEN plus existing provider module**
 
 Run the two new tests, then module `КОНС_Обр_ПоставщикиМетаданныхТаблиц_МО`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git commit -am "feat: expose lazy standard table catalog"
