@@ -203,27 +203,27 @@ git commit -am "refactor: route query constructor trees through providers"
 - All calls to `КонструкторЗапросовФормы` use `НовыйКонтекстМетаданныхUI()`.
 - Deletes private `ДоступныеТаблицыИБ()` and `_схема` ownership after the final caller is migrated.
 
-- [ ] **Step 1: Capture EDT form/module baseline**
+- [x] **Step 1: Capture EDT form/module baseline**
 
 Read both form modules, inspect form metadata/layout and record diagnostics. Confirm existing columns and flags are sufficient; do not modify `Form.form` when confirmed.
 
-- [ ] **Step 2: Migrate initial available-table tree**
+- [x] **Step 2: Migrate initial available-table tree**
 
 Populate static standard roots from the standard provider, append existing `Представления`, and append `Временные таблицы` only when local descriptions exist.
 
-- [ ] **Step 3: Migrate the six expansion call sites**
+- [x] **Step 3: Migrate the six expansion call sites**
 
 Update available tables, sources, expression editor, grouping, order/conditions, and totals secondary trees. Remove every raw `ДоступныеТаблицыИБ` argument.
 
-- [ ] **Step 4: Migrate current-source rendering**
+- [x] **Step 4: Migrate current-source rendering**
 
 Use the registry-backed facade for standard tables, executable views, joins, temporary tables, table-valued parameters, and nested queries.
 
-- [ ] **Step 5: Remove obsolete schema factory and re-search callers**
+- [x] **Step 5: Remove obsolete schema factory and re-search callers**
 
 Expected: no form-owned `Новый СхемаЗапроса`, `ДоступныеТаблицыИБ()`, or `Перем _схема`.
 
-- [ ] **Step 6: Run YAxUnit provider, consumer, and builder modules**
+- [x] **Step 6: Run YAxUnit provider, consumer, and builder modules**
 
 Run without debugger:
 
@@ -231,7 +231,7 @@ Run without debugger:
 - `КОНС_Обр_ПрикладныеПотребителиЗапроса_МО`;
 - `КОНС_Обр_ПостроениеИГенерацияЗапросов_МО`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git commit -am "feat: use metadata providers in query constructor UI"
@@ -247,27 +247,27 @@ git commit -am "feat: use metadata providers in query constructor UI"
 **Interfaces:**
 - Scenario verifies root order, lazy standard group, executable-view hierarchy, one standard source, one executable source, one nested field, and conditional last temporary-table group.
 
-- [ ] **Step 1: Repoint EDT junctions to the UI worktree and update the test database**
+- [x] **Step 1: Repoint EDT junctions to the UI worktree and update the test database**
 
 Verify exact junction targets before removal. Recreate only the two `src` junctions for `QueryConsoleZUP_Semantics` and `QueryConsoleZUP_YAxUnit`; do not touch EDT processes.
 
-- [ ] **Step 2: Configure Vanessa target**
+- [x] **Step 2: Configure Vanessa target**
 
 Install official `VAExtension.1.29.cfe` into the ZUP test infobase, create a Vanessa test-client profile, stop only conflicting 1C child processes, update the database, and restart runtime after the real infobase change.
 
-- [ ] **Step 3: Diagnose the MCP file-constructor failure**
+- [x] **Step 3: Diagnose the MCP file-constructor failure**
 
 Reproduce `open_feature_file` and `load_features`; trace the received JSON path into Vanessa. Test one hypothesis at a time. Do not patch the Vanessa repository; prefer launch/configuration correction or a documented direct UI fallback.
 
-- [ ] **Step 4: Write the feature using recorded/reused steps**
+- [x] **Step 4: Write the feature using recorded/reused steps**
 
 Preserve Russian Gherkin and existing encoding. First run must fail before the UI implementation or against a deliberately reverted catalog commit; then restore and run GREEN.
 
-- [ ] **Step 5: Execute acceptance through Vanessa MCP**
+- [x] **Step 5: Execute acceptance through Vanessa MCP**
 
 Use `get_VanessaAutomation_state`, `connect_test_client`, `get_form_analysis`, `get_table_data`, `run_scenario`, `get_test_results`, and screenshot tools on failure.
 
-- [ ] **Step 6: Run existing regression scenarios**
+- [x] **Step 6: Run existing regression scenarios**
 
 Run `ТестСотрудникиОрганизацииБезВТФизлица.feature` and `ТестПараметрыСрезаПоследних.feature`.
 
@@ -281,23 +281,23 @@ Run `ТестСотрудникиОрганизацииБезВТФизлица.
 - The portable guide contains no repository-specific credentials, usernames, tokens, PIDs, or fixed infobase data.
 - The project report records exact tools, errors, usefulness, harmful effects, workarounds, and comparison with EDT/YAxUnit.
 
-- [ ] **Step 1: Write portable setup**
+- [x] **Step 1: Write portable setup**
 
 Cover official artifacts, dedicated manager base, extension installation, one-time WebTransport restart, Streamable HTTP endpoint, Codex `mcp add`, required protocol headers, client profile, target `VAExtension`, process isolation, and update/restart rules.
 
-- [ ] **Step 2: Write operating workflow**
+- [x] **Step 2: Write operating workflow**
 
 Document state → connect → inspect → record/search steps → load/check → run/wait → results/screenshot → close client. Explicitly separate manager base, target test base, runtime, and EDT debugger.
 
-- [ ] **Step 3: Add troubleshooting decision table**
+- [x] **Step 3: Add troubleshooting decision table**
 
 Include `Session not found`, `Ошибка при вызове конструктора (Файл)`, empty-editor `lineNumber`, unavailable native tools before Codex restart, stale extension, blocked test client, and debugger interference.
 
-- [ ] **Step 4: Record project-specific evidence**
+- [x] **Step 4: Record project-specific evidence**
 
 List versions, commands/tools actually used, successful operations, failed operations, time costs, and which acceptance criteria MCP did and did not prove.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add documentation/VanessaMCP.md docs/research/2026-08-31-vanessa-mcp-ui-report.md features
@@ -309,11 +309,11 @@ git commit -m "docs: add portable Vanessa MCP workflow"
 **Files:**
 - Review all changes against the spec and this plan.
 
-- [ ] **Step 1: Run fresh verification**
+- [x] **Step 1: Run fresh verification**
 
 Run focused YAxUnit modules without debugger, EDT diagnostic delta for every modified module/form, `git diff --check`, and Vanessa acceptance/regressions.
 
-- [ ] **Step 2: Verify repository invariants**
+- [x] **Step 2: Verify repository invariants**
 
 Search for remaining form-owned `ДоступныеТаблицыИБ`, raw `ДанныеПоставщика` flow into forms, new provider-root UI, and unintended `Form.form` changes.
 
