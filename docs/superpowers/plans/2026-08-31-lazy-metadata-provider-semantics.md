@@ -56,12 +56,12 @@
   EDT-MCP `run_yaxunit_tests`:
 
 ```text
-launchConfigurationName="QueryConsoleZUP Тонкий клиент"
+launchConfigurationName="QueryConsoleZUP Semantic Tests"
 extensions=["YAXUNIT"]
 tests=["КОНС_Обр_ПоставщикиМетаданныхТаблиц_МО.КраткоеОписаниеТаблицыНеСодержитПоляИПараметры"]
 timeout=60
 updateBeforeLaunch=true
-updateScope="extension:yaxunit"
+updateScope="extension:QueryConsoleZUP_YAxUnit"
 ```
 
   Expected: FAIL из-за отсутствующей `НовоеКраткоеОписаниеТаблицы`.
@@ -199,7 +199,7 @@ git commit -m "feat: add lazy metadata lookup contract"
 
 - [ ] **Step 4: Запустить новые tests и весь module suite**
 
-  `run_yaxunit_tests` с module `КОНС_Обр_ПоставщикиМетаданныхТаблиц_МО`, `timeout=120`, `updateScope="extension:yaxunit"`.
+  `run_yaxunit_tests` с module `КОНС_Обр_ПоставщикиМетаданныхТаблиц_МО`, `timeout=120`, `updateScope="extension:QueryConsoleZUP_YAxUnit"`.
 
   Expected: все tests PASS; существующие full-description/parameter/cache tests остаются зелёными.
 
@@ -305,7 +305,7 @@ modules=["КОНС_Обр_МодельВыражений_МО"]
 modules=["КОНС_Обр_ПостроениеИГенерацияЗапросов_МО", "КОНС_Обр_ИсполняемыеПредставления_МО"]
 ```
 
-  Для каждого: launch `QueryConsoleZUP Тонкий клиент`, extension `YAXUNIT`, `updateBeforeLaunch=true`, `updateScope="extension:yaxunit"`, timeout 120. Expected: все tests PASS; unknown/local/nested/table-value/join behavior сохранено.
+  Для каждого: launch `QueryConsoleZUP Semantic Tests`, extension `YAXUNIT`, `updateBeforeLaunch=true`, `updateScope="extension:QueryConsoleZUP_YAxUnit"`, timeout 120. Expected: все tests PASS; unknown/local/nested/table-value/join behavior сохранено.
 
 - [ ] **Step 6: Проверить отсутствие full lookup в canonical consumers поведением и usages**
 
@@ -346,7 +346,7 @@ git commit -m "perf: use lazy metadata in semantic consumers"
 tests=["КОНС_Обр_БенчмаркПарсера_МО.RuntimeBaselineСемантическогоКонвейераФормируется"]
 timeout=180
 updateBeforeLaunch=true
-updateScope="extension:yaxunit"
+updateScope="extension:QueryConsoleZUP_YAxUnit"
 ```
 
   Expected: PASS и новый JSON с согласованными artifact hashes.
