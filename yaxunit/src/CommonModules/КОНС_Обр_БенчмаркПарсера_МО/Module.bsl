@@ -171,22 +171,30 @@
 	ДобавитьАртефактСемантическогоКонвейера(Артефакты, "semantic_visitor",
 		"CommonModule.СемантическийАнализВыраженийУтилиты",
 		"QueryConsoleZUP/src/CommonModules/СемантическийАнализВыраженийУтилиты/Module.bsl",
-		"d06be1a9ea66582ad59b655f734fdc88e5f51955e7946fdab6a95e76483ec71e");
+		"a960dcddaaa79c0a8d7ff4a113cfe95eaf0eb901d82fe1b747f6d151878db5a9");
 	ДобавитьАртефактСемантическогоКонвейера(Артефакты, "model_builder", "DataProcessor.ПостроительМоделиЗапроса",
 		"QueryConsoleZUP/src/DataProcessors/ПостроительМоделиЗапроса/ObjectModule.bsl",
-		"a6057544b3430aa71bc4e62e27744145370459a6496a88b472bec75b8a401683");
+		"c3dd83f82770b6f79e5e33d601ff26ce334e576453e6eadcf72537763fa23a0e");
 	ДобавитьАртефактСемантическогоКонвейера(Артефакты, "provider_registry",
 		"DataProcessor.РеестрПоставщиковМетаданныхТаблиц",
 		"QueryConsoleZUP/src/DataProcessors/РеестрПоставщиковМетаданныхТаблиц/ObjectModule.bsl",
-		"2356a117cd799a0ea948bcc18e52602426e3784ff9785beee65a4a9fb137829d");
+		"86f8b9beddbdfd231382564b5b061f2c054b51f06d047ac9b9d07b3cb360b666");
 	ДобавитьАртефактСемантическогоКонвейера(Артефакты, "standard_provider",
 		"DataProcessor.ПоставщикМетаданныхСтандартныхТаблиц",
 		"QueryConsoleZUP/src/DataProcessors/ПоставщикМетаданныхСтандартныхТаблиц/ObjectModule.bsl",
-		"6b35375c0fd1149179d5b2e148c11bdd2d6f8245d04f523c6d1481aa852cbfa0");
+		"46e2c34714a8c8185959b1c3ccc141da6facdb51198b9dde509c63481f49ba28");
 	ДобавитьАртефактСемантическогоКонвейера(Артефакты, "executable_provider",
 		"DataProcessor.ПоставщикМетаданныхИсполняемыхПредставлений",
 		"QueryConsoleZUP/src/DataProcessors/ПоставщикМетаданныхИсполняемыхПредставлений/ObjectModule.bsl",
-		"aefa7f80fea91501070dcf86a9b797645895be4aaac8e4c75dad72f3c7250aa9");
+		"194fcae6e5c7e4b7097ada0d6b68fa16098e03c252c2ed12d1087d9624146074");
+	ДобавитьАртефактСемантическогоКонвейера(Артефакты, "metadata_contract",
+		"CommonModule.МетаданныеТаблицЗапроса",
+		"QueryConsoleZUP/src/CommonModules/МетаданныеТаблицЗапроса/Module.bsl",
+		"a4929791b7df277e4c75077168d7b2b0f16a34e6231c959d5c8a0fdf8cc4d5a4");
+	ДобавитьАртефактСемантическогоКонвейера(Артефакты, "representation_processing",
+		"CommonModule.ОбработкаПредставлениеЗапросов",
+		"QueryConsoleZUP/src/CommonModules/ОбработкаПредставлениеЗапросов/Module.bsl",
+		"12b8ab83dde7530dd820d4c01f291dc12f7e8a61eb0d048b4b9a5d20e80b08bf");
 
 	ИменаОбъектовМетаданных = Новый Массив;
 	Для Каждого Артефакт Из Артефакты Цикл
@@ -196,10 +204,10 @@
 	//@skip-check server-execution-safe-mode
 	МодульОбработкиМодели = Вычислить("ОбработкаМоделиЗапроса");
 	Возврат НовоеОписаниеРеализации(
-		"metadata-provider-semantics-fixed-c0bbd9a", "semantic_pipeline", МодульОбработкиМодели,
-		"feature/metadata-provider-semantics", "c0bbd9acbb8c73bdba6e2a04976e3e8d0c496c4e",
+		"metadata-provider-semantics-lazy-88994ee", "semantic_pipeline", МодульОбработкиМодели,
+		"feature/metadata-provider-semantics", "88994ee6265b13e997279379133be61d5f084356",
 		ИменаОбъектовМетаданных, Артефакты,
-		"full-semantic-pipeline-feature-fixed-c0bbd9a.json", "full-semantic-pipeline-feature-fixed",
+		"full-semantic-pipeline-lazy-feature-88994ee.json", "full-semantic-pipeline-feature-fixed",
 		"Полный public path ОбработкаМоделиЗапроса.РазобратьЗапрос от текста до непустой семантической модели");
 
 КонецФункции
