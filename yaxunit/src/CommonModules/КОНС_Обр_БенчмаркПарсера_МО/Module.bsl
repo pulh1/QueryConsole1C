@@ -12,6 +12,8 @@
 	ЮТТесты.ДобавитьСерверныйТест("RuntimeBaselineЛексераФормируется");
 	ЮТТесты.ДобавитьСерверныйТест("RuntimeBaselineПарсераФормируется");
 	ЮТТесты.ДобавитьСерверныйТест("RuntimeBaselineСемантическогоКонвейераФормируется");
+	ЮТТесты.ДобавитьСерверныйТест("СемантическиеКорпусыВключаютРеальныеЗапросы");
+	ЮТТесты.ДобавитьСерверныйТест("РеальныеЗапросыПроходятСемантическийPreflight");
 
 КонецПроцедуры
 
@@ -42,6 +44,36 @@
 
 Процедура RuntimeBaselineСемантическогоКонвейераФормируется() Экспорт
 	ПроверитьРезультатСемантическогоБенчмарка(ВыполнитьСемантическийБенчмарк());
+КонецПроцедуры
+
+Процедура СемантическиеКорпусыВключаютРеальныеЗапросы() Экспорт
+
+	Корпусы = КорпусыСемантическогоКонвейера();
+	ЮТест.ОжидаетЧто(Корпусы.Количество()).Равно(4);
+	ЮТест.ОжидаетЧто(Корпусы[2].id).Равно("semantic_query_examples_all_42");
+	ЮТест.ОжидаетЧто(Корпусы[2].inputs.Количество()).Равно(42);
+	ЮТест.ОжидаетЧто(Корпусы[3].id).Равно("semantic_large_package");
+	ЮТест.ОжидаетЧто(Корпусы[3].inputs.Количество()).Равно(1);
+	ЮТест.ОжидаетЧто(Корпусы[3].inputs[0].id).Равно(Корпусы[2].inputs[31].id);
+
+КонецПроцедуры
+
+Процедура РеальныеЗапросыПроходятСемантическийPreflight() Экспорт
+
+	ОписаниеРеализации = ОписаниеСемантическогоКонвейера();
+	Корпус = КорпусыСемантическогоКонвейера()[2];
+	Ошибки = Новый Массив;
+
+	Для Каждого Вход Из Корпус.inputs Цикл
+		Попытка
+			ВыполнитьSemanticPipelineInput(ОписаниеРеализации, Корпус, Вход);
+		Исключение
+			Ошибки.Добавить(СтрШаблон("%1: %2", Вход.id, ОписаниеОшибки()));
+		КонецПопытки;
+	КонецЦикла;
+
+	ЮТест.ОжидаетЧто(Ошибки.Количество()).Равно(0, СтрСоединить(Ошибки, Символы.ПС));
+
 КонецПроцедуры
 
 #КонецОбласти
@@ -204,11 +236,11 @@
 	//@skip-check server-execution-safe-mode
 	МодульОбработкиМодели = Вычислить("ОбработкаМоделиЗапроса");
 	Возврат НовоеОписаниеРеализации(
-		"metadata-provider-semantics-lazy-60e6101", "semantic_pipeline", МодульОбработкиМодели,
+		"metadata-provider-semantics-real-lazy-60e6101", "semantic_pipeline", МодульОбработкиМодели,
 		"feature/metadata-provider-semantics", "60e610164c01e52198015d9d88ae53c2b9599863",
 		ИменаОбъектовМетаданных, Артефакты,
-		"full-semantic-pipeline-lazy-feature-60e6101.json", "full-semantic-pipeline-feature-fixed",
-		"Полный public path ОбработкаМоделиЗапроса.РазобратьЗапрос от текста до непустой семантической модели");
+		"full-semantic-pipeline-real-feature-60e6101.json", "full-semantic-pipeline-real-query-examples",
+		"Полный public path ОбработкаМоделиЗапроса.РазобратьЗапрос: controlled contract и 42 реальных QueryExamples");
 
 КонецФункции
 
@@ -489,10 +521,10 @@
 
 	СемантическийКонтракт = НовыйКорпус(
 		"semantic_contract", "РазобратьЗапрос",
-		"Controlled complete-query semantic contract; QueryExamples excluded by all-or-nothing policy",
+		"Controlled complete-query semantic contract; QueryExamples included as separate all-or-nothing corpora",
 		Новый Структура(
 			"query_examples_policy,input_order,hash_scope",
-			"excluded_not_preflighted_on_both_revisions", "listed", "utf8_exact_text_sha256"));
+			"included_as_separate_corpora_after_both_revision_preflight", "listed", "utf8_exact_text_sha256"));
 
 	ДобавитьСемантическийВход(
 		СемантическийКонтракт.inputs, "standard_table",
@@ -561,6 +593,31 @@
 		"same named standard table appears twice in one query",
 		"06c155736a857557eabd124aeafedd8e13f3c988faddd7befc902d1e6b4e2955");
 	Корпусы.Добавить(ПовторныйИсточник);
+
+	QueryExamples = НовыйКорпус(
+		"semantic_query_examples_all_42", "РазобратьЗапрос",
+		"Все логические XML /querylist/query/text из 42 QueryExamples/*.q1c через полный semantic pipeline",
+		Новый Структура(
+			"file_count,xpath,input_order,hash_scope,compatibility_policy",
+			42, "/querylist/query/text", "listed", "utf8_exact_text_sha256",
+			"all_inputs_must_preflight_on_both_revisions"));
+	ДобавитьВсеQueryExamples(QueryExamples.inputs);
+	Если QueryExamples.inputs.Количество() <> 42 Тогда
+		ВызватьИсключение СтрШаблон(
+			"semantic_query_examples_all_42: ожидалось 42 embedded inputs, получено %1",
+			QueryExamples.inputs.Количество());
+	КонецЕсли;
+	Корпусы.Добавить(QueryExamples);
+
+	LargePackage = НовыйКорпус(
+		"semantic_large_package", "РазобратьЗапрос",
+		"Largest real QueryExamples package through full semantic pipeline: QueryExamples/ТестПакетЗапрсов.q1c",
+		Новый Структура(
+			"source_path,query_name,input_order,hash_scope,compatibility_policy",
+			"QueryExamples/ТестПакетЗапрсов.q1c", "СотрудникиОрганизации", "listed",
+			"utf8_exact_text_sha256", "same_input_as_semantic_query_examples_all_42"));
+	LargePackage.inputs.Добавить(QueryExamples.inputs[31]);
+	Корпусы.Добавить(LargePackage);
 
 	Возврат Корпусы;
 
@@ -2449,12 +2506,16 @@
 Процедура ПроверитьРезультатСемантическогоБенчмарка(Результат)
 
 	ЮТест.ОжидаетЧто(Результат.component).Равно("semantic_pipeline");
-	ЮТест.ОжидаетЧто(Результат.corpora.Количество()).Равно(2,
-		"Full-pipeline benchmark должен содержать два corpus");
+	ЮТест.ОжидаетЧто(Результат.corpora.Количество()).Равно(4,
+		"Full-pipeline benchmark должен содержать четыре corpus");
 	ЮТест.ОжидаетЧто(Результат.corpora[0].id).Равно("semantic_contract");
 	ЮТест.ОжидаетЧто(Результат.corpora[0].input_count).Равно(7);
 	ЮТест.ОжидаетЧто(Результат.corpora[1].id).Равно("repeated_standard_source");
 	ЮТест.ОжидаетЧто(Результат.corpora[1].input_count).Равно(1);
+	ЮТест.ОжидаетЧто(Результат.corpora[2].id).Равно("semantic_query_examples_all_42");
+	ЮТест.ОжидаетЧто(Результат.corpora[2].input_count).Равно(42);
+	ЮТест.ОжидаетЧто(Результат.corpora[3].id).Равно("semantic_large_package");
+	ЮТест.ОжидаетЧто(Результат.corpora[3].input_count).Равно(1);
 	Для Каждого Корпус Из Результат.corpora Цикл
 		ЮТест.ОжидаетЧто(Корпус.entrypoint).Равно("РазобратьЗапрос");
 		ЮТест.ОжидаетЧто(Корпус.wall_clock_median_ms).Больше(0,
