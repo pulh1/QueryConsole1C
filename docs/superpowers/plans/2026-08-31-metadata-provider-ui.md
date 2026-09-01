@@ -321,6 +321,6 @@ Search for remaining form-owned `ДоступныеТаблицыИБ`, raw `Д�
 
 Review the full `feature/metadata-provider-semantics..feature/metadata-provider-ui` diff. Resolve every Critical/High finding and repeat affected tests.
 
-- [ ] **Step 4: Push and create a ready PR**
+- [x] **Step 4: Push and create a ready PR**
 
 Use base `feature/metadata-provider-semantics` while PR #76 is unmerged; retarget to `master` after semantics merges. Include verification evidence and remaining manual gaps.
