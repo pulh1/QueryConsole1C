@@ -317,7 +317,7 @@ Run focused YAxUnit modules without debugger, EDT diagnostic delta for every mod
 
 Search for remaining form-owned `ДоступныеТаблицыИБ`, raw `ДанныеПоставщика` flow into forms, new provider-root UI, and unintended `Form.form` changes.
 
-- [ ] **Step 3: Perform read-only independent review**
+- [x] **Step 3: Perform read-only independent review**
 
 Review the full `feature/metadata-provider-semantics..feature/metadata-provider-ui` diff. Resolve every Critical/High finding and repeat affected tests.
 
