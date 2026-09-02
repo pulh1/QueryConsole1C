@@ -24,15 +24,25 @@
 
 	ОписаниеРеализации = ОписаниеСемантическогоКонвейера();
 	ЮТест.ОжидаетЧто(ОписаниеРеализации.implementation_id)
-		.Равно("metadata-provider-unified-f3c1c08");
+		.Равно("metadata-provider-unified-62c21c4");
 	ЮТест.ОжидаетЧто(ОписаниеРеализации.source_ref)
 		.Равно("feature/metadata-provider");
 	ЮТест.ОжидаетЧто(ОписаниеРеализации.source_commit)
-		.Равно("f3c1c08653c38f36a94f140898b4b53380af0489");
+		.Равно("62c21c440cec1a14586c4ab0389a320f40fea6c7");
 	ЮТест.ОжидаетЧто(ОписаниеРеализации.sidecar_name)
-		.Равно("full-semantic-pipeline-unified-f3c1c08.json");
+		.Равно("full-semantic-pipeline-unified-62c21c4.json");
 
 	ОжидаемыеХеши = Новый Соответствие;
+	ОжидаемыеХеши.Вставить("parser",
+		"f536869601e718ca02f026d0ecb8f733d8688ecd038f70f6b5e8cd08dbe4fbbf");
+	ОжидаемыеХеши.Вставить("lexer",
+		"f954b1bb7b619052c553bf42699ed5fbbc3d5a7b64cd6ef4386b1970ca5e967d");
+	ОжидаемыеХеши.Вставить("pipeline",
+		"d6759737a7e160e8e2bd37efc0237e48b49a766232ebcf5898109fccefb86aa1");
+	ОжидаемыеХеши.Вставить("semantic_visitor",
+		"321f211457821237cab8299cc259f9d4849341abc98ef6ff9f77f4bc9faa71e1");
+	ОжидаемыеХеши.Вставить("model_builder",
+		"b0669656a614f01076a68c3d9a2e61042cebaff29ba282bd40d534dc5004ff45");
 	ОжидаемыеХеши.Вставить("provider_registry",
 		"d65bdb4e5201f24880868cc87beef7ba436c1cf1c03fecf0f872c3b35ff918ed");
 	ОжидаемыеХеши.Вставить("standard_provider",
@@ -42,7 +52,7 @@
 	ОжидаемыеХеши.Вставить("metadata_contract",
 		"5c2a0fc7b6f6e6eda10f1ababd8d0dda00ae3cd17e33a61ebf5c0d35496844b4");
 	ОжидаемыеХеши.Вставить("representation_processing",
-		"3de1c439d00354303b9a850e4febe3aec528348472b15a5d52f2e75ea5818310");
+		"0bf9ed540ad43300c536ac2ef02b4f0a21deb09e7676b1b4d0c2eeaab1afcb42");
 
 	Для Каждого Артефакт Из ОписаниеРеализации.artifacts Цикл
 		ОжидаемыйХеш = ОжидаемыеХеши.Получить(Артефакт.role);
@@ -260,14 +270,14 @@
 		"f954b1bb7b619052c553bf42699ed5fbbc3d5a7b64cd6ef4386b1970ca5e967d");
 	ДобавитьАртефактСемантическогоКонвейера(Артефакты, "pipeline", "CommonModule.ОбработкаМоделиЗапроса",
 		"QueryConsoleZUP/src/CommonModules/ОбработкаМоделиЗапроса/Module.bsl",
-		"d52c45c25262319750585e962ac227b96abdff1f840c47baaeeed5abf1005c8f");
+		"d6759737a7e160e8e2bd37efc0237e48b49a766232ebcf5898109fccefb86aa1");
 	ДобавитьАртефактСемантическогоКонвейера(Артефакты, "semantic_visitor",
 		"DataProcessor.СемантическийАнализВыраженийПосетитель",
 		"QueryConsoleZUP/src/DataProcessors/СемантическийАнализВыраженийПосетитель/ObjectModule.bsl",
 		"321f211457821237cab8299cc259f9d4849341abc98ef6ff9f77f4bc9faa71e1");
 	ДобавитьАртефактСемантическогоКонвейера(Артефакты, "model_builder", "DataProcessor.ПостроительМоделиЗапроса",
 		"QueryConsoleZUP/src/DataProcessors/ПостроительМоделиЗапроса/ObjectModule.bsl",
-		"e3d0f0fa6387d66f64c00a8a2df99eecee9e1c03a36019a7aa406d9bda736c8a");
+		"b0669656a614f01076a68c3d9a2e61042cebaff29ba282bd40d534dc5004ff45");
 	ДобавитьАртефактСемантическогоКонвейера(Артефакты, "provider_registry",
 		"DataProcessor.РеестрПоставщиковМетаданныхТаблиц",
 		"QueryConsoleZUP/src/DataProcessors/РеестрПоставщиковМетаданныхТаблиц/ObjectModule.bsl",
@@ -287,7 +297,7 @@
 	ДобавитьАртефактСемантическогоКонвейера(Артефакты, "representation_processing",
 		"CommonModule.ОбработкаПредставлениеЗапросов",
 		"QueryConsoleZUP/src/CommonModules/ОбработкаПредставлениеЗапросов/Module.bsl",
-		"3de1c439d00354303b9a850e4febe3aec528348472b15a5d52f2e75ea5818310");
+		"0bf9ed540ad43300c536ac2ef02b4f0a21deb09e7676b1b4d0c2eeaab1afcb42");
 
 	ИменаОбъектовМетаданных = Новый Массив;
 	Для Каждого Артефакт Из Артефакты Цикл
@@ -297,10 +307,10 @@
 	//@skip-check server-execution-safe-mode
 	МодульОбработкиМодели = Вычислить("ОбработкаМоделиЗапроса");
 	Возврат НовоеОписаниеРеализации(
-		"metadata-provider-unified-f3c1c08", "semantic_pipeline", МодульОбработкиМодели,
-		"feature/metadata-provider", "f3c1c08653c38f36a94f140898b4b53380af0489",
+		"metadata-provider-unified-62c21c4", "semantic_pipeline", МодульОбработкиМодели,
+		"feature/metadata-provider", "62c21c440cec1a14586c4ab0389a320f40fea6c7",
 		ИменаОбъектовМетаданных, Артефакты,
-		"full-semantic-pipeline-unified-f3c1c08.json", "full-semantic-pipeline-real-query-examples",
+		"full-semantic-pipeline-unified-62c21c4.json", "full-semantic-pipeline-real-query-examples",
 		"Полный public path ОбработкаМоделиЗапроса.РазобратьЗапрос: controlled contract и 42 реальных QueryExamples");
 
 КонецФункции
