@@ -46,7 +46,8 @@ baseline-sidecar; вся старая серия удалена.
 - Полный YAxUnit: 615 total, 611 passed, 1 известная локализационная ошибка,
   3 skipped. Та же ошибка отдельно воспроизводилась на `master`.
 - Exact descriptor/preflight: 4/4.
-- Exact semantic benchmark: 1/1 без EDT debugger, RDBG и listener 1550.
+- Exact semantic benchmark: четыре запуска по 1/1 без EDT debugger, RDBG и
+  listener 1550.
 - Vanessa MCP: ранее выполнены 6/6 релевантных UI-сценариев в реальном test
   client; прямой результат `run_scenario` использован как источник истины.
 - EDT: три изменённых production-объекта ревалидированы; по каждому запрос
@@ -57,28 +58,29 @@ baseline-sidecar; вся старая серия удалена.
 
 ## Производительность
 
-Абсолютный exact-run полного пути lexer → parser → semantic model на платформе
-8.3.27.2170:
+Свежая контрбалансированная серия `feature → baseline → baseline → feature`
+полного пути lexer → parser → semantic model на платформе 8.3.27.2170:
 
-| Корпус | Median, ms | P95, ms | CV |
+| Корпус | Baseline median / p95, ms | Feature median / p95, ms | Ratio median / p95 |
 | --- | ---: | ---: | ---: |
-| controlled semantic contract | 16,50 | 26,50 | 23,75% |
-| repeated standard source | 3,09375 | 4,6875 | 19,89% |
-| все 42 QueryExamples | 708,00 | 870,00 | 9,90% |
-| большой пакет | 69,00 | 84,00 | 11,98% |
+| controlled semantic contract | 14,50 / 22,00 | 17,00 / 26,00 | 1,1724 / 1,1818 |
+| repeated standard source | 3,125 / 5,25 | 3,0625 / 4,5625 | 0,9800 / 0,8690 |
+| все 42 QueryExamples | 687,50 / 836,00 | 682,50 / 786,00 | 0,9927 / 0,9402 |
+| большой пакет | 72,00 / 103,00 | 74,00 / 100,00 | 1,0278 / 0,9709 |
 
 Для корпуса QueryExamples median полного прохода соответствует примерно
-16,86 ms на запрос. Это абсолютное измерение одной реализации. Новый
-контрбалансированный old/new verdict ещё не сформирован.
+16,37 ms на запрос baseline и 16,25 ms feature. На реальном корпусе регрессии
+не обнаружено; controlled contract показывает +17,2% на коротком наборе.
 
-Raw sidecar:
-`docs/superpowers/matrices/2026-09-02-full-semantic-pipeline-unified-62c21c4.json`,
-SHA-256 `C0CF9F50D1E5D9024E24BAF6058AAA38EED345C113A2AEFDEE25D963AAC78C9C`.
+Четыре raw sidecar и их SHA-256 перечислены в отдельном benchmark-отчёте; все
+artifact hash обеих реализаций совпали с заявленными source commit.
 
 ## Отдельные отчёты
 
 - `docs/research/2026-09-02-metadata-provider-unified-verification.md` — полная
   матрица проверок;
+- `docs/research/2026-09-02-metadata-provider-unified-benchmark.md` — новая
+  old/new серия, raw hashes и ограничения интерпретации;
 - `docs/research/2026-09-02-metadata-provider-unified-runtime-mcp-report.md` —
   где runtime MCP был полезен, какие ошибки дал и почему не был acceptance;
 - `documentation/VanessaMCP.md` — переносимая инструкция по Vanessa MCP;
