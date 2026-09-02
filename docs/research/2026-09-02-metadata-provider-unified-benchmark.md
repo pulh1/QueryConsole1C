@@ -38,7 +38,7 @@ EDT показывал 0 debug launches/targets; `dbgs`/`rdbg` отсутств�
 - одинаковые schema 2, benchmark id, entrypoint, четыре corpus id, порядок,
   точные input length и SHA-256 всех входов;
 - одинаковый runtime, clock и calibration target;
-- все 160 sample положительные;
+- все 320 timed sample values положительные (по 160 на реализацию);
 - все artifact hash обеих реализаций пересчитаны из заявленных source commit
   как normalized UTF-8 LF без BOM и совпали;
 - raw sidecar скопированы без изменения байтов; SHA-256 источника и durable

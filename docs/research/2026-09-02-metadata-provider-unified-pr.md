@@ -48,8 +48,10 @@ baseline-sidecar; вся старая серия удалена.
 - Exact descriptor/preflight: 4/4.
 - Exact semantic benchmark: четыре запуска по 1/1 без EDT debugger, RDBG и
   listener 1550.
-- Vanessa MCP: ранее выполнены 6/6 релевантных UI-сценариев в реальном test
-  client; прямой результат `run_scenario` использован как источник истины.
+- Vanessa MCP: финально выполнены 6/6 релевантных UI-сценариев в реальном test
+  client; результаты `run_scenario` подтверждены `get_test_results` после
+  каждого feature-файла. Диалог обновления ИБ идентифицирован как окно EDT, а
+  не Vanessa.
 - EDT: три изменённых production-объекта ревалидированы; по каждому запрос
   уровня `ERRORS` вернул отсутствие ошибок. Общий фон проекта не считается
   очищенным.
