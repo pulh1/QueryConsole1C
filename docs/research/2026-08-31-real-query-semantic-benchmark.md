@@ -1,96 +1,48 @@
-# Полный semantic benchmark на реальных запросах
+# Аудит semantic benchmark на реальных запросах
 
-Дата измерения: 2026-08-31.
+Дата исходного измерения: 2026-08-31.
+Дата аудита provenance: 2026-09-02.
 
 ## Итог
 
-Feature-реализация проходит performance gate на всех четырёх корпусах, но
-ускорением результат считать нельзя. На полном наборе из 42 реальных запросов
-feature медленнее baseline по медиане на 5,5%, при этом p95 лучше на 4,0%.
-На крупнейшем реальном пакете медиана хуже на 12,1%, p95 — на 9,9%.
+Ранее опубликованное сравнение baseline/feature аннулировано. Восемь feature
+sidecar заявляли source commit
+60e610164c01e52198015d9d88ae53c2b9599863, но четыре artifact hash не
+соответствовали файлам этого commit и не совпали ни с одним commit объединённой
+ветки. По этим файлам нельзя воспроизвести измеренную feature-реализацию,
+поэтому прежние проценты и PASS gate больше не считаются доказательством.
 
-Gate: `feature median <= baseline median * 1.25` и
-`feature p95 <= baseline p95 * 1.50`. Все восемь сравнений проходят.
+Недостоверные feature-sidecar удалены. Baseline-sidecar сохранены как
+исторические абсолютные измерения исходного commit
+0f0b17d3325216fd8af16f05ced9bc2c17021475; они не образуют сравнительный
+эксперимент без согласованного feature-run.
 
-## Сравниваемые реализации
+## Причина отбраковки
 
-- baseline: `0f0b17d3325216fd8af16f05ced9bc2c17021475`,
-  `metadata-provider-semantics-real-baseline-0f0b17d`;
-- feature: `60e610164c01e52198015d9d88ae53c2b9599863`,
-  `metadata-provider-semantics-real-lazy-60e6101`;
-- платформа и runtime: `8.3.27.2170`, Windows x86-64;
-- entrypoint: полный публичный путь
-  `ОбработкаМоделиЗапроса.РазобратьЗапрос`, включая lexer, parser и semantic
-  analysis.
+В каждом из восьми feature-sidecar расходились строки:
 
-До измерений aggregate preflight прошёл все 42 QueryExamples на обеих
-реализациях без исключений. Корпус имеет одинаковые id, порядок, длины и
-provenance входов во всех sidecar.
+| Роль | SHA-256 в sidecar | SHA-256 файла commit 60e6101 |
+| --- | --- | --- |
+| provider_registry | 86f8b9beddbdfd231382564b5b061f2c054b51f06d047ac9b9d07b3cb360b666 | 7c96a73aa2c4031fb831c636220ee878cfcfacbf9778637ad926307ed81f6b5a |
+| standard_provider | 46e2c34714a8c8185959b1c3ccc141da6facdb51198b9dde509c63481f49ba28 | 06eb527bdcd08595ccddfef6f53e50798f2787137a66af9f37b1aae4da5c90cf |
+| executable_provider | 194fcae6e5c7e4b7097ada0d6b68fa16098e03c252c2ed12d1087d9624146074 | 4030409355d23adb80006748baf3bfc21fed8017b9dd5eb8f08ebe2552f8879e |
+| metadata_contract | 3404b03ffa2b7c3d30a4ed3f99ac3bded31cc22e1f98a250c98c1bd1be46a3e1 | 69e22b8e53d45bef02078251ffd8148ae402b555c4f34c978f7edd104c4f54e3 |
 
-## Методика
+Поиск заявленных SHA-256 по истории commit объединённой ветки не нашёл
+соответствующей зафиксированной ревизии.
 
-- две зеркальные серии: A-B-B-A и B-A-A-B;
-- перед каждой загрузкой реализации — отдельный нетаймируемый preflight;
-- 3 внутренних warmup, 20 samples на запуск, target калибровки batch 25 ms;
-- четыре запуска на реализацию, итого 80 raw samples на корпус и реализацию;
-- перед каждым timed run подтверждены: runtime-client `running=false`, ноль
-  debug launches/targets, ноль breakpoints, отсутствие `dbgs`/`rdbg` и listener
-  на порту 1550;
-- harness уже записывает каждый raw sample как длительность batch, делённую на
-  `iterations_per_sample`, то есть как время одной полной итерации корпуса;
-  итоговые median и p95 рассчитаны по 80 таким значениям каждой реализации.
-  В `repeated_standard_source` калибратор в двух запусках выбрал batch 8, в
-  остальных — 16, но эта разница уже устранена самим harness до записи
-  `samples_ms`. p95 использует тот же nearest-rank алгоритм, что harness.
+## Сохранённое baseline evidence
 
-Первая серия показала сильный order effect: второй baseline был быстрее первого
-на 19–33% на реальных корпусах. Поэтому одиночная A-B-B-A серия не использована
-для финального вывода; выполнена зеркальная серия и объединён сбалансированный
-набор.
+- 2026-08-31-full-semantic-pipeline-lazy-baseline-1.json;
+- 2026-08-31-full-semantic-pipeline-lazy-baseline-2.json;
+- 2026-08-31-full-semantic-pipeline-lazy-repeat-baseline-1.json;
+- 2026-08-31-full-semantic-pipeline-lazy-repeat-baseline-2.json;
+- 2026-08-31-full-semantic-pipeline-real-baseline-1.json;
+- 2026-08-31-full-semantic-pipeline-real-baseline-2.json;
+- 2026-08-31-full-semantic-pipeline-real-repeat-baseline-1.json;
+- 2026-08-31-full-semantic-pipeline-real-repeat-baseline-2.json.
 
-## Сбалансированный результат
-
-| Корпус | Входы / длина | Baseline median корпуса, ms | Feature median корпуса, ms | Median ratio | Baseline p95 корпуса, ms | Feature p95 корпуса, ms | P95 ratio | Gate |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| `semantic_contract` | 7 / 1 087 | 14,0 | 17,0 | 1,2143 | 23,0 | 28,0 | 1,2174 | PASS |
-| `repeated_standard_source` | 1 / 178 | 2,8125 | 3,125 | 1,1111 | 4,75 | 4,8125 | 1,0132 | PASS |
-| `semantic_query_examples_all_42` | 42 / 67 253 | 646,0 | 681,5 | 1,0550 | 826,0 | 793,0 | 0,9600 | PASS |
-| `semantic_large_package` | 1 / 8 170 | 62,0 | 69,5 | 1,1210 | 91,0 | 100,0 | 1,0989 | PASS |
-
-Для корпуса 42 QueryExamples нормализованная стоимость одного запроса равна
-15,381 ms на baseline и 16,226 ms на feature по медиане; это медиана полного
-прохода корпуса, делённая на 42, а не распределение индивидуальных задержек
-каждого запроса. Для крупнейшего пакета индивидуальная медиана — 62,0 против
-69,5 ms.
-
-Объединённый CV raw samples:
-
-| Корпус | Baseline CV | Feature CV |
-| --- | ---: | ---: |
-| `semantic_contract` | 23,77% | 20,42% |
-| `repeated_standard_source` | 23,72% | 21,00% |
-| `semantic_query_examples_all_42` | 18,43% | 8,72% |
-| `semantic_large_package` | 21,37% | 16,32% |
-
-Короткий repeated-корпус остаётся шумным; его небольшую разницу нельзя
-интерпретировать как доказательство ускорения или замедления. Он пригоден для
-проверки установленного регрессионного порога.
-
-## Raw evidence
-
-Файлы скопированы из каталога JUnit report без изменения байтов; SHA-256
-источника и durable copy совпал при каждом копировании.
-
-| Файл | SHA-256 |
-| --- | --- |
-| `2026-08-31-full-semantic-pipeline-real-baseline-1.json` | `01B5C7C46AC4A0B233AE22203AFE3486E9CD6C3DE1E277FD32FACCF05F9C2657` |
-| `2026-08-31-full-semantic-pipeline-real-feature-1.json` | `47C444ABFCADA508AB75C97CE2C8B1ACA98276CBC861DB48176B8F3F1E0206E9` |
-| `2026-08-31-full-semantic-pipeline-real-feature-2.json` | `641087B039C207E85D988868EF42671F03E22C0923BF1C18CA290DB6899A1547` |
-| `2026-08-31-full-semantic-pipeline-real-baseline-2.json` | `52F95F25F2B857CC040300C314EEC571FBB4B947DF9F8988F0FE8BEE10D33238` |
-| `2026-08-31-full-semantic-pipeline-real-repeat-feature-1.json` | `765C146C34595539C567895B01D11985D346C047159BB116983EBB193321815C` |
-| `2026-08-31-full-semantic-pipeline-real-repeat-baseline-1.json` | `E823634E48763488F7C497C55721ABC2FC9D715F8CEDC7A55DAC4472D36E6753` |
-| `2026-08-31-full-semantic-pipeline-real-repeat-baseline-2.json` | `41BBDF936970ADB621F365C29489344E14ABD923ABC8FA176E569EF94A59D577` |
-| `2026-08-31-full-semantic-pipeline-real-repeat-feature-2.json` | `C8B5FE82F8BE7ED729D89B2CDE66D02AF9CB7D131D751A752DEA511C359CD5EA` |
-
-Четыре ранее существовавших untracked JSON без `real-` не изменялись и в этот
-вывод не включены. Runtime MCP в этих измерениях не использовался.
+Новый корректный absolute feature-run публикуется отдельно в
+2026-09-02-metadata-provider-unified-verification.md. Сравнительный old/new
+verdict допустим только после нового согласованного baseline-run с теми же
+corpora, runtime, methodology и проверяемым provenance.
