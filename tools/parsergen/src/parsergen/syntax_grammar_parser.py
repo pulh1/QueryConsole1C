@@ -263,7 +263,7 @@ def _scan_body(
         match = _IDENTIFIER.match(text, index)
         if (
             match is not None
-            and _is_anchor_identifier_start(text, body.start, index)
+            and _is_anchor_identifier_start(text, masked, body.start, index)
             and match.end() < body.end
             and text[match.end()] == ":"
         ):
@@ -287,11 +287,18 @@ def _scan_body(
         index += 1
 
 
-def _is_anchor_identifier_start(text: str, body_start: int, index: int) -> bool:
+def _is_anchor_identifier_start(
+    text: str,
+    masked: list[str],
+    body_start: int,
+    index: int,
+) -> bool:
     if index == body_start:
         return True
     previous = text[index - 1]
-    return previous.isspace() or previous in "'()>?*+|]"
+    return previous.isspace() or previous in "'()>?*+|" or (
+        previous == "]" and masked[index - 1] != "]"
+    )
 
 
 def _blank(masked: list[str], start: int, end: int) -> None:

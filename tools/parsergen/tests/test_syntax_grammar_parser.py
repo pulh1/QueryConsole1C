@@ -161,6 +161,24 @@ def test_does_not_recognize_an_anchor_as_a_bare_token_suffix(token: str) -> None
     assert result.grammar is None
 
 
+def test_rejects_an_anchor_suffix_after_a_bare_token_closing_bracket() -> None:
+    result = parse_syntax_grammar("<S> ::= prefix]value: ITEM", "syntax.grammar")
+
+    assert [diagnostic.code for diagnostic in result.diagnostics] == ["GP010"]
+    assert result.grammar is None
+
+
+def test_recognizes_an_anchor_suffix_after_a_compact_alternative_label() -> None:
+    result = parse_syntax_grammar("<S> ::= [root]value: ITEM", "syntax.grammar")
+
+    assert result.diagnostics == ()
+    assert result.grammar is not None
+    assert [(item.production, item.name) for item in result.grammar.alternatives] == [
+        ("S", "root")
+    ]
+    assert [item.name for item in result.grammar.anchors] == ["value"]
+
+
 def test_duplicate_top_level_alternative_reports_original_declaration() -> None:
     source = "<S> ::= [same] first: A\n  | [same] second: B"
 
