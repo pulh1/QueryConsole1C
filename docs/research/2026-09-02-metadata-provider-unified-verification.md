@@ -58,6 +58,8 @@
   `C:\Users\pkhlu\AppData\Local\Temp\edt-mcp-yaxunit\QueryConsoleZUP_Benchmark_______________66942b5e21aabd26a3dc7dce2d041500ce979972\report.md`;
 - полный прогон:
   `C:\Users\pkhlu\AppData\Local\Temp\edt-mcp-yaxunit\QueryConsoleZUP_Benchmark_______________f5bb5924d9414cdb35a8d17172ae7fa38abd8c91\report.md`.
+- точечная проверка предусловия legacy-контекста после CodeRabbit review — 1/1:
+  `C:\Users\pkhlu\AppData\Local\Temp\edt-mcp-yaxunit\QueryConsoleZUP_Benchmark_______________732911bcb6b6c0ed8a7ea040dc269082ee691f56\report.md`.
 
 ### Vanessa MCP
 

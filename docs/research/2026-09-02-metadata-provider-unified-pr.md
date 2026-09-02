@@ -41,6 +41,7 @@ baseline-sidecar; вся старая серия удалена.
 ## Проверки
 
 - YAxUnit затронутых semantic/runtime-модулей: 46/46.
+- Точечный YAxUnit legacy-контекста после CodeRabbit review: 1/1.
 - YAxUnit поставщиков и прикладных потребителей: 65 passed, 2 известных
   headless skip.
 - Полный YAxUnit: 615 total, 611 passed, 1 известная локализационная ошибка,
