@@ -18,6 +18,17 @@ LEGACY_SOURCE = (
 )
 
 
+def test_separated_semantics_are_additive_public_api() -> None:
+    import parsergen
+
+    assert parsergen.__version__ == "0.2.0"
+    assert callable(parsergen.parse_syntax_grammar)
+    assert callable(parsergen.parse_semantic_profile)
+    assert callable(parsergen.bind_semantic_profile)
+    assert parsergen.SyntaxGrammar.__module__ == "parsergen.separated_model"
+    assert parsergen.SemanticProfile.__module__ == "parsergen.separated_model"
+
+
 def _legacy_module_text() -> str:
     parsed = parse_grammar(LEGACY_SOURCE, "legacy.grammar")
     assert parsed.diagnostics == ()

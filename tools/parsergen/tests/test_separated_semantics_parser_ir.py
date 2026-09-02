@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from dataclasses import fields, is_dataclass, replace
+from dataclasses import dataclass, fields, is_dataclass, replace
 
 from parsergen.analysis import compute_analysis
 from parsergen.canonical_select import build_canonical_decision_source
@@ -25,10 +25,20 @@ from parsergen.parser_ir import (
     ReturnConstant,
     build_parser_ir,
 )
+from parsergen.python_semantic_codegen import generate_python_semantic_parser
 from parsergen.resolver import resolve_grammar
 from parsergen.semantic_profile_binding import bind_semantic_profile
 from parsergen.semantic_profile_parser import parse_semantic_profile
 from parsergen.syntax_grammar_parser import parse_syntax_grammar
+
+
+@dataclass(frozen=True)
+class _Token:
+    type: str
+    text: str = ""
+    start: int = 0
+    end: int = 0
+    value: object | None = None
 
 
 def _semantic_shape(value: object) -> object:
@@ -140,6 +150,91 @@ def _compile(source_grammar, starts: tuple[str, ...]):
         entrypoint_productions=starts,
     )
     return lowering, resolution.grammar, analysis, parser_ir
+
+
+def _runtime_shape(value: object) -> object:
+    if is_dataclass(value):
+        return (
+            type(value).__name__,
+            tuple(
+                (field.name, _runtime_shape(getattr(value, field.name)))
+                for field in fields(value)
+            ),
+        )
+    if isinstance(value, tuple):
+        return tuple(_runtime_shape(item) for item in value)
+    return value
+
+
+def test_generated_combined_and_separated_parsers_are_executable_equivalents() -> None:
+    syntax_source = "#Name ::= ID\n<S> ::= [root] name: #Name '=' value: &NUMBER"
+    profile_source = """profile full
+<S>[root] {
+@Assignment
+Name = name
+Value = value
+Enabled := Истина
+}
+"""
+    combined_source = (
+        "#Name ::= ID\n"
+        "<S> ::= @Assignment Name = #Name '=' Value = &NUMBER Enabled := Истина"
+    )
+    separated = _separated(syntax_source, profile_source)
+    combined = _combined(combined_source)
+    _, _, _, separated_ir = _compile(separated, ("S",))
+    _, _, _, combined_ir = _compile(combined, ("S",))
+
+    separated_module = generate_python_semantic_parser(
+        separated,
+        separated_ir,
+        {"start": "S"},
+    ).module_text
+    combined_module = generate_python_semantic_parser(
+        combined,
+        combined_ir,
+        {"start": "S"},
+    ).module_text
+    separated_namespace: dict[str, object] = {}
+    combined_namespace: dict[str, object] = {}
+    exec(compile(separated_module, "<separated-parser>", "exec"), separated_namespace)
+    exec(compile(combined_module, "<combined-parser>", "exec"), combined_namespace)
+
+    tokens = (
+        _Token("ID", "Total", 0, 5),
+        _Token("=", "=", 6, 7),
+        _Token("NUMBER", "42", 8, 10, 42),
+    )
+    separated_parser = separated_namespace["GeneratedParser"]()
+    combined_parser = combined_namespace["GeneratedParser"]()
+    assert _runtime_shape(separated_parser.parse(tokens, "start")) == _runtime_shape(
+        combined_parser.parse(tokens, "start")
+    )
+
+    bad_tokens = (_Token("OTHER", "secret", 7, 13),)
+    separated_error_type = separated_namespace["GeneratedParseError"]
+    combined_error_type = combined_namespace["GeneratedParseError"]
+    try:
+        separated_parser.parse(bad_tokens, "start")
+    except separated_error_type as error:
+        separated_error = error
+    else:
+        raise AssertionError("separated parser accepted invalid tokens")
+    try:
+        combined_parser.parse(bad_tokens, "start")
+    except combined_error_type as error:
+        combined_error = error
+    else:
+        raise AssertionError("combined parser accepted invalid tokens")
+    assert (
+        separated_error.position,
+        separated_error.actual,
+        separated_error.expected,
+    ) == (
+        combined_error.position,
+        combined_error.actual,
+        combined_error.expected,
+    )
 
 
 def test_all_binding_modes_match_the_equivalent_combined_parser_ir() -> None:
