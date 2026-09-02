@@ -12,10 +12,11 @@ sidecar заявляли source commit
 ветки. По этим файлам нельзя воспроизвести измеренную feature-реализацию,
 поэтому прежние проценты и PASS gate больше не считаются доказательством.
 
-Недостоверные feature-sidecar удалены. Baseline-sidecar сохранены как
-исторические абсолютные измерения исходного commit
-0f0b17d3325216fd8af16f05ced9bc2c17021475; они не образуют сравнительный
-эксперимент без согласованного feature-run.
+Дополнительный аудит выявил такую же ошибку provenance во всех восьми
+baseline-sidecar: заявленный hash роли `semantic_visitor` не соответствует
+указанному пути на commit
+0f0b17d3325216fd8af16f05ced9bc2c17021475. Поэтому удалены все 16 JSON старой
+серии; ни baseline, ни feature из неё не считаются даже абсолютным evidence.
 
 ## Причина отбраковки
 
@@ -31,18 +32,16 @@ sidecar заявляли source commit
 Поиск заявленных SHA-256 по истории commit объединённой ветки не нашёл
 соответствующей зафиксированной ревизии.
 
-## Сохранённое baseline evidence
-
-- 2026-08-31-full-semantic-pipeline-lazy-baseline-1.json;
-- 2026-08-31-full-semantic-pipeline-lazy-baseline-2.json;
-- 2026-08-31-full-semantic-pipeline-lazy-repeat-baseline-1.json;
-- 2026-08-31-full-semantic-pipeline-lazy-repeat-baseline-2.json;
-- 2026-08-31-full-semantic-pipeline-real-baseline-1.json;
-- 2026-08-31-full-semantic-pipeline-real-baseline-2.json;
-- 2026-08-31-full-semantic-pipeline-real-repeat-baseline-1.json;
-- 2026-08-31-full-semantic-pipeline-real-repeat-baseline-2.json.
+В baseline-sidecar роль `semantic_visitor` указывала путь
+`QueryConsoleZUP/src/CommonModules/СемантическийАнализВыраженийУтилиты/Module.bsl`
+и SHA-256
+`ed5203371bd5184aec7e313e8f0afa079df76fb70111814ecf7a58572b1aec2f`.
+Фактический normalized UTF-8 LF hash этого файла на commit `0f0b17d` равен
+`456e756460c12d76af53c69fb28dfe76638b009a91c92ad60f7e16246cbd2b01`;
+фактический object module посетителя имеет hash
+`983032bd476dcde42414b3fca9f725574896c3c77dcd1913c1dd267a2add7a52`.
 
 Новый корректный absolute feature-run публикуется отдельно в
 2026-09-02-metadata-provider-unified-verification.md. Сравнительный old/new
-verdict допустим только после нового согласованного baseline-run с теми же
-corpora, runtime, methodology и проверяемым provenance.
+verdict допустим только после полностью новой согласованной серии с теми же
+corpora, runtime, methodology и проверяемым provenance обеих реализаций.

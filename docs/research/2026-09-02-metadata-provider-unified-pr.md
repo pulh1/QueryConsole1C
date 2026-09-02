@@ -34,8 +34,9 @@ Code commit `62c21c440cec1a14586c4ab0389a320f40fea6c7`:
 
 Benchmark descriptor commit `410ca1f6d170bd6a9efd4ec6b6ed065968f1b870`
 фиксирует все 10 artifact hash и source commit production-кода `62c21c4`.
-В commit `7538f57` удалены восемь feature-sidecar с недоказуемым provenance;
-исторические baseline-sidecar сохранены.
+В commit `7538f57` удалены восемь feature-sidecar с недоказуемым provenance.
+Последующий аудит выявил неверный hash semantic visitor и во всех восьми
+baseline-sidecar; вся старая серия удалена.
 
 ## Проверки
 
