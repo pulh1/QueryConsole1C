@@ -103,14 +103,17 @@ def parse_semantic_profile(
             _error(bag, "SPP100", "profile declaration is malformed", line.span(stripped_start, len(content.rstrip())))
             continue
 
-        selector = _SELECTOR_PREFIX.match(content, stripped_start)
+        block_start = content.find("{", stripped_start)
+        selector_end = block_start if block_start >= 0 else len(content)
+        while selector_end > stripped_start and content[selector_end - 1] in " \t":
+            selector_end -= 1
+        selector = _SELECTOR_PREFIX.fullmatch(content, stripped_start, selector_end)
         if selector is not None:
-            after_selector = _skip_space(content, selector.end())
-            if after_selector >= len(content) or content[after_selector] != "{":
-                _error(bag, "SPP102", "semantic profile block is malformed", line.span(selector.end(), selector.end()))
+            if block_start < 0:
+                _error(bag, "SPP102", "semantic profile block is malformed", line.span(selector_end, selector_end))
                 continue
-            if not _only_space(content, after_selector + 1):
-                _error(bag, "SPP102", "semantic profile block is malformed", line.span(after_selector, after_selector + 1))
+            if not _only_space(content, block_start + 1):
+                _error(bag, "SPP102", "semantic profile block is malformed", line.span(block_start, block_start + 1))
                 continue
             current = _AlternativeBuilder(
                 selector.group("production"),
@@ -253,12 +256,6 @@ def _first_nonspace(text: str) -> int | None:
         if char not in " \t":
             return index
     return None
-
-
-def _skip_space(text: str, start: int) -> int:
-    while start < len(text) and text[start] in " \t":
-        start += 1
-    return start
 
 
 def _only_space(text: str, start: int) -> bool:

@@ -104,3 +104,13 @@ def test_reports_sanitized_diagnostics_for_malformed_profiles() -> None:
         assert diagnostic.span.path == path
         assert (diagnostic.span.start.line, diagnostic.span.start.column) == (line, column)
         assert source_literal not in diagnostic.message
+
+
+def test_rejects_unterminated_and_extra_delimiter_alternative_selectors() -> None:
+    for selector in ("<S>[broken {", "<S>[broken]] {"):
+        result = parse_semantic_profile(
+            f"profile worker\n{selector}\n",
+            "selector.semantic",
+        )
+
+        assert [item.code for item in result.diagnostics] == ["SPP101"]
