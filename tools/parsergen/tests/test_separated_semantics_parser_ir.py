@@ -167,31 +167,37 @@ def _runtime_shape(value: object) -> object:
 
 
 def test_generated_combined_and_separated_parsers_are_executable_equivalents() -> None:
-    syntax_source = "#Name ::= ID\n<S> ::= [root] name: #Name '=' value: &NUMBER"
+    syntax_source = (
+        "#Name ::= ID\n"
+        "<S> ::= [root] name: #Name '=' value: &NUMBER items: ITEM+"
+    )
     profile_source = """profile full
 <S>[root] {
 @Assignment
 Name = name
 Value = value
+Items += items
 Enabled := Истина
 }
 """
     combined_source = (
         "#Name ::= ID\n"
-        "<S> ::= @Assignment Name = #Name '=' Value = &NUMBER Enabled := Истина"
+        "<S> ::= @Assignment Name = #Name '=' Value = &NUMBER Items += ITEM+ "
+        "Enabled := Истина"
     )
-    separated = _separated(syntax_source, profile_source)
-    combined = _combined(combined_source)
-    _, _, _, separated_ir = _compile(separated, ("S",))
-    _, _, _, combined_ir = _compile(combined, ("S",))
+    _, _, _, separated_ir = _compile(
+        _separated(syntax_source, profile_source),
+        ("S",),
+    )
+    _, _, _, combined_ir = _compile(_combined(combined_source), ("S",))
 
     separated_module = generate_python_semantic_parser(
-        separated,
+        separated_ir.source_grammar,
         separated_ir,
         {"start": "S"},
     ).module_text
     combined_module = generate_python_semantic_parser(
-        combined,
+        combined_ir.source_grammar,
         combined_ir,
         {"start": "S"},
     ).module_text
@@ -204,12 +210,18 @@ Enabled := Истина
         _Token("ID", "Total", 0, 5),
         _Token("=", "=", 6, 7),
         _Token("NUMBER", "42", 8, 10, 42),
+        _Token("ITEM", "first", 11, 16),
+        _Token("ITEM", "second", 17, 23),
     )
     separated_parser = separated_namespace["GeneratedParser"]()
     combined_parser = combined_namespace["GeneratedParser"]()
-    assert _runtime_shape(separated_parser.parse(tokens, "start")) == _runtime_shape(
-        combined_parser.parse(tokens, "start")
-    )
+    separated_result = separated_parser.parse(tokens, "start")
+    combined_result = combined_parser.parse(tokens, "start")
+    separated_shape = _runtime_shape(separated_result)
+    combined_shape = _runtime_shape(combined_result)
+    assert separated_shape == combined_shape
+    assert ("Items", ("ITEM", "ITEM")) in separated_shape[1]
+    assert ("Items", ("ITEM", "ITEM")) in combined_shape[1]
 
     bad_tokens = (_Token("OTHER", "secret", 7, 13),)
     separated_error_type = separated_namespace["GeneratedParseError"]

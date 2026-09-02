@@ -625,14 +625,15 @@ contains only terminals, identifiers, nonterminal calls, groups, EBNF and
 parameters. It gives profile-addressable alternatives and primaries stable names:
 
 ```text
-#Name ::= ID
+#Имя ::= ID
 
-<Assignment> ::= [simple] target: #Name '=' value: <Expression>
+<Присваивание> ::=
+    [simple] target: #Имя '=' value: <Выражение>
 
-<AccessChain> ::= [direct] root: #Name arguments: <CallArguments>?
-                         postfix: <AccessPostfix>*
-                | [parenthesized] root: '(' <Expression> ')'
-                                  postfix: <AccessPostfix>*
+<ЦепочкаДоступа> ::= [direct] root: #Имя arguments: <АргументыВызова>?
+             postfix: <ПостфиксДоступа>*
+  | [parenthesized] root: '(' <Выражение> ')'
+                    postfix: <ПостфиксДоступа>*
 ```
 
 `[name]` must begin an alternative. `name:` immediately precedes the complete
@@ -648,14 +649,14 @@ declarative vocabulary:
 ```text
 profile worker
 
-<Assignment>[simple] {
+<Присваивание>[simple] {
     @Assignment
     Target = target
     Value = value
     IsSimple := Истина
 }
 
-<AccessChain>[direct] {
+<ЦепочкаДоступа>[direct] {
     @AccessChain
     Root = root
     Arguments = arguments
