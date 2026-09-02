@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from dataclasses import fields, is_dataclass
+from dataclasses import fields, is_dataclass, replace
 
 from parsergen.analysis import compute_analysis
 from parsergen.canonical_select import build_canonical_decision_source
@@ -18,6 +18,7 @@ from parsergen.parser_ir import (
     DiscardSymbol,
     Dispatch,
     LeftFold,
+    ParserIr,
     ParseBranchValue,
     ParseSymbol,
     RepeatLoop,
@@ -51,6 +52,57 @@ def _semantic_shape(value: object) -> object:
             )
         )
     return value
+
+
+def _parser_ir_non_operation_shape(
+    parser_ir: ParserIr,
+    *,
+    excluded_productions: frozenset[str] = frozenset(),
+) -> object:
+    lowered_source = lower_source_grammar(parser_ir.source_grammar)
+    assert lowered_source.diagnostics == ()
+    return (
+        (
+            "productions",
+            tuple(
+                (
+                    "ProductionIr",
+                    (
+                        ("name", production.name),
+                        ("parameters", production.parameters),
+                        (
+                            "alternatives",
+                            tuple(
+                                (
+                                    "AlternativeIr",
+                                    (
+                                        ("index", alternative.index),
+                                        ("result_index", alternative.result_index),
+                                        (
+                                            "source_span",
+                                            _semantic_shape(alternative.source_span),
+                                        ),
+                                    ),
+                                )
+                                for alternative in production.alternatives
+                            ),
+                        ),
+                        ("decision", _semantic_shape(production.decision)),
+                        ("source_span", _semantic_shape(production.source_span)),
+                    ),
+                )
+                for production in parser_ir.productions
+                if production.name not in excluded_productions
+            ),
+        ),
+        ("matcher_definitions", _semantic_shape(parser_ir.matcher_definitions)),
+        ("lookahead", parser_ir.lookahead),
+        ("source_grammar", _semantic_shape(lowered_source.grammar)),
+        (
+            "entrypoint_productions",
+            tuple(sorted(parser_ir.entrypoint_productions)),
+        ),
+    )
 
 
 def _combined(source: str):
@@ -316,7 +368,15 @@ Text = token
 }
 """,
     )
-    compact = _separated(syntax_source, "profile compact\n")
+    compact = _separated(
+        syntax_source,
+        """profile compact
+<S>[root] {
+@Root
+Child = child
+}
+""",
+    )
 
     full_lowering, full_resolved, full_analysis, full_ir = _compile(full, ("S",))
     compact_lowering, compact_resolved, compact_analysis, compact_ir = _compile(
@@ -355,6 +415,10 @@ Text = token
     assert full_ir.matcher_definitions == compact_ir.matcher_definitions
     assert full_ir.lookahead == compact_ir.lookahead == 1
     assert full_ir.entrypoint_productions == compact_ir.entrypoint_productions
+    assert _parser_ir_non_operation_shape(
+        full_ir,
+        excluded_productions=frozenset({"Wrapper"}),
+    ) == _parser_ir_non_operation_shape(compact_ir)
     full_value = next(
         production for production in full_ir.productions if production.name == "Value"
     )
@@ -366,13 +430,136 @@ Text = token
     assert _semantic_shape(full_value.decision) == _semantic_shape(
         compact_value.decision
     )
-    assert [
-        type(operation)
-        for operation in full_ir.productions[0].alternatives[0].operations
-    ] == [ConstructNode, BindScalar]
-    compact_start = compact_ir.productions[0].alternatives[0]
-    assert compact_start.result_index == 0
-    assert [type(operation) for operation in compact_start.operations] == [
-        ParseSymbol
+    full_start_production = full_ir.productions[0]
+    compact_start_production = compact_ir.productions[0]
+    full_start = full_start_production.alternatives[0]
+    compact_start = compact_start_production.alternatives[0]
+    assert full_start.result_index is compact_start.result_index is None
+    assert [type(operation) for operation in full_start.operations] == [
+        ConstructNode,
+        BindScalar,
     ]
-    assert compact_start.operations[0].symbol.name == "Value"
+    assert [type(operation) for operation in compact_start.operations] == [
+        ConstructNode,
+        BindScalar,
+    ]
+    full_child = full_start.operations[1]
+    compact_child = compact_start.operations[1]
+    assert isinstance(full_child, BindScalar)
+    assert isinstance(compact_child, BindScalar)
+    assert isinstance(full_child.value, ParseSymbol)
+    assert full_child.value.symbol.name == "Wrapper"
+    assert isinstance(compact_child.value, ParseBranchValue)
+    assert compact_child.value.result_index == 0
+    assert len(compact_child.value.operations) == 1
+    compact_child_operation = compact_child.value.operations[0]
+    assert isinstance(compact_child_operation, ParseSymbol)
+    assert compact_child_operation.symbol.name == "Value"
+    assert all(
+        [type(operation) for operation in alternative.operations]
+        == [ConstructNode, BindScalar]
+        for alternative in full_value.alternatives
+    )
+    assert all(
+        [type(operation) for operation in alternative.operations]
+        == [ParseSymbol]
+        for alternative in compact_value.alternatives
+    )
+
+    compact_shape = _parser_ir_non_operation_shape(compact_ir)
+    compact_start_alternative = compact_start_production.alternatives[0]
+    structural_mutations = (
+        replace(
+            compact_ir,
+            productions=(
+                replace(compact_start_production, name="ChangedS"),
+                *compact_ir.productions[1:],
+            ),
+        ),
+        replace(
+            compact_ir,
+            productions=(
+                replace(compact_start_production, parameters=("P",)),
+                *compact_ir.productions[1:],
+            ),
+        ),
+        replace(
+            compact_ir,
+            productions=(
+                replace(compact_start_production, alternatives=()),
+                *compact_ir.productions[1:],
+            ),
+        ),
+        replace(
+            compact_ir,
+            productions=(
+                replace(
+                    compact_start_production,
+                    alternatives=(
+                        replace(compact_start_alternative, index=7),
+                    ),
+                ),
+                *compact_ir.productions[1:],
+            ),
+        ),
+        replace(
+            compact_ir,
+            productions=(
+                replace(
+                    compact_start_production,
+                    alternatives=(
+                        replace(compact_start_alternative, result_index=0),
+                    ),
+                ),
+                *compact_ir.productions[1:],
+            ),
+        ),
+        replace(
+            compact_ir,
+            productions=(
+                replace(compact_start_production, decision=compact_value.decision),
+                *compact_ir.productions[1:],
+            ),
+        ),
+        replace(compact_ir, matcher_definitions=compact_ir.matcher_definitions[:-1]),
+        replace(compact_ir, lookahead=2),
+        replace(compact_ir, entrypoint_productions=frozenset({"Value"})),
+        replace(
+            compact_ir,
+            source_grammar=replace(compact_ir.source_grammar, path="changed.grammar"),
+        ),
+    )
+    assert all(
+        _parser_ir_non_operation_shape(mutated) != compact_shape
+        for mutated in structural_mutations
+    )
+    operation_only_mutation = replace(
+        compact_ir,
+        productions=(
+            replace(
+                compact_start_production,
+                alternatives=(
+                    replace(compact_start_alternative, operations=()),
+                ),
+            ),
+            *compact_ir.productions[1:],
+        ),
+    )
+    assert _parser_ir_non_operation_shape(operation_only_mutation) == compact_shape
+    span_only_mutation = replace(
+        compact_ir,
+        productions=(
+            replace(
+                compact_start_production,
+                source_span=compact_value.source_span,
+                alternatives=(
+                    replace(
+                        compact_start_alternative,
+                        source_span=compact_value.alternatives[0].source_span,
+                    ),
+                ),
+            ),
+            *compact_ir.productions[1:],
+        ),
+    )
+    assert _parser_ir_non_operation_shape(span_only_mutation) == compact_shape
