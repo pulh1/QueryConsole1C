@@ -84,3 +84,9 @@ class SemanticProfile:
 class SemanticProfileParseResult:
     profile: SemanticProfile | None
     diagnostics: tuple[Diagnostic, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class SemanticBindingResult:
+    source_grammar: SourceGrammar | None
+    diagnostics: tuple[Diagnostic, ...]
