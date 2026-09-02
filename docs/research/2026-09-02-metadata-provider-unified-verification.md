@@ -36,19 +36,28 @@
 
 ### YAxUnit
 
-Фокусные suites на актуальной ветке:
+Фокусные suites после исправления замечаний независимого review:
 
 - поставщики и реестр: 44/44;
-- семантика: 29/29;
-- прикладные потребители: 21 passed из 23, два известных headless skip из-за
+- семантика, исполняемые представления и построение/генерация: 46/46
+  (`30 + 9 + 7`);
+- поставщики и прикладные потребители совместно: 65 passed из 67, два
+  известных headless skip из-за
   отсутствия `FindByID` у `ДеревоЗначений`;
-- исполняемые представления: 9/9;
-- построение и генерация запросов: 7/7.
 
-Полный прогон: 613 тестов, 609 passed, 1 failed, 3 skipped. Ошибка
+Полный прогон: 615 тестов, 611 passed, 1 failed, 3 skipped. Ошибка
 `КОНС_Обр_Парсер_МО.НеизвестныйУзелВыраженияВызываетИсключениеГенератораТекста`
 ожидала русский текст исключения, а платформа вернула английский. Точный тест
 повторён на чистом `master` с тем же результатом.
+
+Отчёты свежих прогонов EDT-MCP:
+
+- 46/46:
+  `C:\Users\pkhlu\AppData\Local\Temp\edt-mcp-yaxunit\QueryConsoleZUP_Benchmark_______________282da3d3310e3faea2feac2196be07dc7e3d6ec1\report.md`;
+- 65 passed, 2 skipped:
+  `C:\Users\pkhlu\AppData\Local\Temp\edt-mcp-yaxunit\QueryConsoleZUP_Benchmark_______________66942b5e21aabd26a3dc7dce2d041500ce979972\report.md`;
+- полный прогон:
+  `C:\Users\pkhlu\AppData\Local\Temp\edt-mcp-yaxunit\QueryConsoleZUP_Benchmark_______________f5bb5924d9414cdb35a8d17172ae7fa38abd8c91\report.md`.
 
 ### Vanessa MCP
 
@@ -85,13 +94,11 @@ EDT содержит существующий фон диагностик. Ум�
 
 ## Производительность
 
-Сбалансированный benchmark полного пути от текста до непустой семантической
-модели опубликован отдельно в
-`docs/research/2026-08-31-real-query-semantic-benchmark.md` вместе с raw JSON.
-На 42 реальных запросах feature была медленнее baseline по median на 5,5%, но
-лучше по p95 на 4,0%. На крупнейшем пакете median была хуже на 12,1%, p95 — на
-9,9%. Все сравнения прошли установленный gate: median не хуже 1,25× baseline,
-p95 не хуже 1,50× baseline.
+Сравнение от 2026-08-31 аннулировано после аудита provenance: восемь
+feature-sidecar не соответствовали заявленному source commit. Подробности и
+точные несовпавшие хэши приведены в
+`docs/research/2026-08-31-real-query-semantic-benchmark.md`. Старые проценты и
+PASS gate больше не используются как доказательство old/new.
 
 Для текущей объединённой реализации дополнительно выполнен один финальный
 timed-прогон регистрации
@@ -102,27 +109,29 @@ timed-прогон регистрации
 
 | Корпус | Операций в sample | Median, ms | P95, ms | CV |
 | --- | ---: | ---: | ---: | ---: |
-| `semantic_contract` | 7 | 20,50 | 29,00 | 27,12% |
-| `repeated_standard_source` | 16 | 3,31 | 4,06 | 17,31% |
-| `semantic_query_examples_all_42` | 42 | 725,50 | 776,00 | 6,69% |
-| `semantic_large_package` | 1 | 76,50 | 126,00 | 21,62% |
+| `semantic_contract` | 14 | 16,50 | 26,50 | 23,75% |
+| `repeated_standard_source` | 16 | 3,09375 | 4,6875 | 19,89% |
+| `semantic_query_examples_all_42` | 42 | 708,00 | 870,00 | 9,90% |
+| `semantic_large_package` | 1 | 69,00 | 84,00 | 11,98% |
 
 Для корпуса 42 запросов нормализованная median одного запроса равна примерно
-17,27 ms. Это деление времени полного прохода корпуса на 42, а не
+16,86 ms. Это деление времени полного прохода корпуса на 42, а не
 распределение индивидуальных задержек.
 
 Raw artifact:
-`docs/superpowers/matrices/2026-09-02-full-semantic-pipeline-unified-f3c1c08.json`,
+`docs/superpowers/matrices/2026-09-02-full-semantic-pipeline-unified-62c21c4.json`,
 SHA-256
-`E47A05214B9E56326E6B1778852FFB855A838F6DE28E61560AA17F1A0A5F98AA`.
+`C0CF9F50D1E5D9024E24BAF6058AAA38EED345C113A2AEFDEE25D963AAC78C9C`.
 Исходный sidecar скопирован без изменения байтов. Проверены schema 2, 10
 artifact rows и их хэши, четыре корпуса, порядок и идентичность входов,
 3 warmup, 20 положительных samples и platform `8.3.27.2170`.
+JUnit-отчёт exact-run:
+`C:\Users\pkhlu\AppData\Local\Temp\edt-mcp-yaxunit\QueryConsoleZUP_Benchmark_______________d1ea4c5826d9f8585074621b8d8fc6ddd5852ab1\report.md`.
 
 Один новый feature-run даёт абсолютные числа и внутрисерийную вариативность,
-но не заменяет контрбалансированный verdict. Сравнительный вывод old/current
-поэтому остаётся за опубликованной серией от 2026-08-31; текущий результат не
-смешивается с её baseline как новый парный эксперимент.
+но не заменяет контрбалансированный verdict. Корректный сравнительный вывод
+old/current требует нового согласованного baseline-run и зеркальной серии;
+текущий результат с историческими baseline-файлами не смешивается.
 
 ## Известные ограничения
 
