@@ -64,6 +64,38 @@ def _semantic_shape(value: object) -> object:
     return value
 
 
+def _provenance_normalized_semantic_shape(value: object) -> object:
+    if isinstance(value, SourceSpan):
+        return "<span>"
+    if is_dataclass(value):
+        normalized_fields = []
+        for field in fields(value):
+            field_value = getattr(value, field.name)
+            if field.name == "path" and isinstance(field_value, str):
+                normalized_value = "<source-path>"
+            else:
+                normalized_value = _provenance_normalized_semantic_shape(
+                    field_value
+                )
+            normalized_fields.append((field.name, normalized_value))
+        return type(value).__name__, tuple(normalized_fields)
+    if isinstance(value, tuple):
+        return tuple(
+            _provenance_normalized_semantic_shape(item) for item in value
+        )
+    if isinstance(value, Mapping):
+        return tuple(
+            sorted(
+                (
+                    key,
+                    _provenance_normalized_semantic_shape(item),
+                )
+                for key, item in value.items()
+            )
+        )
+    return value
+
+
 def _parser_ir_non_operation_shape(
     parser_ir: ParserIr,
     *,
@@ -164,6 +196,68 @@ def _runtime_shape(value: object) -> object:
     if isinstance(value, tuple):
         return tuple(_runtime_shape(item) for item in value)
     return value
+
+
+def test_different_paths_preserve_raw_provenance_but_not_semantic_identity() -> None:
+    syntax_source = "#Name ::= ID\n<S> ::= [root] name: #Name"
+    profile_source = (
+        "profile worker\n"
+        "<S>[root] {\n"
+        "    @Named\n"
+        "    Name = name\n"
+        "}\n"
+    )
+
+    first_syntax = parse_syntax_grammar(syntax_source, "first.syntax")
+    second_syntax = parse_syntax_grammar(syntax_source, "second.syntax")
+    first_profile = parse_semantic_profile(profile_source, "first.semantic")
+    second_profile = parse_semantic_profile(profile_source, "second.semantic")
+    assert first_syntax.grammar is not None
+    assert second_syntax.grammar is not None
+    assert first_profile.profile is not None
+    assert second_profile.profile is not None
+
+    first_binding = bind_semantic_profile(
+        first_syntax.grammar,
+        first_profile.profile,
+    )
+    second_binding = bind_semantic_profile(
+        second_syntax.grammar,
+        second_profile.profile,
+    )
+    assert first_binding.source_grammar is not None
+    assert second_binding.source_grammar is not None
+    first_source = first_binding.source_grammar
+    second_source = second_binding.source_grammar
+    _, _, _, first_ir = _compile(first_source, ("S",))
+    _, _, _, second_ir = _compile(second_source, ("S",))
+
+    assert first_syntax.grammar.path == "first.syntax"
+    assert second_syntax.grammar.path == "second.syntax"
+    assert first_profile.profile.path == "first.semantic"
+    assert second_profile.profile.path == "second.semantic"
+    assert first_source.path == "first.syntax"
+    assert second_source.path == "second.syntax"
+    assert first_source != second_source
+    assert first_ir != second_ir
+    assert _provenance_normalized_semantic_shape(
+        first_source
+    ) == _provenance_normalized_semantic_shape(second_source)
+    assert _provenance_normalized_semantic_shape(
+        first_ir
+    ) == _provenance_normalized_semantic_shape(second_ir)
+
+    first_module = generate_python_semantic_parser(
+        first_source,
+        first_ir,
+        {"start": "S"},
+    ).module_text
+    second_module = generate_python_semantic_parser(
+        second_source,
+        second_ir,
+        {"start": "S"},
+    ).module_text
+    assert first_module == second_module
 
 
 def test_generated_combined_and_separated_parsers_are_executable_equivalents() -> None:

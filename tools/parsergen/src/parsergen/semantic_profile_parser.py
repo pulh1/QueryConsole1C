@@ -185,6 +185,13 @@ def _parse_block_line(
         span = line.span(start, constructor.end())
         if current.constructor is not None:
             _error(bag, "SPP103", "semantic profile constructor is duplicated", span)
+        elif current.anchor_bindings or current.constants:
+            _error(
+                bag,
+                "SPP103",
+                "semantic profile constructor must precede semantic statements",
+                span,
+            )
         else:
             current.constructor = constructor.group("name")
             current.constructor_span = span

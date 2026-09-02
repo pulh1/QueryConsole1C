@@ -704,10 +704,21 @@ locations; syntax annotation declaration errors use their syntax spans.
 Syntax and semantic files are independently identified by SHA-256 of their
 exact UTF-8 source bytes; their paths are excluded. Consumer parser-artifact
 identity is the composition of syntax SHA-256, semantic-profile SHA-256,
-parsergen package identity, and codegen options/entrypoints. Thus identical
-bytes and options produce the same bound grammar, Parser IR and generated module
-text without depending on dictionary order, filesystem timestamps or absolute
-paths.
+parsergen package identity, and codegen options/entrypoints. Raw
+`SyntaxGrammar`, `SemanticProfile`, bound `SourceGrammar`, and `ParserIr` retain
+their source-file paths and `SourceSpan.path`; their dataclass equality is
+intentionally provenance-sensitive so exact primary and related diagnostic
+locations are never stripped from production models.
+
+Path-independent determinism means equality of a provenance-normalized semantic
+shape plus byte-identical generated artifacts. The normalized shape recursively
+replaces every `SourceSpan` with one sentinel and the string source-file `path`
+fields on `SyntaxGrammar`, `SemanticProfile`, and `SourceGrammar` with another.
+Numeric tuple paths that address syntax items remain unchanged because they are
+semantic structure, not filesystem provenance. With identical bytes and
+options, different absolute paths therefore yield equal normalized
+`SourceGrammar`/`ParserIr` shapes and identical generated `module_text`;
+dictionary order and filesystem timestamps likewise do not affect the artifact.
 
 ## Python semantic target
 

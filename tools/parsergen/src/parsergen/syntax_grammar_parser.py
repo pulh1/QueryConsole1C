@@ -4,7 +4,14 @@ from dataclasses import dataclass
 import hashlib
 import re
 
-from .diagnostics import Diagnostic, DiagnosticBag, Severity, SourcePosition, SourceSpan
+from .diagnostics import (
+    Diagnostic,
+    DiagnosticBag,
+    RelatedLocation,
+    Severity,
+    SourcePosition,
+    SourceSpan,
+)
 from .grammar_parser import parse_source_grammar
 from .model import Action
 from .separated_model import (
@@ -199,9 +206,6 @@ def _scan_body(
             index += 1
             continue
         if after_angle:
-            if char.isspace():
-                index += 1
-                continue
             after_angle = False
             if char == "(":
                 argument_depth = 1
@@ -253,10 +257,16 @@ def _scan_body(
                     )
                 )
                 _blank(masked, index, end)
+                alternative_starts[-1] = False
                 index = end
                 continue
         match = _IDENTIFIER.match(text, index)
-        if match is not None and match.end() < body.end and text[match.end()] == ":":
+        if (
+            match is not None
+            and _is_anchor_identifier_start(text, body.start, index)
+            and match.end() < body.end
+            and text[match.end()] == ":"
+        ):
             end = match.end() + 1
             target_offset = end
             while target_offset < body.end and text[target_offset].isspace():
@@ -275,6 +285,13 @@ def _scan_body(
         if not char.isspace():
             alternative_starts[-1] = False
         index += 1
+
+
+def _is_anchor_identifier_start(text: str, body_start: int, index: int) -> bool:
+    if index == body_start:
+        return True
+    previous = text[index - 1]
+    return previous.isspace() or previous in "'()>?*+|]"
 
 
 def _blank(masked: list[str], start: int, end: int) -> None:
@@ -344,12 +361,9 @@ def _resolve_alternatives(
     bag: DiagnosticBag,
 ) -> list[SyntaxAlternativeName]:
     named: list[SyntaxAlternativeName] = []
-    seen: set[tuple[str, str]] = set()
+    names: dict[tuple[str, str], SourceSpan] = {}
+    paths: dict[tuple[str, tuple[int, ...]], SourceSpan] = {}
     for annotation in annotations:
-        key = (annotation.production, annotation.name)
-        if key in seen:
-            _error(bag, "SGP101", "duplicate alternative name", annotation.span)
-        seen.add(key)
         if not annotation.at_alternative_start:
             _error(bag, "SGP104", "unresolved syntax annotation", annotation.span)
             continue
@@ -363,6 +377,40 @@ def _resolve_alternatives(
             _error(bag, "SGP104", "unresolved syntax annotation", annotation.span)
             continue
         location = min(candidates, key=lambda item: item.span.start.offset)
+        name_key = (annotation.production, annotation.name)
+        first_name_span = names.get(name_key)
+        if first_name_span is not None:
+            _error(
+                bag,
+                "SGP101",
+                "duplicate alternative name",
+                annotation.span,
+                (
+                    RelatedLocation(
+                        "first alternative name is declared here",
+                        first_name_span,
+                    ),
+                ),
+            )
+            continue
+        path_key = (annotation.production, location.path)
+        first_path_span = paths.get(path_key)
+        if first_path_span is not None:
+            _error(
+                bag,
+                "SGP101",
+                "alternative already has a name",
+                annotation.span,
+                (
+                    RelatedLocation(
+                        "first alternative name is declared here",
+                        first_path_span,
+                    ),
+                ),
+            )
+            continue
+        names[name_key] = annotation.span
+        paths[path_key] = annotation.span
         named.append(
             SyntaxAlternativeName(
                 annotation.production,
@@ -382,16 +430,29 @@ def _resolve_anchors(
 ) -> list[SyntaxAnchor]:
     names_by_path = {(item.production, item.path): item.name for item in alternatives}
     anchors: list[SyntaxAnchor] = []
-    seen: set[tuple[str, tuple[int, ...], str]] = set()
+    seen: dict[tuple[str, tuple[int, ...], str], SourceSpan] = {}
     for annotation in annotations:
         location = items.get((annotation.production, annotation.target_offset))
         if location is None:
             _error(bag, "SGP104", "unresolved syntax annotation", annotation.span)
             continue
         key = (annotation.production, location.alternative_path, annotation.name)
-        if key in seen:
-            _error(bag, "SGP102", "duplicate anchor name", annotation.span)
-        seen.add(key)
+        first_span = seen.get(key)
+        if first_span is not None:
+            _error(
+                bag,
+                "SGP102",
+                "duplicate anchor name",
+                annotation.span,
+                (
+                    RelatedLocation(
+                        "first anchor name is declared here",
+                        first_span,
+                    ),
+                ),
+            )
+            continue
+        seen[key] = annotation.span
         anchors.append(
             SyntaxAnchor(
                 annotation.name,
@@ -440,5 +501,11 @@ def _span(text: str, path: str, start: int, end: int) -> SourceSpan:
     return SourceSpan(path, position(start), position(end))
 
 
-def _error(bag: DiagnosticBag, code: str, message: str, span: SourceSpan) -> None:
-    bag.add(Diagnostic(code, Severity.ERROR, message, span))
+def _error(
+    bag: DiagnosticBag,
+    code: str,
+    message: str,
+    span: SourceSpan,
+    related: tuple[RelatedLocation, ...] = (),
+) -> None:
+    bag.add(Diagnostic(code, Severity.ERROR, message, span, related))

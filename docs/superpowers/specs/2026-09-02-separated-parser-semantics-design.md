@@ -225,9 +225,22 @@ syntax source SHA-256
 + codegen options / entrypoints
 ```
 
-Одинаковые bytes и options дают одинаковый bound grammar, Parser IR и generated
-`module_text`. Порядок словарей, filesystem timestamps и абсолютные paths на
-результат не влияют.
+Raw `SyntaxGrammar`, `SemanticProfile`, bound `SourceGrammar` и `ParserIr`
+сохраняют переданные paths и `SourceSpan.path`. Их обычная dataclass equality
+поэтому намеренно чувствительна к provenance: одинаковые bytes, прочитанные из
+разных paths, не обязаны давать равные raw models. Production models не должны
+удалять или переписывать эту provenance, потому что она нужна точным primary и
+related diagnostic locations.
+
+Path-independent determinism определяется равенством
+provenance-normalized semantic shape и равенством generated artifacts. Для
+такой формы каждый `SourceSpan` рекурсивно заменяется одним sentinel, а строковые
+source-file поля `SyntaxGrammar.path`, `SemanticProfile.path` и
+`SourceGrammar.path` — другим sentinel. Внутренние tuple paths адресов syntax
+items не нормализуются: они являются semantic structure, а не filesystem
+provenance. При одинаковых bytes и options разные абсолютные paths дают равные
+normalized `SourceGrammar`/`ParserIr` и byte-identical generated `module_text`.
+Порядок словарей и filesystem timestamps также не влияют на generated artifact.
 
 ## 8. Проверки
 

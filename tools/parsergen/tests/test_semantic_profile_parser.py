@@ -114,3 +114,25 @@ def test_rejects_unterminated_and_extra_delimiter_alternative_selectors() -> Non
         )
 
         assert [item.code for item in result.diagnostics] == ["SPP101"]
+
+
+def test_rejects_constructor_after_discard_statement() -> None:
+    result = parse_semantic_profile(
+        "profile worker\n"
+        "<S> {\n"
+        "    -= ignored\n"
+        "    @Node\n"
+        "}\n",
+        "late-constructor.semantic",
+    )
+
+    assert result.profile is None
+    assert [
+        (
+            diagnostic.code,
+            diagnostic.span.start.line,
+            diagnostic.span.start.column,
+            diagnostic.span.end.column,
+        )
+        for diagnostic in result.diagnostics
+    ] == [("SPP103", 4, 5, 10)]
