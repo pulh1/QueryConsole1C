@@ -29,7 +29,7 @@ from .source_model import (
 
 _IDENTIFIER = re.compile(r"[A-Za-zА-Яа-яЁё_][0-9A-Za-zА-Яа-яЁё_]*")
 _DECLARATION = re.compile(
-    r"(?m)^[ \t]*(?P<header>#[A-Za-zА-Яа-яЁё_][0-9A-Za-zА-Яа-яЁё_]*|<[^\r\n>]+>)"
+    r"(?m)^[ \t]*(?P<header>#[ \t]*[A-Za-zА-Яа-яЁё_][0-9A-Za-zА-Яа-яЁё_]*|<[^\r\n>]+>)"
     r"[ \t]*(?:\([^\r\n]*\))?[ \t]*::="
 )
 
@@ -46,6 +46,7 @@ class _AlternativeAnnotation:
     production: str
     name: str
     span: SourceSpan
+    at_alternative_start: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -145,6 +146,7 @@ def _scan_body(
     angle_depth = 0
     argument_depth = 0
     after_angle = False
+    alternative_starts = [True]
     while index < body.end:
         char = text[index]
         if line_comment:
@@ -206,10 +208,12 @@ def _scan_body(
                 index += 1
                 continue
         if char == "'":
+            alternative_starts[-1] = False
             lexeme_quote = True
             index += 1
             continue
         if char == "{":
+            alternative_starts[-1] = False
             action_depth = 1
             index += 1
             continue
@@ -218,7 +222,22 @@ def _scan_body(
             index += 2
             continue
         if char == "<":
+            alternative_starts[-1] = False
             angle_depth = 1
+            index += 1
+            continue
+        if char == "(":
+            alternative_starts[-1] = False
+            alternative_starts.append(True)
+            index += 1
+            continue
+        if char == ")":
+            if len(alternative_starts) > 1:
+                alternative_starts.pop()
+            index += 1
+            continue
+        if char == "|":
+            alternative_starts[-1] = True
             index += 1
             continue
         if char == "[":
@@ -230,6 +249,7 @@ def _scan_body(
                         body.production,
                         match.group(0),
                         _span(text, path, index, end),
+                        alternative_starts[-1],
                     )
                 )
                 _blank(masked, index, end)
@@ -252,6 +272,8 @@ def _scan_body(
             _blank(masked, index, end)
             index = end
             continue
+        if not char.isspace():
+            alternative_starts[-1] = False
         index += 1
 
 
@@ -328,6 +350,9 @@ def _resolve_alternatives(
         if key in seen:
             _error(bag, "SGP101", "duplicate alternative name", annotation.span)
         seen.add(key)
+        if not annotation.at_alternative_start:
+            _error(bag, "SGP104", "unresolved syntax annotation", annotation.span)
+            continue
         candidates = [
             location
             for location in locations
