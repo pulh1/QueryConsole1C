@@ -616,6 +616,110 @@ alternatives; generated parser больше не создаёт runtime helper f
 границ, дополнения периодами и псевдонима. Exact delta:
 [totals control-point checkpoint](../superpowers/matrices/2026-08-08-totals-control-point-binding-checkpoint.md).
 
+## Separated semantic profiles
+
+Combined grammar remains the existing authoring mode: constructors, declarative
+bindings and inline actions are written together with the RHS and continue to
+use the unchanged `parse_grammar` pipeline. A separated syntax grammar instead
+contains only terminals, identifiers, nonterminal calls, groups, EBNF and
+parameters. It gives profile-addressable alternatives and primaries stable names:
+
+```text
+#Имя ::= ID
+
+<Присваивание> ::=
+    [simple] target: #Имя '=' value: <Выражение>
+
+<ЦепочкаДоступа> ::= [direct] root: #Имя arguments: <АргументыВызова>?
+             postfix: <ПостфиксДоступа>*
+  | [parenthesized] root: '(' <Выражение> ')'
+                    postfix: <ПостфиксДоступа>*
+```
+
+`[name]` must begin an alternative. `name:` immediately precedes the complete
+primary, including an optional or repeat postfix. Alternative names are unique
+within a production (also for nested groups); anchor names are unique within
+their named alternative. A lone top-level alternative may be selected by its
+production without a name. Syntax grammars reject constructors, bindings and
+inline actions.
+
+A semantic profile contains no RHS. It selects those names and uses the normal
+declarative vocabulary:
+
+```text
+profile worker
+
+<Присваивание>[simple] {
+    @Assignment
+    Target = target
+    Value = value
+    IsSimple := Истина
+}
+
+<ЦепочкаДоступа>[direct] {
+    @AccessChain
+    Root = root
+    Arguments = arguments
+    Postfix += postfix
+}
+```
+
+`@Node` is inserted before the selected syntax items. Anchor bindings execute
+at their anchored item; constants execute after the syntax items in profile-line
+order. Profiles support `=`, `+=`, `*=`, `~=`, `++=`, `=>`, `+=>`, property-less
+`+=`/`-=`, and `:=`; arbitrary inline actions remain a combined-grammar-only
+feature. Profiles must not duplicate an RHS or expose numeric item paths: paths
+are binder-internal implementation detail, never profile syntax or public
+diagnostic data.
+
+The additive public API is:
+
+```python
+from parsergen import (
+    SemanticBindingResult,
+    SemanticProfile,
+    SemanticProfileParseResult,
+    SyntaxGrammar,
+    SyntaxParseResult,
+    bind_semantic_profile,
+    parse_semantic_profile,
+    parse_syntax_grammar,
+)
+```
+
+The separated pipeline is `parse_syntax_grammar` plus
+`parse_semantic_profile`, then `bind_semantic_profile`. On success the binding
+result contains an ordinary `SourceGrammar`; it follows the existing
+`lower_source_grammar -> resolve_grammar -> compute_analysis -> build_parser_ir
+-> generate_python_semantic_parser` pipeline. The code generator has no
+separated-mode overload: callers pass `parser_ir.source_grammar` and the
+existing `ParserIr` to `generate_python_semantic_parser`.
+
+The binder is fail-closed before lowering. `SGP100`–`SGP199` report syntax
+annotation parsing/validation, `SPP100`–`SPP199` semantic-profile parsing, and
+`SPB200`–`SPB299` cross-file binding/validation. Cross-file errors use a
+semantic-profile `SourceSpan` as primary and syntax declarations as related
+locations; syntax annotation declaration errors use their syntax spans.
+
+Syntax and semantic files are independently identified by SHA-256 of their
+exact UTF-8 source bytes; their paths are excluded. Consumer parser-artifact
+identity is the composition of syntax SHA-256, semantic-profile SHA-256,
+parsergen package identity, and codegen options/entrypoints. Raw
+`SyntaxGrammar`, `SemanticProfile`, bound `SourceGrammar`, and `ParserIr` retain
+their source-file paths and `SourceSpan.path`; their dataclass equality is
+intentionally provenance-sensitive so exact primary and related diagnostic
+locations are never stripped from production models.
+
+Path-independent determinism means equality of a provenance-normalized semantic
+shape plus byte-identical generated artifacts. The normalized shape recursively
+replaces every `SourceSpan` with one sentinel and the string source-file `path`
+fields on `SyntaxGrammar`, `SemanticProfile`, and `SourceGrammar` with another.
+Numeric tuple paths that address syntax items remain unchanged because they are
+semantic structure, not filesystem provenance. With identical bytes and
+options, different absolute paths therefore yield equal normalized
+`SourceGrammar`/`ParserIr` shapes and identical generated `module_text`;
+dictionary order and filesystem timestamps likewise do not affect the artifact.
+
 ## Python semantic target
 
 `parsergen.python_semantic_codegen` is a separate backend over canonical
