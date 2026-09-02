@@ -2,6 +2,7 @@ from parsergen.semantic_profile_binding import bind_semantic_profile
 from parsergen.semantic_profile_parser import parse_semantic_profile
 from parsergen.source_model import (
     SourceBinding,
+    SourceConstantBinding,
     SourceConstructor,
     SourceGroup,
     SourceOptional,
@@ -110,6 +111,44 @@ def test_recursively_rebuilds_groups_optionals_and_repeats() -> None:
     original_items = syntax.source_grammar.productions[0].alternatives[0].body.items
     assert isinstance(original_items[0], SourceOptional)
     assert isinstance(original_items[1], SourceRepeat)
+
+
+def test_decorates_named_alternatives_inside_a_bound_repeated_group() -> None:
+    _, result = _bind(
+        "<S> ::= [root] values: "
+        "([word] token: 'word' | [number] token: 'number')+",
+        "profile worker\n"
+        "<S>[root] {\n"
+        "@List\n"
+        "Values += values\n"
+        "}\n"
+        "<S>[word] {\n"
+        "-= token\n"
+        ":= Kinds.Word\n"
+        "}\n"
+        "<S>[number] {\n"
+        "-= token\n"
+        ":= Kinds.Number\n"
+        "}\n",
+    )
+
+    assert result.diagnostics == ()
+    assert result.source_grammar is not None
+    items = result.source_grammar.productions[0].alternatives[0].body.items
+    assert isinstance(items[0], SourceConstructor)
+    assert isinstance(items[1], SourceBinding)
+    assert isinstance(items[1].value, SourceRepeat)
+    assert isinstance(items[1].value.body, SourceGroup)
+    alternatives = items[1].value.body.alternatives
+    assert all(
+        isinstance(alternative.body.items[0], SourceBinding)
+        for alternative in alternatives
+    )
+    assert [
+        alternative.body.items[-1].value
+        for alternative in alternatives
+        if isinstance(alternative.body.items[-1], SourceConstantBinding)
+    ] == ["Kinds.Word", "Kinds.Number"]
 
 
 def test_reports_unknown_production_as_spb200() -> None:
