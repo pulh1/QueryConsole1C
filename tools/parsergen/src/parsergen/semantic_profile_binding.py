@@ -693,8 +693,16 @@ def _convert_validation_diagnostic(
     profile: SemanticProfile,
     resolved: list[_ResolvedAlternative],
 ) -> Diagnostic:
-    target = _validation_target(diagnostic.span, resolved)
-    if diagnostic.span.path == profile.path:
+    semantic_provenance = _has_semantic_provenance(
+        diagnostic.span,
+        profile,
+    )
+    target = _validation_target(
+        diagnostic.span,
+        resolved,
+        semantic_provenance=semantic_provenance,
+    )
+    if semantic_provenance:
         primary = diagnostic.span
     elif target is not None:
         primary = target.semantic.span
@@ -710,9 +718,7 @@ def _convert_validation_diagnostic(
             diagnostic.span,
         )
     ]
-    if target is None and diagnostic.span.path == profile.path:
-        target = _validation_target(primary, resolved)
-    if target is not None and diagnostic.span.path != target.declaration_span.path:
+    if target is not None and diagnostic.span is not target.declaration_span:
         related.append(
             RelatedLocation(
                 "selected syntax alternative is declared here",
@@ -732,14 +738,17 @@ def _convert_validation_diagnostic(
 def _validation_target(
     span: SourceSpan,
     resolved: list[_ResolvedAlternative],
+    *,
+    semantic_provenance: bool,
 ) -> _ResolvedAlternative | None:
     if not resolved:
         return None
-    if span.path == resolved[0].semantic.span.path:
+    if semantic_provenance:
         matches = [
             item
             for item in resolved
-            if item.semantic.span.start.offset <= span.start.offset
+            if item.semantic.span.path == span.path
+            and item.semantic.span.start.offset <= span.start.offset
             <= item.semantic.span.end.offset
         ]
     else:
@@ -774,6 +783,22 @@ def _validation_target(
                 if item.production.span.start.offset == production_start
             )
     return resolved[0]
+
+
+def _has_semantic_provenance(
+    span: SourceSpan,
+    profile: SemanticProfile,
+) -> bool:
+    for alternative in profile.alternatives:
+        if span is alternative.span or span is alternative.constructor_span:
+            return True
+        for binding in alternative.anchor_bindings:
+            if span is binding.span or span is binding.operator_span:
+                return True
+        for constant in alternative.constants:
+            if span is constant.span or span is constant.operator_span:
+                return True
+    return False
 
 
 def _add_error(

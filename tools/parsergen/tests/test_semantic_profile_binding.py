@@ -225,6 +225,27 @@ def test_converts_source_validator_rejection_to_spb207() -> None:
     assert _syntax_related(diagnostic)
 
 
+def test_spb207_provenance_does_not_depend_on_distinct_paths() -> None:
+    syntax_source = "<S> ::= [root] value: <N>*\n<N> ::= ПУСТО"
+    syntax = parse_syntax_grammar(syntax_source).grammar
+    profile = parse_semantic_profile(
+        "profile worker\n<S>[root] {\n-= value\n}\n"
+    ).profile
+    assert syntax is not None and profile is not None
+    assert syntax.path == profile.path == "<memory>"
+
+    result = bind_semantic_profile(syntax, profile)
+
+    assert result.source_grammar is None
+    diagnostic = next(item for item in result.diagnostics if item.code == "SPB207")
+    assert diagnostic.span is profile.alternatives[0].span
+    assert diagnostic.related[0].message.startswith("EBNF201:")
+    assert any(
+        item.span is syntax.alternatives[0].span
+        for item in diagnostic.related
+    )
+
+
 def test_maps_unprofiled_validator_error_to_the_same_production_profile() -> None:
     _, result = _bind(
         "#Item ::= ID\n"
