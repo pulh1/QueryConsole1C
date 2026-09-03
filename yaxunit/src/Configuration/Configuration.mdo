@@ -8,6 +8,7 @@
   <objectBelonging>Adopted</objectBelonging>
   <extension xsi:type="mdclassExtension:ConfigurationExtension">
     <managedApplicationModule>Extended</managedApplicationModule>
+    <ordinaryApplicationModule>Extended</ordinaryApplicationModule>
   </extension>
   <containedObjects classId="9cd510cd-abfc-11d4-9434-004095e12fc7" objectId="7aac7ebc-1c41-419f-aac1-52a9be0908ba"/>
   <containedObjects classId="9fcd25a0-4822-11d4-9414-008048da11f9" objectId="a0ea5602-5711-43f0-ae72-26204f907950"/>
@@ -185,6 +186,7 @@
   <commonModules>CommonModule.ЮТЧитательСлужебный</commonModules>
   <commonModules>CommonModule.ЮТЧитательСлужебныйВызовСервера</commonModules>
   <commonModules>CommonModule.ЮТЧитательСлужебныйКлиент</commonModules>
+  <commonModules>CommonModule.КОНС_Обр_ПоставщикиМетаданныхТаблиц_МО</commonModules>
   <dataProcessors>DataProcessor.КОНС_СтарыйЛексическийАнализатор</dataProcessors>
   <dataProcessors>DataProcessor.КОНС_СтарыйПарсер</dataProcessors>
   <dataProcessors>DataProcessor.ЮТHTTPServiceRequest</dataProcessors>
@@ -204,4 +206,5 @@
   <dataProcessors>DataProcessor.ЮТРедакторТестов</dataProcessors>
   <dataProcessors>DataProcessor.ЮТСообщениеСервисаИнтеграции</dataProcessors>
   <dataProcessors>DataProcessor.ЮТЮнитТесты</dataProcessors>
+  <dataProcessors>DataProcessor.КОНС_ПоставщикМетаданныхТаблицШпион</dataProcessors>
 </mdclass:Configuration>

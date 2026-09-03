@@ -91,6 +91,7 @@
   <commonModules>CommonModule.УниверсальныйОтчетРасширенный</commonModules>
   <commonModules>CommonModule.ОтчетыКлиентПереопределяемый</commonModules>
   <commonModules>CommonModule.УниверсальныйОтчетРасширенныйКлиент</commonModules>
+  <commonModules>CommonModule.МетаданныеТаблицЗапроса</commonModules>
   <settingsStorages>SettingsStorage.ХранилищеВариантовОтчетов</settingsStorages>
   <functionalOptions>FunctionalOption.ИспользоватьИсториюИзмененияШтатногоРасписания</functionalOptions>
   <definedTypes>DefinedType.МестоВыплатыЗарплатыСотрудников</definedTypes>
@@ -142,6 +143,9 @@
   <dataProcessors>DataProcessor.ПроверкаПрименимостиОтбораПосетитель</dataProcessors>
   <dataProcessors>DataProcessor.ИсполнительУниверсальногоОтчета</dataProcessors>
   <dataProcessors>DataProcessor.ОбработчикРазыменованийДляСКДПосетитель</dataProcessors>
+  <dataProcessors>DataProcessor.РеестрПоставщиковМетаданныхТаблиц</dataProcessors>
+  <dataProcessors>DataProcessor.ПоставщикМетаданныхСтандартныхТаблиц</dataProcessors>
+  <dataProcessors>DataProcessor.ПоставщикМетаданныхИсполняемыхПредставлений</dataProcessors>
   <informationRegisters>InformationRegister.БухучетЗарплатыСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ВидыЗанятостиСотрудников</informationRegisters>
   <informationRegisters>InformationRegister.ГрафикРаботыСотрудников</informationRegisters>
