@@ -117,6 +117,21 @@ def test_rejects_scoped_anchor_branch_without_one_capturable_value(
     assert diagnostic.span.start.line == 3
 
 
+def test_rejects_scoped_anchor_with_nested_multiple_results() -> None:
+    result = _bind(
+        "<S> ::= [root] value: ((<A> <B> | C))\n"
+        "<A> ::= A\n"
+        "<B> ::= B\n"
+        "<OwnerDef> ::= [owner] value: OWNER",
+        "profile worker\n"
+        "<S>[root] {\n^Owner.Items += value\n}\n"
+        "<OwnerDef>[owner] {\n@Owner\n-= value\n}\n",
+    )
+
+    assert result.source_grammar is None
+    assert "SCOP205" in _original_codes(result)
+
+
 @pytest.mark.parametrize(
     "anchor",
     (
@@ -145,6 +160,63 @@ def test_group_constant_and_following_result_reports_bind206_before_ir() -> None
         "profile worker\n"
         "<S>[root] {\n}\n"
         "<S>[word] {\n:= Kinds.Word\n}\n",
+    )
+
+    assert result.source_grammar is None
+    assert _original_codes(result) == ["BIND206"]
+
+
+def test_nested_group_with_multiple_results_reports_bind206_before_ir() -> None:
+    result = _bind(
+        "<S> ::= [root] (<A> <B> | C) item: ITEM\n"
+        "<A> ::= A\n"
+        "<B> ::= B\n"
+        "<OwnerDef> ::= [owner] token: OWNER",
+        "profile worker\n"
+        "<S>[root] {\n^Owner.Items += item\n}\n"
+        "<OwnerDef>[owner] {\n@Owner\n-= token\n}\n",
+    )
+
+    assert result.source_grammar is None
+    assert _original_codes(result) == ["BIND206"]
+
+
+def test_scoped_repeat_cannot_intervene_before_returned_child() -> None:
+    result = _bind(
+        "<S> ::= [root] seed: <Seed> values: ITEM* child: <Child>\n"
+        "<Seed> ::= [seed] token: SEED\n"
+        "<Child> ::= [child] token: CHILD\n"
+        "<OwnerDef> ::= [owner] token: OWNER",
+        "profile worker\n"
+        "<S>[root] {\n^Owner.Items += values\nChildField => child\n}\n"
+        "<Seed>[seed] {\n@Seed\n-= token\n}\n"
+        "<Child>[child] {\n@Child\n-= token\n}\n"
+        "<OwnerDef>[owner] {\n@Owner\n-= token\n}\n",
+    )
+
+    assert result.source_grammar is None
+    assert _original_codes(result) == ["BIND210"]
+
+
+@pytest.mark.parametrize(
+    ("anchor", "support"),
+    (
+        ("<A>*", "<A> ::= A\n"),
+        ("(<A> | TOKEN)*", "<A> ::= A\n"),
+        ("((<A> <B> | C))*", "<A> ::= A\n<B> ::= B\n"),
+    ),
+)
+def test_unbound_semantic_repeat_reports_bind206_before_ir(
+    anchor: str,
+    support: str,
+) -> None:
+    result = _bind(
+        f"<S> ::= [root] many: {anchor} item: ITEM\n"
+        f"{support}"
+        "<OwnerDef> ::= [owner] token: OWNER",
+        "profile worker\n"
+        "<S>[root] {\n^Owner.Items += item\n}\n"
+        "<OwnerDef>[owner] {\n@Owner\n-= token\n}\n",
     )
 
     assert result.source_grammar is None

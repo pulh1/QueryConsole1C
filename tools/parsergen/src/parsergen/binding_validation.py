@@ -47,6 +47,7 @@ class _ResultKind(Enum):
     NONE = 0
     RAW = 1
     SEMANTIC = 2
+    MULTIPLE = 3
 
 
 @dataclass(frozen=True, slots=True)
@@ -279,7 +280,14 @@ class _BindingValidator:
                 index = sequence.items.index(binding)
                 before = SourceSequence(sequence.items[:index], sequence.span)
                 after = SourceSequence(sequence.items[index + 1 :], sequence.span)
-                valid = semantic_child_counts(before) == (1,)
+                seed_counts = _semantic_execution_counts(before)
+                valid = bool(seed_counts) and all(
+                    count == 1 for count in seed_counts
+                )
+                valid = valid and bool(before.items)
+                valid = valid and _source_operation_result(
+                    before.items[-1]
+                ).kind is _ResultKind.SEMANTIC
                 valid = valid and semantic_child_counts(after) == (0,)
                 value = binding.value
                 while (
@@ -580,12 +588,82 @@ def _valid_constant(value: str) -> bool:
 
 
 def semantic_child_counts(sequence: SourceSequence) -> tuple[int, ...]:
+    results = _branch_results(sequence)
+    if any(result.kind is _ResultKind.MULTIPLE for result in results):
+        return (2,)
     return (
         sum(
             result.kind is _ResultKind.SEMANTIC
-            for result in _branch_results(sequence)
+            for result in results
         ),
     )
+
+
+def _semantic_execution_counts(sequence: SourceSequence) -> tuple[int, ...]:
+    counts = (0,)
+    for item in sequence.items:
+        if isinstance(item, (NonterminalCall, IdentifierRef, Constant)) or (
+            isinstance(item, SourceConstantBinding)
+            and item.property is None
+        ):
+            counts = tuple(value + 1 for value in counts)
+        elif isinstance(item, SourceGroup):
+            counts = tuple(
+                base + branch
+                for base in counts
+                for alternative in item.alternatives
+                for branch in _semantic_execution_counts(alternative.body)
+            )
+        elif isinstance(item, SourceOptional):
+            nested = _value_execution_counts(item.body)
+            counts = tuple(
+                base + extra
+                for base in counts
+                for extra in (0, *nested)
+            )
+        elif isinstance(item, SourceRepeat):
+            nested = _value_execution_counts(item.body)
+            if any(nested):
+                return (2,)
+        elif isinstance(item, SourceScopedValue) and item.value is not None:
+            nested = _scoped_execution_counts(item.value)
+            counts = tuple(
+                base + extra
+                for base in counts
+                for extra in nested
+            )
+    return counts
+
+
+def _scoped_execution_counts(value: SourceValue) -> tuple[int, ...]:
+    while isinstance(value, SourceScopedValue):
+        if value.value is None:
+            return (0,)
+        value = value.value
+    if isinstance(value, SourceRepeat):
+        return (0,)
+    return _value_execution_counts(value)
+
+
+def _value_execution_counts(value: SourceValue) -> tuple[int, ...]:
+    if isinstance(value, SourceScopedValue):
+        if value.value is None:
+            return (0,)
+        return _scoped_execution_counts(value.value)
+    if isinstance(value, SourceOptional):
+        return (0, *_value_execution_counts(value.body))
+    if isinstance(value, SourceRepeat):
+        nested = _value_execution_counts(value.body)
+        return (2,) if any(nested) else (0,)
+    if isinstance(value, SourceGroup):
+        return tuple(
+            count
+            for alternative in value.alternatives
+            for count in _semantic_execution_counts(alternative.body)
+        )
+    if isinstance(value, (NonterminalCall, IdentifierRef, Constant)):
+        return (1,)
+    return (0,)
 
 
 def _value_semantic_counts(value: SourceValue) -> tuple[int, ...]:
@@ -626,6 +704,13 @@ def _branch_results(
         for operation in operations
         if operation.kind is _ResultKind.SEMANTIC
     )
+    multiple = tuple(
+        operation
+        for operation in operations
+        if operation.kind is _ResultKind.MULTIPLE
+    )
+    if multiple:
+        return multiple
     if semantic:
         return semantic
     return tuple(
@@ -639,20 +724,47 @@ def _source_operation_result(value: SourceItem) -> _SourceOperationResult:
     kind = _ResultKind.NONE
     if isinstance(value, SourceScopedValue):
         if value.value is not None:
-            payload = _source_operation_result(value.value)
-            if payload.kind is _ResultKind.SEMANTIC:
-                kind = _ResultKind.SEMANTIC
+            payload_value = value.value
+            while (
+                isinstance(payload_value, SourceScopedValue)
+                and payload_value.value is not None
+            ):
+                payload_value = payload_value.value
+            if not isinstance(payload_value, SourceRepeat):
+                payload = _source_operation_result(value.value)
+                if payload.kind in (
+                    _ResultKind.SEMANTIC,
+                    _ResultKind.MULTIPLE,
+                ):
+                    kind = payload.kind
     elif isinstance(value, SourceGroup):
-        if value.alternatives and all(
-            len(results := _branch_results(alternative.body)) == 1
-            and results[0].kind is _ResultKind.SEMANTIC
+        branch_results = tuple(
+            _branch_results(alternative.body)
             for alternative in value.alternatives
+        )
+        if any(
+            any(result.kind is _ResultKind.MULTIPLE for result in results)
+            or sum(
+                result.kind is _ResultKind.SEMANTIC
+                for result in results
+            )
+            > 1
+            for results in branch_results
+        ):
+            kind = _ResultKind.MULTIPLE
+        elif branch_results and all(
+            len(results) == 1
+            and results[0].kind is _ResultKind.SEMANTIC
+            for results in branch_results
         ):
             kind = _ResultKind.SEMANTIC
     elif isinstance(value, SourceOptional):
         payload = _source_operation_result(value.body)
-        if payload.kind is _ResultKind.SEMANTIC:
-            kind = _ResultKind.SEMANTIC
+        if payload.kind in (_ResultKind.SEMANTIC, _ResultKind.MULTIPLE):
+            kind = payload.kind
+    elif isinstance(value, SourceRepeat):
+        if any(_value_execution_counts(value.body)):
+            kind = _ResultKind.MULTIPLE
     elif isinstance(value, SourceBinding):
         if value.mode in (BindingMode.WRAP, BindingMode.WRAP_PREPEND):
             kind = _ResultKind.SEMANTIC

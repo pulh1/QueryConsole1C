@@ -58,6 +58,26 @@ class BindingValidationTests(unittest.TestCase):
 
         self.assertEqual(report.diagnostics, ())
 
+    def test_accepts_propertyless_constant_as_returned_child_seed(self) -> None:
+        report = _validate(
+            "<S> ::= := Kinds.Word ChildField => <Child>\n"
+            "<Child> ::= @Child CHILD"
+        )
+
+        self.assertEqual(report.diagnostics, ())
+
+    def test_rejects_optional_returned_child_seed(self) -> None:
+        report = _validate(
+            "<S> ::= <Maybe>? ChildField => <Child>\n"
+            "<Maybe> ::= @Maybe MAYBE\n"
+            "<Child> ::= @Child CHILD"
+        )
+
+        self.assertEqual(
+            [item.code for item in report.diagnostics],
+            ["BIND210"],
+        )
+
     def test_rejects_returned_child_decorator_without_seed(self) -> None:
         cases = (
             "<S> ::= Операнд => <Postfix>?\n<Postfix> ::= POSTFIX",

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Mapping
 
-from .binding_validation import semantic_child_counts
+from .binding_validation import _semantic_execution_counts
 from .diagnostics import Diagnostic, DiagnosticBag, Severity
 from .left_recursion import (
     DirectLeftRecursion,
@@ -561,7 +561,8 @@ def _base_returns_one_value(alternative: SourceAlternative) -> bool:
         for item in alternative.body.items
     ):
         return True
-    return semantic_child_counts(alternative.body) == (1,)
+    counts = _semantic_execution_counts(alternative.body)
+    return bool(counts) and all(count == 1 for count in counts)
 
 
 def _first_nested_action(production: SourceProduction) -> Action | None:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .binding_validation import _branch_results
+from .binding_validation import _ResultKind, _branch_results
 from .diagnostics import (
     Diagnostic,
     DiagnosticBag,
@@ -79,7 +79,9 @@ def validate_scoped_appends(
                     if (
                         isinstance(payload, SourceGroup)
                         and any(
-                            len(_branch_results(alternative.body)) != 1
+                            len(results := _branch_results(alternative.body))
+                            != 1
+                            or results[0].kind is _ResultKind.MULTIPLE
                             for alternative in payload.alternatives
                         )
                     ):
