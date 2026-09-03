@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, fields, is_dataclass
 from importlib import resources
 import re
 
@@ -30,6 +30,7 @@ from .model import (
 )
 from .parser_ir import (
     AlternativeIr,
+    AppendNearestOwner,
     AppendCollection,
     AssignConstant,
     BindScalar,
@@ -58,7 +59,7 @@ from .parser_ir import (
     WrapValue,
     UndefinedValue,
 )
-from .source_model import SourceGrammar
+from .source_model import SourceGrammar, SourceScopedValue
 from .value_table_codec import ColumnKind, ValueColumn, ValueTable
 
 
@@ -105,6 +106,7 @@ def generate_canonical_parser(
     *,
     named_predicates: Mapping[tuple[str, ...], str] | None = None,
 ) -> CanonicalGeneratedParser:
+    _reject_scoped_append(source, parser_ir, "canonical BSL")
     return _CanonicalBslGenerator(
         source,
         parser_ir,
@@ -121,6 +123,7 @@ def generate_canonical_functions(
     call_argument_prefix: tuple[str, ...] = (),
     named_predicates: Mapping[tuple[str, ...], str] | None = None,
 ) -> CanonicalGeneratedFunctions:
+    _reject_scoped_append(source, parser_ir, "canonical BSL")
     return _CanonicalBslGenerator(
         source,
         parser_ir,
@@ -130,6 +133,33 @@ def generate_canonical_functions(
         abi_parameters,
         call_argument_prefix,
     )
+
+
+def _reject_scoped_append(
+    source: SourceGrammar,
+    parser_ir: ParserIr,
+    backend: str,
+) -> None:
+    if _contains_scoped_append(source) or _contains_scoped_append(
+        parser_ir.productions
+    ):
+        raise ValueError(f"scoped append is unsupported by {backend} backend")
+
+
+def _contains_scoped_append(value: object) -> bool:
+    if isinstance(value, (SourceScopedValue, AppendNearestOwner)):
+        return True
+    if isinstance(value, (str, bytes, int, bool, type(None))):
+        return False
+    if isinstance(value, (tuple, list, frozenset)):
+        return any(_contains_scoped_append(item) for item in value)
+    if is_dataclass(value):
+        return any(
+            _contains_scoped_append(getattr(value, field.name))
+            for field in fields(value)
+            if field.name not in {"decision", "source_span", "span"}
+        )
+    return False
 
 
 class _CanonicalBslGenerator:

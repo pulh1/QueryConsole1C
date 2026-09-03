@@ -4,6 +4,7 @@ from collections.abc import Collection, Mapping
 
 from .analysis import AnalysisResult
 from .canonical_bsl_codegen import (
+    _reject_scoped_append,
     generate_canonical_functions,
     generate_canonical_parser,
 )
@@ -52,6 +53,7 @@ def generate_hybrid_parser(
     entrypoints: Mapping[str, str],
     named_predicates: Mapping[tuple[str, ...], str] | None = None,
 ) -> GeneratedParser:
+    _reject_scoped_append(source, parser_ir, "hybrid BSL")
     canonical_names = _canonical_names(canonical_productions)
     ir_names = tuple(production.name for production in parser_ir.productions)
     ir_name_set = frozenset(ir_names)

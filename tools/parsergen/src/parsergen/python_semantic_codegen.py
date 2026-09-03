@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields, is_dataclass
 import keyword
 from pprint import pformat
 from typing import Mapping
@@ -13,6 +13,7 @@ from .decision_dag import (
 )
 from .model import Constant, IdentifierRef, Lexeme, NonterminalCall, SyntaxSymbol, Terminal
 from .parser_ir import (
+    AppendNearestOwner,
     AppendCollection,
     AssignConstant,
     BindScalar,
@@ -128,12 +129,24 @@ class _SchemaBuilder:
         for production in self.parser_ir.productions:
             for alternative in production.alternatives:
                 self._discover_constructors(alternative.operations)
+        self._scoped_fields(self.parser_ir.productions)
         for production in self.parser_ir.productions:
             for alternative in production.alternatives:
                 self._operations(alternative.operations, None)
         return tuple(
             AstNodeSchema(name, tuple(self.fields[name])) for name in self.order
         )
+
+    def _scoped_fields(self, value: object) -> None:
+        if isinstance(value, AppendNearestOwner):
+            self._field(value.owner, value.property, "collection")
+        if isinstance(value, (tuple, list)):
+            for item in value:
+                self._scoped_fields(item)
+        elif is_dataclass(value):
+            for field in fields(value):
+                if field.name not in {"decision", "source_span", "span"}:
+                    self._scoped_fields(getattr(value, field.name))
 
     def _operations(
         self,
@@ -325,6 +338,7 @@ class _SemanticGenerator:
         }
         self.decisions: list[tuple[object, ...]] = []
         self.decision_ids: dict[int, int] = {}
+        self.has_scoped_append = False
 
     def generate(self) -> str:
         productions = {
@@ -355,7 +369,10 @@ class _SemanticGenerator:
                 f"NODE_DEFAULTS = {pformat(defaults, width=100, sort_dicts=True)}",
             )
         )
-        return _render_ast_classes(self.schema) + "\n\n" + header + _RUNTIME_TEMPLATE
+        runtime = _RUNTIME_TEMPLATE
+        if self.has_scoped_append:
+            runtime += _SCOPED_RUNTIME_TEMPLATE
+        return _render_ast_classes(self.schema) + "\n\n" + header + runtime
 
     def _decision_id(self, decision: CanonicalDecision) -> int:
         key = id(decision)
@@ -427,6 +444,16 @@ class _SemanticGenerator:
                 "items" if operation.property is None else operation.property,
                 self._value(operation.value),
             )
+        if isinstance(operation, AppendNearestOwner):
+            self.has_scoped_append = True
+            return (
+                "append_nearest",
+                operation.owner,
+                operation.property,
+                operation.source_order,
+                None if operation.value is None else self._value(operation.value),
+                operation.current_field,
+            )
         if isinstance(operation, ExtendCollection):
             return ("extend", operation.property, self._value(operation.value))
         if isinstance(operation, ConcatScalar):
@@ -486,6 +513,8 @@ class _SemanticGenerator:
         raise TypeError(type(operation))
 
     def _value(self, value: object) -> tuple[object, ...]:
+        if isinstance(value, AppendNearestOwner):
+            return self._operation(value)
         if isinstance(value, (ParseSymbol, ConsumeKnownSymbol)):
             return self._operation(value)
         if isinstance(value, UndefinedValue):
@@ -1107,4 +1136,95 @@ class GeneratedParser:
 
     def _raise(self, expected):
         raise GeneratedParseError(self.position, self._lookahead(0), expected)
+'''
+
+
+_SCOPED_RUNTIME_TEMPLATE = r'''
+
+
+class GeneratedParser(GeneratedParser):
+    def parse(self, tokens, entrypoint):
+        self._owner_stacks = {}
+        self._pending_scoped_appends = {}
+        self._enqueue_sequence = 0
+        try:
+            return super().parse(tokens, entrypoint)
+        finally:
+            self._owner_stacks.clear()
+            self._pending_scoped_appends.clear()
+            self._enqueue_sequence = 0
+
+    def _run_sequence(self, tasks, frame):
+        if frame.index != len(frame.operations):
+            return super()._run_sequence(tasks, frame)
+        if frame.prefer_builder and frame.builder is not None:
+            self._flush_scoped(frame.builder)
+            value = self._freeze(frame.builder)
+            self._pop_owner(frame.builder)
+        elif frame.result_index is None:
+            value = None
+        else:
+            value = frame.values[frame.result_index]
+        self._deliver(frame.receiver, value)
+
+    def _run_operation(self, tasks, operation, frame, receiver):
+        kind = operation[0]
+        if kind == "construct":
+            frame.builder = _Builder(operation[1], frame.start)
+            self._owner_stacks.setdefault(operation[1], []).append(frame.builder)
+            self._deliver(receiver, None)
+            return
+        if kind != "append_nearest":
+            return super()._run_operation(tasks, operation, frame, receiver)
+        stack = self._owner_stacks.get(operation[1])
+        owner = stack[-1] if stack else None
+        if operation[4] is not None:
+            self._run_bound_value(
+                tasks,
+                operation[4],
+                frame,
+                ("scoped_append", owner, operation[2], operation[3], receiver),
+            )
+            return
+        if frame.builder is None:
+            raise RuntimeError("current-field append has no active constructor")
+        self._enqueue_scoped(
+            owner,
+            operation[3],
+            operation[2],
+            frame.builder.values[operation[5]],
+        )
+        self._deliver(receiver, None)
+
+    def _run_bound_value(self, tasks, value, frame, receiver):
+        if value[0] == "append_nearest":
+            self._run_operation(tasks, value, frame, receiver)
+            return
+        super()._run_bound_value(tasks, value, frame, receiver)
+
+    def _deliver(self, receiver, value):
+        if receiver[0] == "scoped_append":
+            self._enqueue_scoped(receiver[1], receiver[3], receiver[2], value)
+            return self._deliver(receiver[4], value)
+        return super()._deliver(receiver, value)
+
+    def _enqueue_scoped(self, owner, source_order, field, payload):
+        if owner is None:
+            return
+        entry = (source_order, self._enqueue_sequence, field, payload)
+        self._enqueue_sequence += 1
+        self._pending_scoped_appends.setdefault(owner, []).append(entry)
+
+    def _flush_scoped(self, builder):
+        entries = self._pending_scoped_appends.pop(builder, ())
+        for _, _, field, payload in sorted(entries, key=lambda item: item[:2]):
+            builder.values[field].append(payload)
+
+    def _pop_owner(self, builder):
+        stack = self._owner_stacks[builder.name]
+        if not stack or stack[-1] is not builder:
+            raise RuntimeError("owner stack is inconsistent")
+        stack.pop()
+        if not stack:
+            del self._owner_stacks[builder.name]
 '''
