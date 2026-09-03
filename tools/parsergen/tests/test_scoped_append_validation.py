@@ -165,6 +165,64 @@ def test_wrap_constructor_inference_follows_only_returned_nonterminal(
     assert (result.source_grammar is not None) == (not expected_codes)
 
 
+@pytest.mark.parametrize(
+    "anchor",
+    ("((<Child>))", "((<Child>)?)"),
+)
+def test_scoped_anchor_accepts_nested_transparent_result(anchor: str) -> None:
+    result = _bind(
+        f"<S> ::= [root] value: {anchor}\n"
+        "<Child> ::= [child] token: CHILD",
+        "profile worker\n"
+        "<S>[root] {\n@Owner\n^Owner.Items += value\n}\n"
+        "<Child>[child] {\n@Child\n-= token\n}\n",
+    )
+
+    assert result.diagnostics == ()
+    assert result.source_grammar is not None
+
+
+@pytest.mark.parametrize("returned", ("(<OwnerDef>)", "<OwnerDef>?"))
+def test_wrap_constructor_inference_follows_nested_transparent_result(
+    returned: str,
+) -> None:
+    result = _bind(
+        "<S> ::= [root] seed: <Seed> child: <Transparent>\n"
+        "<Seed> ::= [seed] token: SEED\n"
+        f"<Transparent> ::= [transparent] {returned}\n"
+        "<OwnerDef> ::= [owner] token: OWNER",
+        "profile worker\n"
+        "<S>[root] {\nChild => child\n^Owner.Child += seed\n}\n"
+        "<Seed>[seed] {\n@Seed\n-= token\n}\n"
+        "<OwnerDef>[owner] {\n@Owner\n-= token\n}\n",
+    )
+
+    assert result.source_grammar is None
+    assert _original_codes(result) == ["SCOP201"]
+
+
+def test_wrap_constructor_inference_ignores_scoped_repeat_side_effect() -> None:
+    result = _bind(
+        "<S> ::= [root] seed: <Seed> child: <Transparent>\n"
+        "<Seed> ::= [seed] token: SEED\n"
+        "<Transparent> ::= [transparent] marker: MARK owners: <OwnerDef>* "
+        "returned: <OtherDef>\n"
+        "<OwnerDef> ::= [owner] token: OWNER\n"
+        "<OtherDef> ::= [other] token: OTHER\n"
+        "<SinkDef> ::= [sink] token: SINK",
+        "profile worker\n"
+        "<S>[root] {\nChild => child\n^Owner.Child += seed\n}\n"
+        "<Seed>[seed] {\n@Seed\n-= token\n}\n"
+        "<Transparent>[transparent] {\n-= marker\n^Sink.Items += owners\n}\n"
+        "<OwnerDef>[owner] {\n@Owner\n-= token\n}\n"
+        "<OtherDef>[other] {\n@Other\n-= token\n}\n"
+        "<SinkDef>[sink] {\n@Sink\n-= token\n}\n",
+    )
+
+    assert result.diagnostics == ()
+    assert result.source_grammar is not None
+
+
 def test_current_field_appends_after_a_definite_scalar_write() -> None:
     result = _bind(
         "<S> ::= [root] value: ITEM",

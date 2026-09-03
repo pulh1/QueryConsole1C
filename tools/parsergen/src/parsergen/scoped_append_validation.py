@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 
 from .diagnostics import (
     Diagnostic,
@@ -31,6 +32,18 @@ from .source_model import (
 @dataclass(frozen=True, slots=True)
 class ScopedAppendValidationReport:
     diagnostics: tuple[Diagnostic, ...]
+
+
+class _ResultKind(Enum):
+    NONE = 0
+    RAW = 1
+    SEMANTIC = 2
+
+
+@dataclass(frozen=True, slots=True)
+class _SourceOperationResult:
+    item: SourceItem
+    kind: _ResultKind
 
 
 def validate_scoped_appends(
@@ -223,21 +236,14 @@ def _sequence_constructors(
     }
     if direct:
         return direct
-    wrappers = tuple(
-        item
-        for item in sequence.items
-        if isinstance(item, SourceBinding)
-        and item.mode in (BindingMode.WRAP, BindingMode.WRAP_PREPEND)
-    )
-    if wrappers:
-        return {
-            name
-            for item in wrappers
-            for name in _value_constructors(item.value, productions, seen)
-        }
     result: set[str] = set()
-    for item in _branch_results(sequence):
-        value = item.value if isinstance(item, SourceScopedValue) else item
+    for operation in _branch_results(sequence):
+        item = operation.item
+        value = (
+            item.value
+            if isinstance(item, (SourceBinding, SourceScopedValue))
+            else item
+        )
         if isinstance(
             value,
             (
@@ -252,33 +258,61 @@ def _sequence_constructors(
     return result
 
 
-def _branch_results(sequence: SourceSequence) -> tuple[SourceItem, ...]:
+def _branch_results(
+    sequence: SourceSequence,
+) -> tuple[_SourceOperationResult, ...]:
+    operations: list[_SourceOperationResult] = []
+    for item in sequence.items:
+        if (
+            isinstance(item, SourceBinding)
+            and item.mode in (BindingMode.WRAP, BindingMode.WRAP_PREPEND)
+            and operations
+        ):
+            operations.pop()
+        operations.append(_source_operation_result(item))
     semantic = tuple(
-        item
-        for item in sequence.items
-        if _branch_result_category(item) == 1
+        operation
+        for operation in operations
+        if operation.kind is _ResultKind.SEMANTIC
     )
     if semantic:
         return semantic
     return tuple(
-        item
-        for item in sequence.items
-        if _branch_result_category(item) == 2
+        operation
+        for operation in operations
+        if operation.kind is _ResultKind.RAW
     )
 
 
-def _branch_result_category(value: object) -> int:
+def _source_operation_result(value: SourceItem) -> _SourceOperationResult:
+    kind = _ResultKind.NONE
     if isinstance(value, SourceScopedValue):
-        if value.value is None:
-            return 0
-        return _branch_result_category(_tap_payload(value.value))
-    if isinstance(value, SourceConstantBinding):
-        return 1 if value.property is None else 0
-    if isinstance(value, (NonterminalCall, IdentifierRef, Constant)):
-        return 1
-    if isinstance(value, (Terminal, Lexeme)):
-        return 2
-    return 0
+        if value.value is not None:
+            payload = _source_operation_result(value.value)
+            if payload.kind is _ResultKind.SEMANTIC:
+                kind = _ResultKind.SEMANTIC
+    elif isinstance(value, SourceGroup):
+        if value.alternatives and all(
+            len(results := _branch_results(alternative.body)) == 1
+            and results[0].kind is _ResultKind.SEMANTIC
+            for alternative in value.alternatives
+        ):
+            kind = _ResultKind.SEMANTIC
+    elif isinstance(value, SourceOptional):
+        payload = _source_operation_result(value.body)
+        if payload.kind is _ResultKind.SEMANTIC:
+            kind = _ResultKind.SEMANTIC
+    elif isinstance(value, SourceBinding):
+        if value.mode in (BindingMode.WRAP, BindingMode.WRAP_PREPEND):
+            kind = _ResultKind.SEMANTIC
+    elif isinstance(value, SourceConstantBinding):
+        if value.property is None:
+            kind = _ResultKind.SEMANTIC
+    elif isinstance(value, (NonterminalCall, IdentifierRef, Constant)):
+        kind = _ResultKind.SEMANTIC
+    elif isinstance(value, (Terminal, Lexeme)):
+        kind = _ResultKind.RAW
+    return _SourceOperationResult(value, kind)
 
 
 def _validate_current_fields(
