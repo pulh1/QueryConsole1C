@@ -7,6 +7,7 @@ from parsergen.source_model import (
     SourceGroup,
     SourceOptional,
     SourceRepeat,
+    SourceScopedValue,
 )
 from parsergen.syntax_grammar_parser import parse_syntax_grammar
 
@@ -305,3 +306,45 @@ def test_maps_unprofiled_validator_error_to_the_same_production_profile() -> Non
     assert diagnostic.span.path == "worker.semantic"
     assert diagnostic.span.start.line == 5
     assert diagnostic.related[0].span.path == "syntax.grammar"
+
+
+def test_scoped_taps_wrap_one_anchor_inside_its_existing_receiver_in_text_order() -> None:
+    _, result = _bind(
+        "<S> ::= [root] item: ITEM\n"
+        "<FirstOwner> ::= [owner] first: FIRST\n"
+        "<SecondOwner> ::= [owner] second: SECOND",
+        "profile worker\n"
+        "<S>[root] {\n"
+        "@Current\n"
+        "Value = item\n"
+        "^FirstOwner.Items += item\n"
+        "^SecondOwner.Items += item\n"
+        "}\n"
+        "<FirstOwner>[owner] {\n@FirstOwner\n-= first\n}\n"
+        "<SecondOwner>[owner] {\n@SecondOwner\n-= second\n}\n",
+    )
+
+    assert result.diagnostics == ()
+    assert result.source_grammar is not None
+    receiver = result.source_grammar.productions[0].alternatives[0].body.items[1]
+    assert isinstance(receiver, SourceBinding)
+    assert receiver.property == "Value"
+    outer = receiver.value
+    assert isinstance(outer, SourceScopedValue)
+    assert (outer.owner, outer.property) == ("SecondOwner", "Items")
+    inner = outer.value
+    assert isinstance(inner, SourceScopedValue)
+    assert (inner.owner, inner.property) == ("FirstOwner", "Items")
+    assert not isinstance(inner.value, SourceScopedValue)
+
+
+def test_scoped_append_reports_a_missing_anchor_through_existing_binding_error() -> None:
+    diagnostic = _diagnostic(
+        "<S> ::= [root] item: ITEM\n<Owner> ::= [owner] value: VALUE",
+        "profile worker\n"
+        "<S>[root] {\n^Owner.Items += missing\n}\n"
+        "<Owner>[owner] {\n@Owner\n-= value\n}\n",
+        "SPB203",
+    )
+
+    assert diagnostic.span.start.line == 3

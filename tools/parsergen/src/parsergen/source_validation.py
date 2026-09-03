@@ -32,6 +32,7 @@ from .source_model import (
     SourcePrimary,
     SourceProduction,
     SourceRepeat,
+    SourceScopedValue,
     SourceSequence,
 )
 
@@ -170,6 +171,12 @@ def _record_sequence_facts(
                 production_facts,
                 node_facts,
             )
+        elif isinstance(item, SourceScopedValue) and item.value is not None:
+            _record_primary_facts(
+                item.value,
+                production_facts,
+                node_facts,
+            )
 
 
 def _record_primary_facts(
@@ -178,13 +185,21 @@ def _record_primary_facts(
     node_facts: dict[object, SourceFacts],
 ) -> None:
     node_facts[primary] = _item_facts(primary, production_facts)
-    if isinstance(primary, SourceGroup):
+    if isinstance(primary, SourceScopedValue) and primary.value is not None:
+        _record_primary_facts(primary.value, production_facts, node_facts)
+    elif isinstance(primary, SourceGroup):
         for alternative in primary.alternatives:
             _record_alternative_facts(
                 alternative,
                 production_facts,
                 node_facts,
             )
+    elif isinstance(primary, (SourceRepeat, SourceOptional)):
+        _record_primary_facts(
+            primary.body,
+            production_facts,
+            node_facts,
+        )
 
 
 def _choice_facts(alternatives: tuple[SourceFacts, ...]) -> SourceFacts:
@@ -232,6 +247,10 @@ def _item_facts(
         return production_facts.get(item.name, _TOKEN)
     if isinstance(item, SourceBinding):
         return _item_facts(item.value, production_facts)
+    if isinstance(item, SourceScopedValue):
+        if item.value is None:
+            return _EPSILON
+        return _item_facts(item.value, production_facts)
     if isinstance(item, (SourceConstructor, SourceConstantBinding)):
         return _EPSILON
     if isinstance(item, Action):
@@ -278,6 +297,15 @@ def _validate_sequence(
                 bag,
                 inside_construct=inside_construct,
             )
+            continue
+        if isinstance(item, SourceScopedValue):
+            if item.value is not None:
+                _validate_sequence(
+                    SourceSequence((item.value,), item.value.span),
+                    production_facts,
+                    bag,
+                    inside_construct=inside_construct,
+                )
             continue
         if isinstance(item, SourceGroup):
             _validate_group(
@@ -499,7 +527,12 @@ def _has_declarative_directive(sequence: SourceSequence) -> bool:
     return any(
         isinstance(
             item,
-            (SourceConstructor, SourceBinding, SourceConstantBinding),
+            (
+                SourceConstructor,
+                SourceBinding,
+                SourceConstantBinding,
+                SourceScopedValue,
+            ),
         )
         for item in sequence.items
     )
@@ -547,6 +580,10 @@ def _first_action_in_sequence(sequence: SourceSequence) -> Action | None:
             action = _first_action_in_value(item.value)
             if action is not None:
                 return action
+        elif isinstance(item, SourceScopedValue) and item.value is not None:
+            action = _first_action_in_value(item.value)
+            if action is not None:
+                return action
         elif isinstance(item, SourceGroup):
             for alternative in item.alternatives:
                 action = _first_action_in_sequence(alternative.body)
@@ -560,6 +597,10 @@ def _first_action_in_sequence(sequence: SourceSequence) -> Action | None:
 
 
 def _first_action_in_value(value) -> Action | None:
+    if isinstance(value, SourceScopedValue):
+        if value.value is not None:
+            return _first_action_in_value(value.value)
+        return None
     if isinstance(value, SourceGroup):
         for alternative in value.alternatives:
             action = _first_action_in_sequence(alternative.body)

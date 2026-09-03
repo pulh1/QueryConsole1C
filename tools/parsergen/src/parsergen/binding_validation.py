@@ -21,6 +21,7 @@ from .source_model import (
     SourceItem,
     SourceOptional,
     SourceRepeat,
+    SourceScopedValue,
     SourceSequence,
     SourceValue,
 )
@@ -320,6 +321,8 @@ class _BindingValidator:
                 self._validate_transparent_primary(item.body)
             elif isinstance(item, SourceBinding):
                 self._validate_transparent_value(item.value)
+            elif isinstance(item, SourceScopedValue) and item.value is not None:
+                self._validate_transparent_value(item.value)
 
     def _validate_transparent_primary(self, primary) -> None:
         if isinstance(primary, SourceGroup):
@@ -327,7 +330,10 @@ class _BindingValidator:
                 self._validate_transparent_constants(alternative.body)
 
     def _validate_transparent_value(self, value) -> None:
-        if isinstance(value, (SourceRepeat, SourceOptional)):
+        if isinstance(value, SourceScopedValue):
+            if value.value is not None:
+                self._validate_transparent_value(value.value)
+        elif isinstance(value, (SourceRepeat, SourceOptional)):
             self._validate_transparent_primary(value.body)
         elif isinstance(value, SourceGroup):
             self._validate_transparent_primary(value)
@@ -363,6 +369,9 @@ class _BindingValidator:
                         updated.append(path | {item.property})
                     current = updated
                 current = self._walk_value(item.value, current, repeated)
+            elif isinstance(item, SourceScopedValue):
+                if item.value is not None:
+                    current = self._walk_value(item.value, current, repeated)
             elif isinstance(item, SourceConstantBinding):
                 if item.property is None:
                     continue
@@ -395,6 +404,10 @@ class _BindingValidator:
     ) -> list[frozenset[str]]:
         if isinstance(value, SourceGroup):
             return self._walk_group(value, paths, repeated)
+        if isinstance(value, SourceScopedValue):
+            if value.value is None:
+                return paths
+            return self._walk_value(value.value, paths, repeated)
         if isinstance(value, SourceRepeat):
             present = self._walk_value(value.body, paths, True)
             return [*paths, *present]
@@ -437,7 +450,12 @@ def _contains_directive(sequence: SourceSequence) -> bool:
     return bool(
         _collect(
             sequence,
-            (SourceConstructor, SourceBinding, SourceConstantBinding),
+            (
+                SourceConstructor,
+                SourceBinding,
+                SourceConstantBinding,
+                SourceScopedValue,
+            ),
         )
     )
 
@@ -454,10 +472,19 @@ def _collect(sequence: SourceSequence, kinds):
             result.extend(_collect_value(item.body, kinds))
         elif isinstance(item, SourceBinding):
             result.extend(_collect_value(item.value, kinds))
+        elif isinstance(item, SourceScopedValue) and item.value is not None:
+            result.extend(_collect_value(item.value, kinds))
     return tuple(result)
 
 
 def _collect_value(value: SourceValue, kinds):
+    if isinstance(value, SourceScopedValue):
+        nested = (
+            _collect_value(value.value, kinds)
+            if value.value is not None
+            else ()
+        )
+        return ((value,) if isinstance(value, kinds) else ()) + nested
     if isinstance(value, SourceGroup):
         return tuple(
             item
@@ -470,6 +497,10 @@ def _collect_value(value: SourceValue, kinds):
 
 
 def _cardinality(value: SourceValue) -> BindingCardinality:
+    if isinstance(value, SourceScopedValue):
+        if value.value is None:
+            return BindingCardinality(0, 0)
+        return _cardinality(value.value)
     if isinstance(value, SourceOptional):
         return BindingCardinality(0, 1)
     if isinstance(value, SourceRepeat):
@@ -500,15 +531,25 @@ def _sequence_value_cardinality(
     semantic_children = [
         item
         for item in sequence.items
-        if isinstance(item, (NonterminalCall, IdentifierRef, Constant))
+        if _value_category(item) == 1
     ]
     semantic = semantic_children or [
         item
         for item in sequence.items
-        if isinstance(item, (Terminal, Lexeme))
+        if _value_category(item) == 2
     ]
     count = len(semantic)
     return BindingCardinality(count, count)
+
+
+def _value_category(value: object) -> int:
+    if isinstance(value, SourceScopedValue):
+        return _value_category(value.value)
+    if isinstance(value, (NonterminalCall, IdentifierRef, Constant)):
+        return 1
+    if isinstance(value, (Terminal, Lexeme)):
+        return 2
+    return 0
 
 
 def _valid_constant(value: str) -> bool:
@@ -538,10 +579,26 @@ def semantic_child_counts(sequence: SourceSequence) -> tuple[int, ...]:
             nested = _value_semantic_counts(item.body)
             if any(value for value in nested):
                 return (2,)
+        elif isinstance(item, SourceScopedValue) and item.value is not None:
+            nested = _value_semantic_counts(item.value)
+            counts = tuple(
+                base + extra
+                for base in counts
+                for extra in nested
+            )
     return counts
 
 
 def _value_semantic_counts(value: SourceValue) -> tuple[int, ...]:
+    if isinstance(value, SourceScopedValue):
+        if value.value is None:
+            return (0,)
+        return _value_semantic_counts(value.value)
+    if isinstance(value, SourceOptional):
+        return (0, *_value_semantic_counts(value.body))
+    if isinstance(value, SourceRepeat):
+        nested = _value_semantic_counts(value.body)
+        return (2,) if any(nested) else (0,)
     if isinstance(value, SourceGroup):
         return tuple(
             count

@@ -136,3 +136,79 @@ def test_rejects_constructor_after_discard_statement() -> None:
         )
         for diagnostic in result.diagnostics
     ] == [("SPP103", 4, 5, 10)]
+
+
+def test_parses_scoped_anchor_and_current_field_with_exact_spans() -> None:
+    result = parse_semantic_profile(
+        "profile worker\n"
+        "<S> {\n"
+        "    ^Owner.Collection += item\n"
+        "    ^Owner.Collection += $CurrentField\n"
+        "}\n",
+        "worker.semantic",
+    )
+
+    assert result.diagnostics == ()
+    assert result.profile is not None
+    anchor, current_field = result.profile.scoped_appends
+    assert (
+        anchor.production,
+        anchor.alternative,
+        anchor.owner,
+        anchor.property,
+        anchor.anchor,
+        anchor.current_field,
+    ) == ("S", None, "Owner", "Collection", "item", None)
+    assert (
+        anchor.span.start.line,
+        anchor.span.start.column,
+        anchor.span.end.column,
+        anchor.operator_span.start.column,
+        anchor.operator_span.end.column,
+    ) == (3, 5, 30, 23, 25)
+    assert (
+        current_field.anchor,
+        current_field.current_field,
+        current_field.span.start.line,
+        current_field.span.start.column,
+        current_field.span.end.column,
+        current_field.operator_span.start.column,
+        current_field.operator_span.end.column,
+    ) == (None, "CurrentField", 4, 5, 39, 23, 25)
+
+
+def test_rejects_malformed_or_trailing_scoped_append_input() -> None:
+    cases = (
+        "^Owner += item",
+        "^Owner.Collection = item",
+        "^Owner.Collection += $",
+        "^Owner.Collection += item trailing",
+    )
+
+    for directive in cases:
+        result = parse_semantic_profile(
+            f"profile worker\n<S> {{\n    {directive}\n}}\n",
+            "worker.semantic",
+        )
+
+        assert result.profile is None
+        assert [item.code for item in result.diagnostics] == ["SPP105"]
+
+
+def test_scoped_prefix_does_not_change_legacy_member_binding() -> None:
+    result = parse_semantic_profile(
+        "profile worker\n"
+        "<S> {\n"
+        "    Owner.Collection += legacy\n"
+        "    ^Owner.Collection += scoped\n"
+        "}\n",
+        "worker.semantic",
+    )
+
+    assert result.diagnostics == ()
+    assert result.profile is not None
+    alternative = result.profile.alternatives[0]
+    assert [(item.property, item.anchor) for item in alternative.anchor_bindings] == [
+        ("Owner.Collection", "legacy")
+    ]
+    assert [item.anchor for item in result.profile.scoped_appends] == ["scoped"]

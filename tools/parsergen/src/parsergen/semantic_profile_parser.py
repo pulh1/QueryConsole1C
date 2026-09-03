@@ -11,6 +11,7 @@ from .separated_model import (
     SemanticConstantBinding,
     SemanticProfile,
     SemanticProfileParseResult,
+    SemanticScopedAppend,
 )
 from .source_model import BindingMode
 
@@ -30,6 +31,11 @@ _PROPERTYLESS_ANCHOR_BINDING = re.compile(
 )
 _CONSTANT_BINDING = re.compile(
     rf"(?:(?P<property>{_PROPERTY})[ \t]*)?:=[ \t]*(?P<value>{_PROPERTY})"
+)
+_SCOPED_APPEND = re.compile(
+    rf"\^(?P<owner>{_IDENTIFIER})\.(?P<property>{_IDENTIFIER})"
+    rf"[ \t]*(?P<operator>\+=)[ \t]*"
+    rf"(?:(?P<current_field>\${_IDENTIFIER})|(?P<anchor>{_IDENTIFIER}))"
 )
 
 _BINDING_MODES = {
@@ -67,6 +73,7 @@ class _AlternativeBuilder:
     constructor_span: SourceSpan | None = None
     anchor_bindings: list[SemanticAnchorBinding] = field(default_factory=list)
     constants: list[SemanticConstantBinding] = field(default_factory=list)
+    scoped_appends: list[SemanticScopedAppend] = field(default_factory=list)
 
 
 def parse_semantic_profile(
@@ -77,6 +84,7 @@ def parse_semantic_profile(
     bag = DiagnosticBag()
     profile_name: str | None = None
     alternatives: list[SemanticAlternative] = []
+    scoped_appends: list[SemanticScopedAppend] = []
     current: _AlternativeBuilder | None = None
     first_content: SourceSpan | None = None
 
@@ -89,7 +97,15 @@ def parse_semantic_profile(
             first_content = line.span(stripped_start, stripped_start + 1)
 
         if current is not None:
-            current = _parse_block_line(line, content, stripped_start, current, alternatives, bag)
+            current = _parse_block_line(
+                line,
+                content,
+                stripped_start,
+                current,
+                alternatives,
+                scoped_appends,
+                bag,
+            )
             continue
 
         profile = _PROFILE.match(content, stripped_start)
@@ -146,7 +162,13 @@ def parse_semantic_profile(
         return SemanticProfileParseResult(None, diagnostics)
     assert profile_name is not None
     return SemanticProfileParseResult(
-        SemanticProfile(profile_name, tuple(alternatives), source_sha256, path),
+        SemanticProfile(
+            profile_name,
+            tuple(alternatives),
+            source_sha256,
+            path,
+            tuple(scoped_appends),
+        ),
         diagnostics,
     )
 
@@ -157,6 +179,7 @@ def _parse_block_line(
     start: int,
     current: _AlternativeBuilder,
     alternatives: list[SemanticAlternative],
+    scoped_appends: list[SemanticScopedAppend],
     bag: DiagnosticBag,
 ) -> _AlternativeBuilder | None:
     if "{" in content[start:]:
@@ -178,6 +201,7 @@ def _parse_block_line(
                 SourceSpan(line.path, current.start, line.position(start + 1)),
             )
         )
+        scoped_appends.extend(current.scoped_appends)
         return None
 
     constructor = _CONSTRUCTOR.match(content, start)
@@ -185,7 +209,7 @@ def _parse_block_line(
         span = line.span(start, constructor.end())
         if current.constructor is not None:
             _error(bag, "SPP103", "semantic profile constructor is duplicated", span)
-        elif current.anchor_bindings or current.constants:
+        elif current.anchor_bindings or current.constants or current.scoped_appends:
             _error(
                 bag,
                 "SPP103",
@@ -195,6 +219,26 @@ def _parse_block_line(
         else:
             current.constructor = constructor.group("name")
             current.constructor_span = span
+        return current
+
+    scoped_append = _SCOPED_APPEND.match(content, start)
+    if scoped_append is not None and _only_space(content, scoped_append.end()):
+        current_field = scoped_append.group("current_field")
+        current.scoped_appends.append(
+            SemanticScopedAppend(
+                current.production,
+                current.alternative,
+                scoped_append.group("owner"),
+                scoped_append.group("property"),
+                scoped_append.group("anchor"),
+                current_field[1:] if current_field is not None else None,
+                line.span(start, scoped_append.end()),
+                line.span(
+                    scoped_append.start("operator"),
+                    scoped_append.end("operator"),
+                ),
+            )
+        )
         return current
 
     anchor_binding = _NAMED_ANCHOR_BINDING.match(content, start)

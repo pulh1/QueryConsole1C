@@ -17,6 +17,7 @@ from .separated_model import (
     SemanticAnchorBinding,
     SemanticBindingResult,
     SemanticProfile,
+    SemanticScopedAppend,
     SyntaxAnchor,
     SyntaxGrammar,
 )
@@ -32,9 +33,11 @@ from .source_model import (
     SourcePrimary,
     SourceProduction,
     SourceRepeat,
+    SourceScopedValue,
     SourceSequence,
     SourceValue,
 )
+from .scoped_append_validation import validate_scoped_appends
 from .source_validation import validate_source_grammar
 
 
@@ -84,6 +87,14 @@ def bind_semantic_profile(
     bindings_by_production: dict[
         str,
         dict[tuple[int, ...], SemanticAnchorBinding],
+    ] = {}
+    scoped_by_production: dict[
+        str,
+        dict[tuple[int, ...], list[SemanticScopedAppend]],
+    ] = {}
+    current_fields_by_path: dict[
+        tuple[str, tuple[int, ...]],
+        tuple[SemanticScopedAppend, ...],
     ] = {}
 
     for semantic in profile.alternatives:
@@ -170,6 +181,26 @@ def bind_semantic_profile(
             production_bindings,
             bag,
         )
+        scoped = tuple(
+            item
+            for item in profile.scoped_appends
+            if (item.production, item.alternative)
+            == (semantic.production, semantic.alternative)
+        )
+        production_scoped = scoped_by_production.setdefault(
+            production.name,
+            {},
+        )
+        _resolve_scoped_appends(
+            target,
+            scoped,
+            anchors_by_production.get(production.name, []),
+            production_scoped,
+            bag,
+        )
+        current_fields_by_path[(production.name, selected_path)] = tuple(
+            item for item in scoped if item.current_field is not None
+        )
 
     diagnostics = bag.sorted()
     if any(item.severity is Severity.ERROR for item in diagnostics):
@@ -183,11 +214,14 @@ def bind_semantic_profile(
         syntax.source_grammar,
         names_by_path,
         bindings_by_production,
+        scoped_by_production,
         semantic_by_path,
+        current_fields_by_path,
     )
     validation_diagnostics = (
         *validate_source_grammar(bound).diagnostics,
         *validate_bindings(bound).diagnostics,
+        *validate_scoped_appends(bound).diagnostics,
     )
     if validation_diagnostics:
         converted = tuple(
@@ -335,6 +369,60 @@ def _resolve_anchor_bindings(
         )
 
 
+def _resolve_scoped_appends(
+    target: _ResolvedAlternative,
+    scoped_appends: tuple[SemanticScopedAppend, ...],
+    production_anchors: list[SyntaxAnchor],
+    scoped_by_path: dict[tuple[int, ...], list[SemanticScopedAppend]],
+    bag: DiagnosticBag,
+) -> None:
+    for scoped in scoped_appends:
+        if scoped.anchor is None:
+            continue
+        matching_name = [
+            anchor
+            for anchor in production_anchors
+            if anchor.name == scoped.anchor
+        ]
+        in_scope = [
+            anchor
+            for anchor in matching_name
+            if anchor.address.path[:-1] == target.path
+        ]
+        if not in_scope:
+            code = "SPB204" if matching_name else "SPB203"
+            message = (
+                "semantic profile anchor is outside the selected alternative"
+                if matching_name
+                else "semantic profile references a missing anchor"
+            )
+            related = tuple(
+                RelatedLocation(
+                    "syntax anchor is declared here",
+                    anchor.span,
+                )
+                for anchor in matching_name
+            )
+            _add_error(
+                bag,
+                code,
+                message,
+                scoped.span,
+                (
+                    *related,
+                    RelatedLocation(
+                        "selected syntax alternative is declared here",
+                        target.declaration_span,
+                    ),
+                ),
+            )
+            continue
+        scoped_by_path.setdefault(
+            in_scope[0].address.path,
+            [],
+        ).append(scoped)
+
+
 def _rewrite_grammar(
     grammar: SourceGrammar,
     names_by_path: Mapping[tuple[str, tuple[int, ...]], str],
@@ -342,14 +430,23 @@ def _rewrite_grammar(
         str,
         Mapping[tuple[int, ...], SemanticAnchorBinding],
     ],
+    scoped_by_production: Mapping[
+        str,
+        Mapping[tuple[int, ...], list[SemanticScopedAppend]],
+    ],
     semantic_by_path: Mapping[
         tuple[str, tuple[int, ...]],
         SemanticAlternative,
+    ],
+    current_fields_by_path: Mapping[
+        tuple[str, tuple[int, ...]],
+        tuple[SemanticScopedAppend, ...],
     ],
 ) -> SourceGrammar:
     productions: list[SourceProduction] = []
     for production in grammar.productions:
         bindings = bindings_by_production.get(production.name, {})
+        scoped = scoped_by_production.get(production.name, {})
         alternatives: list[SourceAlternative] = []
         for alternative in production.alternatives:
             path = (alternative.index,)
@@ -359,12 +456,14 @@ def _rewrite_grammar(
                 alternative_name=names_by_path.get((production.name, path)),
                 path=path,
                 bindings_by_path=bindings,
+                scoped_by_path=scoped,
             )
             decorated = _decorate_sequence(
                 bound,
                 production=production.name,
                 path=path,
                 semantic_by_path=semantic_by_path,
+                current_fields_by_path=current_fields_by_path,
             )
             alternatives.append(
                 SourceAlternative(
@@ -396,6 +495,10 @@ def _bind_sequence(
     alternative_name: str | None,
     path: tuple[int, ...],
     bindings_by_path: Mapping[tuple[int, ...], SemanticAnchorBinding],
+    scoped_by_path: Mapping[
+        tuple[int, ...],
+        list[SemanticScopedAppend],
+    ],
 ) -> SourceSequence:
     """Return a new sequence; never mutate syntax.source_grammar."""
     items: list[SourceItem] = []
@@ -407,7 +510,16 @@ def _bind_sequence(
             alternative_name=alternative_name,
             path=item_path,
             bindings_by_path=bindings_by_path,
+            scoped_by_path=scoped_by_path,
         )
+        for scoped in scoped_by_path.get(item_path, ()):
+            value = SourceScopedValue(
+                scoped.owner,
+                scoped.property,
+                value,
+                None,
+                scoped.span,
+            )
         binding = bindings_by_path.get(item_path)
         if binding is not None:
             value = SourceBinding(
@@ -428,6 +540,10 @@ def _bind_value(
     alternative_name: str | None,
     path: tuple[int, ...],
     bindings_by_path: Mapping[tuple[int, ...], SemanticAnchorBinding],
+    scoped_by_path: Mapping[
+        tuple[int, ...],
+        list[SemanticScopedAppend],
+    ],
 ) -> SourceValue:
     if isinstance(value, SourceGroup):
         alternatives = tuple(
@@ -439,6 +555,7 @@ def _bind_value(
                     alternative_name=alternative_name,
                     path=(*path, alternative.index),
                     bindings_by_path=bindings_by_path,
+                    scoped_by_path=scoped_by_path,
                 ),
                 alternative.span,
             )
@@ -453,6 +570,7 @@ def _bind_value(
                 alternative_name=alternative_name,
                 path=path,
                 bindings_by_path=bindings_by_path,
+                scoped_by_path=scoped_by_path,
             ),
             value.kind,
             value.span,
@@ -466,6 +584,7 @@ def _bind_value(
                 alternative_name=alternative_name,
                 path=path,
                 bindings_by_path=bindings_by_path,
+                scoped_by_path=scoped_by_path,
             ),
             value.span,
             value.operator_span,
@@ -480,6 +599,10 @@ def _bind_primary(
     alternative_name: str | None,
     path: tuple[int, ...],
     bindings_by_path: Mapping[tuple[int, ...], SemanticAnchorBinding],
+    scoped_by_path: Mapping[
+        tuple[int, ...],
+        list[SemanticScopedAppend],
+    ],
 ) -> SourcePrimary:
     if not isinstance(primary, SourceGroup):
         return primary
@@ -489,6 +612,7 @@ def _bind_primary(
         alternative_name=alternative_name,
         path=path,
         bindings_by_path=bindings_by_path,
+        scoped_by_path=scoped_by_path,
     )
 
 
@@ -501,6 +625,10 @@ def _decorate_sequence(
         tuple[str, tuple[int, ...]],
         SemanticAlternative,
     ],
+    current_fields_by_path: Mapping[
+        tuple[str, tuple[int, ...]],
+        tuple[SemanticScopedAppend, ...],
+    ],
 ) -> SourceSequence:
     items = tuple(
         _decorate_item(
@@ -508,6 +636,7 @@ def _decorate_sequence(
             production=production,
             path=(*path, index),
             semantic_by_path=semantic_by_path,
+            current_fields_by_path=current_fields_by_path,
         )
         for index, item in enumerate(sequence.items)
     )
@@ -522,7 +651,7 @@ def _decorate_sequence(
                 semantic.constructor_span or semantic.span,
             ),
         )
-    suffix = tuple(
+    constants: tuple[SourceItem, ...] = tuple(
         SourceConstantBinding(
             constant.property,
             constant.value,
@@ -530,6 +659,22 @@ def _decorate_sequence(
             constant.operator_span,
         )
         for constant in semantic.constants
+    )
+    current_fields: tuple[SourceItem, ...] = tuple(
+        SourceScopedValue(
+            scoped.owner,
+            scoped.property,
+            None,
+            scoped.current_field,
+            scoped.span,
+        )
+        for scoped in current_fields_by_path.get((production, path), ())
+    )
+    suffix = tuple(
+        sorted(
+            (*constants, *current_fields),
+            key=lambda item: item.span.start.offset,
+        )
     )
     return SourceSequence((*prefix, *items, *suffix), sequence.span)
 
@@ -543,6 +688,10 @@ def _decorate_item(
         tuple[str, tuple[int, ...]],
         SemanticAlternative,
     ],
+    current_fields_by_path: Mapping[
+        tuple[str, tuple[int, ...]],
+        tuple[SemanticScopedAppend, ...],
+    ],
 ) -> SourceItem:
     if isinstance(item, SourceBinding):
         return SourceBinding(
@@ -553,16 +702,21 @@ def _decorate_item(
                 production=production,
                 path=path,
                 semantic_by_path=semantic_by_path,
+                current_fields_by_path=current_fields_by_path,
             ),
             item.span,
             item.operator_span,
         )
-    if isinstance(item, (SourceGroup, SourceRepeat, SourceOptional)):
+    if isinstance(
+        item,
+        (SourceGroup, SourceRepeat, SourceOptional, SourceScopedValue),
+    ):
         return _decorate_value(
             item,
             production=production,
             path=path,
             semantic_by_path=semantic_by_path,
+            current_fields_by_path=current_fields_by_path,
         )
     return item
 
@@ -576,7 +730,29 @@ def _decorate_value(
         tuple[str, tuple[int, ...]],
         SemanticAlternative,
     ],
+    current_fields_by_path: Mapping[
+        tuple[str, tuple[int, ...]],
+        tuple[SemanticScopedAppend, ...],
+    ],
 ) -> SourceValue:
+    if isinstance(value, SourceScopedValue):
+        return SourceScopedValue(
+            value.owner,
+            value.property,
+            (
+                _decorate_value(
+                    value.value,
+                    production=production,
+                    path=path,
+                    semantic_by_path=semantic_by_path,
+                    current_fields_by_path=current_fields_by_path,
+                )
+                if value.value is not None
+                else None
+            ),
+            value.current_field,
+            value.span,
+        )
     if isinstance(value, SourceGroup):
         alternatives = tuple(
             SourceAlternative(
@@ -586,6 +762,7 @@ def _decorate_value(
                     production=production,
                     path=(*path, alternative.index),
                     semantic_by_path=semantic_by_path,
+                    current_fields_by_path=current_fields_by_path,
                 ),
                 alternative.span,
             )
@@ -599,6 +776,7 @@ def _decorate_value(
                 production=production,
                 path=path,
                 semantic_by_path=semantic_by_path,
+                current_fields_by_path=current_fields_by_path,
             ),
             value.kind,
             value.span,
@@ -611,6 +789,7 @@ def _decorate_value(
                 production=production,
                 path=path,
                 semantic_by_path=semantic_by_path,
+                current_fields_by_path=current_fields_by_path,
             ),
             value.span,
             value.operator_span,
@@ -627,6 +806,10 @@ def _decorate_primary(
         tuple[str, tuple[int, ...]],
         SemanticAlternative,
     ],
+    current_fields_by_path: Mapping[
+        tuple[str, tuple[int, ...]],
+        tuple[SemanticScopedAppend, ...],
+    ],
 ) -> SourcePrimary:
     if not isinstance(primary, SourceGroup):
         return primary
@@ -635,6 +818,7 @@ def _decorate_primary(
         production=production,
         path=path,
         semantic_by_path=semantic_by_path,
+        current_fields_by_path=current_fields_by_path,
     )
 
 
@@ -798,6 +982,9 @@ def _has_semantic_provenance(
         for constant in alternative.constants:
             if span is constant.span or span is constant.operator_span:
                 return True
+    for scoped in profile.scoped_appends:
+        if span is scoped.span or span is scoped.operator_span:
+            return True
     return False
 
 

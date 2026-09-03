@@ -62,6 +62,18 @@ class SemanticConstantBinding:
 
 
 @dataclass(frozen=True, slots=True)
+class SemanticScopedAppend:
+    production: str
+    alternative: str | None
+    owner: str
+    property: str
+    anchor: str | None
+    current_field: str | None
+    span: SourceSpan
+    operator_span: SourceSpan
+
+
+@dataclass(frozen=True, slots=True)
 class SemanticAlternative:
     production: str
     alternative: str | None
@@ -78,6 +90,7 @@ class SemanticProfile:
     alternatives: tuple[SemanticAlternative, ...]
     source_sha256: str
     path: str
+    scoped_appends: tuple[SemanticScopedAppend, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

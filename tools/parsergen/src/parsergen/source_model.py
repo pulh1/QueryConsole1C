@@ -65,6 +65,15 @@ class SourceConstructor:
 
 
 @dataclass(frozen=True, slots=True)
+class SourceScopedValue:
+    owner: str
+    property: str
+    value: SourceValue | None
+    current_field: str | None
+    span: SourceSpan
+
+
+@dataclass(frozen=True, slots=True)
 class SourceBinding:
     property: str | None
     mode: BindingMode
@@ -82,7 +91,9 @@ class SourceConstantBinding:
 
 
 SourcePrimary: TypeAlias = SyntaxSymbol | SourceGroup
-SourceValue: TypeAlias = SourcePrimary | SourceRepeat | SourceOptional
+SourceValue: TypeAlias = (
+    SourcePrimary | SourceRepeat | SourceOptional | SourceScopedValue
+)
 SourceItem: TypeAlias = (
     SyntaxSymbol
     | Action
@@ -90,6 +101,7 @@ SourceItem: TypeAlias = (
     | SourceRepeat
     | SourceOptional
     | SourceConstructor
+    | SourceScopedValue
     | SourceBinding
     | SourceConstantBinding
 )
