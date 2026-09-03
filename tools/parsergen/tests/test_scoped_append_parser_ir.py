@@ -7,7 +7,7 @@ import pytest
 
 import parsergen.parser_ir as parser_ir_module
 from parsergen.analysis import compute_analysis
-from parsergen.grammar_parser import parse_grammar
+from parsergen.grammar_parser import parse_grammar, parse_source_grammar
 from parsergen.lowering import lower_source_grammar
 from parsergen.model import IdentifierRef, Lexeme, Terminal
 from parsergen.parser_ir import (
@@ -18,9 +18,11 @@ from parsergen.parser_ir import (
     ParseSymbol,
     RepeatLoop,
     ResolvedRegion,
+    WrapOptional,
     build_parser_ir,
 )
 from parsergen.parser_ir_optimization import optimize_parser_ir
+from parsergen.python_semantic_codegen import generate_python_semantic_parser
 from parsergen.resolver import resolve_grammar
 from parsergen.semantic_profile_binding import bind_semantic_profile
 from parsergen.semantic_profile_parser import parse_semantic_profile
@@ -176,6 +178,58 @@ def test_scoped_tap_is_transparent_for_a_semantic_anchor() -> None:
     assert alternative.result_index == 0
 
 
+def test_transparent_semantic_group_keeps_one_capture_per_branch() -> None:
+    parser_ir = _build(
+        "<S> ::= [root] choice: (<A> | <B>)\n"
+        "<A> ::= A\n"
+        "<B> ::= B\n"
+        "<OwnerDef> ::= [owner] value: VALUE",
+        "profile worker\n"
+        "<S>[root] {\n^Owner.Items += choice\n}\n"
+        "<OwnerDef>[owner] {\n@Owner\n-= value\n}\n",
+        optimize=False,
+    )
+
+    alternative = _production(parser_ir, "S").alternatives[0]
+    tap = alternative.operations[0]
+    assert isinstance(tap, AppendNearestOwner)
+    assert alternative.result_index == 0
+    assert isinstance(tap.value, DispatchValue)
+    assert len(tap.value.branches) == 2
+    assert all(branch.value.result_index == 0 for branch in tap.value.branches)
+    assert all(
+        len(branch.value.operations) == 1
+        and isinstance(branch.value.operations[0], ParseSymbol)
+        for branch in tap.value.branches
+    )
+
+
+def test_same_anchor_multi_tap_fans_out_one_parsed_value() -> None:
+    parser_ir = _build(
+        "#Value ::= ID\n"
+        "<S> ::= [root] value: #Value\n"
+        "<OwnerDef> ::= [owner] value: VALUE",
+        "profile worker\n"
+        "<S>[root] {\n"
+        "^Owner.First += value\n"
+        "^Owner.Second += value\n"
+        "}\n"
+        "<OwnerDef>[owner] {\n@Owner\n-= value\n}\n",
+        optimize=False,
+    )
+
+    alternative = _production(parser_ir, "S").alternatives[0]
+    outer = alternative.operations[0]
+    assert isinstance(outer, AppendNearestOwner)
+    inner = outer.value
+    assert isinstance(inner, AppendNearestOwner)
+    leaf = inner.value
+    assert isinstance(leaf, ParseSymbol)
+    assert (inner.property, inner.source_order) == ("First", 0)
+    assert (outer.property, outer.source_order) == ("Second", 1)
+    assert alternative.result_index == 0
+
+
 def test_scoped_tap_keeps_discarded_punctuation_resultless() -> None:
     parser_ir = _build(
         "<S> ::= [root] comma: ','\n"
@@ -307,3 +361,49 @@ def test_scoped_tap_requires_exactly_one_value_source() -> None:
         AppendNearestOwner("Owner", "Items", value, "Field", 0, span)
     with pytest.raises(ValueError, match="exactly one"):
         AppendNearestOwner("Owner", "Items", None, None, 0, span)
+
+
+def test_unscoped_group_optional_wrap_keeps_legacy_ir_and_codegen() -> None:
+    parsed = parse_source_grammar(
+        "<S> ::= <Seed> Child => (<A> | <B>)?\n"
+        "<Seed> ::= @Seed SEED\n"
+        "<A> ::= @A A\n"
+        "<B> ::= @B B",
+        "legacy.grammar",
+    )
+    assert parsed.diagnostics == ()
+    assert parsed.grammar is not None
+    lowering = replace(
+        lower_source_grammar(parsed.grammar),
+        diagnostics=(),
+    )
+    resolved = resolve_grammar(lowering.grammar)
+    assert resolved.grammar is not None
+    analysis = compute_analysis(resolved.grammar, 1, ("S",))
+    with patch(
+        "parsergen.parser_ir_optimization.optimize_parser_ir",
+        side_effect=lambda parser_ir: parser_ir,
+    ), patch(
+        "parsergen.parser_ir.lower_source_grammar",
+        return_value=lowering,
+    ):
+        parser_ir = build_parser_ir(
+            parsed.grammar,
+            lowering,
+            resolved.grammar,
+            analysis,
+            entrypoint_productions=("S",),
+        )
+
+    wrapper = _production(parser_ir, "S").alternatives[0].operations[0]
+    assert isinstance(wrapper, WrapOptional)
+    assert all(
+        isinstance(branch.operations[0], ParseSymbol)
+        for branch in wrapper.branches
+    )
+    generated = generate_python_semantic_parser(
+        parsed.grammar,
+        parser_ir,
+        {"start": "S"},
+    )
+    compile(generated.module_text, "<generated-legacy-parser>", "exec")

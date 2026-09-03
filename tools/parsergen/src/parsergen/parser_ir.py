@@ -129,6 +129,11 @@ class FoldLeftValue:
 
 @dataclass(frozen=True, slots=True)
 class AppendNearestOwner:
+    # Runtime contract (Task 3): capture payload and nearest owner once at tap
+    # execution, then enqueue (source_order, monotonic enqueue_sequence,
+    # property, payload) on that owner. Flush by the first two keys before
+    # freeze, pop before outward delivery, and clear stacks/queues in a global
+    # finally after syntax, freeze, or append errors. enqueue_sequence is not IR.
     owner: str
     property: str
     value: BoundValue | None
@@ -760,10 +765,17 @@ class _ParserIrBuilder:
             if isinstance(optional.body, SourceGroup)
             else (optional.body,)
         ) + 1
-        branches = self._scoped_primary_branches(
-            optional.body,
-            scoped,
-            construct.production,
+        branches = (
+            self._scoped_primary_branches(
+                optional.body,
+                scoped,
+                construct.production,
+            )
+            if scoped
+            else self._primary_branches(
+                optional.body,
+                construct.production,
+            )
         )
         if not all(branch.result_index is not None for branch in branches):
             raise ValueError(
