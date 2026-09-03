@@ -55,7 +55,9 @@ from .source_model import (
     SourcePrimary,
     SourceProduction,
     SourceRepeat,
+    SourceScopedValue,
     SourceSequence,
+    SourceValue,
 )
 
 
@@ -123,6 +125,22 @@ class UndefinedValue:
 @dataclass(frozen=True, slots=True)
 class FoldLeftValue:
     source_span: SourceSpan
+
+
+@dataclass(frozen=True, slots=True)
+class AppendNearestOwner:
+    owner: str
+    property: str
+    value: BoundValue | None
+    current_field: str | None
+    source_order: int
+    source_span: SourceSpan
+
+    def __post_init__(self) -> None:
+        if (self.value is None) == (self.current_field is None):
+            raise ValueError(
+                "AppendNearestOwner requires exactly one of value/current_field"
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -203,6 +221,7 @@ BoundValue = (
     | ParseBranchValue
     | UndefinedValue
     | FoldLeftValue
+    | AppendNearestOwner
 )
 
 
@@ -289,6 +308,7 @@ Operation = (
     | AssignConstant
     | ReturnConstant
     | LeftFold
+    | AppendNearestOwner
 )
 
 
@@ -667,12 +687,15 @@ class _ParserIrBuilder:
                             "returned-child decorator has no semantic seed"
                         )
                     seed = result.pop()
-                    if isinstance(item.value, SourceOptional):
+                    value, _ = _unwrap_scoped(item.value)
+                    if isinstance(value, SourceOptional):
                         result.append(self._wrap_optional(item, seed))
                     else:
                         result.append(self._wrap_value(item, seed))
                 else:
                     result.extend(self._binding(item))
+            elif isinstance(item, SourceScopedValue):
+                result.extend(self._scoped(item))
             elif isinstance(item, SourceGroup):
                 construct = self._construct(
                     item.span,
@@ -722,11 +745,12 @@ class _ParserIrBuilder:
         binding: SourceBinding,
         seed: Operation,
     ) -> WrapOptional:
-        if not isinstance(binding.value, SourceOptional):
+        value, scoped = _unwrap_scoped(binding.value)
+        if not isinstance(value, SourceOptional):
             raise ValueError("returned-child decorator must be optional")
         if binding.property is None:
             raise ValueError("returned-child decorator requires a property")
-        optional = binding.value
+        optional = value
         construct = self._construct(
             optional.span,
             LoweredConstructKind.OPTIONAL,
@@ -736,8 +760,9 @@ class _ParserIrBuilder:
             if isinstance(optional.body, SourceGroup)
             else (optional.body,)
         ) + 1
-        branches = self._primary_branches(
+        branches = self._scoped_primary_branches(
             optional.body,
+            scoped,
             construct.production,
         )
         if not all(branch.result_index is not None for branch in branches):
@@ -761,7 +786,8 @@ class _ParserIrBuilder:
         binding: SourceBinding,
         seed: Operation,
     ) -> WrapValue:
-        if isinstance(binding.value, (SourceOptional, SourceRepeat)):
+        value, scoped = _unwrap_scoped(binding.value)
+        if isinstance(value, (SourceOptional, SourceRepeat)):
             raise ValueError("required returned-child decorator has invalid value")
         if binding.property is None:
             raise ValueError("returned-child decorator requires a property")
@@ -769,16 +795,17 @@ class _ParserIrBuilder:
             binding.property,
             binding.mode is BindingMode.WRAP_PREPEND,
             seed,
-            self._bound_value(binding.value),
+            self._tap_value(scoped, self._bound_value(value)),
             binding.span,
         )
 
     def _binding(self, binding: SourceBinding) -> tuple[Operation, ...]:
         kind = _binding_origin_kind(binding.mode)
         origin = self._binding_origin(binding.span, kind)
+        value, scoped = _unwrap_scoped(binding.value)
         if binding.mode is BindingMode.DISCARD:
-            if isinstance(binding.value, SourceOptional):
-                optional = binding.value
+            if isinstance(value, SourceOptional):
+                optional = value
                 construct = self._construct(
                     optional.span,
                     LoweredConstructKind.OPTIONAL,
@@ -788,9 +815,18 @@ class _ParserIrBuilder:
                     if isinstance(optional.body, SourceGroup)
                     else (optional.body,)
                 ) + 1
-                branches = self._discard_primary_branches(
-                    optional.body,
-                    construct.production,
+                branches = (
+                    self._scoped_primary_branches(
+                        optional.body,
+                        scoped,
+                        construct.production,
+                        discard=True,
+                    )
+                    if scoped
+                    else self._discard_primary_branches(
+                        optional.body,
+                        construct.production,
+                    )
                 )
                 return (
                     OptionalBranch(
@@ -803,26 +839,35 @@ class _ParserIrBuilder:
                         optional.span,
                     ),
                 )
-            if isinstance(binding.value, SourceRepeat):
-                return self._repeat(binding.value, binding)
-            if isinstance(binding.value, SourceGroup):
+            if isinstance(value, SourceRepeat):
+                return self._repeat(value, binding, scoped)
+            if scoped:
+                return (
+                    self._scoped_binding_operation(
+                        binding,
+                        self._bound_value(value),
+                        scoped,
+                        binding.span,
+                    ),
+                )
+            if isinstance(value, SourceGroup):
                 construct = self._construct(
-                    binding.value.span,
+                    value.span,
                     LoweredConstructKind.GROUP,
                 )
                 return (
                     Dispatch(
                         self._decision(construct.production),
                         self._discard_primary_branches(
-                            binding.value,
+                            value,
                             construct.production,
                         ),
-                        binding.value.span,
+                        value.span,
                     ),
                 )
-            return (DiscardSymbol(binding.value, origin.source_span),)
-        if isinstance(binding.value, SourceOptional):
-            optional = binding.value
+            return (DiscardSymbol(value, origin.source_span),)
+        if isinstance(value, SourceOptional):
+            optional = value
             construct = self._construct(
                 optional.span,
                 LoweredConstructKind.OPTIONAL,
@@ -836,6 +881,7 @@ class _ParserIrBuilder:
                 optional.body,
                 binding,
                 construct.production,
+                scoped,
             )
             exit_operations: tuple[Operation, ...] = ()
             if binding.mode is BindingMode.SCALAR:
@@ -857,12 +903,12 @@ class _ParserIrBuilder:
                     optional.span,
                 ),
             )
-        if isinstance(binding.value, SourceRepeat):
-            return self._repeat(binding.value, binding)
+        if isinstance(value, SourceRepeat):
+            return self._repeat(value, binding, scoped)
         return (
             self._binding_operation(
                 binding,
-                self._bound_value(binding.value),
+                self._tap_value(scoped, self._bound_value(value)),
             ),
         )
 
@@ -870,6 +916,7 @@ class _ParserIrBuilder:
         self,
         repeat: SourceRepeat,
         binding: SourceBinding | None = None,
+        scoped: tuple[SourceScopedValue, ...] = (),
     ) -> tuple[Operation, ...]:
         kind = (
             LoweredConstructKind.STAR
@@ -882,9 +929,19 @@ class _ParserIrBuilder:
                 repeat.body,
                 binding,
                 construct.production,
+                scoped,
             )
             if binding is not None
-            else self._primary_branches(repeat.body, construct.production)
+            else (
+                self._scoped_primary_branches(
+                    repeat.body,
+                    scoped,
+                    construct.production,
+                    discard=True,
+                )
+                if scoped
+                else self._primary_branches(repeat.body, construct.production)
+            )
         )
         if binding is None and any(
             branch.result_index is not None
@@ -937,8 +994,9 @@ class _ParserIrBuilder:
         primary: SourcePrimary,
         binding: SourceBinding,
         decision_production: str,
+        scoped: tuple[SourceScopedValue, ...] = (),
     ) -> tuple[BranchIr, ...]:
-        if binding.mode is BindingMode.DISCARD:
+        if binding.mode is BindingMode.DISCARD and not scoped:
             return self._discard_primary_branches(
                 primary,
                 decision_production,
@@ -951,9 +1009,11 @@ class _ParserIrBuilder:
                         alternative.index + 1,
                     ),
                     (
-                        self._binding_operation(
+                        self._scoped_binding_operation(
                             binding,
                             self._branch_value(alternative),
+                            scoped,
+                            alternative.span,
                         ),
                     ),
                     None,
@@ -965,9 +1025,11 @@ class _ParserIrBuilder:
             BranchIr(
                 AlternativeOutcome(decision_production, 1),
                 (
-                    self._binding_operation(
+                    self._scoped_binding_operation(
                         binding,
                         ParseSymbol(primary, primary.span),
+                        scoped,
+                        primary.span,
                     ),
                 ),
                 None,
@@ -1024,6 +1086,124 @@ class _ParserIrBuilder:
                 value.span,
             )
         return ParseSymbol(value, value.span)
+
+    def _scoped(
+        self,
+        scoped_value: SourceScopedValue,
+    ) -> tuple[Operation, ...]:
+        if scoped_value.current_field is not None:
+            return (
+                AppendNearestOwner(
+                    scoped_value.owner,
+                    scoped_value.property,
+                    None,
+                    scoped_value.current_field,
+                    scoped_value.source_order,
+                    scoped_value.span,
+                ),
+            )
+        value, scoped = _unwrap_scoped(scoped_value)
+        if isinstance(value, SourceOptional):
+            construct = self._construct(
+                value.span,
+                LoweredConstructKind.OPTIONAL,
+            )
+            branches = self._scoped_primary_branches(
+                value.body,
+                scoped,
+                construct.production,
+            )
+            exit_alternative = len(
+                value.body.alternatives
+                if isinstance(value.body, SourceGroup)
+                else (value.body,)
+            ) + 1
+            return (
+                OptionalBranch(
+                    self._decision(
+                        construct.production,
+                        exit_alternative=exit_alternative,
+                    ),
+                    branches,
+                    (),
+                    value.span,
+                ),
+            )
+        if isinstance(value, SourceRepeat):
+            return self._repeat(value, scoped=scoped)
+        return (self._tap_value(scoped, self._bound_value(value)),)
+
+    def _scoped_primary_branches(
+        self,
+        primary: SourcePrimary,
+        scoped: tuple[SourceScopedValue, ...],
+        decision_production: str,
+        *,
+        discard: bool = False,
+    ) -> tuple[BranchIr, ...]:
+        if isinstance(primary, SourceGroup):
+            alternatives = primary.alternatives
+        else:
+            span = primary.span
+            value = self._tap_value(
+                scoped,
+                ParseSymbol(primary, span),
+            )
+            return (
+                BranchIr(
+                    AlternativeOutcome(decision_production, 1),
+                    (value,),
+                    None if discard else self._result_index((value,)),
+                    span,
+                ),
+            )
+        result: list[BranchIr] = []
+        for alternative in alternatives:
+            value = self._tap_value(
+                scoped,
+                self._branch_value(alternative),
+            )
+            result.append(
+                BranchIr(
+                    AlternativeOutcome(
+                        decision_production,
+                        alternative.index + 1,
+                    ),
+                    (value,),
+                    None if discard else self._result_index((value,)),
+                    alternative.span,
+                )
+            )
+        return tuple(result)
+
+    def _scoped_binding_operation(
+        self,
+        binding: SourceBinding,
+        value: BoundValue,
+        scoped: tuple[SourceScopedValue, ...],
+        source_span: SourceSpan,
+    ) -> Operation:
+        tapped = self._tap_value(scoped, value)
+        if binding.mode is BindingMode.DISCARD:
+            return ResolvedRegion((tapped,), None, source_span)
+        return self._binding_operation(binding, tapped)
+
+    def _tap_value(
+        self,
+        scoped: tuple[SourceScopedValue, ...],
+        value: BoundValue,
+    ) -> BoundValue:
+        result = value
+        for item in reversed(scoped):
+            result = AppendNearestOwner(
+                item.owner,
+                item.property,
+                result,
+                None,
+                item.source_order,
+                item.span,
+            )
+        return result
 
     def _branch_value(
         self,
@@ -1215,6 +1395,11 @@ class _ParserIrBuilder:
 
 
 def _produces_transparent_value(operation: Operation) -> bool:
+    if isinstance(operation, AppendNearestOwner):
+        return (
+            operation.value is not None
+            and _bound_value_is_transparent(operation.value)
+        )
     if isinstance(operation, (LeftFold, ReturnConstant)):
         return True
     if isinstance(operation, ParseSymbol):
@@ -1234,6 +1419,34 @@ def _produces_transparent_value(operation: Operation) -> bool:
     if isinstance(operation, (WrapOptional, WrapValue)):
         return True
     return False
+
+
+def _bound_value_is_transparent(value: BoundValue) -> bool:
+    if isinstance(value, AppendNearestOwner):
+        return (
+            value.value is not None
+            and _bound_value_is_transparent(value.value)
+        )
+    if isinstance(value, ParseBranchValue):
+        return _produces_transparent_value(value.operations[value.result_index])
+    if isinstance(value, DispatchValue):
+        return bool(value.branches) and all(
+            _bound_value_is_transparent(branch.value)
+            for branch in value.branches
+        )
+    return _produces_transparent_value(value)
+
+
+def _unwrap_scoped(
+    value: SourceValue,
+) -> tuple[SourceValue, tuple[SourceScopedValue, ...]]:
+    scoped: list[SourceScopedValue] = []
+    while isinstance(value, SourceScopedValue):
+        if value.value is None:
+            raise ValueError("current-field scoped append cannot wrap a value")
+        scoped.append(value)
+        value = value.value
+    return value, tuple(scoped)
 
 
 def _binding_origin_kind(mode: BindingMode) -> BindingOriginKind:

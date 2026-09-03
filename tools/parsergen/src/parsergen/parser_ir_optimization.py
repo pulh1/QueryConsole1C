@@ -28,6 +28,7 @@ from .model import (
 from .parser_ir import (
     AlternativeIr,
     AppendCollection,
+    AppendNearestOwner,
     AssignConstant,
     BindScalar,
     BranchIr,
@@ -83,6 +84,7 @@ _SEMANTIC_OPERATIONS = (
     WrapOptional,
     WrapValue,
     LeftFold,
+    AppendNearestOwner,
 )
 
 
@@ -146,13 +148,24 @@ def _operation_spans(operations: tuple[Operation, ...]):
                 yield from _operation_spans(branch.operations)
         elif isinstance(
             operation,
-            (BindScalar, AppendCollection, ExtendCollection, ConcatScalar, IncrementScalar),
+            (
+                BindScalar,
+                AppendCollection,
+                ExtendCollection,
+                ConcatScalar,
+                IncrementScalar,
+                AppendNearestOwner,
+            ),
         ):
-            yield from _bound_operation_spans(operation.value)
+            if operation.value is not None:
+                yield from _bound_operation_spans(operation.value)
 
 
 def _bound_operation_spans(value):
-    if isinstance(value, ParseBranchValue):
+    if isinstance(value, AppendNearestOwner):
+        if value.value is not None:
+            yield from _bound_operation_spans(value.value)
+    elif isinstance(value, ParseBranchValue):
         yield from _operation_spans(value.operations)
     elif isinstance(value, DispatchValue):
         for branch in value.branches:
@@ -203,6 +216,11 @@ def _transparent_path_kind(alternative: AlternativeIr) -> str | None:
 
 
 def optimize_parser_ir(parser_ir: ParserIr) -> ParserIr:
+    if any(_contains_scoped_append(item) for item in parser_ir.productions):
+        return replace(
+            parser_ir,
+            productions=_reachable_productions(parser_ir),
+        )
     recursive = _recursive_productions(parser_ir.productions)
     transparent = frozenset(
         production.name
@@ -230,6 +248,22 @@ def optimize_parser_ir(parser_ir: ParserIr) -> ParserIr:
         result,
         productions=_reachable_productions(result),
     )
+
+
+def _contains_scoped_append(value: object) -> bool:
+    if isinstance(value, AppendNearestOwner):
+        return True
+    if isinstance(value, (str, bytes, int, bool, type(None))):
+        return False
+    if isinstance(value, (tuple, list, frozenset)):
+        return any(_contains_scoped_append(item) for item in value)
+    if is_dataclass(value):
+        return any(
+            _contains_scoped_append(getattr(value, field.name))
+            for field in fields(value)
+            if field.name not in {"decision", "source_span", "span"}
+        )
+    return False
 
 
 class _Optimizer:
