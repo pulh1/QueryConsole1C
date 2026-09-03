@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .binding_validation import _cardinality
 from .diagnostics import (
     Diagnostic,
     DiagnosticBag,
@@ -10,6 +11,7 @@ from .diagnostics import (
     SourceSpan,
 )
 from .left_recursion import classify_direct_left_recursion
+from .model import NonterminalCall
 from .source_model import (
     BindingMode,
     SourceBinding,
@@ -19,6 +21,7 @@ from .source_model import (
     SourceGroup,
     SourceItem,
     SourceOptional,
+    SourceProduction,
     SourceRepeat,
     SourceScopedValue,
     SourceSequence,
@@ -71,6 +74,19 @@ def validate_scoped_appends(
                             ),
                         ),
                     )
+                if effect.value is not None:
+                    cardinality = _cardinality(_tap_payload(effect.value))
+                    if (
+                        cardinality.min_values,
+                        cardinality.max_values,
+                    ) != (1, 1):
+                        _add(
+                            bag,
+                            "SCOP205",
+                            "scoped append anchor must expose exactly one "
+                            "capturable value per branch",
+                            effect.span,
+                        )
             _validate_current_fields(
                 alternative.body,
                 bag,
@@ -79,13 +95,13 @@ def validate_scoped_appends(
             )
             recursive_alternative = recursive.get(alternative.index)
             if recursive_alternative is not None:
-                suffix = SourceSequence(
+                recursive_region = SourceSequence(
                     alternative.body.items[
-                        recursive_alternative.self_reference.item_index + 1 :
+                        recursive_alternative.self_reference.item_index :
                     ],
                     alternative.body.span,
                 )
-                for effect in _scoped_effects(suffix):
+                for effect in _scoped_effects(recursive_region):
                     _add(
                         bag,
                         "SCOP204",
@@ -110,6 +126,7 @@ def _scalar_fields(
     grammar: SourceGrammar,
 ) -> dict[str, dict[str, SourceSpan]]:
     result: dict[str, dict[str, SourceSpan]] = {}
+    productions = {item.name: item for item in grammar.productions}
     for production in grammar.productions:
         for alternative in production.alternatives:
             constructor = next(
@@ -120,13 +137,25 @@ def _scalar_fields(
                 ),
                 None,
             )
-            if constructor is None:
-                continue
-            fields = result.setdefault(constructor.name, {})
+            fields = (
+                result.setdefault(constructor.name, {})
+                if constructor is not None
+                else None
+            )
             for item in _items(alternative.body):
                 if isinstance(item, SourceBinding):
                     if (
-                        item.property is not None
+                        item.mode is BindingMode.WRAP
+                        and item.property is not None
+                    ):
+                        for owner in _value_constructors(item.value, productions):
+                            result.setdefault(owner, {}).setdefault(
+                                item.property,
+                                item.span,
+                            )
+                    elif (
+                        fields is not None
+                        and item.property is not None
                         and item.mode
                         not in (
                             BindingMode.APPEND,
@@ -138,10 +167,86 @@ def _scalar_fields(
                     ):
                         fields.setdefault(item.property, item.span)
                 elif (
-                    isinstance(item, SourceConstantBinding)
+                    fields is not None
+                    and isinstance(item, SourceConstantBinding)
                     and item.property is not None
                 ):
                     fields.setdefault(item.property, item.span)
+    return result
+
+
+def _value_constructors(
+    value: SourceValue,
+    productions: dict[str, SourceProduction],
+    seen: frozenset[str] = frozenset(),
+) -> set[str]:
+    current = value
+    while isinstance(current, SourceScopedValue) and current.value is not None:
+        current = current.value
+    if isinstance(current, (SourceOptional, SourceRepeat)):
+        return _value_constructors(current.body, productions, seen)
+    if isinstance(current, SourceGroup):
+        return {
+            name
+            for alternative in current.alternatives
+            for name in _sequence_constructors(
+                alternative.body,
+                productions,
+                seen,
+            )
+        }
+    if not isinstance(current, NonterminalCall) or current.name in seen:
+        return set()
+    production = productions.get(current.name)
+    if production is None:
+        return set()
+    return {
+        name
+        for alternative in production.alternatives
+        for name in _sequence_constructors(
+            alternative.body,
+            productions,
+            seen | {current.name},
+        )
+    }
+
+
+def _sequence_constructors(
+    sequence: SourceSequence,
+    productions: dict[str, SourceProduction],
+    seen: frozenset[str],
+) -> set[str]:
+    direct = {
+        item.name for item in sequence.items if isinstance(item, SourceConstructor)
+    }
+    if direct:
+        return direct
+    wrappers = tuple(
+        item
+        for item in sequence.items
+        if isinstance(item, SourceBinding)
+        and item.mode in (BindingMode.WRAP, BindingMode.WRAP_PREPEND)
+    )
+    if wrappers:
+        return {
+            name
+            for item in wrappers
+            for name in _value_constructors(item.value, productions, seen)
+        }
+    result: set[str] = set()
+    for item in sequence.items:
+        value = item.value if isinstance(item, SourceBinding) else item
+        if isinstance(
+            value,
+            (
+                NonterminalCall,
+                SourceGroup,
+                SourceOptional,
+                SourceRepeat,
+                SourceScopedValue,
+            ),
+        ):
+            result.update(_value_constructors(value, productions, seen))
     return result
 
 
@@ -279,6 +384,15 @@ def _scoped_effects(sequence: SourceSequence) -> tuple[SourceScopedValue, ...]:
         for item in _items(sequence)
         if isinstance(item, SourceScopedValue)
     )
+
+
+def _tap_payload(value: SourceValue) -> SourceValue:
+    current = value
+    while isinstance(current, SourceScopedValue) and current.value is not None:
+        current = current.value
+    if isinstance(current, (SourceOptional, SourceRepeat)):
+        return current.body
+    return current
 
 
 def _items(sequence: SourceSequence) -> tuple[SourceItem, ...]:

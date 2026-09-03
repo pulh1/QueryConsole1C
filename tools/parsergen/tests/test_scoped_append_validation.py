@@ -55,6 +55,68 @@ def test_rejects_scoped_collection_conflicting_with_owner_scalar_field() -> None
     )
 
 
+@pytest.mark.parametrize("target", ("<OwnerDef>", "<Choice>"))
+def test_rejects_scoped_collection_conflicting_with_wrap_scalar(
+    target: str,
+) -> None:
+    result = _bind(
+        f"<S> ::= [root] seed: <Seed> child: {target}\n"
+        "<Seed> ::= [seed] item: SEED\n"
+        "<OwnerDef> ::= [owner] item: OWNER\n"
+        "<Choice> ::= [owner_choice] item: OWNER | [other_choice] item: OTHER",
+        "profile worker\n"
+        "<S>[root] {\nChild => child\n^Owner.Child += seed\n}\n"
+        "<Seed>[seed] {\n@Seed\n-= item\n}\n"
+        "<OwnerDef>[owner] {\n@Owner\n-= item\n}\n"
+        "<Choice>[owner_choice] {\n@Owner\n-= item\n}\n"
+        "<Choice>[other_choice] {\n@Other\n-= item\n}\n",
+    )
+
+    assert result.source_grammar is None
+    assert _original_codes(result) == ["SCOP201"]
+    diagnostic = next(item for item in result.diagnostics if item.code == "SPB207")
+    assert any(
+        item.message == "conflicting scalar field is declared here"
+        and item.span.path == "worker.semantic"
+        and item.span.start.line == 3
+        for item in diagnostic.related
+    )
+
+
+def test_scoped_collection_accepts_wrap_prepend_collection_target() -> None:
+    result = _bind(
+        "<S> ::= [root] seed: <Seed> child: <OwnerDef>\n"
+        "<Seed> ::= [seed] item: SEED\n"
+        "<OwnerDef> ::= [owner] item: OWNER",
+        "profile worker\n"
+        "<S>[root] {\nChildren +=> child\n^Owner.Children += seed\n}\n"
+        "<Seed>[seed] {\n@Seed\n-= item\n}\n"
+        "<OwnerDef>[owner] {\n@Owner\n-= item\n}\n",
+    )
+
+    assert result.diagnostics == ()
+    assert result.source_grammar is not None
+
+
+@pytest.mark.parametrize("anchor", ("(A B)", "(A B)?", "(A B)*", "(A B)+"))
+def test_rejects_scoped_anchor_branch_without_one_capturable_value(
+    anchor: str,
+) -> None:
+    result = _bind(
+        f"<S> ::= [root] value: {anchor}\n"
+        "<OwnerDef> ::= [owner] value: OWNER",
+        "profile worker\n"
+        "<S>[root] {\n^Owner.Items += value\n}\n"
+        "<OwnerDef>[owner] {\n@Owner\n-= value\n}\n",
+    )
+
+    assert result.source_grammar is None
+    assert _original_codes(result) == ["SCOP205"]
+    diagnostic = next(item for item in result.diagnostics if item.code == "SPB207")
+    assert diagnostic.span.path == "worker.semantic"
+    assert diagnostic.span.start.line == 3
+
+
 def test_current_field_appends_after_a_definite_scalar_write() -> None:
     result = _bind(
         "<S> ::= [root] value: ITEM",
@@ -172,6 +234,25 @@ def test_scoped_append_is_allowed_in_lr_base_and_rejected_in_recursive_suffix() 
     )
     assert recursive.source_grammar is None
     assert _original_codes(recursive) == ["SCOP204"]
+
+
+def test_rejects_scoped_tap_on_direct_lr_self_reference() -> None:
+    result = _bind(
+        "<Expr> ::= [recursive] left: <Expr> plus: '+' right: ITEM "
+        "| [base] item: ITEM",
+        "profile worker\n"
+        "<Expr>[recursive] {\n"
+        "@Binary\n"
+        "Left = left\n"
+        "^Owner.Items += left\n"
+        "-= plus\n"
+        "Right = right\n"
+        "}\n"
+        "<Expr>[base] {\n@Owner\nValue = item\n}\n",
+    )
+
+    assert result.source_grammar is None
+    assert _original_codes(result) == ["SCOP204"]
 
 
 def test_source_scoped_value_requires_exactly_one_payload_kind() -> None:

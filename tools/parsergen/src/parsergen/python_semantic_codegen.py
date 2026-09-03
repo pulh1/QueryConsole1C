@@ -138,7 +138,7 @@ class _SchemaBuilder:
         )
 
     def _scoped_fields(self, value: object) -> None:
-        if isinstance(value, AppendNearestOwner):
+        if isinstance(value, AppendNearestOwner) and value.owner in self.fields:
             self._field(value.owner, value.property, "collection")
         if isinstance(value, (tuple, list)):
             for item in value:

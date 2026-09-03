@@ -309,6 +309,37 @@ def test_scoped_ir_is_an_optimizer_barrier_except_for_reachability() -> None:
     assert optimized.productions == raw.productions[:2]
 
 
+def test_pruned_scoped_owner_remains_a_runtime_noop() -> None:
+    parser_ir = _build(
+        "#Value ::= ID\n"
+        "<S> ::= [root] item: #Value\n"
+        "<OwnerDef> ::= [owner] item: OWNER",
+        "profile worker\n"
+        "<S>[root] {\n^Owner.Items += item\n}\n"
+        "<OwnerDef>[owner] {\n@Owner\n-= item\n}\n",
+    )
+
+    assert tuple(item.name for item in parser_ir.productions) == ("S",)
+    generated = generate_python_semantic_parser(
+        parser_ir.source_grammar,
+        parser_ir,
+        {"start": "S"},
+    )
+    namespace: dict[str, object] = {}
+    exec(
+        compile(generated.module_text, "<generated-scoped-parser>", "exec"),
+        namespace,
+    )
+
+    result = namespace["GeneratedParser"]().parse(
+        (SimpleNamespace(type="ID", text="kept", start=0, end=4),),
+        "start",
+    )
+
+    assert generated.ast_schema == ()
+    assert result == "kept"
+
+
 def test_scoped_tap_is_preserved_in_direct_left_recursion_base() -> None:
     parser_ir = _build(
         "<S> ::= <Expr>\n"
