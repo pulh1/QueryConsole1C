@@ -5,10 +5,11 @@ from inspect import signature
 from parsergen.analysis import compute_analysis
 from parsergen.grammar_parser import parse_grammar
 from parsergen.lowering import LoweringResult
-from parsergen.parser_ir import ParserIr, build_parser_ir
+from parsergen.parser_ir import ConstructNode, ParserIr, build_parser_ir
 from parsergen.python_semantic_codegen import generate_python_semantic_parser
 from parsergen.resolver import resolve_grammar
-from parsergen.source_model import SourceGrammar
+from parsergen.separated_model import SemanticAlternative
+from parsergen.source_model import SourceConstructor, SourceGrammar
 
 
 LEGACY_SOURCE = (
@@ -53,6 +54,16 @@ def _legacy_module_text() -> str:
 
 
 def test_legacy_dataclass_shapes_and_parse_signature_are_frozen() -> None:
+    assert tuple(item.name for item in fields(SemanticAlternative)) == (
+        "production", "alternative", "constructor", "constructor_span",
+        "anchor_bindings", "constants", "span",
+    )
+    assert tuple(item.name for item in fields(SourceConstructor)) == (
+        "name", "span",
+    )
+    assert tuple(item.name for item in fields(ConstructNode)) == (
+        "constructor", "source_span",
+    )
     assert tuple(item.name for item in fields(SourceGrammar)) == (
         "productions", "identifier_definitions", "path"
     )

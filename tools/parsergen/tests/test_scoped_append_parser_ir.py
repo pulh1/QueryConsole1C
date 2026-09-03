@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import fields, replace
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -18,6 +19,7 @@ from parsergen.parser_ir import (
     ParseSymbol,
     RepeatLoop,
     ResolvedRegion,
+    WrapValue,
     WrapOptional,
     build_parser_ir,
 )
@@ -363,20 +365,24 @@ def test_scoped_tap_requires_exactly_one_value_source() -> None:
         AppendNearestOwner("Owner", "Items", None, None, 0, span)
 
 
-def test_unscoped_group_optional_wrap_keeps_legacy_ir_and_codegen() -> None:
+def _legacy_wrap_ir_after_asserting_bind210(source: str):
     parsed = parse_source_grammar(
-        "<S> ::= <Seed> Child => (<A> | <B>)?\n"
-        "<Seed> ::= @Seed SEED\n"
-        "<A> ::= @A A\n"
-        "<B> ::= @B B",
+        source,
         "legacy.grammar",
     )
     assert parsed.diagnostics == ()
     assert parsed.grammar is not None
-    lowering = replace(
-        lower_source_grammar(parsed.grammar),
-        diagnostics=(),
+    rejected_lowering = lower_source_grammar(parsed.grammar)
+    assert tuple(
+        (diagnostic.code, diagnostic.message)
+        for diagnostic in rejected_lowering.diagnostics
+    ) == (
+        (
+            "BIND210",
+            "returned-child decorator requires one seed and one semantic child",
+        ),
     )
+    lowering = replace(rejected_lowering, diagnostics=())
     resolved = resolve_grammar(lowering.grammar)
     assert resolved.grammar is not None
     analysis = compute_analysis(resolved.grammar, 1, ("S",))
@@ -394,6 +400,16 @@ def test_unscoped_group_optional_wrap_keeps_legacy_ir_and_codegen() -> None:
             analysis,
             entrypoint_productions=("S",),
         )
+    return parsed.grammar, parser_ir
+
+
+def test_unscoped_group_optional_wrap_keeps_legacy_ir_and_codegen() -> None:
+    source, parser_ir = _legacy_wrap_ir_after_asserting_bind210(
+        "<S> ::= <Seed> Child => (<A> | <B>)?\n"
+        "<Seed> ::= @Seed SEED\n"
+        "<A> ::= @A A\n"
+        "<B> ::= @B B"
+    )
 
     wrapper = _production(parser_ir, "S").alternatives[0].operations[0]
     assert isinstance(wrapper, WrapOptional)
@@ -402,8 +418,55 @@ def test_unscoped_group_optional_wrap_keeps_legacy_ir_and_codegen() -> None:
         for branch in wrapper.branches
     )
     generated = generate_python_semantic_parser(
-        parsed.grammar,
+        source,
         parser_ir,
         {"start": "S"},
     )
     compile(generated.module_text, "<generated-legacy-parser>", "exec")
+
+
+@pytest.mark.parametrize(
+    ("operator", "property_name"),
+    (("Child =>", "Child"), ("Children +=>", "Children")),
+)
+def test_unscoped_heterogeneous_required_wraps_keep_legacy_runtime(
+    operator: str,
+    property_name: str,
+) -> None:
+    source, parser_ir = _legacy_wrap_ir_after_asserting_bind210(
+        f"<S> ::= <Seed> {operator} (<A> | <B>)\n"
+        "<Seed> ::= @Seed SEED\n"
+        "<A> ::= @A A\n"
+        "<B> ::= @B B"
+    )
+
+    wrapper = _production(parser_ir, "S").alternatives[0].operations[0]
+    assert isinstance(wrapper, WrapValue)
+    assert wrapper.prepend is (property_name == "Children")
+    assert isinstance(wrapper.value, DispatchValue)
+    generated = generate_python_semantic_parser(
+        source,
+        parser_ir,
+        {"start": "S"},
+    )
+    namespace: dict[str, object] = {}
+    exec(
+        compile(generated.module_text, "<generated-legacy-parser>", "exec"),
+        namespace,
+    )
+
+    for branch_token in ("A", "B"):
+        node = namespace["GeneratedParser"]().parse(
+            (
+                SimpleNamespace(
+                    type="SEED", text="", start=0, end=1, value=None
+                ),
+                SimpleNamespace(
+                    type=branch_token, text="", start=2, end=3, value=None
+                ),
+            ),
+            "start",
+        )
+        children = (node.Child,) if property_name == "Child" else node.Children
+        assert type(node).__name__ == branch_token
+        assert tuple(type(child).__name__ for child in children) == ("Seed",)

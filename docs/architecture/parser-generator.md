@@ -720,6 +720,46 @@ options, different absolute paths therefore yield equal normalized
 `SourceGrammar`/`ParserIr` shapes and identical generated `module_text`;
 dictionary order and filesystem timestamps likewise do not affect the artifact.
 
+### Scoped append в активный owner
+
+Разделённый semantic profile поддерживает две формы адресной записи во внешний
+builder. `Owner` — точное имя constructor, `Collection` — его collection field,
+а `anchor` — именованный элемент соответствующей syntax-альтернативы:
+
+```text
+^Owner.Collection += anchor
+^Owner.Collection += $CurrentField
+```
+
+Anchor-форма разбирает значение ровно один раз. То же значение по-прежнему
+поступает в обычный receiver anchor-а, если он задан, и ровно один раз
+добавляется в `Collection`. Форма `$CurrentField` не потребляет input и не
+публикует отдельный semantic result: она снимет текущее значение уже записанного
+поля активного builder-а.
+
+- Target выбирается среди активных builder-ов с точным именем `Owner`.
+- Используется ближайший target; вложенный owner того же типа затеняет внешний.
+- Если подходящего owner нет, эффект является no-op, а parse продолжается.
+- Эффекты выполняются в текстовом порядке строк semantic profile, даже если
+  syntax anchors встречаются в ином порядке; повторения одного эффекта стабильны.
+- Перед закрытием owner накопленные добавления применяются до `freeze`, после
+  чего готовый child доставляется его обычному родителю.
+
+Binder заранее проверяет существование owner и anchor, collection-категорию
+target field, доступность и definite write для `$CurrentField`. Scoped append
+разрешён в base-ветви direct left recursion, но запрещён в recursive suffix.
+Ведущий `^` не является синтаксисом combined grammar и диагностируется `GP010`.
+
+Исполнение поддерживает только generated Python backend. Canonical BSL и hybrid
+backends fail closed до rendering или routing. Owner stacks и очереди включаются
+в generated module условно, поэтому профиль без scoped append сохраняет прежний
+Python module byte-for-byte и прежнее поведение обычных `=>`/`+=>` wrap-ов.
+
+Модель остаётся минимальной: scoped append понижается в одиночный value tap
+`AppendNearestOwner`. Он не объединяет semantic results, не создаёт fact
+sequences или result-shape analysis и не меняет поля существующих публичных
+`SemanticAlternative`, `SourceConstructor`, `ConstructNode` и `ParserIr`.
+
 ## Python semantic target
 
 `parsergen.python_semantic_codegen` is a separate backend over canonical
