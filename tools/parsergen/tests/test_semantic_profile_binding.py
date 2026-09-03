@@ -348,3 +348,57 @@ def test_scoped_append_reports_a_missing_anchor_through_existing_binding_error()
     )
 
     assert diagnostic.span.start.line == 3
+
+
+def test_scoped_source_order_is_independent_of_anchor_grammar_order() -> None:
+    _, result = _bind(
+        "<S> ::= [root] first: FIRST second: SECOND",
+        "profile worker\n"
+        "<S>[root] {\n"
+        "@Owner\n"
+        "^Owner.Items += second\n"
+        "^Owner.Items += first\n"
+        "}\n",
+    )
+
+    assert result.diagnostics == ()
+    assert result.source_grammar is not None
+    items = result.source_grammar.productions[0].alternatives[0].body.items
+    first, second = items[1:]
+    assert isinstance(first, SourceScopedValue)
+    assert isinstance(second, SourceScopedValue)
+    assert (first.source_order, second.source_order) == (1, 0)
+
+
+def test_scoped_source_order_covers_current_field_before_and_after_anchor() -> None:
+    profiles = (
+        (
+            "^Owner.Items += $Value\n^Owner.Items += item",
+            (1, 0),
+        ),
+        (
+            "^Owner.Items += item\n^Owner.Items += $Value",
+            (0, 1),
+        ),
+    )
+
+    for directives, expected in profiles:
+        _, result = _bind(
+            "<S> ::= [root] item: ITEM",
+            "profile worker\n"
+            "<S>[root] {\n"
+            "@Owner\n"
+            "Value = item\n"
+            f"{directives}\n"
+            "}\n",
+        )
+
+        assert result.diagnostics == ()
+        assert result.source_grammar is not None
+        items = result.source_grammar.productions[0].alternatives[0].body.items
+        receiver = items[1]
+        current = items[-1]
+        assert isinstance(receiver, SourceBinding)
+        assert isinstance(receiver.value, SourceScopedValue)
+        assert isinstance(current, SourceScopedValue)
+        assert (receiver.value.source_order, current.source_order) == expected

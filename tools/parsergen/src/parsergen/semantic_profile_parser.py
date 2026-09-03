@@ -237,6 +237,7 @@ def _parse_block_line(
                     scoped_append.start("operator"),
                     scoped_append.end("operator"),
                 ),
+                len(scoped_appends) + len(current.scoped_appends),
             )
         )
         return current

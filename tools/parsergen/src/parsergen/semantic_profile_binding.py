@@ -519,6 +519,7 @@ def _bind_sequence(
                 value,
                 None,
                 scoped.span,
+                scoped.source_order,
             )
         binding = bindings_by_path.get(item_path)
         if binding is not None:
@@ -667,6 +668,7 @@ def _decorate_sequence(
             None,
             scoped.current_field,
             scoped.span,
+            scoped.source_order,
         )
         for scoped in current_fields_by_path.get((production, path), ())
     )
@@ -752,6 +754,7 @@ def _decorate_value(
             ),
             value.current_field,
             value.span,
+            value.source_order,
         )
     if isinstance(value, SourceGroup):
         alternatives = tuple(
@@ -900,7 +903,8 @@ def _convert_validation_diagnostic(
         RelatedLocation(
             f"{diagnostic.code}: {diagnostic.message}",
             diagnostic.span,
-        )
+        ),
+        *diagnostic.related,
     ]
     if target is not None and diagnostic.span is not target.declaration_span:
         related.append(

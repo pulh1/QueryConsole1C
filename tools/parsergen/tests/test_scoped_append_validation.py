@@ -1,3 +1,7 @@
+import pytest
+
+from parsergen.diagnostics import SourcePosition, SourceSpan
+from parsergen.model import Terminal
 from parsergen.semantic_profile_binding import bind_semantic_profile
 from parsergen.semantic_profile_parser import parse_semantic_profile
 from parsergen.source_model import SourceScopedValue
@@ -42,6 +46,13 @@ def test_rejects_scoped_collection_conflicting_with_owner_scalar_field() -> None
 
     assert result.source_grammar is None
     assert _original_codes(result) == ["SCOP201"]
+    diagnostic = next(item for item in result.diagnostics if item.code == "SPB207")
+    assert any(
+        item.message == "conflicting scalar field is declared here"
+        and item.span.path == "worker.semantic"
+        and item.span.start.line == 4
+        for item in diagnostic.related
+    )
 
 
 def test_current_field_appends_after_a_definite_scalar_write() -> None:
@@ -61,6 +72,21 @@ def test_current_field_appends_after_a_definite_scalar_write() -> None:
     assert isinstance(effect, SourceScopedValue)
     assert effect.value is None
     assert effect.current_field == "Value"
+
+
+def test_concat_and_increment_are_definite_scalar_writes() -> None:
+    for operator in ("~=", "++="):
+        result = _bind(
+            "<S> ::= [root] value: ITEM",
+            "profile worker\n"
+            "<S>[root] {\n"
+            "@Owner\n"
+            f"Value {operator} value\n"
+            "^Owner.Items += $Value\n"
+            "}\n",
+        )
+
+        assert result.diagnostics == ()
 
 
 def test_current_field_requires_an_active_builder_and_definite_write() -> None:
@@ -146,3 +172,28 @@ def test_scoped_append_is_allowed_in_lr_base_and_rejected_in_recursive_suffix() 
     )
     assert recursive.source_grammar is None
     assert _original_codes(recursive) == ["SCOP204"]
+
+
+def test_source_scoped_value_requires_exactly_one_payload_kind() -> None:
+    position = SourcePosition(1, 1, 0)
+    span = SourceSpan("profile.semantic", position, position)
+    value = Terminal("ITEM", span)
+
+    with pytest.raises(ValueError, match="exactly one"):
+        SourceScopedValue(
+            "Owner",
+            "Items",
+            None,
+            None,
+            source_order=0,
+            span=span,
+        )
+    with pytest.raises(ValueError, match="exactly one"):
+        SourceScopedValue(
+            "Owner",
+            "Items",
+            value,
+            "Field",
+            source_order=0,
+            span=span,
+        )

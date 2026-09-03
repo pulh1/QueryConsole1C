@@ -71,6 +71,7 @@ class SemanticScopedAppend:
     current_field: str | None
     span: SourceSpan
     operator_span: SourceSpan
+    source_order: int = 0
 
 
 @dataclass(frozen=True, slots=True)

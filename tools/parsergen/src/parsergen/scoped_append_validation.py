@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .diagnostics import Diagnostic, DiagnosticBag, Severity, SourceSpan
+from .diagnostics import (
+    Diagnostic,
+    DiagnosticBag,
+    RelatedLocation,
+    Severity,
+    SourceSpan,
+)
 from .left_recursion import classify_direct_left_recursion
 from .source_model import (
     BindingMode,
@@ -58,6 +64,12 @@ def validate_scoped_appends(
                         "SCOP201",
                         "scoped append target conflicts with a scalar field",
                         effect.span,
+                        (
+                            RelatedLocation(
+                                "conflicting scalar field is declared here",
+                                scalar_fields[effect.owner][effect.property],
+                            ),
+                        ),
                     )
             _validate_current_fields(
                 alternative.body,
@@ -153,7 +165,15 @@ def _validate_current_fields(
                 constructor=current_constructor,
                 definite=current,
             )
-            if item.mode is BindingMode.SCALAR and item.property is not None:
+            if (
+                item.mode
+                in (
+                    BindingMode.SCALAR,
+                    BindingMode.CONCAT,
+                    BindingMode.INCREMENT,
+                )
+                and item.property is not None
+            ):
                 current = current | {item.property}
         elif isinstance(item, SourceConstantBinding):
             if item.property is not None:
@@ -297,5 +317,6 @@ def _add(
     code: str,
     message: str,
     span: SourceSpan,
+    related: tuple[RelatedLocation, ...] = (),
 ) -> None:
-    bag.add(Diagnostic(code, Severity.ERROR, message, span))
+    bag.add(Diagnostic(code, Severity.ERROR, message, span, related))

@@ -71,6 +71,13 @@ class SourceScopedValue:
     value: SourceValue | None
     current_field: str | None
     span: SourceSpan
+    source_order: int = 0
+
+    def __post_init__(self) -> None:
+        if (self.value is None) == (self.current_field is None):
+            raise ValueError(
+                "SourceScopedValue requires exactly one of value/current_field"
+            )
 
 
 @dataclass(frozen=True, slots=True)
