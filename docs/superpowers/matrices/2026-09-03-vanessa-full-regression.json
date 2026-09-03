@@ -1,0 +1,849 @@
+{
+  "schema_version": 1,
+  "hash_scope": "UTF-8 bytes with LF line endings",
+  "captured_date": "2026-09-03",
+  "branch": "feature/metadata-provider",
+  "implementation_commit": "1a07c32e6b367b8daaae98c870c7534da3029ea6",
+  "platform_version": "8.3.27.2170",
+  "vanessa_version": "1.2.043.28",
+  "test_client_profile": "QueryConsoleZUP UI",
+  "debugger_attached": false,
+  "scope": {
+    "executable_feature_files": 128,
+    "scenario_declarations": 130,
+    "excluded_export_library_files": 59
+  },
+  "initial_attempt_summary": {
+    "Failed": 1,
+    "MCP_ERROR": 1,
+    "Success": 126
+  },
+  "final_latest_summary": {
+    "Success": 128
+  },
+  "summed_success_duration_ms": 2019470,
+  "summed_success_steps": 62766,
+  "directory_summary": [
+    {
+      "directory": "long",
+      "files": 1,
+      "summed_duration_ms": 1102179,
+      "steps": 34008
+    },
+    {
+      "directory": "ВыполнениеЗапросовВКонсоли",
+      "files": 42,
+      "summed_duration_ms": 133697,
+      "steps": 756
+    },
+    {
+      "directory": "ГенерацияКодаВКонсоли",
+      "files": 42,
+      "summed_duration_ms": 44776,
+      "steps": 798
+    },
+    {
+      "directory": "СозданиеЗапросовВКонструкторе",
+      "files": 43,
+      "summed_duration_ms": 738818,
+      "steps": 27204
+    }
+  ],
+  "recovery_events": [
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестСрезРегистраЗапросБезВТ.feature",
+      "initial_status": "Failed",
+      "initial_duration_ms": 7673,
+      "failed_step": 245,
+      "error": "Error calling context method (Развернуть): The value is not found in the control.",
+      "rerun_1": {
+        "status": "Success",
+        "duration_ms": 12429,
+        "steps": 352
+      },
+      "rerun_2": {
+        "status": "Success",
+        "duration_ms": 12578,
+        "steps": 352
+      }
+    },
+    {
+      "file": "long\\БольшойПакетЗапросов.feature",
+      "mcp_handler_status": "Handler timeout",
+      "execution_continued": true,
+      "final_status": "Success",
+      "duration_ms": 1102179,
+      "steps": 34008
+    }
+  ],
+  "results": [
+    {
+      "file": "long\\БольшойПакетЗапросов.feature",
+      "status": "Success",
+      "duration_ms": 1102179,
+      "steps": 34008
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ДанныеОВремениИИнтервалыРегистра.feature",
+      "status": "Success",
+      "duration_ms": 4362,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ДанныеУчетаВремениПоПШР.feature",
+      "status": "Success",
+      "duration_ms": 3199,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ДвеТаблицыКадровыхДанныхВОдномЗапросе.feature",
+      "status": "Success",
+      "duration_ms": 3217,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ЗапросДанныеУчетаВремениСотрудников.feature",
+      "status": "Success",
+      "duration_ms": 3361,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\КадровыеДанные.feature",
+      "status": "Success",
+      "duration_ms": 3194,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\СведенияОДоходахНДФЛНарастающийИтог.feature",
+      "status": "Success",
+      "duration_ms": 3562,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\СрезСОтборами.feature",
+      "status": "Success",
+      "duration_ms": 3024,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестВТПериоды.feature",
+      "status": "Success",
+      "duration_ms": 3327,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестГенерацияСрезаДляСКД.feature",
+      "status": "Success",
+      "duration_ms": 3267,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестДанныеУчетаВремени.feature",
+      "status": "Success",
+      "duration_ms": 3654,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестДанныеУчетаВремениСПараметрами.feature",
+      "status": "Success",
+      "duration_ms": 3356,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестЗаписиРегистраЗапросБезВТ.feature",
+      "status": "Success",
+      "duration_ms": 3260,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестЗапросаВТШтатноеРасписание.feature",
+      "status": "Success",
+      "duration_ms": 3318,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестЗапросаВТШтатноеРасписаниеДляСКД.feature",
+      "status": "Success",
+      "duration_ms": 3074,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестЗапросаДанныеФизическихЛиц.feature",
+      "status": "Success",
+      "duration_ms": 3448,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестЗапросаНачисленияУдержания_И_КадроваяИстория.feature",
+      "status": "Success",
+      "duration_ms": 3211,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестЗапросаНачисленияУдержания_И_КадроваяИсторияДляСКД.feature",
+      "status": "Success",
+      "duration_ms": 3322,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестЗапросаНачисленияУдержания.feature",
+      "status": "Success",
+      "duration_ms": 3397,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестЗапросаНачисленияУдержанияАвансом.feature",
+      "status": "Success",
+      "duration_ms": 3241,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестЗапросаОплаченноеВремя.feature",
+      "status": "Success",
+      "duration_ms": 3323,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестЗапросаПлановоеВремя.feature",
+      "status": "Success",
+      "duration_ms": 3800,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестЗапросаРабочиеМестаСотрудников.feature",
+      "status": "Success",
+      "duration_ms": 2913,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестЗапросаРабочиеМестаСотрудниковБезОтбораПоСотр.feature",
+      "status": "Success",
+      "duration_ms": 2371,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестЗапросаФактическиеОтпуска.feature",
+      "status": "Success",
+      "duration_ms": 3360,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестЗапросОстаткиОтпусков.feature",
+      "status": "Success",
+      "duration_ms": 3381,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестИндексыИПсевдониымПолей.feature",
+      "status": "Success",
+      "duration_ms": 3208,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестИнтервалыРегистраЗапросБезВТ.feature",
+      "status": "Success",
+      "duration_ms": 3024,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестКадровыеДанные.feature",
+      "status": "Success",
+      "duration_ms": 2307,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестКадровыеДанныеБезИспользованияВТ.feature",
+      "status": "Success",
+      "duration_ms": 3274,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестКадровыеДанныеСПараметрами_БезФормированияДопЗапроса.feature",
+      "status": "Success",
+      "duration_ms": 3396,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестКадровыеДанныеСПараметрами.feature",
+      "status": "Success",
+      "duration_ms": 3352,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестПакетЗапрсов.feature",
+      "status": "Success",
+      "duration_ms": 3358,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестПараметрыЗаписиРегистра.feature",
+      "status": "Success",
+      "duration_ms": 2368,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестПараметрыИнтервалыРегистра.feature",
+      "status": "Success",
+      "duration_ms": 3336,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестПараметрыСрезаПоследних.feature",
+      "status": "Success",
+      "duration_ms": 2276,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестРасчетБазы.feature",
+      "status": "Success",
+      "duration_ms": 3244,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестРасчетБазыУдержаний.feature",
+      "status": "Success",
+      "duration_ms": 3305,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестСотрудникиОрганизацииБезВТФизлица.feature",
+      "status": "Success",
+      "duration_ms": 2456,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестСотрудникиОрганизацииПоВТФизлица.feature",
+      "status": "Success",
+      "duration_ms": 3312,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестСрезНаКаждыйДень.feature",
+      "status": "Success",
+      "duration_ms": 2450,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестСрезРегистраЗапросБезВТ.feature",
+      "status": "Success",
+      "duration_ms": 3098,
+      "steps": 18
+    },
+    {
+      "file": "ВыполнениеЗапросовВКонсоли\\ТестСтажиФизическихЛиц.feature",
+      "status": "Success",
+      "duration_ms": 2991,
+      "steps": 18
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ДанныеОВремениИИнтервалыРегистра.feature",
+      "status": "Success",
+      "duration_ms": 1156,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ДанныеУчетаВремениПоПШР.feature",
+      "status": "Success",
+      "duration_ms": 1084,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ДвеТаблицыКадровыхДанныхВОдномЗапросе.feature",
+      "status": "Success",
+      "duration_ms": 1102,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ЗапросДанныеУчетаВремениСотрудников.feature",
+      "status": "Success",
+      "duration_ms": 902,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\КадровыеДанные.feature",
+      "status": "Success",
+      "duration_ms": 1047,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\СведенияОДоходахНДФЛНарастающийИтог.feature",
+      "status": "Success",
+      "duration_ms": 1074,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\СрезСОтборами.feature",
+      "status": "Success",
+      "duration_ms": 1072,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестВТПериоды.feature",
+      "status": "Success",
+      "duration_ms": 1041,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестГенерацияСрезаДляСКД.feature",
+      "status": "Success",
+      "duration_ms": 1107,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестДанныеУчетаВремени.feature",
+      "status": "Success",
+      "duration_ms": 1074,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестДанныеУчетаВремениСПараметрами.feature",
+      "status": "Success",
+      "duration_ms": 1049,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестЗаписиРегистраЗапросБезВТ.feature",
+      "status": "Success",
+      "duration_ms": 1036,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестЗапросаВТШтатноеРасписание.feature",
+      "status": "Success",
+      "duration_ms": 1090,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестЗапросаВТШтатноеРасписаниеДляСКД.feature",
+      "status": "Success",
+      "duration_ms": 1019,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестЗапросаДанныеФизическихЛиц.feature",
+      "status": "Success",
+      "duration_ms": 1230,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестЗапросаНачисленияУдержания_И_КадроваяИстория.feature",
+      "status": "Success",
+      "duration_ms": 1098,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестЗапросаНачисленияУдержания_И_КадроваяИсторияДляСКД.feature",
+      "status": "Success",
+      "duration_ms": 1100,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестЗапросаНачисленияУдержания.feature",
+      "status": "Success",
+      "duration_ms": 1058,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестЗапросаНачисленияУдержанияАвансом.feature",
+      "status": "Success",
+      "duration_ms": 1083,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестЗапросаОплаченноеВремя.feature",
+      "status": "Success",
+      "duration_ms": 1097,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестЗапросаПлановоеВремя.feature",
+      "status": "Success",
+      "duration_ms": 1118,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестЗапросаРабочиеМестаСотрудников.feature",
+      "status": "Success",
+      "duration_ms": 1116,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестЗапросаРабочиеМестаСотрудниковБезОтбораПоСотр.feature",
+      "status": "Success",
+      "duration_ms": 1156,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестЗапросаФактическиеОтпуска.feature",
+      "status": "Success",
+      "duration_ms": 1022,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестЗапросОстаткиОтпусков.feature",
+      "status": "Success",
+      "duration_ms": 1041,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестИндексыИПсевдониымПолей.feature",
+      "status": "Success",
+      "duration_ms": 1121,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестИнтервалыРегистраЗапросБезВТ.feature",
+      "status": "Success",
+      "duration_ms": 954,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестКадровыеДанные.feature",
+      "status": "Success",
+      "duration_ms": 973,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестКадровыеДанныеБезИспользованияВТ.feature",
+      "status": "Success",
+      "duration_ms": 1012,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестКадровыеДанныеСПараметрами_БезФормированияДопЗапроса.feature",
+      "status": "Success",
+      "duration_ms": 1108,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестКадровыеДанныеСПараметрами.feature",
+      "status": "Success",
+      "duration_ms": 1056,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестПакетЗапрсов.feature",
+      "status": "Success",
+      "duration_ms": 1169,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестПараметрыЗаписиРегистра.feature",
+      "status": "Success",
+      "duration_ms": 1082,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестПараметрыИнтервалыРегистра.feature",
+      "status": "Success",
+      "duration_ms": 1000,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестПараметрыСрезаПоследних.feature",
+      "status": "Success",
+      "duration_ms": 1078,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестРасчетБазы.feature",
+      "status": "Success",
+      "duration_ms": 1127,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестРасчетБазыУдержаний.feature",
+      "status": "Success",
+      "duration_ms": 985,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестСотрудникиОрганизацииБезВТФизлица.feature",
+      "status": "Success",
+      "duration_ms": 1042,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестСотрудникиОрганизацииПоВТФизлица.feature",
+      "status": "Success",
+      "duration_ms": 1034,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестСрезНаКаждыйДень.feature",
+      "status": "Success",
+      "duration_ms": 1023,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестСрезРегистраЗапросБезВТ.feature",
+      "status": "Success",
+      "duration_ms": 967,
+      "steps": 19
+    },
+    {
+      "file": "ГенерацияКодаВКонсоли\\ТестСтажиФизическихЛиц.feature",
+      "status": "Success",
+      "duration_ms": 1073,
+      "steps": 19
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ДанныеОВремениИИнтервалыРегистра.feature",
+      "status": "Success",
+      "duration_ms": 33581,
+      "steps": 1710
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ДанныеУчетаВремениПоПШР.feature",
+      "status": "Success",
+      "duration_ms": 16669,
+      "steps": 814
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ДвеТаблицыКадровыхДанныхВОдномЗапросе.feature",
+      "status": "Success",
+      "duration_ms": 21252,
+      "steps": 868
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ЗапросДанныеУчетаВремениСотрудников.feature",
+      "status": "Success",
+      "duration_ms": 13578,
+      "steps": 566
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\КадровыеДанные.feature",
+      "status": "Success",
+      "duration_ms": 9158,
+      "steps": 348
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\КаталогПоставщиковМетаданных.feature",
+      "status": "Success",
+      "duration_ms": 4199,
+      "steps": 188
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\СведенияОДоходахНДФЛНарастающийИтог.feature",
+      "status": "Success",
+      "duration_ms": 7114,
+      "steps": 263
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\СрезСОтборами.feature",
+      "status": "Success",
+      "duration_ms": 15220,
+      "steps": 641
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестВТПериоды.feature",
+      "status": "Success",
+      "duration_ms": 3477,
+      "steps": 135
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестГенерацияСрезаДляСКД.feature",
+      "status": "Success",
+      "duration_ms": 15397,
+      "steps": 642
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестДанныеУчетаВремени.feature",
+      "status": "Success",
+      "duration_ms": 14001,
+      "steps": 566
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестДанныеУчетаВремениСПараметрами.feature",
+      "status": "Success",
+      "duration_ms": 14250,
+      "steps": 566
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестЗаписиРегистраЗапросБезВТ.feature",
+      "status": "Success",
+      "duration_ms": 8210,
+      "steps": 304
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестЗапросаВТШтатноеРасписание.feature",
+      "status": "Success",
+      "duration_ms": 13223,
+      "steps": 494
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестЗапросаВТШтатноеРасписаниеДляСКД.feature",
+      "status": "Success",
+      "duration_ms": 16868,
+      "steps": 614
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестЗапросаДанныеФизическихЛиц.feature",
+      "status": "Success",
+      "duration_ms": 11523,
+      "steps": 401
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестЗапросаНачисленияУдержания_И_КадроваяИстория.feature",
+      "status": "Success",
+      "duration_ms": 25721,
+      "steps": 971
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестЗапросаНачисленияУдержания_И_КадроваяИсторияДляСКД.feature",
+      "status": "Success",
+      "duration_ms": 34746,
+      "steps": 1085
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестЗапросаНачисленияУдержания.feature",
+      "status": "Success",
+      "duration_ms": 17077,
+      "steps": 634
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестЗапросаНачисленияУдержанияАвансом.feature",
+      "status": "Success",
+      "duration_ms": 15529,
+      "steps": 582
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестЗапросаОплаченноеВремя.feature",
+      "status": "Success",
+      "duration_ms": 9521,
+      "steps": 355
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестЗапросаПлановоеВремя.feature",
+      "status": "Success",
+      "duration_ms": 10338,
+      "steps": 408
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестЗапросаРабочиеМестаСотрудников.feature",
+      "status": "Success",
+      "duration_ms": 13293,
+      "steps": 531
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестЗапросаРабочиеМестаСотрудниковБезОтбораПоСотр.feature",
+      "status": "Success",
+      "duration_ms": 10835,
+      "steps": 439
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестЗапросаФактическиеОтпуска.feature",
+      "status": "Success",
+      "duration_ms": 10986,
+      "steps": 439
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестЗапросОстаткиОтпусков.feature",
+      "status": "Success",
+      "duration_ms": 5118,
+      "steps": 211
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестИндексыИПсевдониымПолей.feature",
+      "status": "Success",
+      "duration_ms": 15997,
+      "steps": 622
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестИнтервалыРегистраЗапросБезВТ.feature",
+      "status": "Success",
+      "duration_ms": 8727,
+      "steps": 327
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестКадровыеДанные.feature",
+      "status": "Success",
+      "duration_ms": 9067,
+      "steps": 348
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестКадровыеДанныеБезИспользованияВТ.feature",
+      "status": "Success",
+      "duration_ms": 40958,
+      "steps": 1208
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестКадровыеДанныеСПараметрами_БезФормированияДопЗапроса.feature",
+      "status": "Success",
+      "duration_ms": 45785,
+      "steps": 1391
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестКадровыеДанныеСПараметрами.feature",
+      "status": "Success",
+      "duration_ms": 49253,
+      "steps": 1471
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестПакетЗапрсов.feature",
+      "status": "Success",
+      "duration_ms": 66010,
+      "steps": 2497
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестПараметрыЗаписиРегистра.feature",
+      "status": "Success",
+      "duration_ms": 17493,
+      "steps": 642
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестПараметрыИнтервалыРегистра.feature",
+      "status": "Success",
+      "duration_ms": 18521,
+      "steps": 717
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестПараметрыСрезаПоследних.feature",
+      "status": "Success",
+      "duration_ms": 15946,
+      "steps": 638
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестРасчетБазы.feature",
+      "status": "Success",
+      "duration_ms": 15638,
+      "steps": 388
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестРасчетБазыУдержаний.feature",
+      "status": "Success",
+      "duration_ms": 10529,
+      "steps": 375
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестСотрудникиОрганизацииБезВТФизлица.feature",
+      "status": "Success",
+      "duration_ms": 6251,
+      "steps": 239
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестСотрудникиОрганизацииПоВТФизлица.feature",
+      "status": "Success",
+      "duration_ms": 9004,
+      "steps": 335
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестСрезНаКаждыйДень.feature",
+      "status": "Success",
+      "duration_ms": 11276,
+      "steps": 431
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестСрезРегистраЗапросБезВТ.feature",
+      "status": "Success",
+      "duration_ms": 12578,
+      "steps": 352
+    },
+    {
+      "file": "СозданиеЗапросовВКонструкторе\\ТестСтажиФизическихЛиц.feature",
+      "status": "Success",
+      "duration_ms": 14901,
+      "steps": 448
+    }
+  ]
+}
