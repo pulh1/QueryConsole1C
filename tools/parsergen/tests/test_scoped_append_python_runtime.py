@@ -161,6 +161,41 @@ def test_repeat_tap_captures_once_and_same_order_executions_are_fifo() -> None:
     assert [token.reads for token in tokens] == [1, 1, 1]
 
 
+@pytest.mark.parametrize("quantifier", ("+", "*"))
+def test_scoped_repeat_is_resultless_and_taps_every_item(
+    quantifier: str,
+) -> None:
+    _, namespace = _generate(
+        "#Item ::= ITEM\n"
+        "#Result ::= RESULT\n"
+        "<S> ::= [root] child: <Transparent>\n"
+        f"<Transparent> ::= [transparent] marker: MARK values: #Item{quantifier} "
+        "returned: #Result",
+        "profile worker\n"
+        "<S>[root] {\n"
+        "@Owner\n"
+        "Child = child\n"
+        "}\n"
+        "<Transparent>[transparent] {\n"
+        "-= marker\n"
+        "^Owner.Items += values\n"
+        "}\n",
+    )
+
+    result = namespace["GeneratedParser"]().parse(
+        [
+            Token("MARK"),
+            Token("ITEM", "first"),
+            Token("ITEM", "second"),
+            Token("RESULT", "actual"),
+        ],
+        "start",
+    )
+
+    assert result.Child == "actual"
+    assert result.Items == ("first", "second")
+
+
 @pytest.mark.parametrize("error_kind", ("syntax", "freeze", "append"))
 def test_runtime_state_is_cleared_and_parser_reusable_after_errors(error_kind: str) -> None:
     _, namespace = _owner_runtime()

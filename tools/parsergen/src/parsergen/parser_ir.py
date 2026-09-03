@@ -966,7 +966,16 @@ class _ParserIrBuilder:
         decision_production = construct.production
         if kind is LoweredConstructKind.PLUS:
             if len(branches) == 1:
-                result.extend(branches[0].operations)
+                if binding is None and scoped:
+                    result.append(
+                        ResolvedRegion(
+                            branches[0].operations,
+                            None,
+                            branches[0].source_span,
+                        )
+                    )
+                else:
+                    result.extend(branches[0].operations)
             else:
                 result.append(
                     Dispatch(

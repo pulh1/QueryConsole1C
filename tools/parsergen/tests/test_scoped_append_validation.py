@@ -201,11 +201,14 @@ def test_wrap_constructor_inference_follows_nested_transparent_result(
     assert _original_codes(result) == ["SCOP201"]
 
 
-def test_wrap_constructor_inference_ignores_scoped_repeat_side_effect() -> None:
+@pytest.mark.parametrize("quantifier", ("*", "+"))
+def test_wrap_constructor_inference_ignores_scoped_repeat_side_effect(
+    quantifier: str,
+) -> None:
     result = _bind(
         "<S> ::= [root] seed: <Seed> child: <Transparent>\n"
         "<Seed> ::= [seed] token: SEED\n"
-        "<Transparent> ::= [transparent] marker: MARK owners: <OwnerDef>* "
+        f"<Transparent> ::= [transparent] marker: MARK owners: <OwnerDef>{quantifier} "
         "returned: <OtherDef>\n"
         "<OwnerDef> ::= [owner] token: OWNER\n"
         "<OtherDef> ::= [other] token: OTHER\n"
