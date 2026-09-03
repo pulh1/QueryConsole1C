@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .binding_validation import _cardinality
 from .diagnostics import (
     Diagnostic,
     DiagnosticBag,
@@ -11,7 +10,7 @@ from .diagnostics import (
     SourceSpan,
 )
 from .left_recursion import classify_direct_left_recursion
-from .model import NonterminalCall
+from .model import Constant, IdentifierRef, Lexeme, NonterminalCall, Terminal
 from .source_model import (
     BindingMode,
     SourceBinding,
@@ -75,11 +74,14 @@ def validate_scoped_appends(
                         ),
                     )
                 if effect.value is not None:
-                    cardinality = _cardinality(_tap_payload(effect.value))
+                    payload = _tap_payload(effect.value)
                     if (
-                        cardinality.min_values,
-                        cardinality.max_values,
-                    ) != (1, 1):
+                        isinstance(payload, SourceGroup)
+                        and any(
+                            len(_branch_results(alternative.body)) != 1
+                            for alternative in payload.alternatives
+                        )
+                    ):
                         _add(
                             bag,
                             "SCOP205",
@@ -234,8 +236,8 @@ def _sequence_constructors(
             for name in _value_constructors(item.value, productions, seen)
         }
     result: set[str] = set()
-    for item in sequence.items:
-        value = item.value if isinstance(item, SourceBinding) else item
+    for item in _branch_results(sequence):
+        value = item.value if isinstance(item, SourceScopedValue) else item
         if isinstance(
             value,
             (
@@ -248,6 +250,35 @@ def _sequence_constructors(
         ):
             result.update(_value_constructors(value, productions, seen))
     return result
+
+
+def _branch_results(sequence: SourceSequence) -> tuple[SourceItem, ...]:
+    semantic = tuple(
+        item
+        for item in sequence.items
+        if _branch_result_category(item) == 1
+    )
+    if semantic:
+        return semantic
+    return tuple(
+        item
+        for item in sequence.items
+        if _branch_result_category(item) == 2
+    )
+
+
+def _branch_result_category(value: object) -> int:
+    if isinstance(value, SourceScopedValue):
+        if value.value is None:
+            return 0
+        return _branch_result_category(_tap_payload(value.value))
+    if isinstance(value, SourceConstantBinding):
+        return 1 if value.property is None else 0
+    if isinstance(value, (NonterminalCall, IdentifierRef, Constant)):
+        return 1
+    if isinstance(value, (Terminal, Lexeme)):
+        return 2
+    return 0
 
 
 def _validate_current_fields(

@@ -117,6 +117,54 @@ def test_rejects_scoped_anchor_branch_without_one_capturable_value(
     assert diagnostic.span.start.line == 3
 
 
+@pytest.mark.parametrize(
+    "anchor",
+    (
+        "([word] token: 'word')",
+        "([word] token: 'word')+",
+    ),
+)
+def test_scoped_anchor_accepts_propertyless_semantic_constant_result(
+    anchor: str,
+) -> None:
+    result = _bind(
+        f"<S> ::= [root] value: {anchor}",
+        "profile worker\n"
+        "<S>[root] {\n@Owner\n^Owner.Items += value\n}\n"
+        "<S>[word] {\n-= token\n:= Kinds.Word\n}\n",
+    )
+
+    assert result.diagnostics == ()
+    assert result.source_grammar is not None
+
+
+@pytest.mark.parametrize(
+    ("owner", "expected_codes"),
+    (("Owner", ()), ("Other", ("SCOP201",))),
+)
+def test_wrap_constructor_inference_follows_only_returned_nonterminal(
+    owner: str,
+    expected_codes: tuple[str, ...],
+) -> None:
+    result = _bind(
+        "<S> ::= [root] seed: <Seed> child: <Transparent>\n"
+        "<Seed> ::= [seed] token: SEED\n"
+        "<Transparent> ::= [transparent] discarded: <OwnerDef> "
+        "returned: <OtherDef>\n"
+        "<OwnerDef> ::= [owner] token: OWNER\n"
+        "<OtherDef> ::= [other] token: OTHER",
+        "profile worker\n"
+        f"<S>[root] {{\nChild => child\n^{owner}.Child += seed\n}}\n"
+        "<Seed>[seed] {\n@Seed\n-= token\n}\n"
+        "<Transparent>[transparent] {\n-= discarded\n}\n"
+        "<OwnerDef>[owner] {\n@Owner\n-= token\n}\n"
+        "<OtherDef>[other] {\n@Other\n-= token\n}\n",
+    )
+
+    assert tuple(_original_codes(result)) == expected_codes
+    assert (result.source_grammar is not None) == (not expected_codes)
+
+
 def test_current_field_appends_after_a_definite_scalar_write() -> None:
     result = _bind(
         "<S> ::= [root] value: ITEM",
