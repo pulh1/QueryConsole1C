@@ -169,7 +169,7 @@ def test_scoped_repeat_is_resultless_and_taps_every_item(
         "#Item ::= ITEM\n"
         "#Result ::= RESULT\n"
         "<S> ::= [root] child: <Transparent>\n"
-        f"<Transparent> ::= [transparent] marker: MARK values: #Item{quantifier} "
+        f"<Transparent> ::= [transparent] values: #Item{quantifier} "
         "returned: #Result",
         "profile worker\n"
         "<S>[root] {\n"
@@ -177,14 +177,12 @@ def test_scoped_repeat_is_resultless_and_taps_every_item(
         "Child = child\n"
         "}\n"
         "<Transparent>[transparent] {\n"
-        "-= marker\n"
         "^Owner.Items += values\n"
         "}\n",
     )
 
     result = namespace["GeneratedParser"]().parse(
         [
-            Token("MARK"),
             Token("ITEM", "first"),
             Token("ITEM", "second"),
             Token("RESULT", "actual"),
@@ -194,6 +192,91 @@ def test_scoped_repeat_is_resultless_and_taps_every_item(
 
     assert result.Child == "actual"
     assert result.Items == ("first", "second")
+
+
+@pytest.mark.parametrize(
+    ("operator", "optional", "property_name"),
+    (
+        ("ChildField =>", "", "ChildField"),
+        ("ChildField =>", "?", "ChildField"),
+        ("Children +=>", "", "Children"),
+    ),
+)
+def test_scoped_wrap_receiver_contributes_target_schema(
+    operator: str,
+    optional: str,
+    property_name: str,
+) -> None:
+    _, namespace = _generate(
+        "<S> ::= [root] seed: <Seed> "
+        f"child: <Child>{optional}\n"
+        "<Seed> ::= [seed] token: SEED\n"
+        "<Child> ::= [child] token: CHILD\n"
+        "<OwnerDef> ::= [owner] token: OWNER",
+        "profile worker\n"
+        "<S>[root] {\n"
+        f"{operator} child\n"
+        "^Owner.Items += child\n"
+        "}\n"
+        "<Seed>[seed] {\n@Seed\n-= token\n}\n"
+        "<Child>[child] {\n@Child\n-= token\n}\n"
+        "<OwnerDef>[owner] {\n@Owner\n-= token\n}\n",
+    )
+
+    result = namespace["GeneratedParser"]().parse(
+        [Token("SEED", "seed"), Token("CHILD", "child")],
+        "start",
+    )
+
+    assert type(result) is namespace["Child"]
+    wrapped = getattr(result, property_name)
+    if operator == "Children +=>":
+        assert len(wrapped) == 1
+        wrapped = wrapped[0]
+    assert type(wrapped) is namespace["Seed"]
+
+
+def test_scoped_group_payload_contributes_active_builder_schema() -> None:
+    _, namespace = _generate(
+        "#Value ::= VALUE\n"
+        "<S> ::= [root] grouped: ([group] value: #Value child: <Child>)\n"
+        "<Child> ::= [child] token: CHILD",
+        "profile worker\n"
+        "<S>[root] {\n"
+        "@Owner\n"
+        "^Owner.Items += grouped\n"
+        "}\n"
+        "<S>[group] {\nField = value\n}\n"
+        "<Child>[child] {\n@Child\n-= token\n}\n",
+    )
+
+    result = namespace["GeneratedParser"]().parse(
+        [Token("VALUE", "kept"), Token("CHILD")],
+        "start",
+    )
+
+    assert result.Field == "kept"
+    assert len(result.Items) == 1
+    assert type(result.Items[0]) is namespace["Child"]
+
+
+def test_scoped_append_reuses_propertyless_root_collection() -> None:
+    _, namespace = _generate(
+        "#Name ::= ID\n<S> ::= [root] first: #Name second: #Name",
+        "profile worker\n"
+        "<S>[root] {\n"
+        "@List\n"
+        "+= first\n"
+        "^List.items += second\n"
+        "}\n",
+    )
+
+    result = namespace["GeneratedParser"]().parse(
+        [Token("ID", "first"), Token("ID", "second")],
+        "start",
+    )
+
+    assert result.items == ("first", "second")
 
 
 @pytest.mark.parametrize("error_kind", ("syntax", "freeze", "append"))

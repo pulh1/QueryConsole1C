@@ -138,6 +138,19 @@ def test_scoped_anchor_accepts_propertyless_semantic_constant_result(
     assert result.source_grammar is not None
 
 
+def test_group_constant_and_following_result_reports_bind206_before_ir() -> None:
+    result = _bind(
+        "#Result ::= RESULT\n"
+        "<S> ::= [root] ([word] 'word') returned: #Result",
+        "profile worker\n"
+        "<S>[root] {\n}\n"
+        "<S>[word] {\n:= Kinds.Word\n}\n",
+    )
+
+    assert result.source_grammar is None
+    assert _original_codes(result) == ["BIND206"]
+
+
 @pytest.mark.parametrize(
     ("owner", "expected_codes"),
     (("Owner", ()), ("Other", ("SCOP201",))),

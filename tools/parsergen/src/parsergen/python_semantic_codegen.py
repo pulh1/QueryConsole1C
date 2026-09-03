@@ -129,10 +129,10 @@ class _SchemaBuilder:
         for production in self.parser_ir.productions:
             for alternative in production.alternatives:
                 self._discover_constructors(alternative.operations)
-        self._scoped_fields(self.parser_ir.productions)
         for production in self.parser_ir.productions:
             for alternative in production.alternatives:
                 self._operations(alternative.operations, None)
+        self._scoped_fields(self.parser_ir.productions)
         return tuple(
             AstNodeSchema(name, tuple(self.fields[name])) for name in self.order
         )
@@ -171,6 +171,9 @@ class _SchemaBuilder:
                 self._field(current, operation.property, "concat")
             elif isinstance(operation, IncrementScalar):
                 self._field(current, operation.property, "increment")
+            elif isinstance(operation, AppendNearestOwner):
+                if operation.value is not None:
+                    self._bound_value_operations(operation.value, current)
             elif isinstance(operation, ResolvedRegion):
                 current = self._operations(operation.operations, current)
             elif isinstance(operation, Dispatch):
@@ -206,6 +209,20 @@ class _SchemaBuilder:
                     self._operations(branch.operations, None)
         return current
 
+    def _bound_value_operations(
+        self,
+        value: object,
+        active: str | None,
+    ) -> None:
+        if isinstance(value, AppendNearestOwner):
+            if value.value is not None:
+                self._bound_value_operations(value.value, active)
+        elif isinstance(value, ParseBranchValue):
+            self._operations(value.operations, active)
+        elif isinstance(value, DispatchValue):
+            for branch in value.branches:
+                self._bound_value_operations(branch.value, active)
+
     def _discover_constructors(self, operations: tuple[Operation, ...]) -> None:
         for operation in operations:
             if isinstance(operation, ConstructNode):
@@ -231,6 +248,12 @@ class _SchemaBuilder:
         value: object,
         seen: frozenset[str] = frozenset(),
     ) -> set[str]:
+        if isinstance(value, AppendNearestOwner):
+            return (
+                self._value_constructors(value.value, seen)
+                if value.value is not None
+                else set()
+            )
         if isinstance(value, ParseSymbol):
             symbol = value.symbol
             if isinstance(symbol, NonterminalCall):
@@ -274,6 +297,8 @@ class _SchemaBuilder:
                 operation.symbol, NonterminalCall
             ):
                 result.update(self._value_constructors(operation, seen))
+            elif isinstance(operation, AppendNearestOwner):
+                result.update(self._value_constructors(operation, seen))
             elif isinstance(operation, ResolvedRegion):
                 result.update(self._result_constructors(operation.operations, seen))
         return result
@@ -297,10 +322,6 @@ class _SchemaBuilder:
         if constructor is None:
             raise ValueError("semantic binding has no active constructor")
         _validate_identifier(name, "field")
-        if name in _RESERVED_FIELDS and not (
-            name == "items" and root_collection
-        ):
-            raise ValueError(f"field name is reserved: {name}")
         fields = self.fields[constructor]
         existing = next((item for item in fields if item.name == name), None)
         if existing is not None:
@@ -309,6 +330,10 @@ class _SchemaBuilder:
                     f"field {constructor}.{name} has incompatible binding categories"
                 )
             return
+        if name in _RESERVED_FIELDS and not (
+            name == "items" and root_collection
+        ):
+            raise ValueError(f"field name is reserved: {name}")
         fields.append(AstFieldSchema(name, category))
 
 
