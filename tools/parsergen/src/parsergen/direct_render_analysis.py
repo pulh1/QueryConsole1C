@@ -224,6 +224,8 @@ class _Analyzer:
                             )
                         )
                     continue
+                if candidate.requires_post_return:
+                    continue
                 propagates_unchanged = self._has_unchanged_result_flow(candidate)
                 self.result_flow.append(
                     ResultFlowFact(call_site, propagates_unchanged)
@@ -247,6 +249,8 @@ class _Analyzer:
                 sequence_liveness.live_after[index],
             )
             if layout.slots and has_scoped_effects:
+                continue
+            if not layout.slots and candidate.requires_post_return:
                 continue
             self.recursive_calls.append(
                 RecursiveCallSite(
@@ -456,6 +460,7 @@ def _direct_self_call_site(
 class _FinalDirectSelfCall:
     site: IrSite
     result_propagated: bool
+    requires_post_return: bool
 
 
 def _final_direct_self_call_sites(
@@ -465,7 +470,15 @@ def _final_direct_self_call_sites(
 ) -> tuple[_FinalDirectSelfCall, ...]:
     direct = _direct_self_call_site(site, operation, production)
     if direct is not None:
-        return (_FinalDirectSelfCall(direct, isinstance(operation, ParseSymbol)),)
+        return (
+            _FinalDirectSelfCall(
+                direct,
+                isinstance(operation, ParseSymbol),
+                # A call reached through an operand must return before its
+                # enclosing semantic operation can apply that operand.
+                direct != site,
+            ),
+        )
     if isinstance(operation, ResolvedRegion) and operation.operations:
         index = len(operation.operations) - 1
         return _final_direct_self_call_sites(

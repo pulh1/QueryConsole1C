@@ -395,6 +395,23 @@ def test_resultless_discarded_tail_preserves_scoped_effects_iteratively(
     ) in analysis.recursive_calls
 
 
+def test_self_call_inside_scoped_effect_payload_is_not_a_tail_call() -> None:
+    analysis = analyze_direct_render(
+        _build_bound_ir(
+            "<S> ::= [root] chain: <Tail>\n"
+            "<Tail> ::= [step] discard: ITEM rest: <Tail> | "
+            "[end] discard: STOP",
+            "profile worker\n"
+            "<S>[root] {\n@Owner\n-= chain\n}\n"
+            "<Tail>[step] {\n"
+            "-= discard\n^Owner.Items += rest\n-= rest\n}\n"
+            "<Tail>[end] {\n-= discard\n}\n",
+        )
+    )
+
+    assert analysis.recursive_calls == ()
+
+
 def test_left_fold_is_not_classified_as_direct_recursion() -> None:
     analysis = analyze_direct_render(
         _build_ir("<S> ::= @Node Left = <S> Right = ITEM | @Leaf ITEM")

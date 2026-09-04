@@ -1365,6 +1365,28 @@ def test_direct_nested_discarded_call_does_not_adopt_an_implicit_constructor() -
     assert analysis.recursive_calls == ()
 
 
+def test_direct_scoped_effect_payload_runs_after_recursive_result_returns() -> None:
+    direct, parser_ir = _generate_bound(
+        "<S> ::= [root] chain: <Tail>\n"
+        "<Tail> ::= [step] discard: ITEM rest: <Tail> | "
+        "[end] discard: STOP",
+        "profile worker\n"
+        "<S>[root] {\n@Owner\n-= chain\n}\n"
+        "<Tail>[step] {\n"
+        "-= discard\n^Owner.Items += rest\n-= rest\n}\n"
+        "<Tail>[end] {\n-= discard\n}\n",
+    )
+    item_count = 300
+
+    _, result = _execute(
+        direct.module_text,
+        [Token("ITEM") for _ in range(item_count)] + [Token("STOP")],
+    )
+
+    assert analyze_direct_render(parser_ir).recursive_calls == ()
+    assert result.Items == (None,) * item_count
+
+
 def test_direct_nested_resolved_discarded_call_does_not_adopt_a_non_none_base_result() -> None:
     direct, parser_ir, source = _generate("<S> ::= ITEM -= (<S>) | := Истина STOP")
     production = parser_ir.productions[0]
