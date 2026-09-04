@@ -11,6 +11,7 @@ from .decision_dag import (
     ImmediateError,
     LookaheadDecision,
 )
+from .direct_render_analysis import analyze_direct_render
 from .model import Constant, IdentifierRef, Lexeme, NonterminalCall, SyntaxSymbol, Terminal
 from .parser_ir import (
     AppendNearestOwner,
@@ -96,6 +97,29 @@ def generate_python_semantic_parser(
     ).generate()
     return GeneratedPythonSemanticParser(
         module_text,
+        schema,
+    )
+
+
+def _generate_direct_python_semantic_parser(
+    source: SourceGrammar,
+    parser_ir: ParserIr,
+    entrypoints: Mapping[str, str],
+) -> GeneratedPythonSemanticParser:
+    if source != parser_ir.source_grammar:
+        raise ValueError("source grammar does not match Parser IR")
+    _validate_entrypoints(parser_ir, entrypoints)
+    schema = _SchemaBuilder(parser_ir).build()
+    from .python_direct_codegen import render_direct_python_module
+
+    return GeneratedPythonSemanticParser(
+        render_direct_python_module(
+            source,
+            parser_ir,
+            entrypoints,
+            schema,
+            analyze_direct_render(parser_ir),
+        ),
         schema,
     )
 
