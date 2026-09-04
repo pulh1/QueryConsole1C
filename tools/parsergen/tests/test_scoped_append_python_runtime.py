@@ -7,7 +7,7 @@ import pytest
 from parsergen.analysis import compute_analysis
 from parsergen.lowering import lower_source_grammar
 from parsergen.parser_ir import build_parser_ir
-from parsergen.python_semantic_codegen import generate_python_semantic_parser
+from parsergen.python_semantic_codegen import _generate_direct_python_semantic_parser
 from parsergen.resolver import resolve_grammar
 from parsergen.semantic_profile_binding import bind_semantic_profile
 from parsergen.semantic_profile_parser import parse_semantic_profile
@@ -50,7 +50,7 @@ def _generate(
         analysis,
         entrypoint_productions=tuple(entries.values()),
     )
-    generated = generate_python_semantic_parser(
+    generated = _generate_direct_python_semantic_parser(
         bound.source_grammar,
         parser_ir,
         entries,
@@ -102,7 +102,7 @@ def test_nearest_owner_shadowing_order_and_close_before_delivery() -> None:
 
     result = namespace["GeneratedParser"]().parse(_tokens(), "start")
 
-    assert "append_nearest" in generated.module_text
+    assert "_owner_stack_owner" in generated.module_text
     assert type(result) is namespace["Owner"]
     assert result.Name == "outer"
     assert result.Items[0] == "tail"
@@ -112,6 +112,39 @@ def test_nearest_owner_shadowing_order_and_close_before_delivery() -> None:
     assert child.Items == ("leaf",)
     assert result.Items[2] == "outer"
     assert type(child.Leaf) is namespace["Leaf"]
+
+
+def test_nested_scoped_effects_are_sorted_by_source_then_enqueue() -> None:
+    _, namespace = _generate(
+        "#Name ::= ID\n"
+        "<S> ::= [root] before: <Before> after: <After> outer: #Name\n"
+        "<Before> ::= [before] value: #Name\n"
+        "<After> ::= [after] value: #Name",
+        "profile worker\n"
+        "<Before>[before] {\n"
+        "^Owner.Items += value\n"
+        "}\n"
+        "<S>[root] {\n"
+        "@Owner\n"
+        "Name = outer\n"
+        "^Owner.Items += outer\n"
+        "}\n"
+        "<After>[after] {\n"
+        "^Owner.Items += value\n"
+        "}\n",
+    )
+
+    result = namespace["GeneratedParser"]().parse(
+        [
+            Token("ID", "before", 0, 6),
+            Token("ID", "after", 7, 12),
+            Token("ID", "outer", 13, 18),
+        ],
+        "start",
+    )
+
+    assert result.Name == "outer"
+    assert result.Items == ("before", "outer", "after")
 
 
 def test_missing_owner_is_noop_and_preserves_the_payload_result() -> None:
@@ -283,32 +316,34 @@ def test_scoped_append_reuses_propertyless_root_collection() -> None:
 def test_runtime_state_is_cleared_and_parser_reusable_after_errors(error_kind: str) -> None:
     _, namespace = _owner_runtime()
     parser = namespace["GeneratedParser"]()
-    owner_class = namespace["AST_CLASSES"]["Owner"]
-    owner_defaults = namespace["NODE_DEFAULTS"]["Owner"]
+    owner_class = namespace["Owner"]
+    owner_state = namespace["_OwnerState_Owner"]
 
     if error_kind == "syntax":
         failing_tokens = [Token("BAD")]
         expected_error = namespace["GeneratedParseError"]
     elif error_kind == "freeze":
-        namespace["AST_CLASSES"]["Owner"] = lambda *args: (_ for _ in ()).throw(
+        namespace["Owner"] = lambda *args: (_ for _ in ()).throw(
             RuntimeError("freeze failed")
         )
         failing_tokens = _tokens()
         expected_error = RuntimeError
     else:
-        namespace["NODE_DEFAULTS"]["Owner"] = tuple(
-            (field, "scalar" if field == "Items" else category)
-            for field, category in owner_defaults
+        class RaisingAppendList:
+            def append(self, payload: object) -> None:
+                raise RuntimeError("append failed")
+
+        namespace["_OwnerState_Owner"] = lambda *collections: owner_state(
+            RaisingAppendList()
         )
         failing_tokens = _tokens()
-        expected_error = AttributeError
+        expected_error = RuntimeError
 
     with pytest.raises(expected_error):
         parser.parse(failing_tokens, "start")
 
-    assert parser._owner_stacks == {}
-    assert parser._pending_scoped_appends == {}
+    assert parser._owner_stack_owner == []
     assert parser._enqueue_sequence == 0
-    namespace["AST_CLASSES"]["Owner"] = owner_class
-    namespace["NODE_DEFAULTS"]["Owner"] = owner_defaults
+    namespace["Owner"] = owner_class
+    namespace["_OwnerState_Owner"] = owner_state
     assert parser.parse(_tokens(), "start").Name == "outer"

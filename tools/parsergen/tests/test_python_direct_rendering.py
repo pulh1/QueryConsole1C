@@ -855,6 +855,7 @@ def _record_constructor_calls(
     calls: list[tuple[str, tuple[int, int]]],
     *,
     fail_on: int | None = None,
+    reflection_dispatch: bool = False,
 ) -> None:
     original = namespace[name]
 
@@ -866,7 +867,8 @@ def _record_constructor_calls(
         return original(*values)
 
     namespace[name] = factory
-    namespace["AST_CLASSES"][name] = factory
+    if reflection_dispatch:
+        namespace["AST_CLASSES"][name] = factory
 
 
 def test_value_carrying_right_recursion_preserves_freeze_and_span_order() -> None:
@@ -879,8 +881,8 @@ def test_value_carrying_right_recursion_preserves_freeze_and_span_order() -> Non
     direct_namespace = _execute_without_parse(direct.module_text)
     vm_calls: list[tuple[str, tuple[int, int]]] = []
     direct_calls: list[tuple[str, tuple[int, int]]] = []
-    _record_constructor_calls(vm_namespace, "Link", vm_calls)
-    _record_constructor_calls(vm_namespace, "End", vm_calls)
+    _record_constructor_calls(vm_namespace, "Link", vm_calls, reflection_dispatch=True)
+    _record_constructor_calls(vm_namespace, "End", vm_calls, reflection_dispatch=True)
     _record_constructor_calls(direct_namespace, "Link", direct_calls)
     _record_constructor_calls(direct_namespace, "End", direct_calls)
 
@@ -906,8 +908,20 @@ def test_value_carrying_right_recursion_raises_on_the_same_freeze_node() -> None
     direct_namespace = _execute_without_parse(direct.module_text)
     vm_calls: list[tuple[str, tuple[int, int]]] = []
     direct_calls: list[tuple[str, tuple[int, int]]] = []
-    _record_constructor_calls(vm_namespace, "Link", vm_calls, fail_on=3)
-    _record_constructor_calls(vm_namespace, "End", vm_calls, fail_on=3)
+    _record_constructor_calls(
+        vm_namespace,
+        "Link",
+        vm_calls,
+        fail_on=3,
+        reflection_dispatch=True,
+    )
+    _record_constructor_calls(
+        vm_namespace,
+        "End",
+        vm_calls,
+        fail_on=3,
+        reflection_dispatch=True,
+    )
     _record_constructor_calls(direct_namespace, "Link", direct_calls, fail_on=3)
     _record_constructor_calls(direct_namespace, "End", direct_calls, fail_on=3)
 
