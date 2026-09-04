@@ -7,7 +7,7 @@ import pytest
 from parsergen.analysis import compute_analysis
 from parsergen.lowering import lower_source_grammar
 from parsergen.parser_ir import build_parser_ir
-from parsergen.python_semantic_codegen import _generate_direct_python_semantic_parser
+from parsergen.python_semantic_codegen import generate_python_semantic_parser
 from parsergen.resolver import resolve_grammar
 from parsergen.semantic_profile_binding import bind_semantic_profile
 from parsergen.semantic_profile_parser import parse_semantic_profile
@@ -50,7 +50,7 @@ def _generate(
         analysis,
         entrypoint_productions=tuple(entries.values()),
     )
-    generated = _generate_direct_python_semantic_parser(
+    generated = generate_python_semantic_parser(
         bound.source_grammar,
         parser_ir,
         entries,

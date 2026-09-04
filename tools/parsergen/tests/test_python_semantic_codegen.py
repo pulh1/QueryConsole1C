@@ -119,11 +119,18 @@ def test_generated_module_is_direct_and_has_stable_consumer_seams() -> None:
         "_deliver",
         "_start_call",
     )
-    assert 'PARSERGEN_BACKEND_ID = "python-semantic-direct-v1"' in text
-    assert text.count("# <parsergen:source-span>") == 1
-    assert text.count("# </parsergen:source-span>") == 1
-    assert text.count("# <parsergen:artifact-metadata>") == 1
-    assert text.count("# </parsergen:artifact-metadata>") == 1
+    required_fragment = '''PARSERGEN_BACKEND_ID = "python-semantic-direct-v1"
+
+# <parsergen:artifact-metadata>
+# </parsergen:artifact-metadata>
+
+# <parsergen:source-span>
+@dataclass(frozen=True, slots=True)
+class SourceSpan:
+    start: int
+    end: int
+# </parsergen:source-span>'''
+    assert required_fragment in text
     assert all(symbol not in text for symbol in forbidden)
     assert "import parsergen" not in text
 

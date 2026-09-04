@@ -81,6 +81,12 @@ def test_legacy_dataclass_shapes_and_parse_signature_are_frozen() -> None:
 
 def test_legacy_python_semantic_module_uses_the_direct_backend() -> None:
     module_text = _legacy_module_text()
+    namespace: dict[str, object] = {}
+    exec(compile(module_text, "<legacy-generated-parser>", "exec"), namespace)
+
+    assert str(signature(namespace["GeneratedParser"].parse)) == (
+        "(self, tokens, entrypoint)"
+    )
     assert 'PARSERGEN_BACKEND_ID = "python-semantic-direct-v1"' in module_text
     assert "PRODUCTIONS =" not in module_text
     assert "DECISIONS =" not in module_text
