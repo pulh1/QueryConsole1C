@@ -14,11 +14,12 @@ from parsergen.decision_dag import (
     LookaheadDecision,
 )
 from parsergen.grammar_parser import parse_grammar
-from parsergen.direct_render_analysis import ContinuationSlot, analyze_direct_render
+from parsergen.direct_render_analysis import ContinuationSlot, IrSite, analyze_direct_render
 from parsergen.lowering import lower_source_grammar
 from parsergen.parser_ir import (
     AssignConstant,
     CanonicalDecision,
+    Dispatch,
     OptionalBranch,
     RepeatLoop,
     ResolvedRegion,
@@ -1196,6 +1197,76 @@ def test_direct_safe_tail_recursion_inside_final_control_region_is_iterative(
     assert sys.getrecursionlimit() == original_limit
     assert len(analysis.recursive_calls) == 1
     assert analysis.recursive_calls[0].kind == "safe_tail_loop"
+
+
+@pytest.mark.parametrize(
+    ("grammar", "tokens"),
+    (
+        (
+            "<S> ::= := Истина ITEM -= (<S>) | STOP",
+            [Token("ITEM"), Token("ITEM"), Token("STOP")],
+        ),
+    ),
+    ids=("dispatch",),
+)
+def test_direct_nested_tail_does_not_discard_a_live_enclosing_result(
+    grammar: str,
+    tokens: list[Token],
+) -> None:
+    direct, parser_ir, _ = _generate(grammar)
+    analysis = analyze_direct_render(parser_ir)
+    outer = next(
+        item for item in analysis.sequence_liveness if item.site == IrSite("S", 0, ())
+    )
+
+    _, result = _execute(direct.module_text, tokens)
+
+    assert outer.live_after == tuple(frozenset({0}) for _ in outer.live_after)
+    assert analysis.recursive_calls == ()
+    assert result is True
+
+
+def test_direct_nested_resolved_region_does_not_discard_a_live_enclosing_result() -> None:
+    direct, parser_ir, source = _generate("<S> ::= := Истина ITEM -= (<S>) | STOP")
+    production = parser_ir.productions[0]
+    alternative = production.alternatives[0]
+    dispatch = alternative.operations[2]
+    assert isinstance(dispatch, Dispatch)
+    resolved = ResolvedRegion(
+        dispatch.branches[0].operations,
+        dispatch.branches[0].result_index,
+        dispatch.source_span,
+    )
+    nested_ir = replace(
+        parser_ir,
+        productions=(
+            replace(
+                production,
+                alternatives=(
+                    replace(
+                        alternative,
+                        operations=(*alternative.operations[:2], resolved),
+                    ),
+                    *production.alternatives[1:],
+                ),
+            ),
+            *parser_ir.productions[1:],
+        ),
+    )
+    direct = generate_python_semantic_parser(source, nested_ir, {"start": "S"})
+    analysis = analyze_direct_render(nested_ir)
+    outer = next(
+        item for item in analysis.sequence_liveness if item.site == IrSite("S", 0, ())
+    )
+
+    _, result = _execute(
+        direct.module_text,
+        [Token("ITEM"), Token("ITEM"), Token("STOP")],
+    )
+
+    assert outer.live_after == tuple(frozenset({0}) for _ in outer.live_after)
+    assert analysis.recursive_calls == ()
+    assert result is True
 
 
 @pytest.mark.parametrize(

@@ -189,7 +189,10 @@ class _Analyzer:
                 operation_site,
                 _child_site(operation_site, "value", 0),
             }:
-                if _contains_continuation_state(operations):
+                if (
+                    _contains_continuation_state(operations)
+                    or self._has_live_enclosing_result(call_site)
+                ):
                     continue
                 self.recursive_calls.append(
                     RecursiveCallSite(call_site, "safe_tail_loop", None)
@@ -207,6 +210,26 @@ class _Analyzer:
                     None if not layout.slots else layout,
                 )
             )
+
+    def _has_live_enclosing_result(self, call_site: IrSite) -> bool:
+        for sequence in self.sequence_liveness:
+            if (
+                sequence.site.production != call_site.production
+                or sequence.site.alternative != call_site.alternative
+            ):
+                continue
+            prefix = sequence.site.trail
+            if (
+                call_site.trail[: len(prefix)] != prefix
+                or len(call_site.trail) <= len(prefix)
+            ):
+                continue
+            kind, index = call_site.trail[len(prefix)]
+            if kind != "operation":
+                continue
+            if sequence.live_after[index] - {index}:
+                return True
+        return False
 
     def _sequence(
         self,
