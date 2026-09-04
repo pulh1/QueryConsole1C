@@ -6,7 +6,7 @@ import pytest
 
 from parsergen.analysis import compute_analysis
 from parsergen.grammar_parser import parse_grammar
-from parsergen.parser_ir import UndefinedValue, build_parser_ir
+from parsergen.parser_ir import ResolvedRegion, UndefinedValue, build_parser_ir
 from parsergen.python_semantic_codegen import (
     _generate_direct_python_semantic_parser,
     generate_python_semantic_parser,
@@ -199,3 +199,73 @@ def test_direct_parser_supports_multiple_entrypoints() -> None:
 
     assert _shape(direct_result) == _shape(vm_result) is None
     assert namespace["GeneratedParser"]().parse([Token("ITEM")], "start") is None
+
+
+def test_direct_constructor_bindings_match_vm_and_freeze_schema_order() -> None:
+    vm, direct, _, _ = _generated_pair(
+        "#Name ::= ID\n"
+        "<S> ::= @Node Title = #Name Items += ITEM Joined ~= #Name "
+        "Count ++= MARK Enabled := Истина Values *= <Values>\n"
+        "<Values> ::= @Values += ITEM += ITEM"
+    )
+    tokens = [
+        Token("ID", "Title", 0, 5),
+        Token("ITEM", start=6, end=10),
+        Token("ID", "Tail", 11, 15),
+        Token("MARK", start=16, end=17),
+        Token("ITEM", start=18, end=22),
+        Token("ITEM", start=23, end=27),
+    ]
+
+    _, vm_result = _execute(vm.module_text, tokens)
+    direct_namespace, direct_result = _execute(direct.module_text, tokens)
+
+    assert _shape(direct_result) == _shape(vm_result)
+    assert direct_result.span == direct_namespace["SourceSpan"](0, 27)
+    assert direct_result.Values == ("ITEM", "ITEM")
+    assert "builder.values" not in direct.module_text
+    assert "_Builder" not in direct.module_text
+    assert "AST_CLASSES[" not in direct.module_text
+    assert "NODE_DEFAULTS[" not in direct.module_text
+
+    direct_namespace["AST_CLASSES"] = {}
+    direct_namespace["NODE_DEFAULTS"] = {}
+    result_with_mutated_reflection = direct_namespace["GeneratedParser"]().parse(
+        tokens,
+        "start",
+    )
+    assert _shape(result_with_mutated_reflection) == _shape(vm_result)
+
+
+def test_direct_bindings_in_nested_region_match_vm() -> None:
+    _, _, parser_ir, source = _generated_pair("<S> ::= @Node Title = ITEM")
+    alternative = parser_ir.productions[0].alternatives[0]
+    construct, binding = alternative.operations
+    nested_ir = replace(
+        parser_ir,
+        productions=(
+            replace(
+                parser_ir.productions[0],
+                alternatives=(
+                    replace(
+                        alternative,
+                        operations=(
+                            construct,
+                            ResolvedRegion((binding,), None, binding.source_span),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    )
+    vm = generate_python_semantic_parser(source, nested_ir, {"start": "S"})
+    direct = _generate_direct_python_semantic_parser(source, nested_ir, {"start": "S"})
+
+    _, vm_result = _execute(vm.module_text, [Token("ITEM", start=3, end=7)])
+    direct_namespace, direct_result = _execute(
+        direct.module_text,
+        [Token("ITEM", start=3, end=7)],
+    )
+
+    assert _shape(direct_result) == _shape(vm_result)
+    assert direct_result.span == direct_namespace["SourceSpan"](3, 7)
