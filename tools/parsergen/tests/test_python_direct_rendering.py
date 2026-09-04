@@ -952,6 +952,57 @@ def test_value_carrying_right_recursion_builds_5000_linked_nodes() -> None:
     assert type(node).__name__ == "End"
 
 
+@pytest.mark.parametrize(
+    ("grammar", "item_tokens", "item_width", "property_name"),
+    (
+        (
+            "<S> ::= @ModuleElements (METHOD Item = ITEM Rest = <S>)?",
+            ("METHOD", "ITEM"),
+            2,
+            "Item",
+        ),
+        (
+            "<S> ::= @CodeBlock (First = ITEM (SEMICOLON Rest = <S>)?)?",
+            ("ITEM", "SEMICOLON"),
+            2,
+            "First",
+        ),
+    ),
+    ids=("module-elements-outer-optional", "code-block-nested-optional"),
+)
+def test_bsl_shaped_optional_recursion_builds_1500_linked_nodes_iteratively(
+    grammar: str,
+    item_tokens: tuple[str, ...],
+    item_width: int,
+    property_name: str,
+) -> None:
+    direct, parser_ir, _ = _generate(grammar)
+    parser = _execute_without_parse(direct.module_text)["GeneratedParser"]()
+    token_types = item_tokens * 1_500
+    tokens = [
+        Token(token_type, start=index, end=index + 1)
+        for index, token_type in enumerate(token_types)
+    ]
+    original_limit = sys.getrecursionlimit()
+
+    node = parser.parse(tokens, "start")
+
+    assert sys.getrecursionlimit() == original_limit
+    assert "self._p_0000()" not in direct.module_text.split(
+        "    def _p_0000(self):", 1
+    )[1]
+    assert len(analyze_direct_render(parser_ir).recursive_calls) == 1
+    for index in range(1_500):
+        assert getattr(node, property_name) == "ITEM"
+        assert node.span.start == index * item_width
+        assert node.span.end == len(tokens)
+        node = node.Rest
+    assert getattr(node, property_name) is None
+    assert node.Rest is None
+    assert node.span.start == len(tokens)
+    assert node.span.end == len(tokens)
+
+
 def _record_constructor_calls(
     namespace: dict[str, object],
     name: str,

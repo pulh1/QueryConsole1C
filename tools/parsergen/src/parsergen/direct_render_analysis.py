@@ -170,7 +170,8 @@ class _Analyzer:
             tuple(
                 call
                 for call in self.recursive_calls
-                if _is_nonmutual_component(call.site.production, components)
+                if call.kind == "local_continuation"
+                or _is_nonmutual_component(call.site.production, components)
             ),
             tuple(self.result_flow),
             tuple(self.decisions),
@@ -202,6 +203,20 @@ class _Analyzer:
                 operation_site,
                 _child_site(operation_site, "value", 0),
             }:
+                layout = _nested_continuation_layout(
+                    operations,
+                    sequence_liveness,
+                    call_site,
+                )
+                if layout is not None:
+                    self.recursive_calls.append(
+                        RecursiveCallSite(
+                            call_site,
+                            "local_continuation",
+                            layout,
+                        )
+                    )
+                    continue
                 propagates_unchanged = self._has_unchanged_result_flow(candidate)
                 self.result_flow.append(
                     ResultFlowFact(call_site, propagates_unchanged)
@@ -464,6 +479,36 @@ def _final_direct_self_call_sites(
                 production,
             )
         )
+    if isinstance(operation, OptionalBranch):
+        branch_calls = tuple(
+            call_site
+            for index, branch in enumerate(operation.branches)
+            if branch.operations
+            for call_site in _final_direct_self_call_sites(
+                _child_site(
+                    _child_site(site, "branch", index),
+                    "operation",
+                    len(branch.operations) - 1,
+                ),
+                branch.operations[-1],
+                production,
+            )
+        )
+        if not operation.exit_operations:
+            return branch_calls
+        index = len(operation.exit_operations) - 1
+        return (
+            *branch_calls,
+            *_final_direct_self_call_sites(
+                _child_site(
+                    _child_site(site, "exit", 0),
+                    "operation",
+                    index,
+                ),
+                operation.exit_operations[index],
+                production,
+            ),
+        )
     return ()
 
 
@@ -497,6 +542,74 @@ def _continuation_layout(
     elif isinstance(operation, AssignConstant):
         slots.append(ContinuationSlot("builder_field", call_index))
     return ContinuationLayout(tuple(slots))
+
+
+def _nested_continuation_layout(
+    operations: tuple[Operation, ...],
+    sequence_liveness: SequenceLiveness,
+    call_site: IrSite,
+) -> ContinuationLayout | None:
+    trail = call_site.trail
+    if not trail or trail[0][0] != "operation":
+        return None
+    call_index = trail[0][1]
+    if call_index >= len(operations):
+        return None
+    layout = _continuation_layout(
+        operations,
+        call_index,
+        sequence_liveness.live_after[call_index],
+    )
+    slots = list(layout.slots)
+    if not _append_nested_path_slots(
+        slots,
+        operations[call_index],
+        trail[1:],
+    ):
+        return None
+    if not slots:
+        return None
+    return ContinuationLayout(tuple(slots))
+
+
+def _append_nested_path_slots(
+    slots: list[ContinuationSlot],
+    operation: Operation,
+    trail: Trail,
+) -> bool:
+    if len(trail) < 2:
+        return False
+    child_kind, child_index = trail[0]
+    operation_kind, operation_index = trail[1]
+    if operation_kind != "operation":
+        return False
+    nested_operations: tuple[Operation, ...]
+    if isinstance(operation, ResolvedRegion):
+        if child_kind != "region" or child_index != 0:
+            return False
+        nested_operations = operation.operations
+    elif isinstance(operation, (Dispatch, RepeatLoop, OptionalBranch)):
+        if child_kind == "branch" and child_index < len(operation.branches):
+            nested_operations = operation.branches[child_index].operations
+        elif (
+            isinstance(operation, OptionalBranch)
+            and child_kind == "exit"
+            and child_index == 0
+        ):
+            nested_operations = operation.exit_operations
+        else:
+            return False
+    else:
+        return False
+    if operation_index >= len(nested_operations):
+        return False
+    for nested in nested_operations[:operation_index]:
+        _append_nested_builder_slots(slots, nested)
+    nested_operation = nested_operations[operation_index]
+    remainder = trail[2:]
+    if remainder == (("value", 0),):
+        return isinstance(nested_operation, BindScalar)
+    return _append_nested_path_slots(slots, nested_operation, remainder)
 
 
 def _append_continuation_slots(

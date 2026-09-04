@@ -29,6 +29,7 @@ from parsergen.direct_render_analysis import (
     ContinuationLayout,
     ContinuationSlot,
     IrSite,
+    RecursiveCallSite,
     analyze_direct_render,
 )
 
@@ -214,6 +215,60 @@ def test_local_continuation_has_only_live_builder_state() -> None:
     )
 
 
+def test_optional_branch_self_calls_have_path_specific_local_continuations() -> None:
+    analysis = analyze_direct_render(
+        _build_ir(
+            "<S> ::= @Node ("
+            "A Item = ITEM Rest = <S> | "
+            "B First = ITEM (SEP Rest = <S>)?"
+            ")? | @End STOP"
+        )
+    )
+
+    assert analysis.recursive_calls == (
+        RecursiveCallSite(
+            IrSite(
+                "S",
+                0,
+                (
+                    ("operation", 1),
+                    ("branch", 0),
+                    ("operation", 2),
+                    ("value", 0),
+                ),
+            ),
+            "local_continuation",
+            ContinuationLayout(
+                (
+                    ContinuationSlot("span_start", 0),
+                    ContinuationSlot("builder_field", None, "Item"),
+                )
+            ),
+        ),
+        RecursiveCallSite(
+            IrSite(
+                "S",
+                0,
+                (
+                    ("operation", 1),
+                    ("branch", 1),
+                    ("operation", 2),
+                    ("branch", 0),
+                    ("operation", 1),
+                    ("value", 0),
+                ),
+            ),
+            "local_continuation",
+            ContinuationLayout(
+                (
+                    ContinuationSlot("span_start", 0),
+                    ContinuationSlot("builder_field", None, "First"),
+                )
+            ),
+        ),
+    )
+
+
 def test_open_constructor_prevents_tail_loop() -> None:
     analysis = analyze_direct_render(
         _build_ir("<S> ::= @Node Value = ITEM <S> | @End STOP")
@@ -297,6 +352,28 @@ def test_mutual_recursion_is_not_transformed() -> None:
     )
 
     assert analysis.recursive_calls == ()
+
+
+def test_local_self_continuation_remains_safe_inside_a_mutual_component() -> None:
+    analysis = analyze_direct_render(
+        _build_ir(
+            "<S> ::= @Link Value = ITEM Rest = <S> | <A>\n"
+            "<A> ::= AGAIN <S> | @End STOP"
+        )
+    )
+
+    assert analysis.recursive_calls == (
+        RecursiveCallSite(
+            IrSite("S", 0, (("operation", 2), ("value", 0))),
+            "local_continuation",
+            ContinuationLayout(
+                (
+                    ContinuationSlot("span_start", 0),
+                    ContinuationSlot("builder_field", 1),
+                )
+            ),
+        ),
+    )
 
 
 def test_final_direct_self_call_preserves_a_live_prior_result() -> None:
