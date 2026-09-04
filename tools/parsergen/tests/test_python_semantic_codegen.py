@@ -327,17 +327,6 @@ def test_generated_semantic_parser_uses_k2_decision_dag() -> None:
     assert node.Second == "c"
 
 
-def test_semantic_parser_trampolines_direct_right_recursion() -> None:
-    _, _, _, namespace = _generate(
-        "<S> ::= ITEM <Tail>\n<Tail> ::= ITEM <Tail> | ПУСТО"
-    )
-    parser = namespace["GeneratedParser"]()
-    original_limit = sys.getrecursionlimit()
-
-    assert parser.parse([Token("ITEM") for _ in range(5_000)], "start") is None
-    assert sys.getrecursionlimit() == original_limit
-
-
 def test_executes_dispatch_optional_repeat_concat_and_increment() -> None:
     _, _, _, namespace = _generate(
         "#Name ::= ID\n"

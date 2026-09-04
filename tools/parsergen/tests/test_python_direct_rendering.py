@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, fields, is_dataclass, replace
+import sys
 
 import pytest
 
@@ -797,6 +798,34 @@ def test_direct_repeat_rejects_a_nonadvancing_malformed_ir_branch() -> None:
 
     with pytest.raises(RuntimeError, match="^repeat branch did not advance parser cursor$"):
         parser.parse([ProgressProbeToken()], "start")
+
+
+def test_direct_safe_tail_recursion_parses_5000_items_without_recursive_call() -> None:
+    _, direct, parser_ir, _ = _generated_pair(
+        "<S> ::= ITEM <Tail>\n<Tail> ::= ITEM <Tail> | ПУСТО"
+    )
+    namespace = _execute_without_parse(direct.module_text)
+    parser = namespace["GeneratedParser"]()
+    tail_production = next(item for item in parser_ir.productions if item.name == "Tail")
+    tail_method = f"_p_{parser_ir.productions.index(tail_production):04d}"
+    generated_tail = direct.module_text.split(f"    def {tail_method}(self):", 1)[1]
+    original_limit = sys.getrecursionlimit()
+
+    assert parser.parse([Token("ITEM") for _ in range(5_000)], "start") is None
+    assert sys.getrecursionlimit() == original_limit
+    assert f"self.{tail_method}()" not in generated_tail
+
+
+def test_direct_constructor_recursion_is_not_rendered_as_a_tail_loop() -> None:
+    _, direct, parser_ir, _ = _generated_pair(
+        "<S> ::= @Node Value = ITEM <S> | @End STOP"
+    )
+    analysis = analyze_direct_render(parser_ir)
+    method = "_p_0000"
+    generated_production = direct.module_text.split(f"    def {method}(self):", 1)[1]
+
+    assert analysis.recursive_calls[0].kind == "local_continuation"
+    assert f"self.{method}()" in generated_production
 
 
 @pytest.mark.parametrize(

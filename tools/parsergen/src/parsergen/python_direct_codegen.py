@@ -75,6 +75,13 @@ class _DirectPythonRenderer:
         self.used_local_names: set[str] = set()
         self._decision_facts_index = 0
         self._active_fold_accumulator: str | None = None
+        self._rendering_production: str | None = None
+        self._rendering_alternative: int | None = None
+        self._safe_tail_sites = frozenset(
+            (call.site.production, call.site.alternative, call.site.trail)
+            for call in analysis.recursive_calls
+            if call.kind == "safe_tail_loop"
+        )
 
     def render(self) -> str:
         return "\n\n".join((self._render_prelude(), self._render_parser())) + "\n"
@@ -120,25 +127,40 @@ class _DirectPythonRenderer:
                 for name in self._value_names(alternative.operations, ())
             ),
         }
-        lines = [f"    def {self.production_names[production.name]}(self):", "        start = self._offset()"]
+        self._rendering_production = production.name
+        has_safe_tail_loop = any(
+            site_production == production.name
+            for site_production, _, _ in self._safe_tail_sites
+        )
+        indent = "            " if has_safe_tail_loop else "        "
+        lines = [f"    def {self.production_names[production.name]}(self):"]
+        if has_safe_tail_loop:
+            lines.append("        while True:")
+        lines.append(f"{indent}start = self._offset()")
         if production.decision is None:
             if len(production.alternatives) != 1:
                 raise ValueError("production alternatives require a canonical decision")
-            lines.extend(self._render_alternative(production.alternatives[0], "        "))
+            self._rendering_alternative = production.alternatives[0].index
+            lines.extend(self._render_alternative(production.alternatives[0], indent))
+            self._rendering_alternative = None
+            self._rendering_production = None
             return "\n".join(lines)
-        lines.extend(self._render_decision(production.decision, "        ", "outcome"))
+        lines.extend(self._render_decision(production.decision, indent, "outcome"))
         for index, alternative in enumerate(production.alternatives):
             prefix = "if" if index == 0 else "elif"
             lines.append(
-                f"        {prefix} outcome == ({production.name!r}, {alternative.index + 1!r}):"
+                f"{indent}{prefix} outcome == ({production.name!r}, {alternative.index + 1!r}):"
             )
-            lines.extend(self._render_alternative(alternative, "            "))
+            self._rendering_alternative = alternative.index
+            lines.extend(self._render_alternative(alternative, indent + "    "))
         lines.extend(
             (
-                "        else:",
-                "            raise RuntimeError(f\"decision outcome has no semantic branch: {outcome!r}\")",
+                f"{indent}else:",
+                f"{indent}    raise RuntimeError(f\"decision outcome has no semantic branch: {{outcome!r}}\")",
             )
         )
+        self._rendering_alternative = None
+        self._rendering_production = None
         return "\n".join(lines)
 
     def _render_alternative(self, alternative, indent: str) -> list[str]:
@@ -310,6 +332,8 @@ class _DirectPythonRenderer:
         constructor_site: _ConstructorSite | None,
     ) -> tuple[list[str], _ConstructorSite | None]:
         value = self._value_name(trail)
+        if self._is_safe_tail_call(trail):
+            return [f"{indent}continue"], constructor_site
         if isinstance(operation, ParseSymbol):
             if isinstance(operation.symbol, NonterminalCall):
                 return [f"{indent}{value} = self.{self._production_name(operation.symbol.name)}()"], constructor_site
@@ -492,6 +516,19 @@ class _DirectPythonRenderer:
         raise TypeError(
             f"direct renderer does not support {type(operation).__name__} before its task"
         )
+
+    def _is_safe_tail_call(self, trail: tuple[int, ...]) -> bool:
+        if (
+            self._rendering_production is None
+            or self._rendering_alternative is None
+            or len(trail) != 1
+        ):
+            return False
+        return (
+            self._rendering_production,
+            self._rendering_alternative,
+            (("operation", trail[0]),),
+        ) in self._safe_tail_sites
 
     def _render_binding(
         self,
