@@ -51,6 +51,16 @@ class _ConstructorSite:
 
 
 @dataclass(frozen=True, slots=True)
+class _OwnerStateLayout:
+    owner: str
+    properties: tuple[str, ...]
+    class_name: str
+    stack_name: str
+    queue_name: str
+    field_names: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class _LocalContinuationFinish:
     number: int
     layout: ContinuationLayout
@@ -83,7 +93,7 @@ class _DirectPythonRenderer:
             item.name: item.token_types for item in source.identifier_definitions
         }
         self.schema_by_name = {item.name: item for item in schema}
-        self.owner_collection_properties = {
+        owner_collection_properties = {
             owner: tuple(
                 field.name
                 for field in self.schema_by_name[owner].fields
@@ -91,6 +101,19 @@ class _DirectPythonRenderer:
             )
             for owner in sorted(analysis.mutable_owner_types)
             if owner in self.schema_by_name
+        }
+        self.owner_state_layouts = {
+            owner: _OwnerStateLayout(
+                owner,
+                properties,
+                f"_OwnerState_{index}",
+                f"_owner_stack_{index}",
+                "_queue",
+                tuple(f"_field_{field_index}" for field_index in range(len(properties))),
+            )
+            for index, (owner, properties) in enumerate(
+                owner_collection_properties.items()
+            )
         }
         self.local_names: dict[tuple[tuple[int, ...], str], str] = {}
         self.used_local_names: set[str] = set()
@@ -134,22 +157,15 @@ class _DirectPythonRenderer:
             for field in node.fields:
                 lines.append(f"    {field.name}: object")
             lines.append("    span: SourceSpan")
-        for owner, properties in self.owner_collection_properties.items():
-            lines.extend(("", "", f"class {self._owner_state_class(owner)}:"))
-            slots = (
-                "pending",
-                *(self._owner_state_field(property_name) for property_name in properties),
-            )
+        for layout in self.owner_state_layouts.values():
+            lines.extend(("", "", f"class {layout.class_name}:"))
+            slots = (layout.queue_name, *layout.field_names)
             lines.append(f"    __slots__ = {slots!r}")
-            parameters = ", ".join(
-                self._owner_state_field(property_name)
-                for property_name in properties
-            )
+            parameters = ", ".join(layout.field_names)
             lines.append(f"    def __init__(self, {parameters}):")
-            lines.append("        self.pending = []")
-            for property_name in properties:
-                field = self._owner_state_field(property_name)
-                lines.append(f"        self.{field} = {field}")
+            lines.append(f"        self.{layout.queue_name} = []")
+            for field_name in layout.field_names:
+                lines.append(f"        self.{field_name} = {field_name}")
         lines.extend(("", "", "AST_CLASSES = {"))
         lines.extend(f'    "{node.name}": {node.name},' for node in self.schema)
         lines.append("}")
@@ -1255,17 +1271,17 @@ class _DirectPythonRenderer:
         site: _ConstructorSite,
         indent: str,
     ) -> list[str]:
-        properties = self.owner_collection_properties.get(site.name)
-        if properties is None:
+        layout = self.owner_state_layouts.get(site.name)
+        if layout is None:
             return []
         state = self._owner_state_local(site)
         collections = ", ".join(
             self._field_local(site, property_name)
-            for property_name in properties
+            for property_name in layout.properties
         )
         return [
-            f"{indent}{state} = {self._owner_state_class(site.name)}({collections})",
-            f"{indent}self.{self._owner_stack_name(site.name)}.append({state})",
+            f"{indent}{state} = {layout.class_name}({collections})",
+            f"{indent}self.{layout.stack_name}.append({state})",
         ]
 
     def _render_owner_state_close(
@@ -1273,25 +1289,25 @@ class _DirectPythonRenderer:
         site: _ConstructorSite,
         indent: str,
     ) -> list[str]:
-        properties = self.owner_collection_properties.get(site.name)
-        if properties is None:
+        layout = self.owner_state_layouts.get(site.name)
+        if layout is None:
             return []
         state = self._owner_state_local(site)
-        stack = self._owner_stack_name(site.name)
+        stack = layout.stack_name
         lines = [
-            f"{indent}for _, _, property_name, payload in sorted({state}.pending, key=lambda item: item[:2]):",
+            f"{indent}for _, _, property_name, payload in sorted({state}.{layout.queue_name}, key=lambda item: item[:2]):",
         ]
-        for index, property_name in enumerate(properties):
+        for index, property_name in enumerate(layout.properties):
             prefix = "if" if index == 0 else "elif"
             lines.append(f"{indent}    {prefix} property_name == {property_name!r}:")
             lines.append(
-                f"{indent}        {state}.{self._owner_state_field(property_name)}.append(payload)"
+                f"{indent}        {state}.{layout.field_names[index]}.append(payload)"
             )
         lines.extend(
             (
                 f"{indent}    else:",
                 f"{indent}        raise RuntimeError(f\"unknown scoped owner property: {{property_name!r}}\")",
-                f"{indent}{state}.pending.clear()",
+                f"{indent}{state}.{layout.queue_name}.clear()",
                 f"{indent}if not self.{stack} or self.{stack}[-1] is not {state}:",
                 f"{indent}    raise RuntimeError('owner stack is inconsistent')",
                 f"{indent}self.{stack}.pop()",
@@ -1308,11 +1324,8 @@ class _DirectPythonRenderer:
         constructor_site: _ConstructorSite | None,
     ) -> list[str]:
         owner = self._control_name("scoped_owner", trail)
-        stack = (
-            self._owner_stack_name(operation.owner)
-            if operation.owner in self.owner_collection_properties
-            else None
-        )
+        layout = self.owner_state_layouts.get(operation.owner)
+        stack = None if layout is None else layout.stack_name
         lines = (
             [f"{indent}{owner} = self.{stack}[-1] if self.{stack} else None"]
             if stack is not None
@@ -1340,7 +1353,7 @@ class _DirectPythonRenderer:
                 (
                     f"{indent}if {owner} is not None:",
                     f"{indent}    self._enqueue_sequence += 1",
-                    f"{indent}    {owner}.pending.append(({operation.source_order!r}, self._enqueue_sequence, {operation.property!r}, {target}))",
+                    f"{indent}    {owner}.{layout.queue_name}.append(({operation.source_order!r}, self._enqueue_sequence, {operation.property!r}, {target}))",
                 )
             )
         return lines
@@ -1356,18 +1369,6 @@ class _DirectPythonRenderer:
 
     def _owner_state_local(self, site: _ConstructorSite) -> str:
         return self._allocate_local(site, "owner_state")
-
-    @staticmethod
-    def _owner_state_class(owner: str) -> str:
-        return f"_OwnerState_{owner}"
-
-    @staticmethod
-    def _owner_stack_name(owner: str) -> str:
-        return f"_owner_stack_{owner.casefold()}"
-
-    @staticmethod
-    def _owner_state_field(property_name: str) -> str:
-        return property_name.casefold()
 
     def _allocate_local(self, site: _ConstructorSite, field_name: str) -> str:
         key = (site.trail, field_name)
@@ -1487,8 +1488,8 @@ class _DirectPythonRenderer:
             "        self._position = 0",
             "        self._enqueue_sequence = 0",
         ]
-        for owner in self.owner_collection_properties:
-            lines.append(f"        self.{self._owner_stack_name(owner)} = []")
+        for layout in self.owner_state_layouts.values():
+            lines.append(f"        self.{layout.stack_name} = []")
         lines.append("        try:")
         for index, (entrypoint, production) in enumerate(self.entrypoints.items()):
             prefix = "if" if index == 0 else "elif"
@@ -1554,13 +1555,12 @@ class _DirectPythonRenderer:
             )
         )
         lines.extend(("", "    def _clear_owner_state(self):"))
-        for owner in self.owner_collection_properties:
-            stack = self._owner_stack_name(owner)
+        for layout in self.owner_state_layouts.values():
             lines.extend(
                 (
-                    f"        for owner_state in self.{stack}:",
-                    "            owner_state.pending.clear()",
-                    f"        self.{stack}.clear()",
+                    f"        for owner_state in self.{layout.stack_name}:",
+                    f"            owner_state.{layout.queue_name}.clear()",
+                    f"        self.{layout.stack_name}.clear()",
                 )
             )
         lines.append("        self._enqueue_sequence = 0")

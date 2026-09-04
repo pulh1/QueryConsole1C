@@ -102,7 +102,7 @@ def test_nearest_owner_shadowing_order_and_close_before_delivery() -> None:
 
     result = namespace["GeneratedParser"]().parse(_tokens(), "start")
 
-    assert "_owner_stack_owner" in generated.module_text
+    assert "_owner_stack_0" in generated.module_text
     assert type(result) is namespace["Owner"]
     assert result.Name == "outer"
     assert result.Items[0] == "tail"
@@ -312,12 +312,34 @@ def test_scoped_append_reuses_propertyless_root_collection() -> None:
     assert result.items == ("first", "second")
 
 
+def test_scoped_owner_property_does_not_collide_with_state_queue() -> None:
+    _, namespace = _generate(
+        "#Name ::= ID\n<S> ::= [root] first: #Name second: #Name",
+        "profile worker\n"
+        "<S>[root] {\n"
+        "@Owner\n"
+        "pending += first\n"
+        "^Owner.pending += second\n"
+        "}\n",
+    )
+
+    result = namespace["GeneratedParser"]().parse(
+        [Token("ID", "first"), Token("ID", "second")],
+        "start",
+    )
+
+    assert result.pending == ("first", "second")
+
+
 @pytest.mark.parametrize("error_kind", ("syntax", "freeze", "append"))
 def test_runtime_state_is_cleared_and_parser_reusable_after_errors(error_kind: str) -> None:
     _, namespace = _owner_runtime()
     parser = namespace["GeneratedParser"]()
     owner_class = namespace["Owner"]
-    owner_state = namespace["_OwnerState_Owner"]
+    owner_state_name = next(
+        name for name in namespace if name.startswith("_OwnerState_")
+    )
+    owner_state = namespace[owner_state_name]
 
     if error_kind == "syntax":
         failing_tokens = [Token("BAD")]
@@ -333,7 +355,7 @@ def test_runtime_state_is_cleared_and_parser_reusable_after_errors(error_kind: s
             def append(self, payload: object) -> None:
                 raise RuntimeError("append failed")
 
-        namespace["_OwnerState_Owner"] = lambda *collections: owner_state(
+        namespace[owner_state_name] = lambda *collections: owner_state(
             RaisingAppendList()
         )
         failing_tokens = _tokens()
@@ -342,8 +364,12 @@ def test_runtime_state_is_cleared_and_parser_reusable_after_errors(error_kind: s
     with pytest.raises(expected_error):
         parser.parse(failing_tokens, "start")
 
-    assert parser._owner_stack_owner == []
+    assert all(
+        value == []
+        for name, value in vars(parser).items()
+        if name.startswith("_owner_stack_")
+    )
     assert parser._enqueue_sequence == 0
     namespace["Owner"] = owner_class
-    namespace["_OwnerState_Owner"] = owner_state
+    namespace[owner_state_name] = owner_state
     assert parser.parse(_tokens(), "start").Name == "outer"
