@@ -4,11 +4,13 @@ from dataclasses import dataclass
 from pprint import pformat
 from typing import TYPE_CHECKING, Mapping
 
+from .decision_dag import CommitAlternative, ExitDecision, ImmediateError, LookaheadDecision
 from .model import Constant, IdentifierRef, Lexeme, NonterminalCall, SyntaxSymbol, Terminal
 from .parser_ir import (
     AppendCollection,
     AssignConstant,
     BindScalar,
+    BranchIr,
     ConcatScalar,
     ConsumeKnownSymbol,
     ConstructNode,
@@ -62,6 +64,7 @@ class _DirectPythonRenderer:
         self.schema_by_name = {item.name: item for item in schema}
         self.local_names: dict[tuple[tuple[int, ...], str], str] = {}
         self.used_local_names: set[str] = set()
+        self._decision_facts_index = 0
 
     def render(self) -> str:
         return "\n\n".join((self._render_prelude(), self._render_parser())) + "\n"
@@ -97,31 +100,178 @@ class _DirectPythonRenderer:
         return "\n\n".join(self._render_production(item) for item in self.parser_ir.productions)
 
     def _render_production(self, production) -> str:
-        if production.decision is not None or len(production.alternatives) != 1:
-            raise ValueError(
-                "direct renderer does not support production decisions before Task 5"
-            )
-        alternative = production.alternatives[0]
         self.local_names = {}
-        self.used_local_names = {"start", *self._value_names(alternative.operations, ())}
+        self.used_local_names = {
+            "start",
+            "outcome",
+            *(
+                name
+                for alternative in production.alternatives
+                for name in self._value_names(alternative.operations, ())
+            ),
+        }
         lines = [f"    def {self.production_names[production.name]}(self):", "        start = self._offset()"]
+        if production.decision is None:
+            if len(production.alternatives) != 1:
+                raise ValueError("production alternatives require a canonical decision")
+            lines.extend(self._render_alternative(production.alternatives[0], "        "))
+            return "\n".join(lines)
+        lines.extend(self._render_decision(production.decision, "        ", "outcome"))
+        for index, alternative in enumerate(production.alternatives):
+            prefix = "if" if index == 0 else "elif"
+            lines.append(
+                f"        {prefix} outcome == ({production.name!r}, {alternative.index + 1!r}):"
+            )
+            lines.extend(self._render_alternative(alternative, "            "))
+        lines.extend(
+            (
+                "        else:",
+                "            raise RuntimeError(f\"decision outcome has no semantic branch: {outcome!r}\")",
+            )
+        )
+        return "\n".join(lines)
+
+    def _render_alternative(self, alternative, indent: str) -> list[str]:
         body, constructor_site = self._render_sequence(
             alternative.operations,
             alternative.result_index,
-            "        ",
+            indent,
             (),
             None,
         )
-        lines.extend(body)
         if constructor_site is None:
-            lines.append(
-                "        return None"
+            body.append(
+                f"{indent}return None"
                 if alternative.result_index is None
-                else f"        return {self._value_name((alternative.result_index,))}"
+                else f"{indent}return {self._value_name((alternative.result_index,))}"
             )
         else:
-            lines.append(f"        return {self._freeze_expression(constructor_site, 'start')}")
-        return "\n".join(lines)
+            body.append(f"{indent}return {self._freeze_expression(constructor_site, 'start')}")
+        return body
+
+    def _render_decision(self, decision, indent: str, outcome: str) -> list[str]:
+        facts = self._next_decision_facts(decision)
+        if any(indegree > 1 for indegree in facts.node_indegrees):
+            return self._render_shared_decision(decision, indent, outcome)
+        return self._render_tree_decision(decision, decision.dag.root, indent, outcome)
+
+    def _next_decision_facts(self, decision) -> object:
+        try:
+            facts = self.analysis.decisions[self._decision_facts_index]
+        except IndexError as error:
+            raise ValueError("direct render analysis is missing decision facts") from error
+        self._decision_facts_index += 1
+        if len(facts.node_indegrees) != len(decision.dag.nodes):
+            raise ValueError("decision facts do not match canonical DAG")
+        return facts
+
+    def _render_tree_decision(
+        self,
+        decision,
+        node_index: int,
+        indent: str,
+        outcome: str,
+    ) -> list[str]:
+        node = decision.dag.nodes[node_index]
+        if isinstance(node, CommitAlternative):
+            return [f"{indent}{outcome} = ({node.outcome.production!r}, {node.outcome.alternative!r})"]
+        if isinstance(node, ExitDecision):
+            return [f"{indent}{outcome} = ({node.outcome.production!r}, {node.outcome.alternative!r})"]
+        if isinstance(node, ImmediateError):
+            return [f"{indent}self._syntax_error({node.expected!r})"]
+        if not isinstance(node, LookaheadDecision):
+            raise TypeError(type(node))
+        lines: list[str] = []
+        for edge_index, edge in enumerate(node.edges):
+            prefix = "if" if edge_index == 0 else "elif"
+            lines.append(
+                f"{indent}{prefix} self._type_at({node.offset!r}) in {edge.predicate.token_types!r}:"
+            )
+            lines.extend(
+                self._render_tree_decision(
+                    decision,
+                    edge.target,
+                    indent + "    ",
+                    outcome,
+                )
+            )
+        lines.extend((f"{indent}else:", f"{indent}    self._syntax_error({node.expected!r})"))
+        return lines
+
+    def _render_shared_decision(self, decision, indent: str, outcome: str) -> list[str]:
+        state = "decision_state"
+        lines = [f"{indent}{state} = {decision.dag.root!r}", f"{indent}while True:"]
+        for node_index, node in enumerate(decision.dag.nodes):
+            lines.append(f"{indent}    if {state} == {node_index!r}:")
+            if isinstance(node, CommitAlternative):
+                lines.extend(
+                    (
+                        f"{indent}        {outcome} = ({node.outcome.production!r}, {node.outcome.alternative!r})",
+                        f"{indent}        break",
+                    )
+                )
+                continue
+            if isinstance(node, ExitDecision):
+                lines.extend(
+                    (
+                        f"{indent}        {outcome} = ({node.outcome.production!r}, {node.outcome.alternative!r})",
+                        f"{indent}        break",
+                    )
+                )
+                continue
+            if isinstance(node, ImmediateError):
+                lines.append(f"{indent}        self._syntax_error({node.expected!r})")
+                continue
+            if not isinstance(node, LookaheadDecision):
+                raise TypeError(type(node))
+            for edge_index, edge in enumerate(node.edges):
+                prefix = "if" if edge_index == 0 else "elif"
+                lines.append(
+                    f"{indent}        {prefix} self._type_at({node.offset!r}) in {edge.predicate.token_types!r}:"
+                )
+                lines.extend(
+                    (
+                        f"{indent}            {state} = {edge.target!r}",
+                        f"{indent}            continue",
+                    )
+                )
+            lines.extend(
+                (
+                    f"{indent}        else:",
+                    f"{indent}            self._syntax_error({node.expected!r})",
+                )
+            )
+        lines.append(f"{indent}    raise RuntimeError(f\"invalid decision state: {{{state}!r}}\")")
+        return lines
+
+    def _render_branch_selection(
+        self,
+        branches: tuple[BranchIr, ...],
+        outcome: str,
+        indent: str,
+        render_branch,
+    ) -> list[str]:
+        """Render original-order outcome/path-fact matching for branch operations."""
+        lines: list[str] = []
+        for index, branch in enumerate(branches):
+            facts = () if branch.path_facts is None else branch.path_facts
+            conditions = [
+                f"{outcome} == ({branch.outcome.production!r}, {branch.outcome.alternative!r})"
+            ]
+            conditions.extend(
+                f"self._type_at({fact.offset!r}) in {fact.predicate.token_types!r}"
+                for fact in facts
+            )
+            prefix = "if" if index == 0 else "elif"
+            lines.append(f"{indent}{prefix} {' and '.join(conditions)}:")
+            lines.extend(render_branch(branch, indent + "    "))
+        lines.extend(
+            (
+                f"{indent}else:",
+                f"{indent}    raise RuntimeError(f\"decision outcome has no semantic branch: {{{outcome}!r}}\")",
+            )
+        )
+        return lines
 
     def _render_sequence(
         self,
@@ -368,11 +518,14 @@ class _DirectPythonRenderer:
                 "        value = getattr(token, 'value', None)",
                 "        return token.text if value is None else value",
                 "",
-                "    def _lookahead(self, offset):",
+                "    def _type_at(self, offset):",
                 "        index = self._position + offset",
                 "        if index >= len(self._tokens):",
                 "            return '$'",
                 "        return self._tokens[index].type",
+                "",
+                "    def _lookahead(self, offset):",
+                "        return self._type_at(offset)",
                 "",
                 "    def _offset(self):",
                 "        if self._position < len(self._tokens):",
@@ -388,8 +541,11 @@ class _DirectPythonRenderer:
                 "                return end",
                 "        return start",
                 "",
-                "    def _raise(self, expected):",
+                "    def _syntax_error(self, expected):",
                 "        raise GeneratedParseError(self._position, self._lookahead(0), expected)",
+                "",
+                "    def _raise(self, expected):",
+                "        self._syntax_error(expected)",
             )
         )
         lines.extend(("", *self._render_productions().splitlines()))

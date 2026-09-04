@@ -5,8 +5,23 @@ from dataclasses import dataclass, fields, is_dataclass, replace
 import pytest
 
 from parsergen.analysis import compute_analysis
+from parsergen.canonical_select import AlternativeOutcome, TokenSetPredicate
+from parsergen.decision_dag import (
+    CanonicalDecisionDag,
+    CommitAlternative,
+    DecisionEdge,
+    LookaheadDecision,
+)
 from parsergen.grammar_parser import parse_grammar
-from parsergen.parser_ir import ResolvedRegion, UndefinedValue, build_parser_ir
+from parsergen.direct_render_analysis import analyze_direct_render
+from parsergen.parser_ir import (
+    CanonicalDecision,
+    ResolvedRegion,
+    UndefinedValue,
+    WrapOptional,
+    build_parser_ir,
+)
+from parsergen.python_direct_codegen import _DirectPythonRenderer
 from parsergen.python_semantic_codegen import (
     _generate_direct_python_semantic_parser,
     generate_python_semantic_parser,
@@ -45,6 +60,12 @@ def _execute(
     return namespace, result
 
 
+def _execute_without_parse(module_text: str) -> dict[str, object]:
+    namespace: dict[str, object] = {}
+    exec(compile(module_text, "<semantic-parser>", "exec"), namespace)
+    return namespace
+
+
 def _generated_pair(
     grammar: str,
     *,
@@ -71,6 +92,26 @@ def _generated_pair(
         mapping,
     )
     return vm, direct, parser_ir, parsed.source_grammar
+
+
+def _parser_pair(grammar: str, *, k: int = 1) -> tuple[object, object]:
+    vm, direct, _, _ = _generated_pair(grammar, k=k)
+    vm_namespace = _execute_without_parse(vm.module_text)
+    direct_namespace = _execute_without_parse(direct.module_text)
+    return vm_namespace["GeneratedParser"](), direct_namespace["GeneratedParser"]()
+
+
+def _error_shape(parser: object, tokens: list[Token]) -> tuple[object, ...]:
+    with pytest.raises(Exception) as caught:
+        parser.parse(tokens, "start")
+    error = caught.value
+    return (
+        type(error).__name__,
+        error.args,
+        error.position,
+        error.actual,
+        error.expected,
+    )
 
 
 def test_direct_module_compiles_and_preserves_runtime_shape() -> None:
@@ -187,6 +228,183 @@ def test_direct_parser_reuses_iterable_input_and_checks_full_consumption() -> No
     assert caught.value.position == 1
     assert caught.value.actual == "ITEM"
     assert caught.value.expected == ("$",)
+
+
+@pytest.mark.parametrize(
+    ("grammar", "tokens", "k"),
+    [
+        ("<S> ::= ITEM", [Token("BAD")], 1),
+        ("<S> ::= ITEM", [], 1),
+        ("<S> ::= ITEM", [Token("ITEM"), Token("ITEM")], 1),
+        ("<S> ::= 'a' 'b' | 'a' 'c'", [Token("a"), Token("x")], 2),
+        ("<S> ::= 'a' 'b' | 'c'", [Token("a"), Token("x")], 1),
+    ],
+    ids=("bad", "eof", "trailing", "k2", "committed"),
+)
+def test_direct_errors_equal_vm_without_normalization(
+    grammar: str,
+    tokens: list[Token],
+    k: int,
+) -> None:
+    vm_parser, direct_parser = _parser_pair(grammar, k=k)
+
+    assert _error_shape(direct_parser, tokens) == _error_shape(vm_parser, tokens)
+
+
+def test_direct_identifier_mismatch_error_equals_vm_without_normalization() -> None:
+    vm_parser, direct_parser = _parser_pair("#Name ::= ID\n<S> ::= #Name")
+
+    assert _error_shape(direct_parser, [Token("BAD")]) == _error_shape(
+        vm_parser,
+        [Token("BAD")],
+    )
+
+
+def test_direct_unknown_entrypoint_error_equals_vm_without_normalization() -> None:
+    vm_parser, direct_parser = _parser_pair("<S> ::= ITEM")
+
+    with pytest.raises(Exception) as vm_caught:
+        vm_parser.parse([], "missing")
+    with pytest.raises(Exception) as direct_caught:
+        direct_parser.parse([], "missing")
+
+    assert (
+        type(direct_caught.value).__name__,
+        direct_caught.value.args,
+    ) == (
+        type(vm_caught.value).__name__,
+        vm_caught.value.args,
+    )
+
+
+def test_direct_shared_decision_dag_renders_the_shared_node_once() -> None:
+    _, _, parser_ir, source = _generated_pair("<S> ::= A | B")
+    original = parser_ir.productions[0]
+    assert original.decision is not None
+    dag = CanonicalDecisionDag(
+        "S",
+        2,
+        0,
+        (
+            LookaheadDecision(
+                0,
+                ("A", "B"),
+                (
+                    DecisionEdge(TokenSetPredicate(("A",)), 1),
+                    DecisionEdge(TokenSetPredicate(("B",)), 2),
+                ),
+            ),
+            LookaheadDecision(
+                1,
+                ("C",),
+                (DecisionEdge(TokenSetPredicate(("C",)), 3),),
+            ),
+            LookaheadDecision(
+                1,
+                ("D",),
+                (DecisionEdge(TokenSetPredicate(("D",)), 3),),
+            ),
+            CommitAlternative(AlternativeOutcome("S", 1)),
+        ),
+        {},
+    )
+    decision = CanonicalDecision(original.decision.source, dag)
+    shared_ir = replace(
+        parser_ir,
+        productions=(replace(original, decision=decision),),
+    )
+
+    direct = _generate_direct_python_semantic_parser(source, shared_ir, {"start": "S"})
+
+    assert direct.module_text.count("decision_state == 3") == 1
+
+
+def test_direct_path_facts_select_in_original_branch_order() -> None:
+    grammar = (
+        "<S> ::= <Base> Child => <Choice>?\n"
+        "<Base> ::= @NewBase BASE\n"
+        "<Choice> ::= @NewBetween (NOT Inverted := Истина)? BETWEEN <Tail>\n"
+        "<Choice> ::= @NewIn (NOT Inverted := Истина)? IN <Tail>\n"
+        "<Tail> ::= VALUE"
+    )
+    parsed = parse_grammar(grammar, "path-facts.grammar")
+    assert parsed.diagnostics == () and parsed.grammar is not None
+    assert parsed.source_grammar is not None and parsed.lowering is not None
+    resolved = resolve_grammar(parsed.grammar)
+    assert resolved.diagnostics == () and resolved.grammar is not None
+    parser_ir = build_parser_ir(
+        parsed.source_grammar,
+        parsed.lowering,
+        resolved.grammar,
+        compute_analysis(resolved.grammar, 2, ("S",)),
+        entrypoint_productions=("S",),
+    )
+    wrapper = parser_ir.productions[0].alternatives[0].operations[0]
+    assert isinstance(wrapper, WrapOptional)
+    outcome = AlternativeOutcome("Choice", 1)
+    outcome_key = (outcome.production, outcome.alternative)
+    specialized = tuple(
+        branch for branch in wrapper.branches if branch.outcome == outcome
+    )
+    assert len(specialized) == 2
+    renderer = _DirectPythonRenderer(
+        parsed.source_grammar,
+        parser_ir,
+        {"start": "S"},
+        (),
+        analyze_direct_render(parser_ir),
+    )
+
+    lines = renderer._render_branch_selection(
+        wrapper.branches,
+        "outcome",
+        "    ",
+        lambda branch, indent: [f"{indent}return {wrapper.branches.index(branch)!r}"],
+    )
+    namespace: dict[str, object] = {}
+    exec(
+        compile(
+            "def select(self, outcome):\n" + "\n".join(lines),
+            "<path-facts-selector>",
+            "exec",
+        ),
+        namespace,
+    )
+
+    class Probe:
+        def __init__(self, token_types: tuple[str, ...]) -> None:
+            self.token_types = token_types
+
+        def _type_at(self, offset: int) -> str:
+            return self.token_types[offset] if offset < len(self.token_types) else "$"
+
+    select = namespace["select"]
+    between_index = wrapper.branches.index(specialized[0])
+    not_between_index = wrapper.branches.index(specialized[1])
+    assert select(Probe(("BETWEEN",)), outcome_key) == between_index
+    assert select(Probe(("NOT", "BETWEEN")), outcome_key) == not_between_index
+
+    generic_first = replace(specialized[0], path_facts=None)
+    ordered_lines = renderer._render_branch_selection(
+        (generic_first, specialized[0]),
+        "outcome",
+        "    ",
+        lambda branch, indent: [
+            f"{indent}return {'generic' if branch is generic_first else 'specialized'!r}"
+        ],
+    )
+    ordered_namespace: dict[str, object] = {}
+    exec(
+        compile(
+            "def select_ordered(self, outcome):\n" + "\n".join(ordered_lines),
+            "<ordered-path-facts-selector>",
+            "exec",
+        ),
+        ordered_namespace,
+    )
+    assert ordered_namespace["select_ordered"](
+        Probe(("BETWEEN",)), outcome_key
+    ) == "generic"
 
 
 def test_direct_parser_supports_multiple_entrypoints() -> None:
