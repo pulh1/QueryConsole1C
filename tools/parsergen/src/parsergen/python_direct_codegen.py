@@ -93,6 +93,16 @@ class _DirectPythonRenderer:
             item.name: item.token_types for item in source.identifier_definitions
         }
         self.schema_by_name = {item.name: item for item in schema}
+        self._used_global_names = {
+            "AST_CLASSES",
+            "GeneratedParseError",
+            "GeneratedParser",
+            "NODE_DEFAULTS",
+            "SourceSpan",
+            "dataclass",
+            "replace",
+            *(node.name for node in schema),
+        }
         owner_collection_properties = {
             owner: tuple(
                 field.name
@@ -102,19 +112,16 @@ class _DirectPythonRenderer:
             for owner in sorted(analysis.mutable_owner_types)
             if owner in self.schema_by_name
         }
-        self.owner_state_layouts = {
-            owner: _OwnerStateLayout(
+        self.owner_state_layouts: dict[str, _OwnerStateLayout] = {}
+        for index, (owner, properties) in enumerate(owner_collection_properties.items()):
+            self.owner_state_layouts[owner] = _OwnerStateLayout(
                 owner,
                 properties,
-                f"_OwnerState_{index}",
+                self._allocate_global_name("_OwnerState"),
                 f"_owner_stack_{index}",
                 "_queue",
                 tuple(f"_field_{field_index}" for field_index in range(len(properties))),
             )
-            for index, (owner, properties) in enumerate(
-                owner_collection_properties.items()
-            )
-        }
         self.local_names: dict[tuple[tuple[int, ...], str], str] = {}
         self.used_local_names: set[str] = set()
         self._decision_facts_index = 0
@@ -1369,6 +1376,15 @@ class _DirectPythonRenderer:
 
     def _owner_state_local(self, site: _ConstructorSite) -> str:
         return self._allocate_local(site, "owner_state")
+
+    def _allocate_global_name(self, prefix: str) -> str:
+        index = 0
+        while True:
+            name = f"{prefix}_{index}"
+            if name not in self._used_global_names:
+                self._used_global_names.add(name)
+                return name
+            index += 1
 
     def _allocate_local(self, site: _ConstructorSite, field_name: str) -> str:
         key = (site.trail, field_name)

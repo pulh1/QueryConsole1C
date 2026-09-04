@@ -331,13 +331,36 @@ def test_scoped_owner_property_does_not_collide_with_state_queue() -> None:
     assert result.pending == ("first", "second")
 
 
+def test_scoped_owner_class_does_not_collide_with_generated_state_class() -> None:
+    _, namespace = _generate(
+        "#Name ::= ID\n<S> ::= [root] first: #Name second: #Name",
+        "profile worker\n"
+        "<S>[root] {\n"
+        "@_OwnerState_0\n"
+        "Values += first\n"
+        "^_OwnerState_0.Values += second\n"
+        "}\n",
+    )
+
+    result = namespace["GeneratedParser"]().parse(
+        [Token("ID", "first"), Token("ID", "second")],
+        "start",
+    )
+
+    assert type(result) is namespace["_OwnerState_0"]
+    assert result.Values == ("first", "second")
+
+
 @pytest.mark.parametrize("error_kind", ("syntax", "freeze", "append"))
 def test_runtime_state_is_cleared_and_parser_reusable_after_errors(error_kind: str) -> None:
     _, namespace = _owner_runtime()
     parser = namespace["GeneratedParser"]()
     owner_class = namespace["Owner"]
     owner_state_name = next(
-        name for name in namespace if name.startswith("_OwnerState_")
+        name
+        for name, value in namespace.items()
+        if name.startswith("_OwnerState_")
+        and "_queue" in getattr(value, "__slots__", ())
     )
     owner_state = namespace[owner_state_name]
 
