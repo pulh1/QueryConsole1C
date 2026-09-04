@@ -1068,15 +1068,23 @@ def test_direct_wrap_preserves_a_multi_constructor_wrapper_schema(
 ) -> None:
     grammar = (
         "<S> ::= <Seed> Type => <Wrapper>\n"
-        "<Seed> ::= @Seed SEED\n"
+        "<Seed> ::= @Seed Value = SEED\n"
         "<Wrapper> ::= @First FIRST | @Second SECOND"
     )
     direct, _, _ = _generate(grammar)
     tokens = [Token("SEED", start=0, end=4), Token(token_type, start=5, end=11)]
 
-    _, direct_result = _execute(direct.module_text, tokens)
+    namespace, direct_result = _execute(direct.module_text, tokens)
 
-    assert type(direct_result).__name__ == constructor
+    assert type(direct_result) is namespace[constructor]
+    assert tuple(field.name for field in fields(direct_result)) == ("Type", "span")
+    assert type(direct_result.Type) is namespace["Seed"]
+    assert tuple(field.name for field in fields(direct_result.Type)) == ("Value", "span")
+    assert direct_result.Type.Value == "SEED"
+    assert (direct_result.Type.span, direct_result.span) == (
+        namespace["SourceSpan"](0, 4),
+        namespace["SourceSpan"](5, 11),
+    )
 
 
 def test_direct_left_fold_is_iterative_and_exact_for_2000_operators() -> None:

@@ -131,6 +131,10 @@ class SourceSpan:
     end: int
 # </parsergen:source-span>'''
     assert required_fragment in text
+    assert text.count("# <parsergen:source-span>") == 1
+    assert text.count("# </parsergen:source-span>") == 1
+    assert text.count("# <parsergen:artifact-metadata>") == 1
+    assert text.count("# </parsergen:artifact-metadata>") == 1
     assert all(symbol not in text for symbol in forbidden)
     assert "import parsergen" not in text
 
