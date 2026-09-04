@@ -118,7 +118,7 @@ class _Analyzer:
                 self._decision(production_site, production.decision)
             for alternative in production.alternatives:
                 site = IrSite(production.name, alternative.index, ())
-                self._sequence(
+                sequence_liveness = self._sequence(
                     site,
                     alternative.operations,
                     alternative.result_index,
@@ -127,6 +127,7 @@ class _Analyzer:
                     production.name,
                     site,
                     alternative.operations,
+                    sequence_liveness,
                 )
         components = _recursive_components(self._calls_by_production)
         return DirectRenderAnalysis(
@@ -145,6 +146,7 @@ class _Analyzer:
         production: str,
         site: IrSite,
         operations: tuple[Operation, ...],
+        sequence_liveness: SequenceLiveness,
     ) -> None:
         if not operations or _contains_forbidden_recursion_state(operations):
             return
@@ -157,7 +159,11 @@ class _Analyzer:
         )
         if call_site is None:
             return
-        layout = _continuation_layout(operations, index)
+        layout = _continuation_layout(
+            operations,
+            index,
+            sequence_liveness.live_after[index],
+        )
         self.recursive_calls.append(
             RecursiveCallSite(
                 call_site,
@@ -171,23 +177,23 @@ class _Analyzer:
         site: IrSite,
         operations: tuple[Operation, ...],
         result_index: int | None,
-    ) -> None:
-        self.sequence_liveness.append(
-            SequenceLiveness(
-                site,
-                tuple(
-                    frozenset({result_index})
-                    if result_index is not None and index >= result_index
-                    else frozenset()
-                    for index in range(len(operations))
-                ),
-            )
+    ) -> SequenceLiveness:
+        sequence_liveness = SequenceLiveness(
+            site,
+            tuple(
+                frozenset({result_index})
+                if result_index is not None and index >= result_index
+                else frozenset()
+                for index in range(len(operations))
+            ),
         )
+        self.sequence_liveness.append(sequence_liveness)
         for index, operation in enumerate(operations):
             self._operation(
                 _child_site(site, "operation", index),
                 operation,
             )
+        return sequence_liveness
 
     def _operation(self, site: IrSite, operation: Operation) -> None:
         name = _call_name(operation)
@@ -327,8 +333,12 @@ def _call_name(value: object) -> str | None:
 def _continuation_layout(
     operations: tuple[Operation, ...],
     call_index: int,
+    live_after: frozenset[int],
 ) -> ContinuationLayout:
-    slots: list[ContinuationSlot] = []
+    slots = [
+        ContinuationSlot("operation_result", index)
+        for index in sorted(live_after - {call_index})
+    ]
     for index, operation in enumerate(operations[:call_index]):
         _append_continuation_slots(slots, operation, index)
     operation = operations[call_index]

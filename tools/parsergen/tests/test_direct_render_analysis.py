@@ -290,17 +290,45 @@ def test_left_fold_is_not_classified_as_direct_recursion() -> None:
 
 def test_mutual_recursion_is_not_transformed() -> None:
     analysis = analyze_direct_render(
-        _build_ir("<S> ::= <A> | STOP\n<A> ::= ITEM <S>")
-    )
-
-    assert analysis.recursive_calls == ()
-
-
-def test_self_call_with_a_live_result_after_it_is_not_transformed() -> None:
-    analysis = analyze_direct_render(
         _build_ir(
-            "<S> ::= @Node First = ITEM Rest = <S> Last = ITEM | @End STOP"
+            "<S> ::= ITEM <S> | <A>\n"
+            "<A> ::= STOP <S> | END"
         )
     )
 
     assert analysis.recursive_calls == ()
+
+
+def test_final_direct_self_call_preserves_a_live_prior_result() -> None:
+    parser_ir = _build_ir(
+        "<S> ::= <A> -= <S> | STOP\n"
+        "<A> ::= ITEM"
+    )
+    production = parser_ir.productions[0]
+    alternative = production.alternatives[0]
+    parser_ir = replace(
+        parser_ir,
+        productions=(
+            replace(
+                production,
+                alternatives=(
+                    replace(alternative, result_index=0),
+                    *production.alternatives[1:],
+                ),
+            ),
+            *parser_ir.productions[1:],
+        ),
+    )
+
+    analysis = analyze_direct_render(parser_ir)
+
+    sequence = next(
+        item
+        for item in analysis.sequence_liveness
+        if item.site == IrSite("S", 0, ())
+    )
+    assert sequence.live_after == (frozenset({0}), frozenset({0}))
+    assert analysis.recursive_calls[0].kind == "local_continuation"
+    assert analysis.recursive_calls[0].layout == ContinuationLayout(
+        (ContinuationSlot("operation_result", 0),)
+    )
