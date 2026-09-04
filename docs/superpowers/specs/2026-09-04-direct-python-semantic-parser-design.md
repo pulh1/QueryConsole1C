@@ -20,6 +20,11 @@ Python-функции с прямыми вызовами, `if` и `while`. Produ
 Python-target, а не написанный вручную BSL-парсер или специальный hot-reload
 индексатор.
 
+Первый performance consumer — существующий full BSL semantic profile. Сначала
+измеряется построение полного AST реальных модулей ЗУП. Worker projection и её
+специальная оптимизация не развиваются, пока этот результат не покажет, нужна
+ли отдельная проекция вообще.
+
 ## 2. Единственный execution IR и порядок фаз
 
 `ParserIr` остаётся единственным исполняемым представлением. Второй набор
@@ -223,37 +228,38 @@ Scoped effect не выполняет немедленный append. При ра
 delivery. Общий `finally` очищает stacks, pending queues и sequence после
 syntax, append или freeze error, поэтому parser пригоден для следующего parse.
 
-## 7. Scoped-aware оптимизация ParserIr
+## 7. Граница Worker projection
 
-Текущий `optimize_parser_ir()` при любом `AppendNearestOwner` глобально
-отключает почти все преобразования. Этот барьер нельзя переносить в production
-direct target.
+`AppendNearestOwner` остаётся поддержанной semantic operation нового direct
+renderer с прежним runtime-контрактом из раздела 6. Однако текущий глобальный
+барьер `optimize_parser_ir()` для ParserIr со scoped effects в этой поставке не
+снимается.
 
-Внутри optimizer вместо глобального `any(scoped)` вычисляется отдельный
-immutable `ScopedEffectSummary`. Transitive значения для recursive SCC
-сходятся fixed-point до запуска преобразований. Summary содержит:
+Full semantic profile не содержит `AppendNearestOwner`, поэтому получает все
+существующие оптимизации ParserIr и позволяет измерить стоимость прямого
+parser без projection-specific ограничений. Это и есть первый обязательный
+эксперимент.
 
-- какие owner-типы production создаёт;
-- в какие owner-типы она может писать;
-- содержит ли call subtree scoped effect;
-- может ли преобразование пересечь owner lifetime или изменить порядок
-  effects.
+После full-AST замеров принимается отдельное решение:
 
-Recognition-only transformations и оптимизация независимых productions
-продолжают выполняться. Преобразование конкретного call site/region
-запрещается, если оно может переместить, клонировать, удалить или переупорядочить
-`AppendNearestOwner` относительно matching `ConstructNode`/freeze boundary.
-Сам `AppendNearestOwner` остаётся opaque ordered effect.
+- если полный AST и последующий анализ укладываются в практический бюджет hot
+  reload, Worker projection удаляется из hot-reload архитектуры;
+- если время или память полного AST неприемлемы, Worker projection сохраняется,
+  и отдельная следующая спецификация заменяет глобальный scoped-барьер на
+  доказанный локальный effect barrier.
 
-Caller/callee composition и path specialization обязаны сохранять точные
-canonical target nodes и `path_facts`. Если безопасность scoped region не
-доказана, optimizer оставляет только этот region непреобразованным, а не весь
-`ParserIr`. До удаления глобального барьера differential tests доказывают
-nearest-owner, shadowing, no-op, единственную доставку и порядок effects для
-оптимизированного и неоптимизированного IR.
+До этого решения owner-графы, `ScopedEffectSummary`, SCC-анализ scoped effects
+и новые optimizer transformations не реализуются. Tail-call rendering full
+profile по-прежнему выполняется после обычного `optimize_parser_ir()` и не
+участвует в построении или перестройке DAG.
 
-Tail-call rendering выполняется после этой оптимизации и потому не участвует в
-построении или перестройке DAG.
+Сравнение не использует legacy `_analyze_parsed_worker_module`: его правила
+bare assignment и implicit locals отличаются от текущего Worker resolver.
+Вместо него один итеративный обход full AST строит точный `ParsedModuleModel`,
+после чего без повторного parse вызываются существующие
+`resolve_worker_dependencies(catalog, previous=...)` и
+`lower_resolved_worker_module(...)`. Поэтому full и projection paths
+различаются только способом получения одной и той же входной модели resolver.
 
 ## 8. Spans, diagnostics и consumer seam
 
@@ -345,7 +351,11 @@ Onec Interactive Runtime после merge parsergen:
   путях `from_generated`, `from_files`, admission и artifact cache;
 - заменяет прежний text-fragment patch `SourceSpan` на marker seam;
 - сохраняет текущую BSL grammar и full AST consumers;
-- проверяет равенство Worker projection и lowering результата;
+- первым измеряет full AST и анализ зависимостей без Worker projection;
+- извлекает из full AST точный `ParsedModuleModel` одним итеративным обходом и
+  доказывает его equality текущей Worker projection;
+- передаёт эту модель в существующие `resolve_worker_dependencies()` и
+  `lower_resolved_worker_module()`, не используя legacy full-AST analyzer;
 - проверяет реальные `КадровыйУчет` и `КадровыйУчетРасширенный` вместе;
 - проверяет MAIN и CAPTURE;
 - доказывает отсутствие parsergen и COM в runtime artifact/process;
@@ -369,9 +379,13 @@ CPU model, число logical cores, power profile и benchmark options. VM base
 
 Warm parse benchmark выполняется в шести свежих процессах: три с порядком
 VM→direct и три direct→VM. В каждом процессе после отдельного warm-up снимается
-30 samples каждого backend на одном заранее построенном immutable token tuple.
-Parser instance переиспользуется только внутри одной серии; tokenization,
-filesystem, import и parser generation в parse-only metric не входят.
+30 pair-samples каждого backend. Для каждого модуля заранее строится
+собственный immutable token tuple. Один pair-sample равен сумме
+последовательного parse обоих модулей; порядок модулей чередуется
+`КадровыйУчет → КадровыйУчетРасширенный` и обратно. Отдельные per-module
+samples также сохраняются. Parser instance переиспользуется только внутри
+одной серии; tokenization, filesystem, import и parser generation в parse-only
+metric не входят.
 
 Tokenization + parse + model finalization начинается с уже прочитанных UTF-8
 source bytes и пустого parser state; filesystem и parser generation не входят.
@@ -386,16 +400,50 @@ Samples разных процессов объединяются только в
 backend. p50 и p95 считаются nearest-rank по полному набору samples; отдельно
 публикуются per-process p50/p95, чтобы не скрыть process-level variance.
 
-Parsergen/direct-target gates:
+Dependency benchmark фиксирует точную canonical identity одного
+`CommonModuleCatalogSnapshot`. Для first-load series `previous=None`. Pair
+sample последовательно выполняет для каждого модуля:
 
-- generated Worker parse p95 не более 0,75 с;
-- tokenization + parse + model finalization p95 не более 1,2 с;
-- cold import generated module и первый полный semantic parse от исходного
-  UTF-8 текста до готовой модели, без parser generation, не более 1,5 с;
+```text
+tokenization
+→ full AST parse
+→ iterative AST-to-ParsedModuleModel extraction
+→ resolve_worker_dependencies(catalog, previous=None)
+→ lower_resolved_worker_module
+   → resolved analysis adapter
+   → alias transform
+   → source-map composition
+   → admission
+```
+
+Каждая стрелка имеет отдельный timer. Повторный parse и legacy
+`_analyze_parsed_worker_module` запрещены. Построение catalog не входит в этот
+pair-sample и измеряется отдельной first-session метрикой полного hot reload.
+
+Parsergen/direct-target gates на full semantic profile:
+
+- generated full-AST parse p95 не более 1,0 с;
+- tokenization + full-AST parse p95 не более 1,5 с;
+- tokenization + full-AST parse + AST-to-model extraction + существующие
+  resolver/lowering/source-map/admission p95 не более 2,0 с;
+- cold import generated module и первый полный semantic путь от исходного
+  UTF-8 текста до результата анализа, без parser generation, не более 2,0 с;
 - ни одна метрика не хуже frozen VM baseline;
 - `cProfile` показывает не более 60 Python calls на входной токен;
 - generated module не превышает VM baseline более чем в четыре раза и не
   растёт экспоненциально на shared-DAG fixture.
+
+Дополнительно публикуются без заранее заданного pass/fail порога:
+
+- число созданных AST-узлов по типам;
+- peak traced allocations и process RSS;
+- отдельное время freeze полного AST;
+- отдельное время обхода полного AST при dependency/lowering analysis;
+- сравнение этих значений с текущей Worker projection.
+
+Решение об отказе от Worker projection не принимается автоматически по одному
+пороговому числу. После отчёта пользователь отдельно выбирает full-AST или
+projection путь с учётом времени, памяти и сложности сопровождения.
 
 Full hot reload `< 2,5 с` является gate всей hot-reload задачи, но не merge
 gate отдельного parsergen PR. Текущий остаток `end_to_end - semantic_parse` уже
@@ -411,12 +459,15 @@ staging и transport. Hot-reload задача не закрывается, по�
 - изменение языка запросов;
 - новые функциональные тесты парсера консоли запросов;
 - delta admission и method-level patches;
+- снятие глобального optimizer-барьера `AppendNearestOwner`;
+- дальнейшая оптимизация или удаление Worker projection до full-AST отчёта;
 - оптимизация EPF/base64, runtime transactions, COM или внешнего transport.
 
 ## 14. Поставка
 
 Изменение сначала реализуется и независимо ревьюится в QueryConsole1C как
 универсальная возможность parsergen. После merge и фиксации новой версии
-Onec Interactive Runtime обновляет dependency и generated artifacts, повторяет
-реальные ЗУП-замеры и продолжает оптимизацию оставшегося hot-reload пути до
-общего p95 `< 2,5 с`.
+Onec Interactive Runtime обновляет dependency, генерирует full parser и сначала
+публикует полный отчёт по AST двух модулей ЗУП. Только после выбора между full
+AST и Worker projection продолжается оптимизация оставшегося hot-reload пути
+до общего p95 `< 2,5 с`.
