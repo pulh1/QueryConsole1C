@@ -14,7 +14,12 @@ from parsergen.decision_dag import (
     LookaheadDecision,
 )
 from parsergen.grammar_parser import parse_grammar
-from parsergen.direct_render_analysis import ContinuationSlot, IrSite, analyze_direct_render
+from parsergen.direct_render_analysis import (
+    ContinuationSlot,
+    IrSite,
+    ResultFlowFact,
+    analyze_direct_render,
+)
 from parsergen.lowering import lower_source_grammar
 from parsergen.parser_ir import (
     AssignConstant,
@@ -1267,6 +1272,97 @@ def test_direct_nested_resolved_region_does_not_discard_a_live_enclosing_result(
     assert outer.live_after == tuple(frozenset({0}) for _ in outer.live_after)
     assert analysis.recursive_calls == ()
     assert result is True
+
+
+def test_direct_nested_discarded_call_does_not_adopt_a_non_none_base_result() -> None:
+    direct, parser_ir, _ = _generate("<S> ::= ITEM -= (<S>) | := Истина STOP")
+    analysis = analyze_direct_render(parser_ir)
+    outer = next(
+        item for item in analysis.sequence_liveness if item.site == IrSite("S", 0, ())
+    )
+
+    _, result = _execute(
+        direct.module_text,
+        [Token("ITEM"), Token("ITEM"), Token("STOP")],
+    )
+
+    assert outer.live_after == (frozenset(), frozenset())
+    assert result is None
+    assert analysis.result_flow == (
+        ResultFlowFact(
+            IrSite(
+                "S",
+                0,
+                (("operation", 1), ("branch", 0), ("operation", 0)),
+            ),
+            False,
+        ),
+    )
+    assert analysis.recursive_calls == ()
+
+
+def test_direct_nested_resolved_discarded_call_does_not_adopt_a_non_none_base_result() -> None:
+    direct, parser_ir, source = _generate("<S> ::= ITEM -= (<S>) | := Истина STOP")
+    production = parser_ir.productions[0]
+    alternative = production.alternatives[0]
+    dispatch = alternative.operations[1]
+    assert isinstance(dispatch, Dispatch)
+    resolved = ResolvedRegion(
+        dispatch.branches[0].operations,
+        dispatch.branches[0].result_index,
+        dispatch.source_span,
+    )
+    nested_ir = replace(
+        parser_ir,
+        productions=(
+            replace(
+                production,
+                alternatives=(
+                    replace(
+                        alternative,
+                        operations=(alternative.operations[0], resolved),
+                    ),
+                    *production.alternatives[1:],
+                ),
+            ),
+            *parser_ir.productions[1:],
+        ),
+    )
+    direct = generate_python_semantic_parser(source, nested_ir, {"start": "S"})
+    analysis = analyze_direct_render(nested_ir)
+
+    _, result = _execute(
+        direct.module_text,
+        [Token("ITEM"), Token("ITEM"), Token("STOP")],
+    )
+
+    assert result is None
+    assert analysis.result_flow[0].propagates_unchanged is False
+    assert analysis.recursive_calls == ()
+
+
+def test_direct_nested_propagated_call_keeps_a_non_none_base_iterative() -> None:
+    direct, parser_ir, _ = _generate("<S> ::= (ITEM <S>) | := Истина STOP")
+    analysis = analyze_direct_render(parser_ir)
+    parser = _execute_without_parse(direct.module_text)["GeneratedParser"]()
+    original_limit = sys.getrecursionlimit()
+
+    assert parser.parse([Token("ITEM") for _ in range(1_500)] + [Token("STOP")], "start") is True
+    assert sys.getrecursionlimit() == original_limit
+    assert analysis.result_flow[0].propagates_unchanged is True
+    assert analysis.recursive_calls[0].kind == "safe_tail_loop"
+
+
+def test_direct_nested_discarded_syntax_only_call_stays_iterative() -> None:
+    direct, parser_ir, _ = _generate("<S> ::= ITEM -= (<S>) | STOP")
+    analysis = analyze_direct_render(parser_ir)
+    parser = _execute_without_parse(direct.module_text)["GeneratedParser"]()
+    original_limit = sys.getrecursionlimit()
+
+    assert parser.parse([Token("ITEM") for _ in range(5_000)] + [Token("STOP")], "start") is None
+    assert sys.getrecursionlimit() == original_limit
+    assert analysis.result_flow[0].propagates_unchanged is False
+    assert analysis.recursive_calls[0].kind == "safe_tail_loop"
 
 
 @pytest.mark.parametrize(

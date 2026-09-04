@@ -12,6 +12,7 @@ from .parser_ir import (
     BranchIr,
     CanonicalDecision,
     ConcatScalar,
+    ConsumeKnownSymbol,
     ConstructNode,
     DiscardSymbol,
     Dispatch,
@@ -95,10 +96,17 @@ class RecursiveCallSite:
 
 
 @dataclass(frozen=True, slots=True)
+class ResultFlowFact:
+    site: IrSite
+    propagates_unchanged: bool
+
+
+@dataclass(frozen=True, slots=True)
 class DirectRenderAnalysis:
     sequence_liveness: tuple[SequenceLiveness, ...]
     mutable_owner_types: frozenset[str]
     recursive_calls: tuple[RecursiveCallSite, ...]
+    result_flow: tuple[ResultFlowFact, ...]
     decisions: tuple[DecisionRenderFacts, ...]
 
 
@@ -107,9 +115,11 @@ class _Analyzer:
         self.sequence_liveness: list[SequenceLiveness] = []
         self.mutable_owner_types: set[str] = set()
         self.recursive_calls: list[RecursiveCallSite] = []
+        self.result_flow: list[ResultFlowFact] = []
         self.decisions: list[DecisionRenderFacts] = []
         self._calls_by_production: dict[str, set[str]] = {}
         self._scoped_effect_productions: set[str] = set()
+        self._syntax_only_productions: frozenset[str] = frozenset()
 
     def analyze(self, parser_ir: ParserIr) -> DirectRenderAnalysis:
         self._calls_by_production = {
@@ -138,6 +148,7 @@ class _Analyzer:
                 )
             },
         )
+        self._syntax_only_productions = _syntax_only_productions(parser_ir)
         for production in parser_ir.productions:
             for alternative in production.alternatives:
                 site = IrSite(production.name, alternative.index, ())
@@ -161,6 +172,7 @@ class _Analyzer:
                 for call in self.recursive_calls
                 if _is_nonmutual_component(call.site.production, components)
             ),
+            tuple(self.result_flow),
             tuple(self.decisions),
         )
 
@@ -180,18 +192,27 @@ class _Analyzer:
         index = len(operations) - 1
         operation = operations[index]
         operation_site = _child_site(site, "operation", index)
-        for call_site in _final_direct_self_call_sites(
+        for candidate in _final_direct_self_call_sites(
             operation_site,
             operation,
             production,
         ):
+            call_site = candidate.site
             if call_site not in {
                 operation_site,
                 _child_site(operation_site, "value", 0),
             }:
+                propagates_unchanged = self._has_unchanged_result_flow(candidate)
+                self.result_flow.append(
+                    ResultFlowFact(call_site, propagates_unchanged)
+                )
                 if (
                     _contains_continuation_state(operations)
                     or self._has_live_enclosing_result(call_site)
+                    or (
+                        not propagates_unchanged
+                        and production not in self._syntax_only_productions
+                    )
                 ):
                     continue
                 self.recursive_calls.append(
@@ -230,6 +251,33 @@ class _Analyzer:
             if sequence.live_after[index] - {index}:
                 return True
         return False
+
+    def _has_unchanged_result_flow(
+        self,
+        candidate: _FinalDirectSelfCall,
+    ) -> bool:
+        if not candidate.result_propagated:
+            return False
+        found_enclosing_sequence = False
+        for sequence in self.sequence_liveness:
+            if (
+                sequence.site.production != candidate.site.production
+                or sequence.site.alternative != candidate.site.alternative
+            ):
+                continue
+            prefix = sequence.site.trail
+            if (
+                candidate.site.trail[: len(prefix)] != prefix
+                or len(candidate.site.trail) <= len(prefix)
+            ):
+                continue
+            kind, index = candidate.site.trail[len(prefix)]
+            if kind != "operation":
+                continue
+            found_enclosing_sequence = True
+            if sequence.live_after[index] != frozenset({index}):
+                return False
+        return found_enclosing_sequence
 
     def _sequence(
         self,
@@ -380,14 +428,20 @@ def _direct_self_call_site(
     return None
 
 
+@dataclass(frozen=True, slots=True)
+class _FinalDirectSelfCall:
+    site: IrSite
+    result_propagated: bool
+
+
 def _final_direct_self_call_sites(
     site: IrSite,
     operation: Operation,
     production: str,
-) -> tuple[IrSite, ...]:
+) -> tuple[_FinalDirectSelfCall, ...]:
     direct = _direct_self_call_site(site, operation, production)
     if direct is not None:
-        return (direct,)
+        return (_FinalDirectSelfCall(direct, isinstance(operation, ParseSymbol)),)
     if isinstance(operation, ResolvedRegion) and operation.operations:
         index = len(operation.operations) - 1
         return _final_direct_self_call_sites(
@@ -600,6 +654,70 @@ def _transitive_scoped_effect_productions(
                 effect_productions.add(production)
                 changed = True
     return effect_productions
+
+
+def _syntax_only_productions(parser_ir: ParserIr) -> frozenset[str]:
+    syntax_only = {production.name for production in parser_ir.productions}
+    while True:
+        next_syntax_only = {
+            production.name
+            for production in parser_ir.productions
+            if all(
+                alternative.result_index is None
+                and _operations_are_syntax_only(
+                    alternative.operations,
+                    syntax_only,
+                )
+                for alternative in production.alternatives
+            )
+        }
+        if next_syntax_only == syntax_only:
+            return frozenset(syntax_only)
+        syntax_only = next_syntax_only
+
+
+def _operations_are_syntax_only(
+    operations: tuple[Operation, ...],
+    syntax_only_productions: set[str],
+) -> bool:
+    return all(
+        _operation_is_syntax_only(operation, syntax_only_productions)
+        for operation in operations
+    )
+
+
+def _operation_is_syntax_only(
+    operation: Operation,
+    syntax_only_productions: set[str],
+) -> bool:
+    if isinstance(operation, (ParseSymbol, DiscardSymbol)):
+        return not isinstance(operation.symbol, NonterminalCall) or (
+            operation.symbol.name in syntax_only_productions
+        )
+    if isinstance(operation, ConsumeKnownSymbol):
+        return True
+    if isinstance(operation, ResolvedRegion):
+        return _operations_are_syntax_only(
+            operation.operations,
+            syntax_only_productions,
+        )
+    if isinstance(operation, (Dispatch, RepeatLoop)):
+        return all(
+            _operations_are_syntax_only(branch.operations, syntax_only_productions)
+            for branch in operation.branches
+        )
+    if isinstance(operation, OptionalBranch):
+        return (
+            all(
+                _operations_are_syntax_only(branch.operations, syntax_only_productions)
+                for branch in operation.branches
+            )
+            and _operations_are_syntax_only(
+                operation.exit_operations,
+                syntax_only_productions,
+            )
+        )
+    return False
 
 
 def _is_nonmutual_component(
