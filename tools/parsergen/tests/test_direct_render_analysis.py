@@ -25,7 +25,12 @@ from parsergen.decision_dag import (
 )
 from parsergen.canonical_select import AlternativeOutcome, TokenSetPredicate
 
-from parsergen.direct_render_analysis import IrSite, analyze_direct_render
+from parsergen.direct_render_analysis import (
+    ContinuationLayout,
+    ContinuationSlot,
+    IrSite,
+    analyze_direct_render,
+)
 
 
 def _build_ir(source: str, *, k: int = 1) -> ParserIr:
@@ -170,3 +175,132 @@ def test_decision_indegrees_follow_dag_edges() -> None:
     analysis = analyze_direct_render(parser_ir)
 
     assert analysis.decisions[0].node_indegrees == (0, 1, 2, 1)
+
+
+@pytest.mark.parametrize(
+    ("grammar", "expected"),
+    [
+        ("<S> ::= ITEM <S> | ПУСТО", "safe_tail_loop"),
+        (
+            "<S> ::= @Link Value = ITEM Rest = <S> | @End STOP",
+            "local_continuation",
+        ),
+    ],
+)
+def test_classifies_direct_self_recursion(
+    grammar: str,
+    expected: str,
+) -> None:
+    analysis = analyze_direct_render(_build_ir(grammar))
+
+    assert analysis.recursive_calls[0].kind == expected
+
+
+def test_local_continuation_has_only_live_builder_state() -> None:
+    analysis = analyze_direct_render(
+        _build_ir("<S> ::= @Link Value = ITEM Rest = <S> | @End STOP")
+    )
+
+    assert analysis.recursive_calls[0].site == IrSite(
+        "S",
+        0,
+        (("operation", 2), ("value", 0)),
+    )
+    assert analysis.recursive_calls[0].layout == ContinuationLayout(
+        (
+            ContinuationSlot("span_start", 0),
+            ContinuationSlot("builder_field", 1),
+        )
+    )
+
+
+def test_open_constructor_prevents_tail_loop() -> None:
+    analysis = analyze_direct_render(
+        _build_ir("<S> ::= @Node Value = ITEM <S> | @End STOP")
+    )
+
+    assert all(site.kind != "safe_tail_loop" for site in analysis.recursive_calls)
+    assert analysis.recursive_calls[0].kind == "local_continuation"
+
+
+def test_active_wrap_prevents_tail_loop_and_preserves_its_seed() -> None:
+    analysis = analyze_direct_render(
+        _build_ir(
+            "<S> ::= <Leaf> Next => <S> | @End STOP\n"
+            "<Leaf> ::= @Leaf ITEM"
+        )
+    )
+
+    assert analysis.recursive_calls[0].kind == "local_continuation"
+    assert analysis.recursive_calls[0].layout == ContinuationLayout(
+        (ContinuationSlot("wrap_seed", 0),)
+    )
+
+
+def test_collection_receiver_prevents_tail_loop_and_preserves_accumulator() -> None:
+    analysis = analyze_direct_render(
+        _build_ir("<S> ::= @List Items += ITEM <S> | @End STOP")
+    )
+
+    assert analysis.recursive_calls[0].kind == "local_continuation"
+    assert analysis.recursive_calls[0].layout == ContinuationLayout(
+        (
+            ContinuationSlot("span_start", 0),
+            ContinuationSlot("collection_accumulator", 1),
+        )
+    )
+
+
+def test_pending_constructor_freeze_prevents_tail_loop() -> None:
+    analysis = analyze_direct_render(
+        _build_ir("<S> ::= @Node Value = ITEM <S> | @End STOP")
+    )
+
+    assert analysis.recursive_calls[0].layout == ContinuationLayout(
+        (
+            ContinuationSlot("span_start", 0),
+            ContinuationSlot("builder_field", 1),
+        )
+    )
+
+
+def test_pending_scoped_effect_prevents_recursion_transformation() -> None:
+    analysis = analyze_direct_render(
+        _build_bound_ir(
+            "#Value ::= ITEM\n"
+            "<S> ::= [root] value: #Value <S> | STOP",
+            "profile worker\n"
+            "<S>[root] {\n"
+            "@Owner\n"
+            "^Owner.Items += value\n"
+            "}\n",
+        )
+    )
+
+    assert analysis.recursive_calls == ()
+
+
+def test_left_fold_is_not_classified_as_direct_recursion() -> None:
+    analysis = analyze_direct_render(
+        _build_ir("<S> ::= @Node Left = <S> Right = ITEM | @Leaf ITEM")
+    )
+
+    assert analysis.recursive_calls == ()
+
+
+def test_mutual_recursion_is_not_transformed() -> None:
+    analysis = analyze_direct_render(
+        _build_ir("<S> ::= <A> | STOP\n<A> ::= ITEM <S>")
+    )
+
+    assert analysis.recursive_calls == ()
+
+
+def test_self_call_with_a_live_result_after_it_is_not_transformed() -> None:
+    analysis = analyze_direct_render(
+        _build_ir(
+            "<S> ::= @Node First = ITEM Rest = <S> Last = ITEM | @End STOP"
+        )
+    )
+
+    assert analysis.recursive_calls == ()
