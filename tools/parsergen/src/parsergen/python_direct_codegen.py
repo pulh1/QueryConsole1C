@@ -15,11 +15,16 @@ from .parser_ir import (
     ConsumeKnownSymbol,
     ConstructNode,
     DiscardSymbol,
+    Dispatch,
+    DispatchValue,
     ExtendCollection,
     IncrementScalar,
     Operation,
+    OptionalBranch,
+    ParseBranchValue,
     ParseSymbol,
     ParserIr,
+    RepeatLoop,
     ResolvedRegion,
     ReturnConstant,
     UndefinedValue,
@@ -330,6 +335,86 @@ class _DirectPythonRenderer:
                     f"{indent}{value} = {self._value_name((*trail, 0, operation.result_index))}"
                 )
             return lines, constructor_site
+        if isinstance(operation, Dispatch):
+            outcome = self._control_name("outcome", trail)
+            lines = self._render_decision(operation.decision, indent, outcome)
+            lines.extend(
+                self._render_branch_selection(
+                    operation.branches,
+                    outcome,
+                    indent,
+                    lambda branch, branch_indent: self._render_branch_result(
+                        branch,
+                        value,
+                        branch_indent,
+                        (*trail, operation.branches.index(branch)),
+                        constructor_site,
+                    ),
+                )
+            )
+            return lines, constructor_site
+        if isinstance(operation, OptionalBranch):
+            outcome = self._control_name("outcome", trail)
+            lines = self._render_decision(operation.decision, indent, outcome)
+            exit_conditions = self._exit_conditions(operation.decision, outcome)
+            branch_indent = indent + "    " if exit_conditions else indent
+            branch_lines = self._render_branch_selection(
+                operation.branches,
+                outcome,
+                branch_indent,
+                lambda branch, selected_indent: self._render_branch_result(
+                    branch,
+                    value,
+                    selected_indent,
+                    (*trail, operation.branches.index(branch)),
+                    constructor_site,
+                ),
+            )
+            if exit_conditions:
+                lines.append(f"{indent}if {' or '.join(exit_conditions)}:")
+                exit_lines = self._render_sequence_result(
+                    operation.exit_operations,
+                    None,
+                    value,
+                    indent + "    ",
+                    (*trail, len(operation.branches)),
+                    constructor_site,
+                )
+                lines.extend(exit_lines)
+                lines.append(f"{indent}    {value} = None")
+                lines.append(f"{indent}else:")
+            lines.extend(branch_lines)
+            return lines, constructor_site
+        if isinstance(operation, RepeatLoop):
+            outcome = self._control_name("outcome", trail)
+            position = self._control_name("repeat_position", trail)
+            exit_conditions = self._exit_conditions(operation.decision, outcome)
+            lines = [f"{indent}while True:", f"{indent}    {position} = self._position"]
+            lines.extend(self._render_decision(operation.decision, indent + "    ", outcome))
+            if exit_conditions:
+                lines.append(f"{indent}    if {' or '.join(exit_conditions)}:")
+                lines.append(f"{indent}        break")
+            lines.extend(
+                self._render_branch_selection(
+                    operation.branches,
+                    outcome,
+                    indent + "    ",
+                    lambda branch, branch_indent: self._render_branch_operations(
+                        branch,
+                        branch_indent,
+                        (*trail, operation.branches.index(branch)),
+                        constructor_site,
+                    ),
+                )
+            )
+            lines.extend(
+                (
+                    f"{indent}    if self._position == {position}:",
+                    f"{indent}        raise RuntimeError('repeat branch did not advance parser cursor')",
+                    f"{indent}{value} = None",
+                )
+            )
+            return lines, constructor_site
         if isinstance(operation, (UndefinedValue, ReturnConstant)):
             return [f"{indent}{value} = {self._constant(operation.value)!r}"], constructor_site
         if isinstance(operation, ConstructNode):
@@ -395,13 +480,164 @@ class _DirectPythonRenderer:
     ) -> tuple[list[str], _ConstructorSite | None]:
         if constructor_site is None:
             raise RuntimeError("semantic binding has no active constructor")
-        if not isinstance(bound_value, (ParseSymbol, ConsumeKnownSymbol, UndefinedValue)):
+        if not isinstance(
+            bound_value,
+            (
+                ParseSymbol,
+                ConsumeKnownSymbol,
+                UndefinedValue,
+                ParseBranchValue,
+                DispatchValue,
+            ),
+        ):
             raise TypeError(
                 f"direct renderer does not support {type(bound_value).__name__} bound values before its task"
             )
-        lines, _ = self._render_operation(bound_value, indent, trail, constructor_site)
+        lines = self._render_bound_value(bound_value, indent, trail, constructor_site)
         lines.append(f"{indent}{apply}")
         return lines, constructor_site
+
+    def _render_bound_value(
+        self,
+        bound_value: object,
+        indent: str,
+        trail: tuple[int, ...],
+        constructor_site: _ConstructorSite | None,
+    ) -> list[str]:
+        value = self._value_name(trail)
+        if isinstance(bound_value, (ParseSymbol, ConsumeKnownSymbol, UndefinedValue)):
+            lines, _ = self._render_operation(bound_value, indent, trail, constructor_site)
+            return lines
+        if isinstance(bound_value, ParseBranchValue):
+            return self._render_parse_branch_value(
+                bound_value,
+                value,
+                indent,
+                (*trail, 0),
+                constructor_site,
+            )
+        if isinstance(bound_value, DispatchValue):
+            outcome = self._control_name("outcome", trail)
+            lines = self._render_decision(bound_value.decision, indent, outcome)
+            for index, branch in enumerate(bound_value.branches):
+                prefix = "if" if index == 0 else "elif"
+                lines.append(
+                    f"{indent}{prefix} {outcome} == ({branch.outcome.production!r}, {branch.outcome.alternative!r}):"
+                )
+                lines.extend(
+                    self._render_parse_branch_value(
+                        branch.value,
+                        value,
+                        indent + "    ",
+                        (*trail, index, 0),
+                        constructor_site,
+                    )
+                )
+            lines.extend(
+                (
+                    f"{indent}else:",
+                    f"{indent}    raise RuntimeError(f\"value decision outcome has no branch: {{{outcome}!r}}\")",
+                )
+            )
+            return lines
+        raise TypeError(type(bound_value))
+
+    def _render_parse_branch_value(
+        self,
+        branch_value: ParseBranchValue,
+        target: str,
+        indent: str,
+        trail: tuple[int, ...],
+        constructor_site: _ConstructorSite | None,
+    ) -> list[str]:
+        lines, _ = self._render_sequence(
+            branch_value.operations,
+            branch_value.result_index,
+            indent,
+            trail,
+            constructor_site,
+        )
+        lines.append(f"{indent}{target} = {self._value_name((*trail, branch_value.result_index))}")
+        return lines
+
+    def _render_branch_result(
+        self,
+        branch: BranchIr,
+        target: str,
+        indent: str,
+        trail: tuple[int, ...],
+        constructor_site: _ConstructorSite | None,
+    ) -> list[str]:
+        return self._render_sequence_result(
+            branch.operations,
+            branch.result_index,
+            target,
+            indent,
+            trail,
+            constructor_site,
+        )
+
+    def _render_sequence_result(
+        self,
+        operations: tuple[Operation, ...],
+        result_index: int | None,
+        target: str,
+        indent: str,
+        trail: tuple[int, ...],
+        constructor_site: _ConstructorSite | None,
+    ) -> list[str]:
+        has_construct = self._has_construct(operations)
+        start = self._control_name("branch_start", trail)
+        lines = [f"{indent}{start} = self._offset()"] if has_construct else []
+        sequence_lines, branch_constructor = self._render_sequence(
+            operations,
+            result_index,
+            indent,
+            trail,
+            constructor_site,
+        )
+        lines.extend(sequence_lines)
+        if has_construct:
+            if branch_constructor is None:
+                raise RuntimeError("branch constructor is missing")
+            lines.append(f"{indent}{target} = {self._freeze_expression(branch_constructor, start)}")
+        elif result_index is None:
+            lines.append(f"{indent}{target} = None")
+        else:
+            lines.append(f"{indent}{target} = {self._value_name((*trail, result_index))}")
+        return lines
+
+    def _render_branch_operations(
+        self,
+        branch: BranchIr,
+        indent: str,
+        trail: tuple[int, ...],
+        constructor_site: _ConstructorSite | None,
+    ) -> list[str]:
+        lines, _ = self._render_sequence(
+            branch.operations,
+            branch.result_index,
+            indent,
+            trail,
+            constructor_site,
+        )
+        return lines
+
+    @staticmethod
+    def _has_construct(operations: tuple[Operation, ...]) -> bool:
+        return any(isinstance(operation, ConstructNode) for operation in operations)
+
+    @staticmethod
+    def _exit_conditions(decision, outcome: str) -> list[str]:
+        return [
+            f"{outcome} == ({node.outcome.production!r}, {node.outcome.alternative!r})"
+            for node in decision.dag.nodes
+            if isinstance(node, ExitDecision)
+        ]
+
+    @staticmethod
+    def _control_name(kind: str, trail: tuple[int, ...]) -> str:
+        return f"{kind}_" + "_".join(str(item) for item in trail)
 
     def _construct_locals(self, site: _ConstructorSite, indent: str) -> list[str]:
         try:
@@ -468,7 +704,38 @@ class _DirectPythonRenderer:
             names.add(self._value_name(operation_trail))
             if isinstance(operation, ResolvedRegion):
                 names.update(self._value_names(operation.operations, (*operation_trail, 0)))
+            elif isinstance(operation, (Dispatch, RepeatLoop)):
+                for branch_index, branch in enumerate(operation.branches):
+                    names.update(
+                        self._value_names(branch.operations, (*operation_trail, branch_index))
+                    )
+            elif isinstance(operation, OptionalBranch):
+                for branch_index, branch in enumerate(operation.branches):
+                    names.update(
+                        self._value_names(branch.operations, (*operation_trail, branch_index))
+                    )
+                names.update(
+                    self._value_names(
+                        operation.exit_operations,
+                        (*operation_trail, len(operation.branches)),
+                    )
+                )
+            elif isinstance(
+                operation,
+                (BindScalar, AppendCollection, ExtendCollection, ConcatScalar, IncrementScalar),
+            ):
+                names.update(self._bound_value_names(operation.value, (*operation_trail, 0)))
         return names
+
+    def _bound_value_names(self, value: object, trail: tuple[int, ...]) -> set[str]:
+        if isinstance(value, ParseBranchValue):
+            return self._value_names(value.operations, trail)
+        if isinstance(value, DispatchValue):
+            names: set[str] = set()
+            for index, branch in enumerate(value.branches):
+                names.update(self._value_names(branch.value.operations, (*trail, index, 0)))
+            return names
+        return set()
 
     def _render_parser(self) -> str:
         lines = [

@@ -15,7 +15,10 @@ from parsergen.decision_dag import (
 from parsergen.grammar_parser import parse_grammar
 from parsergen.direct_render_analysis import analyze_direct_render
 from parsergen.parser_ir import (
+    AssignConstant,
     CanonicalDecision,
+    OptionalBranch,
+    RepeatLoop,
     ResolvedRegion,
     UndefinedValue,
     WrapOptional,
@@ -36,6 +39,34 @@ class Token:
     start: int = 0
     end: int = 0
     value: object | None = None
+
+
+class CountingToken:
+    def __init__(self, value: object) -> None:
+        self.type = "NUMBER"
+        self.text = str(value)
+        self.start = 0
+        self.end = 0
+        self._value = value
+        self.value_reads = 0
+
+    @property
+    def value(self) -> object:
+        self.value_reads += 1
+        return self._value
+
+
+class ProgressProbeToken:
+    def __init__(self) -> None:
+        self.text = ""
+        self.start = 0
+        self.end = 0
+        self._type_reads = 0
+
+    @property
+    def type(self) -> str:
+        self._type_reads += 1
+        return "A" if self._type_reads <= 2 else "$"
 
 
 def _shape(value: object) -> object:
@@ -571,3 +602,198 @@ def test_direct_constructor_locals_are_unique_across_constructor_field_pairs() -
 
     assert vm_result.C == "FIRST"
     assert _shape(direct_result) == _shape(vm_result)
+
+
+@pytest.mark.parametrize(
+    ("grammar", "tokens"),
+    [
+        ("<S> ::= (A | B)", [Token("B")]),
+        ("<S> ::= @Node Item = (A | B)", [Token("B")]),
+    ],
+    ids=("two-way-dispatch", "value-dispatch-nested-branch-result"),
+)
+def test_direct_dispatches_match_vm(
+    grammar: str,
+    tokens: list[Token],
+) -> None:
+    vm, direct, _, _ = _generated_pair(grammar)
+
+    _, vm_result = _execute(vm.module_text, tokens)
+    _, direct_result = _execute(direct.module_text, tokens)
+
+    assert _shape(direct_result) == _shape(vm_result)
+
+
+@pytest.mark.parametrize(
+    "tokens",
+    ([Token("A")], []),
+    ids=("present", "exit"),
+)
+def test_direct_optional_branch_and_exit_operations_match_vm(tokens: list[Token]) -> None:
+    grammar = "<S> ::= @Node Item = (A | B)?"
+    vm, direct, _, _ = _generated_pair(grammar)
+
+    _, vm_result = _execute(vm.module_text, tokens)
+    _, direct_result = _execute(direct.module_text, tokens)
+
+    assert _shape(direct_result) == _shape(vm_result)
+
+
+def test_direct_optional_exit_operations_preserve_order() -> None:
+    _, _, parser_ir, source = _generated_pair("<S> ::= @Node Flag := Ложь Item = A?")
+    alternative = parser_ir.productions[0].alternatives[0]
+    optional = alternative.operations[2]
+    assert isinstance(optional, OptionalBranch)
+    exit_operations = (
+        AssignConstant("Flag", "Истина", optional.source_span),
+        AssignConstant("Flag", "Ложь", optional.source_span),
+    )
+    specialized_ir = replace(
+        parser_ir,
+        productions=(
+            replace(
+                parser_ir.productions[0],
+                alternatives=(
+                    replace(
+                        alternative,
+                        operations=(
+                            alternative.operations[0],
+                            alternative.operations[1],
+                            replace(optional, exit_operations=exit_operations),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    )
+    vm = generate_python_semantic_parser(source, specialized_ir, {"start": "S"})
+    direct = _generate_direct_python_semantic_parser(source, specialized_ir, {"start": "S"})
+
+    _, vm_result = _execute(vm.module_text, [])
+    _, direct_result = _execute(direct.module_text, [])
+
+    assert vm_result.Flag is False
+    assert _shape(direct_result) == _shape(vm_result)
+
+
+def test_direct_parse_branch_value_uses_its_nested_result_index() -> None:
+    _, _, parser_ir, source = _generated_pair("<S> ::= @Node Item = (A | B)")
+    alternative = parser_ir.productions[0].alternatives[0]
+    binding = alternative.operations[1]
+    dispatch = binding.value
+    branch_value = dispatch.branches[0].value
+    first = branch_value.operations[0]
+    second = replace(first, symbol=replace(first.symbol, token_type="C"))
+    specialized_ir = replace(
+        parser_ir,
+        productions=(
+            replace(
+                parser_ir.productions[0],
+                alternatives=(
+                    replace(
+                        alternative,
+                        operations=(
+                            alternative.operations[0],
+                            replace(
+                                binding,
+                                value=replace(
+                                    dispatch,
+                                    branches=(
+                                        replace(
+                                            dispatch.branches[0],
+                                            value=replace(
+                                                branch_value,
+                                                operations=(first, second),
+                                                result_index=1,
+                                            ),
+                                        ),
+                                        dispatch.branches[1],
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    )
+    vm = generate_python_semantic_parser(source, specialized_ir, {"start": "S"})
+    direct = _generate_direct_python_semantic_parser(source, specialized_ir, {"start": "S"})
+
+    _, vm_result = _execute(vm.module_text, [Token("A"), Token("C")])
+    _, direct_result = _execute(direct.module_text, [Token("A"), Token("C")])
+
+    assert vm_result.Item == "C"
+    assert _shape(direct_result) == _shape(vm_result)
+
+
+@pytest.mark.parametrize(
+    "values",
+    ([], [1]),
+    ids=("empty", "one"),
+)
+def test_direct_repeat_matches_vm(values: list[int]) -> None:
+    grammar = "<S> ::= @Node Items += &NUMBER*"
+    vm, direct, _, _ = _generated_pair(grammar)
+    tokens = [Token("NUMBER", str(value), value=value) for value in values]
+
+    _, vm_result = _execute(vm.module_text, tokens)
+    _, direct_result = _execute(direct.module_text, tokens)
+
+    assert _shape(direct_result) == _shape(vm_result)
+
+
+def test_direct_repeat_captures_each_counting_token_once() -> None:
+    grammar = "<S> ::= @Node Items += &NUMBER*"
+    vm, direct, _, _ = _generated_pair(grammar)
+    vm_token = CountingToken(42)
+    direct_token = CountingToken(42)
+
+    _, vm_result = _execute(vm.module_text, [vm_token])
+    _, direct_result = _execute(direct.module_text, [direct_token])
+
+    assert _shape(direct_result) == _shape(vm_result)
+    assert vm_token.value_reads == direct_token.value_reads == 1
+
+
+def test_direct_repeat_handles_5000_items_and_parser_reuse() -> None:
+    _, direct, _, _ = _generated_pair("<S> ::= @Node Items += &NUMBER*")
+    namespace = _execute_without_parse(direct.module_text)
+    parser = namespace["GeneratedParser"]()
+    tokens = [Token("NUMBER", str(index), value=index) for index in range(5_000)]
+
+    result = parser.parse(tokens, "start")
+    reused_result = parser.parse([Token("NUMBER", "9", value=9)], "start")
+
+    assert result.Items == tuple(range(5_000))
+    assert reused_result.Items == (9,)
+
+
+def test_direct_repeat_rejects_a_nonadvancing_malformed_ir_branch() -> None:
+    _, _, parser_ir, source = _generated_pair("<S> ::= A*")
+    alternative = parser_ir.productions[0].alternatives[0]
+    repeat = alternative.operations[0]
+    assert isinstance(repeat, RepeatLoop)
+    nonadvancing = replace(
+        repeat,
+        branches=(
+            replace(
+                repeat.branches[0],
+                operations=(UndefinedValue("Неопределено", repeat.source_span),),
+            ),
+        ),
+    )
+    malformed_ir = replace(
+        parser_ir,
+        productions=(
+            replace(
+                parser_ir.productions[0],
+                alternatives=(replace(alternative, operations=(nonadvancing,)),),
+            ),
+        ),
+    )
+    direct = _generate_direct_python_semantic_parser(source, malformed_ir, {"start": "S"})
+    parser = _execute_without_parse(direct.module_text)["GeneratedParser"]()
+
+    with pytest.raises(RuntimeError, match="^repeat branch did not advance parser cursor$"):
+        parser.parse([ProgressProbeToken()], "start")
