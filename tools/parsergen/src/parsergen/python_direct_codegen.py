@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pprint import pformat
 from typing import TYPE_CHECKING, Mapping
 
@@ -31,6 +32,12 @@ if TYPE_CHECKING:
 PYTHON_SEMANTIC_BACKEND_ID = "python-semantic-direct-v1"
 
 
+@dataclass(frozen=True, slots=True)
+class _ConstructorSite:
+    name: str
+    trail: tuple[int, ...]
+
+
 class _DirectPythonRenderer:
     def __init__(
         self,
@@ -53,6 +60,8 @@ class _DirectPythonRenderer:
             item.name: item.token_types for item in source.identifier_definitions
         }
         self.schema_by_name = {item.name: item for item in schema}
+        self.local_names: dict[tuple[tuple[int, ...], str], str] = {}
+        self.used_local_names: set[str] = set()
 
     def render(self) -> str:
         return "\n\n".join((self._render_prelude(), self._render_parser())) + "\n"
@@ -93,8 +102,10 @@ class _DirectPythonRenderer:
                 "direct renderer does not support production decisions before Task 5"
             )
         alternative = production.alternatives[0]
+        self.local_names = {}
+        self.used_local_names = {"start", *self._value_names(alternative.operations, ())}
         lines = [f"    def {self.production_names[production.name]}(self):", "        start = self._offset()"]
-        body, constructor = self._render_sequence(
+        body, constructor_site = self._render_sequence(
             alternative.operations,
             alternative.result_index,
             "        ",
@@ -102,14 +113,14 @@ class _DirectPythonRenderer:
             None,
         )
         lines.extend(body)
-        if constructor is None:
+        if constructor_site is None:
             lines.append(
                 "        return None"
                 if alternative.result_index is None
                 else f"        return {self._value_name((alternative.result_index,))}"
             )
         else:
-            lines.append(f"        return {self._freeze_expression(constructor, 'start')}")
+            lines.append(f"        return {self._freeze_expression(constructor_site, 'start')}")
         return "\n".join(lines)
 
     def _render_sequence(
@@ -118,49 +129,49 @@ class _DirectPythonRenderer:
         result_index: int | None,
         indent: str,
         trail: tuple[int, ...],
-        constructor: str | None,
-    ) -> tuple[list[str], str | None]:
+        constructor_site: _ConstructorSite | None,
+    ) -> tuple[list[str], _ConstructorSite | None]:
         lines: list[str] = []
         for index, operation in enumerate(operations):
-            operation_lines, constructor = self._render_operation(
+            operation_lines, constructor_site = self._render_operation(
                 operation,
                 indent,
                 (*trail, index),
-                constructor,
+                constructor_site,
             )
             lines.extend(operation_lines)
-        return lines, constructor
+        return lines, constructor_site
 
     def _render_operation(
         self,
         operation: Operation,
         indent: str,
         trail: tuple[int, ...],
-        constructor: str | None,
-    ) -> tuple[list[str], str | None]:
+        constructor_site: _ConstructorSite | None,
+    ) -> tuple[list[str], _ConstructorSite | None]:
         value = self._value_name(trail)
         if isinstance(operation, ParseSymbol):
             if isinstance(operation.symbol, NonterminalCall):
-                return [f"{indent}{value} = self.{self._production_name(operation.symbol.name)}()"], constructor
+                return [f"{indent}{value} = self.{self._production_name(operation.symbol.name)}()"], constructor_site
             expected, capture = self._terminal_parts(operation.symbol)
-            return [f"{indent}{value} = self._consume({expected!r}, {capture!r})"], constructor
+            return [f"{indent}{value} = self._consume({expected!r}, {capture!r})"], constructor_site
         if isinstance(operation, DiscardSymbol):
             if isinstance(operation.symbol, NonterminalCall):
-                return [f"{indent}self.{self._production_name(operation.symbol.name)}()"], constructor
+                return [f"{indent}self.{self._production_name(operation.symbol.name)}()"], constructor_site
             expected, _ = self._terminal_parts(operation.symbol)
-            return [f"{indent}self._consume({expected!r}, False)"], constructor
+            return [f"{indent}self._consume({expected!r}, False)"], constructor_site
         if isinstance(operation, ConsumeKnownSymbol):
             expected, capture = self._terminal_parts(operation.symbol)
             if operation.capture_value:
-                return [f"{indent}{value} = self._consume({expected!r}, {capture!r})"], constructor
-            return [f"{indent}self._consume({expected!r}, False)"], constructor
+                return [f"{indent}{value} = self._consume({expected!r}, {capture!r})"], constructor_site
+            return [f"{indent}self._consume({expected!r}, False)"], constructor_site
         if isinstance(operation, ResolvedRegion):
             lines, _ = self._render_sequence(
                 operation.operations,
                 operation.result_index,
                 indent,
                 (*trail, 0),
-                constructor,
+                constructor_site,
             )
             if operation.result_index is None:
                 lines.append(f"{indent}{value} = None")
@@ -168,57 +179,58 @@ class _DirectPythonRenderer:
                 lines.append(
                     f"{indent}{value} = {self._value_name((*trail, 0, operation.result_index))}"
                 )
-            return lines, constructor
+            return lines, constructor_site
         if isinstance(operation, (UndefinedValue, ReturnConstant)):
-            return [f"{indent}{value} = {self._constant(operation.value)!r}"], constructor
+            return [f"{indent}{value} = {self._constant(operation.value)!r}"], constructor_site
         if isinstance(operation, ConstructNode):
-            return self._construct_locals(operation.constructor, indent), operation.constructor
+            site = _ConstructorSite(operation.constructor, trail)
+            return self._construct_locals(site, indent), site
         if isinstance(operation, BindScalar):
             return self._render_binding(
                 operation.value,
-                f"{self._field_local(constructor, operation.property)} = {value}",
+                f"{self._field_local(constructor_site, operation.property)} = {value}",
                 indent,
                 trail,
-                constructor,
+                constructor_site,
             )
         if isinstance(operation, AppendCollection):
             property_name = "items" if operation.property is None else operation.property
             return self._render_binding(
                 operation.value,
-                f"{self._field_local(constructor, property_name)}.append({value})",
+                f"{self._field_local(constructor_site, property_name)}.append({value})",
                 indent,
                 trail,
-                constructor,
+                constructor_site,
             )
         if isinstance(operation, ExtendCollection):
-            target = self._field_local(constructor, operation.property)
+            target = self._field_local(constructor_site, operation.property)
             return self._render_binding(
                 operation.value,
                 f"{target}.extend({value}.items if hasattr({value}, 'items') else {value}) if {value} is not None else None",
                 indent,
                 trail,
-                constructor,
+                constructor_site,
             )
         if isinstance(operation, ConcatScalar):
             return self._render_binding(
                 operation.value,
-                f"{self._field_local(constructor, operation.property)} += {value}",
+                f"{self._field_local(constructor_site, operation.property)} += {value}",
                 indent,
                 trail,
-                constructor,
+                constructor_site,
             )
         if isinstance(operation, IncrementScalar):
             return self._render_binding(
                 operation.value,
-                f"{self._field_local(constructor, operation.property)} += 1",
+                f"{self._field_local(constructor_site, operation.property)} += 1",
                 indent,
                 trail,
-                constructor,
+                constructor_site,
             )
         if isinstance(operation, AssignConstant):
             return [
-                f"{indent}{self._field_local(constructor, operation.property)} = {self._constant(operation.value)!r}"
-            ], constructor
+                f"{indent}{self._field_local(constructor_site, operation.property)} = {self._constant(operation.value)!r}"
+            ], constructor_site
         raise TypeError(
             f"direct renderer does not support {type(operation).__name__} before its task"
         )
@@ -229,23 +241,23 @@ class _DirectPythonRenderer:
         apply: str,
         indent: str,
         trail: tuple[int, ...],
-        constructor: str | None,
-    ) -> tuple[list[str], str | None]:
-        if constructor is None:
+        constructor_site: _ConstructorSite | None,
+    ) -> tuple[list[str], _ConstructorSite | None]:
+        if constructor_site is None:
             raise RuntimeError("semantic binding has no active constructor")
         if not isinstance(bound_value, (ParseSymbol, ConsumeKnownSymbol, UndefinedValue)):
             raise TypeError(
                 f"direct renderer does not support {type(bound_value).__name__} bound values before its task"
             )
-        lines, _ = self._render_operation(bound_value, indent, trail, constructor)
+        lines, _ = self._render_operation(bound_value, indent, trail, constructor_site)
         lines.append(f"{indent}{apply}")
-        return lines, constructor
+        return lines, constructor_site
 
-    def _construct_locals(self, constructor: str, indent: str) -> list[str]:
+    def _construct_locals(self, site: _ConstructorSite, indent: str) -> list[str]:
         try:
-            fields = self.schema_by_name[constructor].fields
+            fields = self.schema_by_name[site.name].fields
         except KeyError as error:
-            raise ValueError(f"unknown constructor {constructor!r}") from error
+            raise ValueError(f"unknown constructor {site.name!r}") from error
         initial = {
             "scalar": "None",
             "collection": "[]",
@@ -253,39 +265,60 @@ class _DirectPythonRenderer:
             "increment": "0",
         }
         return [
-            f"{indent}{self._field_local(constructor, field.name)} = {initial[field.category]}"
+            f"{indent}{self._field_local(site, field.name)} = {initial[field.category]}"
             for field in fields
         ]
 
-    def _freeze_expression(self, constructor: str, start: str) -> str:
-        fields = self.schema_by_name[constructor].fields
+    def _freeze_expression(self, site: _ConstructorSite, start: str) -> str:
+        fields = self.schema_by_name[site.name].fields
         values = [
             (
-                f"tuple({self._field_local(constructor, field.name)})"
+                f"tuple({self._field_local(site, field.name)})"
                 if field.category == "collection"
-                else self._field_local(constructor, field.name)
+                else self._field_local(site, field.name)
             )
             for field in fields
         ]
         values.append(f"SourceSpan({start}, self._end_offset({start}))")
-        return f"{constructor}({', '.join(values)})"
+        return f"{site.name}({', '.join(values)})"
 
-    def _field_local(self, constructor: str | None, property_name: str) -> str:
-        if constructor is None:
+    def _field_local(self, site: _ConstructorSite | None, property_name: str) -> str:
+        if site is None:
             raise RuntimeError("semantic binding has no active constructor")
-        fields = self.schema_by_name[constructor].fields
-        used: set[str] = set()
+        fields = self.schema_by_name[site.name].fields
         for field in fields:
-            base = f"{constructor.casefold()}_{field.name.casefold()}"
-            local = base
-            suffix = 2
-            while local in used:
-                local = f"{base}_{suffix}"
-                suffix += 1
-            used.add(local)
             if field.name == property_name:
-                return local
-        raise ValueError(f"unknown field {constructor}.{property_name}")
+                return self._allocate_local(site, field.name)
+        raise ValueError(f"unknown field {site.name}.{property_name}")
+
+    def _allocate_local(self, site: _ConstructorSite, field_name: str) -> str:
+        key = (site.trail, field_name)
+        existing = self.local_names.get(key)
+        if existing is not None:
+            return existing
+        base = "node_" + "_".join(str(item) for item in site.trail)
+        base = f"{base}_{field_name.casefold()}"
+        local = base
+        suffix = 2
+        while local in self.used_local_names:
+            local = f"{base}_{suffix}"
+            suffix += 1
+        self.used_local_names.add(local)
+        self.local_names[key] = local
+        return local
+
+    def _value_names(
+        self,
+        operations: tuple[Operation, ...],
+        trail: tuple[int, ...],
+    ) -> set[str]:
+        names: set[str] = set()
+        for index, operation in enumerate(operations):
+            operation_trail = (*trail, index)
+            names.add(self._value_name(operation_trail))
+            if isinstance(operation, ResolvedRegion):
+                names.update(self._value_names(operation.operations, (*operation_trail, 0)))
+        return names
 
     def _render_parser(self) -> str:
         lines = [

@@ -269,3 +269,87 @@ def test_direct_bindings_in_nested_region_match_vm() -> None:
 
     assert _shape(direct_result) == _shape(vm_result)
     assert direct_result.span == direct_namespace["SourceSpan"](3, 7)
+
+
+def test_direct_nested_region_constructor_preserves_outer_bindings() -> None:
+    _, _, parser_ir, source = _generated_pair("<S> ::= @Node First = FIRST")
+    alternative = parser_ir.productions[0].alternatives[0]
+    construct, outer_binding = alternative.operations
+    inner_binding = replace(
+        outer_binding,
+        value=replace(
+            outer_binding.value,
+            symbol=replace(outer_binding.value.symbol, token_type="SECOND"),
+        ),
+    )
+    nested_ir = replace(
+        parser_ir,
+        productions=(
+            replace(
+                parser_ir.productions[0],
+                alternatives=(
+                    replace(
+                        alternative,
+                        operations=(
+                            construct,
+                            outer_binding,
+                            ResolvedRegion(
+                                (construct, inner_binding),
+                                None,
+                                inner_binding.source_span,
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    )
+    vm = generate_python_semantic_parser(source, nested_ir, {"start": "S"})
+    direct = _generate_direct_python_semantic_parser(source, nested_ir, {"start": "S"})
+
+    _, vm_result = _execute(vm.module_text, [Token("FIRST"), Token("SECOND")])
+    _, direct_result = _execute(direct.module_text, [Token("FIRST"), Token("SECOND")])
+
+    assert vm_result.First == "FIRST"
+    assert _shape(direct_result) == _shape(vm_result)
+
+
+def test_direct_constructor_locals_are_unique_across_constructor_field_pairs() -> None:
+    _, _, parser_ir, source = _generated_pair(
+        "<S> ::= @A_B C = FIRST -= <Inner>\n<Inner> ::= @A B_C = SECOND"
+    )
+    outer_alternative = parser_ir.productions[0].alternatives[0]
+    inner_alternative = parser_ir.productions[1].alternatives[0]
+    outer_construct, outer_binding, _ = outer_alternative.operations
+    inner_construct, inner_binding = inner_alternative.operations
+    nested_ir = replace(
+        parser_ir,
+        productions=(
+            replace(
+                parser_ir.productions[0],
+                alternatives=(
+                    replace(
+                        outer_alternative,
+                        operations=(
+                            outer_construct,
+                            outer_binding,
+                            ResolvedRegion(
+                                (inner_construct, inner_binding),
+                                None,
+                                inner_binding.source_span,
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+            parser_ir.productions[1],
+        ),
+    )
+    vm = generate_python_semantic_parser(source, nested_ir, {"start": "S"})
+    direct = _generate_direct_python_semantic_parser(source, nested_ir, {"start": "S"})
+
+    _, vm_result = _execute(vm.module_text, [Token("FIRST"), Token("SECOND")])
+    _, direct_result = _execute(direct.module_text, [Token("FIRST"), Token("SECOND")])
+
+    assert vm_result.C == "FIRST"
+    assert _shape(direct_result) == _shape(vm_result)
