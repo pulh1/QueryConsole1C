@@ -828,6 +828,23 @@ def test_direct_constructor_recursion_is_not_rendered_as_a_tail_loop() -> None:
     assert f"self.{method}()" in generated_production
 
 
+def test_direct_tail_transform_matches_the_exact_safe_analysis_site() -> None:
+    _, direct, parser_ir, _ = _generated_pair(
+        "<S> ::= ITEM <S> | @Node Value = MARK <S> | @End STOP"
+    )
+    analysis = analyze_direct_render(parser_ir)
+    generated_production = direct.module_text.split("    def _p_0000(self):", 1)[1]
+
+    assert {
+        (call.site.alternative, call.kind) for call in analysis.recursive_calls
+    } == {
+        (0, "safe_tail_loop"),
+        (1, "local_continuation"),
+    }
+    assert "        while True:" in generated_production
+    assert "self._p_0000()" in generated_production
+
+
 @pytest.mark.parametrize(
     ("grammar", "tokens"),
     (
