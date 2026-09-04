@@ -122,7 +122,7 @@ class _DirectPythonRenderer:
                 "_queue",
                 tuple(f"_field_{field_index}" for field_index in range(len(properties))),
             )
-        self.local_names: dict[tuple[tuple[int, ...], str], str] = {}
+        self.local_names: dict[tuple[tuple[int, ...], str, str], str] = {}
         self.used_local_names: set[str] = set()
         self._decision_facts_index = 0
         self._active_fold_accumulator: str | None = None
@@ -143,6 +143,9 @@ class _DirectPythonRenderer:
         self._rendering_operations: tuple[Operation, ...] = ()
         self._rendering_result_index: int | None = None
         self._has_local_continuations = False
+        self._render_trail_sites: dict[
+            tuple[int, tuple[int, ...]], tuple[tuple[str, int], ...]
+        ] = {}
 
     def render(self) -> str:
         return "\n\n".join((self._render_prelude(), self._render_parser())) + "\n"
@@ -205,6 +208,14 @@ class _DirectPythonRenderer:
             ),
         }
         self._rendering_production = production.name
+        self._render_trail_sites = {}
+        for alternative in production.alternatives:
+            self._index_render_trails(
+                alternative.operations,
+                alternative.index,
+                (),
+                (),
+            )
         local_calls = [
             call
             for (site_production, _, _), call in self._local_continuation_sites.items()
@@ -656,27 +667,77 @@ class _DirectPythonRenderer:
             f"direct renderer does not support {type(operation).__name__} before its task"
         )
 
+    def _index_render_trails(
+        self,
+        operations: tuple[Operation, ...],
+        alternative: int,
+        render_trail: tuple[int, ...],
+        ir_trail: tuple[tuple[str, int], ...],
+    ) -> None:
+        for index, operation in enumerate(operations):
+            operation_render_trail = (*render_trail, index)
+            operation_ir_trail = (*ir_trail, ("operation", index))
+            self._render_trail_sites[(alternative, operation_render_trail)] = (
+                operation_ir_trail
+            )
+            if isinstance(operation, ResolvedRegion):
+                self._index_render_trails(
+                    operation.operations,
+                    alternative,
+                    (*operation_render_trail, 0),
+                    (*operation_ir_trail, ("region", 0)),
+                )
+            elif isinstance(operation, (Dispatch, RepeatLoop)):
+                for branch_index, branch in enumerate(operation.branches):
+                    self._index_render_trails(
+                        branch.operations,
+                        alternative,
+                        (*operation_render_trail, branch_index),
+                        (*operation_ir_trail, ("branch", branch_index)),
+                    )
+            elif isinstance(operation, OptionalBranch):
+                for branch_index, branch in enumerate(operation.branches):
+                    self._index_render_trails(
+                        branch.operations,
+                        alternative,
+                        (*operation_render_trail, branch_index),
+                        (*operation_ir_trail, ("branch", branch_index)),
+                    )
+                self._index_render_trails(
+                    operation.exit_operations,
+                    alternative,
+                    (*operation_render_trail, len(operation.branches)),
+                    (*operation_ir_trail, ("exit", 0)),
+                )
+
     def _is_safe_tail_call(self, trail: tuple[int, ...]) -> bool:
         if (
             self._rendering_production is None
             or self._rendering_alternative is None
-            or len(trail) != 1
         ):
+            return False
+        operation_site = self._render_trail_sites.get(
+            (self._rendering_alternative, trail)
+        )
+        if operation_site is None:
             return False
         return (
             self._rendering_production,
             self._rendering_alternative,
-            (("operation", trail[0]),),
+            operation_site,
         ) in self._safe_tail_sites
 
     def _local_continuation_site(self, trail: tuple[int, ...], operation: Operation):
         if (
             self._rendering_production is None
             or self._rendering_alternative is None
-            or len(trail) != 1
         ):
             return None
-        operation_site = (("operation", trail[0]),)
+        operation_site = self._render_trail_sites.get(
+            (self._rendering_alternative, trail)
+        )
+        if operation_site is None:
+            return None
         key = (
             self._rendering_production,
             self._rendering_alternative,
@@ -753,6 +814,8 @@ class _DirectPythonRenderer:
                 raise ValueError("wrap-seed continuation slot has no index")
             return self._value_name((slot.index, 0))
         if slot.kind in {"builder_field", "collection_accumulator"}:
+            if slot.property is not None:
+                return self._field_local(finish.constructor_site, slot.property)
             if slot.index is None:
                 raise ValueError("builder continuation slot has no index")
             try:
@@ -761,7 +824,14 @@ class _DirectPythonRenderer:
                 raise ValueError("continuation slot is outside its sequence") from error
             if not isinstance(
                 operation,
-                (BindScalar, AppendCollection, ExtendCollection, ConcatScalar, IncrementScalar),
+                (
+                    BindScalar,
+                    AppendCollection,
+                    ExtendCollection,
+                    ConcatScalar,
+                    IncrementScalar,
+                    AssignConstant,
+                ),
             ):
                 raise ValueError("continuation slot does not name a builder operation")
             property_name = (
@@ -1382,7 +1452,7 @@ class _DirectPythonRenderer:
         raise ValueError(f"unknown field {site.name}.{property_name}")
 
     def _owner_state_local(self, site: _ConstructorSite) -> str:
-        return self._allocate_local(site, "owner_state")
+        return self._allocate_local(site, "owner_state", namespace="owner_state")
 
     def _allocate_global_name(self, prefix: str) -> str:
         index = 0
@@ -1393,13 +1463,22 @@ class _DirectPythonRenderer:
                 return name
             index += 1
 
-    def _allocate_local(self, site: _ConstructorSite, field_name: str) -> str:
-        key = (site.trail, field_name)
+    def _allocate_local(
+        self,
+        site: _ConstructorSite,
+        field_name: str,
+        *,
+        namespace: str = "field",
+    ) -> str:
+        key = (site.trail, namespace, field_name)
         existing = self.local_names.get(key)
         if existing is not None:
             return existing
         base = "node_" + "_".join(str(item) for item in site.trail)
-        base = f"{base}_{field_name.casefold()}"
+        suffix = field_name.casefold()
+        if namespace != "field":
+            suffix = f"{namespace}_{suffix}"
+        base = f"{base}_{suffix}"
         local = base
         suffix = 2
         while local in self.used_local_names:

@@ -14,7 +14,8 @@ from parsergen.decision_dag import (
     LookaheadDecision,
 )
 from parsergen.grammar_parser import parse_grammar
-from parsergen.direct_render_analysis import analyze_direct_render
+from parsergen.direct_render_analysis import ContinuationSlot, analyze_direct_render
+from parsergen.lowering import lower_source_grammar
 from parsergen.parser_ir import (
     AssignConstant,
     CanonicalDecision,
@@ -28,6 +29,9 @@ from parsergen.parser_ir import (
 from parsergen.python_direct_codegen import _DirectPythonRenderer
 from parsergen.python_semantic_codegen import generate_python_semantic_parser
 from parsergen.resolver import resolve_grammar
+from parsergen.semantic_profile_binding import bind_semantic_profile
+from parsergen.semantic_profile_parser import parse_semantic_profile
+from parsergen.syntax_grammar_parser import parse_syntax_grammar
 
 
 @dataclass(frozen=True)
@@ -120,6 +124,30 @@ def _generate(
         mapping,
     )
     return direct, parser_ir, parsed.source_grammar
+
+
+def _generate_bound(syntax_source: str, profile_source: str):
+    syntax = parse_syntax_grammar(syntax_source, "direct-runtime-test.grammar")
+    profile = parse_semantic_profile(profile_source, "direct-runtime-test.semantic")
+    assert syntax.diagnostics == () and syntax.grammar is not None
+    assert profile.diagnostics == () and profile.profile is not None
+    bound = bind_semantic_profile(syntax.grammar, profile.profile)
+    assert bound.diagnostics == () and bound.source_grammar is not None
+    lowering = lower_source_grammar(bound.source_grammar)
+    assert lowering.diagnostics == () and lowering.grammar is not None
+    resolved = resolve_grammar(lowering.grammar)
+    assert resolved.diagnostics == () and resolved.grammar is not None
+    parser_ir = build_parser_ir(
+        bound.source_grammar,
+        lowering,
+        resolved.grammar,
+        compute_analysis(resolved.grammar, 1, ("S",)),
+        entrypoint_productions=("S",),
+    )
+    return (
+        generate_python_semantic_parser(bound.source_grammar, parser_ir, {"start": "S"}),
+        parser_ir,
+    )
 
 
 def test_direct_module_compiles_and_preserves_runtime_shape() -> None:
@@ -1057,6 +1085,133 @@ def test_direct_tail_transform_matches_the_exact_safe_analysis_site() -> None:
     assert "        while True:" in generated_production
     assert "continuations = []" in generated_production
     assert "self._p_0000()" not in generated_production
+
+
+@pytest.mark.parametrize(
+    ("grammar", "tokens", "property_name", "expected", "slot"),
+    (
+        (
+            "<S> ::= @Node A Kind := Истина Rest = <S> | @Node B Kind := Ложь Rest = <S> | @End STOP",
+            [Token("A"), Token("B"), Token("STOP")],
+            "Kind",
+            (True, False),
+            ContinuationSlot("builder_field", 2),
+        ),
+        (
+            "<S> ::= @Node ITEM (FLAG Flag := Истина)? Rest = <S> | @End STOP",
+            [Token("ITEM"), Token("FLAG"), Token("ITEM"), Token("STOP")],
+            "Flag",
+            (True, None),
+            ContinuationSlot("builder_field", None, "Flag"),
+        ),
+        (
+            "<S> ::= @Node Items += ITEM* END Rest = <S> | @End STOP",
+            [Token("ITEM"), Token("ITEM"), Token("END"), Token("ITEM"), Token("END"), Token("STOP")],
+            "Items",
+            (("ITEM", "ITEM"), ("ITEM",)),
+            ContinuationSlot("builder_field", None, "Items"),
+        ),
+    ),
+    ids=("constant-before-recursion", "optional-builder-field", "repeat-builder-field"),
+)
+def test_direct_local_continuation_preserves_builder_fields_changed_by_control(
+    grammar: str,
+    tokens: list[Token],
+    property_name: str,
+    expected: tuple[object, object],
+    slot: ContinuationSlot,
+) -> None:
+    direct, parser_ir, _ = _generate(grammar)
+
+    _, result = _execute(direct.module_text, tokens)
+
+    assert (getattr(result, property_name), getattr(result.Rest, property_name)) == expected
+    assert all(
+        call.layout is not None and slot in call.layout.slots
+        for call in analyze_direct_render(parser_ir).recursive_calls
+    )
+
+
+def test_direct_recursion_keeps_transitively_pending_scoped_owner_effects() -> None:
+    direct, parser_ir = _generate_bound(
+        "#Value ::= ITEM\n"
+        "<Tap> ::= [tap] value: #Value\n"
+        "<S> ::= [root] tap: <Tap> rest: <S> | STOP",
+        "profile worker\n"
+        "<Tap>[tap] {\n"
+        "^Owner.Items += value\n"
+        "}\n"
+        "<S>[root] {\n"
+        "@Owner\n"
+        "Rest = rest\n"
+        "}\n",
+    )
+    analysis = analyze_direct_render(parser_ir)
+
+    _, result = _execute(
+        direct.module_text,
+        [Token("ITEM", "ITEM"), Token("ITEM", "ITEM"), Token("STOP")],
+    )
+
+    assert analysis.recursive_calls == ()
+    assert (result.Items, result.Rest.Items) == (("ITEM",), ("ITEM",))
+
+
+def test_direct_scoped_owner_state_local_cannot_collide_with_owner_state_field() -> None:
+    direct, _ = _generate_bound(
+        "#Value ::= ITEM\n"
+        "<Tap> ::= [tap] value: #Value\n"
+        "<S> ::= [root] tap: <Tap>",
+        "profile worker\n"
+        "<Tap>[tap] {\n"
+        "^Owner.owner_state += value\n"
+        "}\n"
+        "<S>[root] {\n"
+        "@Owner\n"
+        "}\n",
+    )
+
+    _, result = _execute(direct.module_text, [Token("ITEM", "ITEM")])
+
+    assert result.owner_state == ("ITEM",)
+
+
+@pytest.mark.parametrize(
+    "grammar",
+    (
+        "<S> ::= (ITEM <S>) | ПУСТО",
+        "<S> ::= (ITEM <S> | STOP) | ПУСТО",
+    ),
+    ids=("resolved-region", "dispatch"),
+)
+def test_direct_safe_tail_recursion_inside_final_control_region_is_iterative(
+    grammar: str,
+) -> None:
+    direct, parser_ir, _ = _generate(grammar)
+    analysis = analyze_direct_render(parser_ir)
+    parser = _execute_without_parse(direct.module_text)["GeneratedParser"]()
+    original_limit = sys.getrecursionlimit()
+
+    assert parser.parse([Token("ITEM") for _ in range(5_000)], "start") is None
+    assert sys.getrecursionlimit() == original_limit
+    assert len(analysis.recursive_calls) == 1
+    assert analysis.recursive_calls[0].kind == "safe_tail_loop"
+
+
+@pytest.mark.parametrize(
+    "grammar",
+    (
+        "<S> ::= (ITEM <S>) END | ПУСТО",
+        "<S> ::= @Node Value = ITEM (<S>) | @End STOP",
+    ),
+    ids=("not-final-after-region", "constructor-still-live-in-region"),
+)
+def test_direct_nested_recursion_does_not_transform_non_tail_or_live_sites(
+    grammar: str,
+) -> None:
+    _, parser_ir, _ = _generate(grammar)
+
+    assert analyze_direct_render(parser_ir).recursive_calls == ()
 
 
 @pytest.mark.parametrize(

@@ -7,6 +7,7 @@ from .decision_dag import LookaheadDecision
 from .parser_ir import (
     AppendCollection,
     AppendNearestOwner,
+    AssignConstant,
     BindScalar,
     BranchIr,
     CanonicalDecision,
@@ -78,6 +79,7 @@ class ContinuationSlot:
         "collection_accumulator",
     ]
     index: int | None
+    property: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,6 +109,7 @@ class _Analyzer:
         self.recursive_calls: list[RecursiveCallSite] = []
         self.decisions: list[DecisionRenderFacts] = []
         self._calls_by_production: dict[str, set[str]] = {}
+        self._scoped_effect_productions: set[str] = set()
 
     def analyze(self, parser_ir: ParserIr) -> DirectRenderAnalysis:
         self._calls_by_production = {
@@ -122,6 +125,26 @@ class _Analyzer:
                     site,
                     alternative.operations,
                     alternative.result_index,
+                )
+        self._scoped_effect_productions = _transitive_scoped_effect_productions(
+            self._calls_by_production,
+            {
+                production.name
+                for production in parser_ir.productions
+                if any(
+                    isinstance(operation, AppendNearestOwner)
+                    for alternative in production.alternatives
+                    for operation in _walk_operations(alternative.operations)
+                )
+            },
+        )
+        for production in parser_ir.productions:
+            for alternative in production.alternatives:
+                site = IrSite(production.name, alternative.index, ())
+                sequence_liveness = next(
+                    item
+                    for item in self.sequence_liveness
+                    if item.site == site
                 )
                 self._direct_recursive_calls(
                     production.name,
@@ -148,29 +171,42 @@ class _Analyzer:
         operations: tuple[Operation, ...],
         sequence_liveness: SequenceLiveness,
     ) -> None:
-        if not operations or _contains_forbidden_recursion_state(operations):
+        if (
+            not operations
+            or production in self._scoped_effect_productions
+            or _contains_forbidden_recursion_state(operations)
+        ):
             return
         index = len(operations) - 1
         operation = operations[index]
-        call_site = _direct_self_call_site(
-            _child_site(site, "operation", index),
+        operation_site = _child_site(site, "operation", index)
+        for call_site in _final_direct_self_call_sites(
+            operation_site,
             operation,
             production,
-        )
-        if call_site is None:
-            return
-        layout = _continuation_layout(
-            operations,
-            index,
-            sequence_liveness.live_after[index],
-        )
-        self.recursive_calls.append(
-            RecursiveCallSite(
-                call_site,
-                "safe_tail_loop" if not layout.slots else "local_continuation",
-                None if not layout.slots else layout,
+        ):
+            if call_site not in {
+                operation_site,
+                _child_site(operation_site, "value", 0),
+            }:
+                if _contains_continuation_state(operations):
+                    continue
+                self.recursive_calls.append(
+                    RecursiveCallSite(call_site, "safe_tail_loop", None)
+                )
+                continue
+            layout = _continuation_layout(
+                operations,
+                index,
+                sequence_liveness.live_after[index],
             )
-        )
+            self.recursive_calls.append(
+                RecursiveCallSite(
+                    call_site,
+                    "safe_tail_loop" if not layout.slots else "local_continuation",
+                    None if not layout.slots else layout,
+                )
+            )
 
     def _sequence(
         self,
@@ -321,6 +357,39 @@ def _direct_self_call_site(
     return None
 
 
+def _final_direct_self_call_sites(
+    site: IrSite,
+    operation: Operation,
+    production: str,
+) -> tuple[IrSite, ...]:
+    direct = _direct_self_call_site(site, operation, production)
+    if direct is not None:
+        return (direct,)
+    if isinstance(operation, ResolvedRegion) and operation.operations:
+        index = len(operation.operations) - 1
+        return _final_direct_self_call_sites(
+            _child_site(_child_site(site, "region", 0), "operation", index),
+            operation.operations[index],
+            production,
+        )
+    if isinstance(operation, Dispatch):
+        return tuple(
+            call_site
+            for index, branch in enumerate(operation.branches)
+            if branch.operations
+            for call_site in _final_direct_self_call_sites(
+                _child_site(
+                    _child_site(site, "branch", index),
+                    "operation",
+                    len(branch.operations) - 1,
+                ),
+                branch.operations[-1],
+                production,
+            )
+        )
+    return ()
+
+
 def _call_name(value: object) -> str | None:
     if isinstance(value, (ParseSymbol, DiscardSymbol)) and isinstance(
         value.symbol,
@@ -348,6 +417,8 @@ def _continuation_layout(
         slots.append(ContinuationSlot("collection_accumulator", call_index))
     elif isinstance(operation, (ConcatScalar, IncrementScalar)):
         slots.append(ContinuationSlot("builder_field", call_index))
+    elif isinstance(operation, AssignConstant):
+        slots.append(ContinuationSlot("builder_field", call_index))
     return ContinuationLayout(tuple(slots))
 
 
@@ -364,8 +435,74 @@ def _append_continuation_slots(
         slots.append(ContinuationSlot("collection_accumulator", index))
     elif isinstance(operation, (ConcatScalar, IncrementScalar)):
         slots.append(ContinuationSlot("builder_field", index))
+    elif isinstance(operation, AssignConstant):
+        slots.append(ContinuationSlot("builder_field", index))
+    elif isinstance(operation, ResolvedRegion):
+        for nested in operation.operations:
+            _append_nested_builder_slots(slots, nested)
+    elif isinstance(operation, (Dispatch, RepeatLoop)):
+        for branch in operation.branches:
+            for nested in branch.operations:
+                _append_nested_builder_slots(slots, nested)
+    elif isinstance(operation, OptionalBranch):
+        for branch in operation.branches:
+            for nested in branch.operations:
+                _append_nested_builder_slots(slots, nested)
+        for nested in operation.exit_operations:
+            _append_nested_builder_slots(slots, nested)
     elif isinstance(operation, WrapValue):
         slots.append(ContinuationSlot("wrap_seed", index))
+
+
+def _append_nested_builder_slots(
+    slots: list[ContinuationSlot],
+    operation: Operation,
+) -> None:
+    property_name = _builder_property(operation)
+    if property_name is not None:
+        slot = ContinuationSlot("builder_field", None, property_name)
+        if slot not in slots:
+            slots.append(slot)
+        return
+    if isinstance(operation, ResolvedRegion):
+        for nested in operation.operations:
+            _append_nested_builder_slots(slots, nested)
+    elif isinstance(operation, (Dispatch, RepeatLoop, OptionalBranch)):
+        branches = operation.branches
+        for branch in branches:
+            for nested in branch.operations:
+                _append_nested_builder_slots(slots, nested)
+        if isinstance(operation, OptionalBranch):
+            for nested in operation.exit_operations:
+                _append_nested_builder_slots(slots, nested)
+
+
+def _builder_property(operation: Operation) -> str | None:
+    if isinstance(operation, (BindScalar, ExtendCollection, ConcatScalar, IncrementScalar, AssignConstant)):
+        return operation.property
+    if isinstance(operation, AppendCollection):
+        return "items" if operation.property is None else operation.property
+    return None
+
+
+def _contains_continuation_state(operations: tuple[Operation, ...]) -> bool:
+    return any(
+        isinstance(
+            operation,
+            (
+                ConstructNode,
+                BindScalar,
+                AppendCollection,
+                ExtendCollection,
+                ConcatScalar,
+                IncrementScalar,
+                AssignConstant,
+                WrapValue,
+                WrapOptional,
+            ),
+        )
+        for operation in _walk_operations(operations)
+    )
 
 
 def _contains_forbidden_recursion_state(
@@ -423,6 +560,23 @@ def _recursive_components(
         if name not in indexes:
             visit(name)
     return components
+
+
+def _transitive_scoped_effect_productions(
+    calls_by_production: dict[str, set[str]],
+    direct_effect_productions: set[str],
+) -> set[str]:
+    effect_productions = set(direct_effect_productions)
+    changed = True
+    while changed:
+        changed = False
+        for production, calls in calls_by_production.items():
+            if production in effect_productions:
+                continue
+            if calls & effect_productions:
+                effect_productions.add(production)
+                changed = True
+    return effect_productions
 
 
 def _is_nonmutual_component(
