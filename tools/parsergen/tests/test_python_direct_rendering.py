@@ -797,3 +797,118 @@ def test_direct_repeat_rejects_a_nonadvancing_malformed_ir_branch() -> None:
 
     with pytest.raises(RuntimeError, match="^repeat branch did not advance parser cursor$"):
         parser.parse([ProgressProbeToken()], "start")
+
+
+@pytest.mark.parametrize(
+    ("grammar", "tokens"),
+    (
+        (
+            "<S> ::= <Seed> Type => <Wrapper>\n"
+            "<Seed> ::= @Seed SEED\n"
+            "<Wrapper> ::= @Wrapper WRAPPER",
+            [Token("SEED", start=0, end=4), Token("WRAPPER", start=5, end=12)],
+        ),
+        (
+            "<S> ::= <Seed> Type => <Wrapper>?\n"
+            "<Seed> ::= @Seed SEED\n"
+            "<Wrapper> ::= @Wrapper WRAPPER",
+            [Token("SEED", start=0, end=4), Token("WRAPPER", start=5, end=12)],
+        ),
+        (
+            "<S> ::= <Seed> Items +=> <Wrapper>\n"
+            "<Seed> ::= @Seed SEED\n"
+            "<Wrapper> ::= @Wrapper WRAPPER",
+            [Token("SEED", start=0, end=4), Token("WRAPPER", start=5, end=12)],
+        ),
+    ),
+    ids=("required", "optional-present", "prepend"),
+)
+def test_direct_wrap_values_match_vm(
+    grammar: str,
+    tokens: list[Token],
+) -> None:
+    vm, direct, _, _ = _generated_pair(grammar)
+
+    _, vm_result = _execute(vm.module_text, tokens)
+    direct_namespace, direct_result = _execute(direct.module_text, tokens)
+
+    assert _shape(direct_result) == _shape(vm_result)
+    assert direct_result.span == direct_namespace["SourceSpan"](5, 12)
+
+
+def test_direct_optional_wrap_exit_returns_the_seed_identity() -> None:
+    grammar = (
+        "<S> ::= <Seed> Type => <Wrapper>?\n"
+        "<Seed> ::= @Seed SEED\n"
+        "<Wrapper> ::= @Wrapper WRAPPER"
+    )
+    vm, direct, _, _ = _generated_pair(grammar)
+
+    _, vm_result = _execute(vm.module_text, [Token("SEED", start=3, end=7)])
+    direct_namespace, direct_result = _execute(
+        direct.module_text,
+        [Token("SEED", start=3, end=7)],
+    )
+
+    assert _shape(direct_result) == _shape(vm_result)
+    assert direct_result.span == direct_namespace["SourceSpan"](3, 7)
+
+
+@pytest.mark.parametrize(
+    ("token_type", "constructor"),
+    (("FIRST", "First"), ("SECOND", "Second")),
+)
+def test_direct_wrap_preserves_a_multi_constructor_wrapper_schema(
+    token_type: str,
+    constructor: str,
+) -> None:
+    grammar = (
+        "<S> ::= <Seed> Type => <Wrapper>\n"
+        "<Seed> ::= @Seed SEED\n"
+        "<Wrapper> ::= @First FIRST | @Second SECOND"
+    )
+    vm, direct, _, _ = _generated_pair(grammar)
+    tokens = [Token("SEED", start=0, end=4), Token(token_type, start=5, end=11)]
+
+    _, vm_result = _execute(vm.module_text, tokens)
+    _, direct_result = _execute(direct.module_text, tokens)
+
+    assert type(direct_result).__name__ == constructor
+    assert _shape(direct_result) == _shape(vm_result)
+
+
+def test_direct_left_fold_is_iterative_and_matches_vm_for_2000_operators() -> None:
+    grammar = (
+        "<S> ::= <Expr>\n"
+        "<Expr> ::= @Binary Left = <Expr> Operator = '+' Right = <Term> | <Term>\n"
+        "<Term> ::= @Term Value = ITEM"
+    )
+    vm, direct, _, _ = _generated_pair(grammar)
+    tokens = [Token("ITEM", start=0, end=1)]
+    for index in range(2_000):
+        offset = 1 + index * 2
+        tokens.extend(
+            (Token("+", start=offset, end=offset + 1), Token("ITEM", start=offset + 1, end=offset + 2))
+        )
+
+    _, vm_result = _execute(vm.module_text, tokens)
+    direct_namespace = _execute_without_parse(direct.module_text)
+    direct_result = direct_namespace["GeneratedParser"]().parse(tokens, "start")
+
+    def fold_spine(value: object) -> tuple[object, ...]:
+        items = []
+        while type(value).__name__ == "Binary":
+            items.append(
+                (
+                    value.span.start,
+                    value.span.end,
+                    value.Operator,
+                    type(value.Right).__name__,
+                    value.Right.Value,
+                )
+            )
+            value = value.Left
+        return tuple(items), type(value).__name__, value.Value
+
+    assert fold_spine(direct_result) == fold_spine(vm_result)
+    assert "fold_accumulator" in direct.module_text

@@ -18,7 +18,9 @@ from .parser_ir import (
     Dispatch,
     DispatchValue,
     ExtendCollection,
+    FoldLeftValue,
     IncrementScalar,
+    LeftFold,
     Operation,
     OptionalBranch,
     ParseBranchValue,
@@ -28,6 +30,8 @@ from .parser_ir import (
     ResolvedRegion,
     ReturnConstant,
     UndefinedValue,
+    WrapOptional,
+    WrapValue,
 )
 from .source_model import SourceGrammar
 
@@ -70,6 +74,7 @@ class _DirectPythonRenderer:
         self.local_names: dict[tuple[tuple[int, ...], str], str] = {}
         self.used_local_names: set[str] = set()
         self._decision_facts_index = 0
+        self._active_fold_accumulator: str | None = None
 
     def render(self) -> str:
         return "\n\n".join((self._render_prelude(), self._render_parser())) + "\n"
@@ -78,7 +83,7 @@ class _DirectPythonRenderer:
         lines = [
             "from __future__ import annotations",
             "",
-            "from dataclasses import dataclass",
+            "from dataclasses import dataclass, replace",
             "",
             "",
             "@dataclass(frozen=True, slots=True)",
@@ -415,6 +420,24 @@ class _DirectPythonRenderer:
                 )
             )
             return lines, constructor_site
+        if isinstance(operation, WrapValue):
+            return self._render_wrap_value(
+                operation,
+                value,
+                indent,
+                trail,
+                constructor_site,
+            ), constructor_site
+        if isinstance(operation, WrapOptional):
+            return self._render_wrap_optional(
+                operation,
+                value,
+                indent,
+                trail,
+                constructor_site,
+            ), constructor_site
+        if isinstance(operation, LeftFold):
+            return self._render_left_fold(operation, value, indent, trail, constructor_site), constructor_site
         if isinstance(operation, (UndefinedValue, ReturnConstant)):
             return [f"{indent}{value} = {self._constant(operation.value)!r}"], constructor_site
         if isinstance(operation, ConstructNode):
@@ -488,6 +511,7 @@ class _DirectPythonRenderer:
                 UndefinedValue,
                 ParseBranchValue,
                 DispatchValue,
+                FoldLeftValue,
             ),
         ):
             raise TypeError(
@@ -508,6 +532,10 @@ class _DirectPythonRenderer:
         if isinstance(bound_value, (ParseSymbol, ConsumeKnownSymbol, UndefinedValue)):
             lines, _ = self._render_operation(bound_value, indent, trail, constructor_site)
             return lines
+        if isinstance(bound_value, FoldLeftValue):
+            if self._active_fold_accumulator is None:
+                raise ValueError("fold-left value used outside LeftFold")
+            return [f"{indent}{value} = {self._active_fold_accumulator}"]
         if isinstance(bound_value, ParseBranchValue):
             return self._render_parse_branch_value(
                 bound_value,
@@ -567,6 +595,9 @@ class _DirectPythonRenderer:
         indent: str,
         trail: tuple[int, ...],
         constructor_site: _ConstructorSite | None,
+        *,
+        start_override: str | None = None,
+        none_result: str | None = None,
     ) -> list[str]:
         return self._render_sequence_result(
             branch.operations,
@@ -575,6 +606,8 @@ class _DirectPythonRenderer:
             indent,
             trail,
             constructor_site,
+            start_override=start_override,
+            none_result=none_result,
         )
 
     def _render_sequence_result(
@@ -585,10 +618,17 @@ class _DirectPythonRenderer:
         indent: str,
         trail: tuple[int, ...],
         constructor_site: _ConstructorSite | None,
+        *,
+        start_override: str | None = None,
+        none_result: str | None = None,
     ) -> list[str]:
         has_construct = self._has_construct(operations)
-        start = self._control_name("branch_start", trail)
-        lines = [f"{indent}{start} = self._offset()"] if has_construct else []
+        start = start_override or self._control_name("branch_start", trail)
+        lines = (
+            []
+            if not has_construct or start_override is not None
+            else [f"{indent}{start} = self._offset()"]
+        )
         sequence_lines, branch_constructor = self._render_sequence(
             operations,
             result_index,
@@ -602,9 +642,194 @@ class _DirectPythonRenderer:
                 raise RuntimeError("branch constructor is missing")
             lines.append(f"{indent}{target} = {self._freeze_expression(branch_constructor, start)}")
         elif result_index is None:
-            lines.append(f"{indent}{target} = None")
+            lines.append(f"{indent}{target} = {none_result or 'None'}")
         else:
             lines.append(f"{indent}{target} = {self._value_name((*trail, result_index))}")
+        return lines
+
+    def _render_wrap_value(
+        self,
+        wrapped: WrapValue,
+        target: str,
+        indent: str,
+        trail: tuple[int, ...],
+        constructor_site: _ConstructorSite | None,
+    ) -> list[str]:
+        seed_trail = (*trail, 0)
+        seed, _ = self._render_operation(
+            wrapped.seed,
+            indent,
+            seed_trail,
+            constructor_site,
+        )
+        lines = list(seed)
+        seed_value = self._value_name(seed_trail)
+        lines.extend(
+            self._render_bound_value(
+                wrapped.value,
+                indent,
+                trail,
+                constructor_site,
+            )
+        )
+        lines.extend(self._render_wrap_apply(target, seed_value, wrapped.property, wrapped.prepend, indent))
+        return lines
+
+    def _render_wrap_optional(
+        self,
+        wrapped: WrapOptional,
+        target: str,
+        indent: str,
+        trail: tuple[int, ...],
+        constructor_site: _ConstructorSite | None,
+    ) -> list[str]:
+        seed_trail = (*trail, 0)
+        seed, _ = self._render_operation(
+            wrapped.seed,
+            indent,
+            seed_trail,
+            constructor_site,
+        )
+        lines = list(seed)
+        seed_value = self._value_name(seed_trail)
+        outcome = self._control_name("wrap_outcome", trail)
+        lines.extend(self._render_decision(wrapped.decision, indent, outcome))
+        exit_conditions = self._exit_conditions(wrapped.decision, outcome)
+
+        def render_branch(branch: BranchIr, branch_indent: str) -> list[str]:
+            branch_lines = self._render_branch_result(
+                branch,
+                target,
+                branch_indent,
+                (*trail, 1, wrapped.branches.index(branch)),
+                constructor_site,
+            )
+            branch_lines.extend(
+                self._render_wrap_apply(
+                    target,
+                    seed_value,
+                    wrapped.property,
+                    wrapped.prepend,
+                    branch_indent,
+                )
+            )
+            return branch_lines
+
+        if exit_conditions:
+            lines.extend(
+                (
+                    f"{indent}if {' or '.join(exit_conditions)}:",
+                    f"{indent}    {target} = {seed_value}",
+                    f"{indent}else:",
+                )
+            )
+            lines.extend(
+                self._render_branch_selection(
+                    wrapped.branches,
+                    outcome,
+                    indent + "    ",
+                    render_branch,
+                )
+            )
+        else:
+            lines.extend(
+                self._render_branch_selection(wrapped.branches, outcome, indent, render_branch)
+            )
+        return lines
+
+    @staticmethod
+    def _render_wrap_apply(
+        target: str,
+        seed: str,
+        property_name: str,
+        prepend: bool,
+        indent: str,
+    ) -> list[str]:
+        replacement = (
+            f"({seed}, *(getattr({target}, {property_name!r}) or ()))"
+            if prepend
+            else seed
+        )
+        return [f"{indent}{target} = replace({target}, **{{{property_name!r}: {replacement}}})"]
+
+    def _render_left_fold(
+        self,
+        fold: LeftFold,
+        target: str,
+        indent: str,
+        trail: tuple[int, ...],
+        constructor_site: _ConstructorSite | None,
+    ) -> list[str]:
+        accumulator = self._control_name("fold_accumulator", trail)
+        lines: list[str] = []
+        if fold.base_decision is None:
+            if len(fold.base_branches) != 1:
+                raise ValueError("left fold without a decision requires one base branch")
+            lines.extend(
+                self._render_branch_result(
+                    fold.base_branches[0],
+                    accumulator,
+                    indent,
+                    (*trail, 0),
+                    constructor_site,
+                    start_override="start",
+                )
+            )
+        else:
+            base_outcome = self._control_name("fold_base_outcome", trail)
+            lines.extend(self._render_decision(fold.base_decision, indent, base_outcome))
+            lines.extend(
+                self._render_branch_selection(
+                    fold.base_branches,
+                    base_outcome,
+                    indent,
+                    lambda branch, branch_indent: self._render_branch_result(
+                        branch,
+                        accumulator,
+                        branch_indent,
+                        (*trail, 0, fold.base_branches.index(branch)),
+                        constructor_site,
+                        start_override="start",
+                    ),
+                )
+            )
+
+        recursive_outcome = self._control_name("fold_outcome", trail)
+        exit_conditions = self._exit_conditions(fold.recursive_decision, recursive_outcome)
+        lines.append(f"{indent}while True:")
+        lines.extend(self._render_decision(fold.recursive_decision, indent + "    ", recursive_outcome))
+        branch_indent = indent + "    "
+        if exit_conditions:
+            lines.extend(
+                (
+                    f"{indent}    if {' or '.join(exit_conditions)}:",
+                    f"{indent}        break",
+                    f"{indent}    else:",
+                )
+            )
+            branch_indent += "    "
+        previous = self._active_fold_accumulator
+        self._active_fold_accumulator = accumulator
+        try:
+            lines.extend(
+                self._render_branch_selection(
+                    fold.recursive_branches,
+                    recursive_outcome,
+                    branch_indent,
+                    lambda branch, selected_indent: self._render_branch_result(
+                        branch,
+                        accumulator,
+                        selected_indent,
+                        (*trail, 1, fold.recursive_branches.index(branch)),
+                        constructor_site,
+                        start_override="start",
+                        none_result=accumulator,
+                    ),
+                )
+            )
+        finally:
+            self._active_fold_accumulator = previous
+        lines.append(f"{indent}{target} = {accumulator}")
         return lines
 
     def _render_branch_operations(
@@ -720,6 +945,33 @@ class _DirectPythonRenderer:
                         (*operation_trail, len(operation.branches)),
                     )
                 )
+            elif isinstance(operation, WrapValue):
+                names.update(self._value_names((operation.seed,), (*operation_trail, 0)))
+                names.update(self._bound_value_names(operation.value, (*operation_trail, 1)))
+            elif isinstance(operation, WrapOptional):
+                names.update(self._value_names((operation.seed,), (*operation_trail, 0)))
+                for branch_index, branch in enumerate(operation.branches):
+                    names.update(
+                        self._value_names(
+                            branch.operations,
+                            (*operation_trail, 1, branch_index),
+                        )
+                    )
+            elif isinstance(operation, LeftFold):
+                for branch_index, branch in enumerate(operation.base_branches):
+                    names.update(
+                        self._value_names(
+                            branch.operations,
+                            (*operation_trail, 0, branch_index),
+                        )
+                    )
+                for branch_index, branch in enumerate(operation.recursive_branches):
+                    names.update(
+                        self._value_names(
+                            branch.operations,
+                            (*operation_trail, 1, branch_index),
+                        )
+                    )
             elif isinstance(
                 operation,
                 (BindScalar, AppendCollection, ExtendCollection, ConcatScalar, IncrementScalar),
