@@ -337,6 +337,74 @@ def test_direct_shared_decision_dag_renders_the_shared_node_once() -> None:
     assert direct.module_text.count("decision_state == 3") == 1
 
 
+def test_direct_shared_dag_size_is_linear_in_unique_nodes() -> None:
+    _, parser_ir, source = _generate("<S> ::= A | B")
+    original = parser_ir.productions[0]
+    assert original.decision is not None
+
+    def diamond_dag(depth: int) -> CanonicalDecisionDag:
+        nodes = []
+        for level in range(depth):
+            start = level * 3
+            left, right, next_node = start + 1, start + 2, start + 3
+            nodes.extend(
+                (
+                    LookaheadDecision(
+                        0,
+                        ("A", "B"),
+                        (
+                            DecisionEdge(TokenSetPredicate(("A",)), left),
+                            DecisionEdge(TokenSetPredicate(("B",)), right),
+                        ),
+                    ),
+                    LookaheadDecision(
+                        0,
+                        ("A", "B"),
+                        (DecisionEdge(TokenSetPredicate(("A", "B")), next_node),),
+                    ),
+                    LookaheadDecision(
+                        0,
+                        ("A", "B"),
+                        (DecisionEdge(TokenSetPredicate(("A", "B")), next_node),),
+                    ),
+                )
+            )
+        nodes.append(CommitAlternative(AlternativeOutcome("S", 0)))
+        return CanonicalDecisionDag("S", 1, 0, tuple(nodes), {})
+
+    series: list[tuple[int, int, int]] = []
+    for depth in range(1, 6):
+        dag = diamond_dag(depth)
+        shared_ir = replace(
+            parser_ir,
+            productions=(
+                replace(
+                    original,
+                    decision=CanonicalDecision(original.decision.source, dag),
+                ),
+            ),
+        )
+        module_text = generate_python_semantic_parser(
+            source,
+            shared_ir,
+            {"start": "S"},
+        ).module_text
+
+        assert module_text.count("decision_state = 0") == 1
+        assert all(
+            module_text.count(f"if decision_state == {node_index}:") == 1
+            for node_index in range(len(dag.nodes))
+        )
+        series.append((len(dag.nodes), 2**depth, len(module_text)))
+
+    base_nodes, _, base_size = series[0]
+    assert series[-1][1] > series[-1][0]
+    assert all(
+        module_size <= base_size + 300 * (node_count - base_nodes)
+        for node_count, _, module_size in series[1:]
+    )
+
+
 def test_direct_path_facts_select_in_original_branch_order() -> None:
     grammar = (
         "<S> ::= <Base> Child => <Choice>?\n"

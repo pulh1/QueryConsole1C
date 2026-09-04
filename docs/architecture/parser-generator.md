@@ -762,18 +762,39 @@ sequences или result-shape analysis и не меняет поля сущес�
 
 ## Python semantic target
 
-`parsergen.python_semantic_codegen` is a separate backend over canonical
-semantic Parser IR and decision DAGs. It generates a standalone Python module
-with an explicit-stack parser, `SourceSpan`, and one frozen slotted dataclass
-per declarative grammar constructor. Python class identity is the AST node type;
-the generated nodes do not contain a duplicate string discriminator.
+`parsergen.python_semantic_codegen` сохраняет публичный facade и построение
+AST schema. После обычного `optimize_parser_ir()` единственный Python target
+идёт по цепочке `optimized ParserIr -> DirectRenderAnalysis -> direct renderer`:
+`DirectRenderAnalysis` хранит только immutable side tables для stable IR sites,
+а `python_direct_codegen` рендерит standalone Python module с прямыми
+production methods, `SourceSpan` и одним frozen/slotted dataclass на каждый
+declarative constructor. Python class identity — тип AST node; отдельный
+строковый discriminator не создаётся.
 
-The semantic runtime implements constructor, scalar/constant, collection,
-concat/increment, dispatch, optional, repeat, wrap and direct-left-fold IR
-operations. Nonterminal recursion and EBNF loops use one `while tasks:`
-trampoline. Terminal-like values follow the canonical backend contract:
-normalized terminal type, identifier text, and constant value. Node spans use
-input token offsets rather than grammar-definition coordinates.
+Renderer выполняет constructor, scalar/constant, collection, concat/increment,
+dispatch, optional, repeat, wrap и direct-left-fold обычными locals, `if` и
+`while`. Nonterminal calls являются прямыми calls. Безопасная self-tail
+recursion становится production-local loop; value-carrying direct right
+recursion использует production-local continuation stack только с live state
+этой production. Общей VM, `_Frame`, task tuples и `while tasks:` trampoline в
+generated module нет. Terminal-like values сохраняют canonical contract:
+normalized terminal type, identifier text и constant value; spans используют
+input token offsets, а не coordinates grammar definition.
+
+Generated module публикует `python-semantic-direct-v1` и ровно две stable
+consumer seams: пустую секцию `# <parsergen:artifact-metadata>` и ограниченное
+маркерами объявление `# <parsergen:source-span>`. Consumer владеет содержимым
+metadata section и заменой SourceSpan section; остальной generated source не
+patches по случайному formatting. Глобальный optimizer barrier для
+`AppendNearestOwner` пока сохраняется: scoped semantics поддерживаются direct
+renderer, но оптимизатор не получает нового global/scoped transform.
+
+Structural pytest fences доказывают, что shared decision-DAG state block
+рендерится один раз и размер generated module растёт с количеством unique DAG
+nodes, а не путей. Это не performance acceptance: `<=60` calls/token, direct module
+не более `4x` frozen VM, cold/warm p95 и full BSL semantic profile остаются
+gates связанного Onec Interactive Runtime plan, где frozen VM привязан к
+точному git ref и SHA.
 
 The public generator is:
 
