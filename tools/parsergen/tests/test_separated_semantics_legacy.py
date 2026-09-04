@@ -1,5 +1,4 @@
 from dataclasses import fields
-import hashlib
 from inspect import signature
 
 from parsergen.analysis import compute_analysis
@@ -80,6 +79,10 @@ def test_legacy_dataclass_shapes_and_parse_signature_are_frozen() -> None:
     )
 
 
-def test_legacy_python_semantic_module_text_is_byte_identical() -> None:
-    digest = hashlib.sha256(_legacy_module_text().encode("utf-8")).hexdigest()
-    assert digest == "5aa204ccdaddb8dba6d07da5f861bb1716be03a83d50e5ff8cacdbf44abcf01c"
+def test_legacy_python_semantic_module_uses_the_direct_backend() -> None:
+    module_text = _legacy_module_text()
+    assert 'PARSERGEN_BACKEND_ID = "python-semantic-direct-v1"' in module_text
+    assert "PRODUCTIONS =" not in module_text
+    assert "DECISIONS =" not in module_text
+    assert "class _Frame" not in module_text
+    assert "_run_sequence" not in module_text

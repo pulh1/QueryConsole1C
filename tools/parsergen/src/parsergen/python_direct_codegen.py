@@ -154,10 +154,17 @@ class _DirectPythonRenderer:
             "from dataclasses import dataclass, replace",
             "",
             "",
+            f'PARSERGEN_BACKEND_ID = "{PYTHON_SEMANTIC_BACKEND_ID}"',
+            "",
+            "# <parsergen:artifact-metadata>",
+            "# </parsergen:artifact-metadata>",
+            "",
+            "# <parsergen:source-span>",
             "@dataclass(frozen=True, slots=True)",
             "class SourceSpan:",
             "    start: int",
             "    end: int",
+            "# </parsergen:source-span>",
         ]
         for node in self.schema:
             lines.extend(("", "", "@dataclass(frozen=True, slots=True)", f"class {node.name}:"))

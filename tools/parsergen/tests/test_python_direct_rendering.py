@@ -26,10 +26,7 @@ from parsergen.parser_ir import (
     build_parser_ir,
 )
 from parsergen.python_direct_codegen import _DirectPythonRenderer
-from parsergen.python_semantic_codegen import (
-    _generate_direct_python_semantic_parser,
-    generate_python_semantic_parser,
-)
+from parsergen.python_semantic_codegen import generate_python_semantic_parser
 from parsergen.resolver import resolve_grammar
 
 
@@ -117,20 +114,12 @@ def _generated_pair(
         compute_analysis(resolved.grammar, k, tuple(mapping.values())),
         entrypoint_productions=tuple(mapping.values()),
     )
-    vm = generate_python_semantic_parser(parsed.source_grammar, parser_ir, mapping)
-    direct = _generate_direct_python_semantic_parser(
+    direct = generate_python_semantic_parser(
         parsed.source_grammar,
         parser_ir,
         mapping,
     )
-    return vm, direct, parser_ir, parsed.source_grammar
-
-
-def _parser_pair(grammar: str, *, k: int = 1) -> tuple[object, object]:
-    vm, direct, _, _ = _generated_pair(grammar, k=k)
-    vm_namespace = _execute_without_parse(vm.module_text)
-    direct_namespace = _execute_without_parse(direct.module_text)
-    return vm_namespace["GeneratedParser"](), direct_namespace["GeneratedParser"]()
+    return direct, direct, parser_ir, parsed.source_grammar
 
 
 def _error_shape(parser: object, tokens: list[Token]) -> tuple[object, ...]:
@@ -147,16 +136,14 @@ def _error_shape(parser: object, tokens: list[Token]) -> tuple[object, ...]:
 
 
 def test_direct_module_compiles_and_preserves_runtime_shape() -> None:
-    vm, direct, _, _ = _generated_pair("<S> ::= ITEM")
-    vm_namespace, vm_result = _execute(vm.module_text, [Token("ITEM")])
+    _, direct, _, _ = _generated_pair("<S> ::= ITEM")
     direct_namespace, direct_result = _execute(direct.module_text, [Token("ITEM")])
 
-    assert _shape(direct_result) == _shape(vm_result) is None
+    assert _shape(direct_result) is None
     assert direct_namespace["GeneratedParser"]().parse([Token("ITEM")], "start") is None
-    assert vm_namespace["GeneratedParser"]().parse([Token("ITEM")], "start") is None
 
 
-def test_direct_captured_terminal_matches_vm() -> None:
+def test_direct_captured_terminal_matches_facade() -> None:
     _, _, parser_ir, source = _generated_pair("<S> ::= ITEM")
     production = parser_ir.productions[0]
     captured_ir = replace(
@@ -168,12 +155,10 @@ def test_direct_captured_terminal_matches_vm() -> None:
             ),
         ),
     )
-    vm = generate_python_semantic_parser(source, captured_ir, {"start": "S"})
-    direct = _generate_direct_python_semantic_parser(source, captured_ir, {"start": "S"})
+    direct = generate_python_semantic_parser(source, captured_ir, {"start": "S"})
 
-    _, vm_result = _execute(vm.module_text, [Token("ITEM")])
     _, direct_result = _execute(direct.module_text, [Token("ITEM")])
-    assert _shape(direct_result) == _shape(vm_result) == "ITEM"
+    assert _shape(direct_result) == "ITEM"
 
 
 @pytest.mark.parametrize(
@@ -199,35 +184,33 @@ def test_direct_captured_terminal_matches_vm() -> None:
         "constant-text-fallback",
     ),
 )
-def test_direct_core_terminal_operations_match_vm(
+def test_direct_core_terminal_operations_match_facade(
     grammar: str,
     tokens: list[Token],
     expected: object,
 ) -> None:
-    vm, direct, _, _ = _generated_pair(grammar)
-    _, vm_result = _execute(vm.module_text, tokens)
+    _, direct, _, _ = _generated_pair(grammar)
     _, direct_result = _execute(direct.module_text, tokens)
 
-    assert _shape(direct_result) == _shape(vm_result) == expected
+    assert _shape(direct_result) == expected
 
 
 @pytest.mark.parametrize(
     ("constant", "expected"),
     [("Истина", True), ("Ложь", False), ("Неопределено", None), ("Kinds.Value", "Kinds.Value")],
 )
-def test_direct_canonical_return_constants_match_vm(
+def test_direct_canonical_return_constants_match_facade(
     constant: str,
     expected: object,
 ) -> None:
-    vm, direct, _, _ = _generated_pair(f"<S> ::= := {constant}")
-    _, vm_result = _execute(vm.module_text, [])
+    _, direct, _, _ = _generated_pair(f"<S> ::= := {constant}")
     _, direct_result = _execute(direct.module_text, [])
 
-    assert _shape(direct_result) == _shape(vm_result) == expected
+    assert _shape(direct_result) == expected
 
 
-def test_direct_undefined_value_matches_vm() -> None:
-    vm, direct, parser_ir, source = _generated_pair("<S> ::= := Неопределено")
+def test_direct_undefined_value_matches_facade() -> None:
+    _, direct, parser_ir, source = _generated_pair("<S> ::= := Неопределено")
     alternative = parser_ir.productions[0].alternatives[0]
     undefined = UndefinedValue("Неопределено", alternative.operations[0].source_span)
     undefined_ir = replace(
@@ -239,12 +222,10 @@ def test_direct_undefined_value_matches_vm() -> None:
             ),
         ),
     )
-    vm = generate_python_semantic_parser(source, undefined_ir, {"start": "S"})
-    direct = _generate_direct_python_semantic_parser(source, undefined_ir, {"start": "S"})
+    direct = generate_python_semantic_parser(source, undefined_ir, {"start": "S"})
 
-    _, vm_result = _execute(vm.module_text, [])
     _, direct_result = _execute(direct.module_text, [])
-    assert _shape(direct_result) == _shape(vm_result) is None
+    assert _shape(direct_result) is None
 
 
 def test_direct_parser_reuses_iterable_input_and_checks_full_consumption() -> None:
@@ -263,50 +244,49 @@ def test_direct_parser_reuses_iterable_input_and_checks_full_consumption() -> No
 
 
 @pytest.mark.parametrize(
-    ("grammar", "tokens", "k"),
+    ("grammar", "tokens", "k", "expected"),
     [
-        ("<S> ::= ITEM", [Token("BAD")], 1),
-        ("<S> ::= ITEM", [], 1),
-        ("<S> ::= ITEM", [Token("ITEM"), Token("ITEM")], 1),
-        ("<S> ::= 'a' 'b' | 'a' 'c'", [Token("a"), Token("x")], 2),
-        ("<S> ::= 'a' 'b' | 'c'", [Token("a"), Token("x")], 1),
+        ("<S> ::= ITEM", [Token("BAD")], 1, (0, "BAD", ("ITEM",))),
+        ("<S> ::= ITEM", [], 1, (0, "$", ("ITEM",))),
+        ("<S> ::= ITEM", [Token("ITEM"), Token("ITEM")], 1, (1, "ITEM", ("$",))),
+        ("<S> ::= 'a' 'b' | 'a' 'c'", [Token("a"), Token("x")], 2, (0, "a", ("b", "c"))),
+        ("<S> ::= 'a' 'b' | 'c'", [Token("a"), Token("x")], 1, (1, "x", ("b",))),
     ],
     ids=("bad", "eof", "trailing", "k2", "committed"),
 )
-def test_direct_errors_equal_vm_without_normalization(
+def test_direct_errors_are_exact(
     grammar: str,
     tokens: list[Token],
     k: int,
+    expected: tuple[int, str, tuple[str, ...]],
 ) -> None:
-    vm_parser, direct_parser = _parser_pair(grammar, k=k)
+    _, direct, _, _ = _generated_pair(grammar, k=k)
+    parser = _execute_without_parse(direct.module_text)["GeneratedParser"]()
 
-    assert _error_shape(direct_parser, tokens) == _error_shape(vm_parser, tokens)
+    with pytest.raises(Exception) as caught:
+        parser.parse(tokens, "start")
+    assert (caught.value.position, caught.value.actual, caught.value.expected) == expected
 
 
-def test_direct_identifier_mismatch_error_equals_vm_without_normalization() -> None:
-    vm_parser, direct_parser = _parser_pair("#Name ::= ID\n<S> ::= #Name")
+def test_direct_identifier_mismatch_error_is_exact() -> None:
+    _, direct, _, _ = _generated_pair("#Name ::= ID\n<S> ::= #Name")
+    parser = _execute_without_parse(direct.module_text)["GeneratedParser"]()
 
-    assert _error_shape(direct_parser, [Token("BAD")]) == _error_shape(
-        vm_parser,
-        [Token("BAD")],
+    with pytest.raises(Exception) as caught:
+        parser.parse([Token("BAD")], "start")
+    assert (caught.value.position, caught.value.actual, caught.value.expected) == (
+        0,
+        "BAD",
+        ("ID",),
     )
 
 
-def test_direct_unknown_entrypoint_error_equals_vm_without_normalization() -> None:
-    vm_parser, direct_parser = _parser_pair("<S> ::= ITEM")
+def test_direct_unknown_entrypoint_error_is_exact() -> None:
+    _, direct, _, _ = _generated_pair("<S> ::= ITEM")
+    parser = _execute_without_parse(direct.module_text)["GeneratedParser"]()
 
-    with pytest.raises(Exception) as vm_caught:
-        vm_parser.parse([], "missing")
-    with pytest.raises(Exception) as direct_caught:
-        direct_parser.parse([], "missing")
-
-    assert (
-        type(direct_caught.value).__name__,
-        direct_caught.value.args,
-    ) == (
-        type(vm_caught.value).__name__,
-        vm_caught.value.args,
-    )
+    with pytest.raises(ValueError, match="^unknown entrypoint 'missing'$"):
+        parser.parse([], "missing")
 
 
 def test_direct_shared_decision_dag_renders_the_shared_node_once() -> None:
@@ -346,7 +326,7 @@ def test_direct_shared_decision_dag_renders_the_shared_node_once() -> None:
         productions=(replace(original, decision=decision),),
     )
 
-    direct = _generate_direct_python_semantic_parser(source, shared_ir, {"start": "S"})
+    direct = generate_python_semantic_parser(source, shared_ir, {"start": "S"})
 
     assert direct.module_text.count("decision_state == 3") == 1
 
@@ -440,19 +420,18 @@ def test_direct_path_facts_select_in_original_branch_order() -> None:
 
 
 def test_direct_parser_supports_multiple_entrypoints() -> None:
-    vm, direct, _, _ = _generated_pair(
+    _, direct, _, _ = _generated_pair(
         "<S> ::= ITEM\n<A> ::= OTHER",
         entrypoints={"start": "S", "other": "A"},
     )
-    _, vm_result = _execute(vm.module_text, [Token("OTHER")], "other")
     namespace, direct_result = _execute(direct.module_text, [Token("OTHER")], "other")
 
-    assert _shape(direct_result) == _shape(vm_result) is None
+    assert _shape(direct_result) is None
     assert namespace["GeneratedParser"]().parse([Token("ITEM")], "start") is None
 
 
-def test_direct_constructor_bindings_match_vm_and_freeze_schema_order() -> None:
-    vm, direct, _, _ = _generated_pair(
+def test_direct_constructor_bindings_match_facade_and_freeze_schema_order() -> None:
+    _, direct, _, _ = _generated_pair(
         "#Name ::= ID\n"
         "<S> ::= @Node Title = #Name Items += ITEM Joined ~= #Name "
         "Count ++= MARK Enabled := Истина Values *= <Values>\n"
@@ -467,10 +446,8 @@ def test_direct_constructor_bindings_match_vm_and_freeze_schema_order() -> None:
         Token("ITEM", start=23, end=27),
     ]
 
-    _, vm_result = _execute(vm.module_text, tokens)
     direct_namespace, direct_result = _execute(direct.module_text, tokens)
 
-    assert _shape(direct_result) == _shape(vm_result)
     assert direct_result.span == direct_namespace["SourceSpan"](0, 27)
     assert direct_result.Values == ("ITEM", "ITEM")
     assert "builder.values" not in direct.module_text
@@ -484,10 +461,10 @@ def test_direct_constructor_bindings_match_vm_and_freeze_schema_order() -> None:
         tokens,
         "start",
     )
-    assert _shape(result_with_mutated_reflection) == _shape(vm_result)
+    assert _shape(result_with_mutated_reflection) == _shape(direct_result)
 
 
-def test_direct_bindings_in_nested_region_match_vm() -> None:
+def test_direct_bindings_in_nested_region_match_facade() -> None:
     _, _, parser_ir, source = _generated_pair("<S> ::= @Node Title = ITEM")
     alternative = parser_ir.productions[0].alternatives[0]
     construct, binding = alternative.operations
@@ -508,16 +485,13 @@ def test_direct_bindings_in_nested_region_match_vm() -> None:
             ),
         ),
     )
-    vm = generate_python_semantic_parser(source, nested_ir, {"start": "S"})
-    direct = _generate_direct_python_semantic_parser(source, nested_ir, {"start": "S"})
+    direct = generate_python_semantic_parser(source, nested_ir, {"start": "S"})
 
-    _, vm_result = _execute(vm.module_text, [Token("ITEM", start=3, end=7)])
     direct_namespace, direct_result = _execute(
         direct.module_text,
         [Token("ITEM", start=3, end=7)],
     )
 
-    assert _shape(direct_result) == _shape(vm_result)
     assert direct_result.span == direct_namespace["SourceSpan"](3, 7)
 
 
@@ -554,14 +528,11 @@ def test_direct_nested_region_constructor_preserves_outer_bindings() -> None:
             ),
         ),
     )
-    vm = generate_python_semantic_parser(source, nested_ir, {"start": "S"})
-    direct = _generate_direct_python_semantic_parser(source, nested_ir, {"start": "S"})
+    direct = generate_python_semantic_parser(source, nested_ir, {"start": "S"})
 
-    _, vm_result = _execute(vm.module_text, [Token("FIRST"), Token("SECOND")])
     _, direct_result = _execute(direct.module_text, [Token("FIRST"), Token("SECOND")])
 
-    assert vm_result.First == "FIRST"
-    assert _shape(direct_result) == _shape(vm_result)
+    assert direct_result.First == "FIRST"
 
 
 def test_direct_constructor_locals_are_unique_across_constructor_field_pairs() -> None:
@@ -595,49 +566,51 @@ def test_direct_constructor_locals_are_unique_across_constructor_field_pairs() -
             parser_ir.productions[1],
         ),
     )
-    vm = generate_python_semantic_parser(source, nested_ir, {"start": "S"})
-    direct = _generate_direct_python_semantic_parser(source, nested_ir, {"start": "S"})
+    direct = generate_python_semantic_parser(source, nested_ir, {"start": "S"})
 
-    _, vm_result = _execute(vm.module_text, [Token("FIRST"), Token("SECOND")])
     _, direct_result = _execute(direct.module_text, [Token("FIRST"), Token("SECOND")])
 
-    assert vm_result.C == "FIRST"
-    assert _shape(direct_result) == _shape(vm_result)
+    assert direct_result.C == "FIRST"
 
 
 @pytest.mark.parametrize(
-    ("grammar", "tokens"),
+    ("grammar", "tokens", "expected"),
     [
-        ("<S> ::= (A | B)", [Token("B")]),
-        ("<S> ::= @Node Item = (A | B)", [Token("B")]),
+        ("<S> ::= (A | B)", [Token("B")], None),
+        ("<S> ::= @Node Item = (A | B)", [Token("B")], "B"),
     ],
     ids=("two-way-dispatch", "value-dispatch-nested-branch-result"),
 )
-def test_direct_dispatches_match_vm(
+def test_direct_dispatches_are_exact(
     grammar: str,
     tokens: list[Token],
+    expected: object,
 ) -> None:
-    vm, direct, _, _ = _generated_pair(grammar)
+    _, direct, _, _ = _generated_pair(grammar)
 
-    _, vm_result = _execute(vm.module_text, tokens)
     _, direct_result = _execute(direct.module_text, tokens)
 
-    assert _shape(direct_result) == _shape(vm_result)
+    if expected is None:
+        assert direct_result is None
+    else:
+        assert direct_result.Item == expected
 
 
 @pytest.mark.parametrize(
-    "tokens",
-    ([Token("A")], []),
+    ("tokens", "expected"),
+    (([Token("A")], "A"), ([], None)),
     ids=("present", "exit"),
 )
-def test_direct_optional_branch_and_exit_operations_match_vm(tokens: list[Token]) -> None:
+def test_direct_optional_branch_and_exit_operations_are_exact(
+    tokens: list[Token],
+    expected: str | None,
+) -> None:
     grammar = "<S> ::= @Node Item = (A | B)?"
-    vm, direct, _, _ = _generated_pair(grammar)
+    _, direct, _, _ = _generated_pair(grammar)
 
-    _, vm_result = _execute(vm.module_text, tokens)
     _, direct_result = _execute(direct.module_text, tokens)
 
-    assert _shape(direct_result) == _shape(vm_result)
+    assert direct_result.Item == expected
 
 
 def test_direct_optional_exit_operations_preserve_order() -> None:
@@ -667,14 +640,11 @@ def test_direct_optional_exit_operations_preserve_order() -> None:
             ),
         ),
     )
-    vm = generate_python_semantic_parser(source, specialized_ir, {"start": "S"})
-    direct = _generate_direct_python_semantic_parser(source, specialized_ir, {"start": "S"})
+    direct = generate_python_semantic_parser(source, specialized_ir, {"start": "S"})
 
-    _, vm_result = _execute(vm.module_text, [])
     _, direct_result = _execute(direct.module_text, [])
 
-    assert vm_result.Flag is False
-    assert _shape(direct_result) == _shape(vm_result)
+    assert direct_result.Flag is False
 
 
 def test_direct_parse_branch_value_uses_its_nested_result_index() -> None:
@@ -718,14 +688,11 @@ def test_direct_parse_branch_value_uses_its_nested_result_index() -> None:
             ),
         ),
     )
-    vm = generate_python_semantic_parser(source, specialized_ir, {"start": "S"})
-    direct = _generate_direct_python_semantic_parser(source, specialized_ir, {"start": "S"})
+    direct = generate_python_semantic_parser(source, specialized_ir, {"start": "S"})
 
-    _, vm_result = _execute(vm.module_text, [Token("A"), Token("C")])
     _, direct_result = _execute(direct.module_text, [Token("A"), Token("C")])
 
-    assert vm_result.Item == "C"
-    assert _shape(direct_result) == _shape(vm_result)
+    assert direct_result.Item == "C"
 
 
 @pytest.mark.parametrize(
@@ -733,28 +700,24 @@ def test_direct_parse_branch_value_uses_its_nested_result_index() -> None:
     ([], [1]),
     ids=("empty", "one"),
 )
-def test_direct_repeat_matches_vm(values: list[int]) -> None:
+def test_direct_repeat_is_exact(values: list[int]) -> None:
     grammar = "<S> ::= @Node Items += &NUMBER*"
-    vm, direct, _, _ = _generated_pair(grammar)
+    _, direct, _, _ = _generated_pair(grammar)
     tokens = [Token("NUMBER", str(value), value=value) for value in values]
 
-    _, vm_result = _execute(vm.module_text, tokens)
     _, direct_result = _execute(direct.module_text, tokens)
 
-    assert _shape(direct_result) == _shape(vm_result)
+    assert direct_result.Items == tuple(values)
 
 
 def test_direct_repeat_captures_each_counting_token_once() -> None:
     grammar = "<S> ::= @Node Items += &NUMBER*"
-    vm, direct, _, _ = _generated_pair(grammar)
-    vm_token = CountingToken(42)
+    _, direct, _, _ = _generated_pair(grammar)
     direct_token = CountingToken(42)
 
-    _, vm_result = _execute(vm.module_text, [vm_token])
     _, direct_result = _execute(direct.module_text, [direct_token])
 
-    assert _shape(direct_result) == _shape(vm_result)
-    assert vm_token.value_reads == direct_token.value_reads == 1
+    assert direct_token.value_reads == 1
 
 
 def test_direct_repeat_handles_5000_items_and_parser_reuse() -> None:
@@ -793,7 +756,7 @@ def test_direct_repeat_rejects_a_nonadvancing_malformed_ir_branch() -> None:
             ),
         ),
     )
-    direct = _generate_direct_python_semantic_parser(source, malformed_ir, {"start": "S"})
+    direct = generate_python_semantic_parser(source, malformed_ir, {"start": "S"})
     parser = _execute_without_parse(direct.module_text)["GeneratedParser"]()
 
     with pytest.raises(RuntimeError, match="^repeat branch did not advance parser cursor$"):
@@ -855,7 +818,6 @@ def _record_constructor_calls(
     calls: list[tuple[str, tuple[int, int]]],
     *,
     fail_on: int | None = None,
-    reflection_dispatch: bool = False,
 ) -> None:
     original = namespace[name]
 
@@ -867,30 +829,22 @@ def _record_constructor_calls(
         return original(*values)
 
     namespace[name] = factory
-    if reflection_dispatch:
-        namespace["AST_CLASSES"][name] = factory
 
 
 def test_value_carrying_right_recursion_preserves_freeze_and_span_order() -> None:
-    vm, direct, _, _ = _generated_pair(
+    _, direct, _, _ = _generated_pair(
         "<S> ::= @Link Value = ITEM Rest = <S> | @End STOP"
     )
     tokens = [Token("ITEM", start=index, end=index + 1) for index in range(3)]
     tokens.append(Token("STOP", start=3, end=4))
-    vm_namespace = _execute_without_parse(vm.module_text)
     direct_namespace = _execute_without_parse(direct.module_text)
-    vm_calls: list[tuple[str, tuple[int, int]]] = []
     direct_calls: list[tuple[str, tuple[int, int]]] = []
-    _record_constructor_calls(vm_namespace, "Link", vm_calls, reflection_dispatch=True)
-    _record_constructor_calls(vm_namespace, "End", vm_calls, reflection_dispatch=True)
     _record_constructor_calls(direct_namespace, "Link", direct_calls)
     _record_constructor_calls(direct_namespace, "End", direct_calls)
 
-    vm_result = vm_namespace["GeneratedParser"]().parse(tokens, "start")
-    direct_result = direct_namespace["GeneratedParser"]().parse(tokens, "start")
+    direct_namespace["GeneratedParser"]().parse(tokens, "start")
 
-    assert _shape(direct_result) == _shape(vm_result)
-    assert direct_calls == vm_calls == [
+    assert direct_calls == [
         ("End", (3, 4)),
         ("Link", (2, 4)),
         ("Link", (1, 4)),
@@ -899,45 +853,31 @@ def test_value_carrying_right_recursion_preserves_freeze_and_span_order() -> Non
 
 
 def test_value_carrying_right_recursion_raises_on_the_same_freeze_node() -> None:
-    vm, direct, _, _ = _generated_pair(
+    _, direct, _, _ = _generated_pair(
         "<S> ::= @Link Value = ITEM Rest = <S> | @End STOP"
     )
     tokens = [Token("ITEM", start=index, end=index + 1) for index in range(3)]
     tokens.append(Token("STOP", start=3, end=4))
-    vm_namespace = _execute_without_parse(vm.module_text)
     direct_namespace = _execute_without_parse(direct.module_text)
-    vm_calls: list[tuple[str, tuple[int, int]]] = []
     direct_calls: list[tuple[str, tuple[int, int]]] = []
-    _record_constructor_calls(
-        vm_namespace,
-        "Link",
-        vm_calls,
-        fail_on=3,
-        reflection_dispatch=True,
-    )
-    _record_constructor_calls(
-        vm_namespace,
-        "End",
-        vm_calls,
-        fail_on=3,
-        reflection_dispatch=True,
-    )
     _record_constructor_calls(direct_namespace, "Link", direct_calls, fail_on=3)
     _record_constructor_calls(direct_namespace, "End", direct_calls, fail_on=3)
 
     with pytest.raises(RuntimeError, match="^injected freeze failure$"):
-        vm_namespace["GeneratedParser"]().parse(tokens, "start")
-    with pytest.raises(RuntimeError, match="^injected freeze failure$"):
         direct_namespace["GeneratedParser"]().parse(tokens, "start")
 
-    assert direct_calls == vm_calls
+    assert direct_calls == [
+        ("End", (3, 4)),
+        ("Link", (2, 4)),
+        ("Link", (1, 4)),
+    ]
 
 
 def test_multiple_local_continuation_sites_unwind_lifo_without_single_site_tag_stack() -> None:
     _, single_site, _, _ = _generated_pair(
         "<S> ::= @Link Value = ITEM Rest = <S> | @End STOP"
     )
-    vm, direct, _, _ = _generated_pair(
+    _, direct, _, _ = _generated_pair(
         "<S> ::= @ItemA Value = A Rest = <S> | "
         "@ItemB Value = B Rest = <S> | @End STOP"
     )
@@ -948,10 +888,8 @@ def test_multiple_local_continuation_sites_unwind_lifo_without_single_site_tag_s
         Token("STOP", start=3, end=4),
     ]
 
-    _, vm_result = _execute(vm.module_text, tokens)
     _, direct_result = _execute(direct.module_text, tokens)
 
-    assert _shape(direct_result) == _shape(vm_result)
     assert [
         type(item).__name__
         for item in (
@@ -967,28 +905,24 @@ def test_multiple_local_continuation_sites_unwind_lifo_without_single_site_tag_s
 
 def test_wrap_value_local_continuation_saves_its_seed_before_recursing() -> None:
     grammar = "<S> ::= <Leaf> Next => <S> | @End STOP\n<Leaf> ::= @Leaf ITEM"
-    vm, direct, _, _ = _generated_pair(grammar)
+    _, direct, _, _ = _generated_pair(grammar)
     tokens = [Token("ITEM", start=0, end=4), Token("STOP", start=5, end=9)]
 
-    _, vm_result = _execute(vm.module_text, tokens)
     direct_namespace, direct_result = _execute(direct.module_text, tokens)
 
-    assert _shape(direct_result) == _shape(vm_result)
     assert type(direct_result).__name__ == "End"
     assert type(direct_result.Next).__name__ == "Leaf"
     assert direct_result.Next.span == direct_namespace["SourceSpan"](0, 4)
     assert direct_result.span == direct_namespace["SourceSpan"](5, 9)
 
 
-def test_prepend_wrap_value_local_continuation_matches_vm() -> None:
+def test_prepend_wrap_value_local_continuation_matches_facade() -> None:
     grammar = "<S> ::= <Leaf> Items +=> <S> | @End STOP\n<Leaf> ::= @Leaf ITEM"
-    vm, direct, _, _ = _generated_pair(grammar)
+    _, direct, _, _ = _generated_pair(grammar)
     tokens = [Token("ITEM", start=0, end=4), Token("STOP", start=5, end=9)]
 
-    _, vm_result = _execute(vm.module_text, tokens)
     _, direct_result = _execute(direct.module_text, tokens)
 
-    assert _shape(direct_result) == _shape(vm_result)
     assert type(direct_result).__name__ == "End"
     assert type(direct_result.Items[0]).__name__ == "Leaf"
 
@@ -1035,16 +969,14 @@ def test_direct_tail_transform_matches_the_exact_safe_analysis_site() -> None:
     ),
     ids=("required", "optional-present", "prepend"),
 )
-def test_direct_wrap_values_match_vm(
+def test_direct_wrap_values_match_facade(
     grammar: str,
     tokens: list[Token],
 ) -> None:
-    vm, direct, _, _ = _generated_pair(grammar)
+    _, direct, _, _ = _generated_pair(grammar)
 
-    _, vm_result = _execute(vm.module_text, tokens)
     direct_namespace, direct_result = _execute(direct.module_text, tokens)
 
-    assert _shape(direct_result) == _shape(vm_result)
     assert direct_result.span == direct_namespace["SourceSpan"](5, 12)
 
 
@@ -1054,15 +986,13 @@ def test_direct_optional_wrap_exit_returns_the_seed_identity() -> None:
         "<Seed> ::= @Seed SEED\n"
         "<Wrapper> ::= @Wrapper WRAPPER"
     )
-    vm, direct, _, _ = _generated_pair(grammar)
+    _, direct, _, _ = _generated_pair(grammar)
 
-    _, vm_result = _execute(vm.module_text, [Token("SEED", start=3, end=7)])
     direct_namespace, direct_result = _execute(
         direct.module_text,
         [Token("SEED", start=3, end=7)],
     )
 
-    assert _shape(direct_result) == _shape(vm_result)
     assert direct_result.span == direct_namespace["SourceSpan"](3, 7)
 
 
@@ -1079,23 +1009,21 @@ def test_direct_wrap_preserves_a_multi_constructor_wrapper_schema(
         "<Seed> ::= @Seed SEED\n"
         "<Wrapper> ::= @First FIRST | @Second SECOND"
     )
-    vm, direct, _, _ = _generated_pair(grammar)
+    _, direct, _, _ = _generated_pair(grammar)
     tokens = [Token("SEED", start=0, end=4), Token(token_type, start=5, end=11)]
 
-    _, vm_result = _execute(vm.module_text, tokens)
     _, direct_result = _execute(direct.module_text, tokens)
 
     assert type(direct_result).__name__ == constructor
-    assert _shape(direct_result) == _shape(vm_result)
 
 
-def test_direct_left_fold_is_iterative_and_matches_vm_for_2000_operators() -> None:
+def test_direct_left_fold_is_iterative_and_matches_facade_for_2000_operators() -> None:
     grammar = (
         "<S> ::= <Expr>\n"
         "<Expr> ::= @Binary Left = <Expr> Operator = '+' Right = <Term> | <Term>\n"
         "<Term> ::= @Term Value = ITEM"
     )
-    vm, direct, _, _ = _generated_pair(grammar)
+    _, direct, _, _ = _generated_pair(grammar)
     tokens = [Token("ITEM", start=0, end=1)]
     for index in range(2_000):
         offset = 1 + index * 2
@@ -1103,7 +1031,6 @@ def test_direct_left_fold_is_iterative_and_matches_vm_for_2000_operators() -> No
             (Token("+", start=offset, end=offset + 1), Token("ITEM", start=offset + 1, end=offset + 2))
         )
 
-    _, vm_result = _execute(vm.module_text, tokens)
     direct_namespace = _execute_without_parse(direct.module_text)
     direct_result = direct_namespace["GeneratedParser"]().parse(tokens, "start")
 
@@ -1122,5 +1049,9 @@ def test_direct_left_fold_is_iterative_and_matches_vm_for_2000_operators() -> No
             value = value.Left
         return tuple(items), type(value).__name__, value.Value
 
-    assert fold_spine(direct_result) == fold_spine(vm_result)
+    spine, root_type, root_value = fold_spine(direct_result)
+    assert len(spine) == 2_000
+    assert spine[0] == (0, 4_001, "+", "Term", "ITEM")
+    assert spine[-1] == (0, 3, "+", "Term", "ITEM")
+    assert (root_type, root_value) == ("Term", "ITEM")
     assert "fold_accumulator" in direct.module_text

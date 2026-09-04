@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, FrozenInstanceError, replace
+import hashlib
 import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 
 import pytest
 
@@ -103,6 +105,84 @@ def test_generation_is_deterministic_and_rejects_incompatible_ir() -> None:
             parser_ir,
             {"start": "S"},
         )
+
+
+def test_generated_module_is_direct_and_has_stable_consumer_seams() -> None:
+    text = _generate("<S> ::= @Node Value = ITEM")[2].module_text
+
+    forbidden = (
+        "PRODUCTIONS =",
+        "DECISIONS =",
+        "class _Frame",
+        "_run_sequence",
+        "_run_operation",
+        "_deliver",
+        "_start_call",
+    )
+    assert 'PARSERGEN_BACKEND_ID = "python-semantic-direct-v1"' in text
+    assert text.count("# <parsergen:source-span>") == 1
+    assert text.count("# </parsergen:source-span>") == 1
+    assert text.count("# <parsergen:artifact-metadata>") == 1
+    assert text.count("# </parsergen:artifact-metadata>") == 1
+    assert all(symbol not in text for symbol in forbidden)
+    assert "import parsergen" not in text
+
+
+def test_generated_module_imports_and_parses_without_parsergen_on_pythonpath() -> None:
+    text = _generate("<S> ::= @Node Value = ITEM")[2].module_text
+    with tempfile.TemporaryDirectory() as temporary_directory:
+        module_path = Path(temporary_directory) / "standalone_generated.py"
+        module_path.write_text(text, encoding="utf-8")
+        environment = os.environ.copy()
+        environment["PYTHONPATH"] = ""
+        completed = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import standalone_generated; "
+                "Token = type('Token', (), {'type': 'ITEM', 'text': 'value', "
+                "'start': 0, 'end': 5, 'value': None}); "
+                "value = standalone_generated.GeneratedParser().parse([Token()], 'start'); "
+                "assert value.Value == 'ITEM'",
+            ],
+            cwd=temporary_directory,
+            env=environment,
+            capture_output=True,
+            text=True,
+        )
+    assert completed.returncode == 0, completed.stderr
+
+
+def test_generated_module_bytes_are_hash_seed_deterministic() -> None:
+    script = """
+import hashlib
+from parsergen.analysis import compute_analysis
+from parsergen.grammar_parser import parse_grammar
+from parsergen.parser_ir import build_parser_ir
+from parsergen.python_semantic_codegen import generate_python_semantic_parser
+from parsergen.resolver import resolve_grammar
+
+parsed = parse_grammar('<S> ::= @Node Value = ITEM', 'grammar.txt')
+resolved = resolve_grammar(parsed.grammar)
+analysis = compute_analysis(resolved.grammar, 1, ('S',))
+parser_ir = build_parser_ir(parsed.source_grammar, parsed.lowering, resolved.grammar, analysis, entrypoint_productions=('S',))
+generated = generate_python_semantic_parser(parsed.source_grammar, parser_ir, {'start': 'S'})
+print(hashlib.sha256(generated.module_text.encode('utf-8')).hexdigest())
+"""
+    outputs = []
+    for seed in (1, 3):
+        environment = os.environ.copy()
+        environment["PYTHONHASHSEED"] = str(seed)
+        environment["PYTHONPATH"] = str(Path(__file__).parents[1] / "src")
+        completed = subprocess.run(
+            [sys.executable, "-c", script],
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        outputs.append(completed.stdout.strip())
+    assert outputs[0] == outputs[1]
 
 
 def test_schema_errors_are_deterministic_for_multi_constructor_wrap() -> None:
