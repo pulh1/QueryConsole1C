@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import sys
 
 import pytest
 
@@ -225,6 +226,67 @@ def test_scoped_repeat_is_resultless_and_taps_every_item(
 
     assert result.Child == "actual"
     assert result.Items == ("first", "second")
+
+
+@pytest.mark.parametrize(
+    ("syntax_source", "profile_source", "token_types"),
+    (
+        (
+            "#Item ::= ITEM\n"
+            "<S> ::= [root] elements: <Elements>\n"
+            "<Elements> ::= [elements] ([item] item: #Item rest: <Elements>)?",
+            "profile worker\n"
+            "<S>[root] {\n@Owner\n-= elements\n}\n"
+            "<Elements>[item] {\n"
+            "^Owner.Items += item\n-= item\n-= rest\n}\n",
+            ("ITEM",),
+        ),
+        (
+            "#Item ::= ITEM\n"
+            "<S> ::= [root] body: <Block>\n"
+            "<Block> ::= [block] ([first] first: <Statement> "
+            "([rest] separator: SEP rest: <Block>)?)?\n"
+            "<Statement> ::= [statement] value: #Item | "
+            "[nested] discard: AGAIN nested: <Block> discard_2: END",
+            "profile worker\n"
+            "<S>[root] {\n@Owner\n-= body\n}\n"
+            "<Block>[first] {\n-= first\n}\n"
+            "<Block>[rest] {\n-= separator\n-= rest\n}\n"
+            "<Statement>[statement] {\n"
+            "^Owner.Items += value\n-= value\n}\n"
+            "<Statement>[nested] {\n"
+            "-= discard\n-= nested\n-= discard_2\n}\n",
+            ("ITEM", "SEP"),
+        ),
+    ),
+    ids=("module-elements", "statement-block"),
+)
+def test_resultless_discarded_tail_parses_5000_items_with_scoped_effects(
+    syntax_source: str,
+    profile_source: str,
+    token_types: tuple[str, ...],
+) -> None:
+    _, namespace = _generate(syntax_source, profile_source)
+    item_count = 5_000
+    expanded_types = (
+        token_types * item_count
+        if len(token_types) == 1
+        else token_types * (item_count - 1) + (token_types[0],)
+    )
+    tokens = [
+        Token(token_type, str(index), index, index + 1)
+        for index, token_type in enumerate(expanded_types)
+    ]
+    original_limit = sys.getrecursionlimit()
+
+    result = namespace["GeneratedParser"]().parse(tokens, "start")
+
+    assert sys.getrecursionlimit() == original_limit
+    assert result.Items == tuple(
+        str(index)
+        for index, token_type in enumerate(expanded_types)
+        if token_type == "ITEM"
+    )
 
 
 @pytest.mark.parametrize(

@@ -335,6 +335,66 @@ def test_pending_scoped_effect_prevents_recursion_transformation() -> None:
     assert analysis.recursive_calls == ()
 
 
+@pytest.mark.parametrize(
+    ("syntax_source", "profile_source", "production", "trail"),
+    (
+        (
+            "#Item ::= ITEM\n"
+            "<S> ::= [root] elements: <Elements>\n"
+            "<Elements> ::= [elements] ([item] item: #Item rest: <Elements>)?",
+            "profile worker\n"
+            "<S>[root] {\n@Owner\n-= elements\n}\n"
+            "<Elements>[item] {\n"
+            "^Owner.Items += item\n-= item\n-= rest\n}\n",
+            "Elements",
+            (
+                ("operation", 0),
+                ("branch", 0),
+                ("operation", 1),
+            ),
+        ),
+        (
+            "#Item ::= ITEM\n"
+            "<S> ::= [root] body: <Block>\n"
+            "<Block> ::= [block] ([first] first: <Statement> "
+            "([rest] separator: SEP rest: <Block>)?)?\n"
+            "<Statement> ::= [statement] value: #Item | "
+            "[nested] discard: AGAIN nested: <Block> discard_2: END",
+            "profile worker\n"
+            "<S>[root] {\n@Owner\n-= body\n}\n"
+            "<Block>[first] {\n-= first\n}\n"
+            "<Block>[rest] {\n-= separator\n-= rest\n}\n"
+            "<Statement>[statement] {\n"
+            "^Owner.Items += value\n-= value\n}\n"
+            "<Statement>[nested] {\n"
+            "-= discard\n-= nested\n-= discard_2\n}\n",
+            "Block",
+            (
+                ("operation", 0),
+                ("branch", 0),
+                ("operation", 1),
+                ("branch", 0),
+                ("operation", 1),
+            ),
+        ),
+    ),
+    ids=("direct-scoped-effect", "transitive-scoped-effect"),
+)
+def test_resultless_discarded_tail_preserves_scoped_effects_iteratively(
+    syntax_source: str,
+    profile_source: str,
+    production: str,
+    trail: tuple[tuple[str, int], ...],
+) -> None:
+    analysis = analyze_direct_render(_build_bound_ir(syntax_source, profile_source))
+
+    assert RecursiveCallSite(
+        IrSite(production, 0, trail),
+        "safe_tail_loop",
+        None,
+    ) in analysis.recursive_calls
+
+
 def test_left_fold_is_not_classified_as_direct_recursion() -> None:
     analysis = analyze_direct_render(
         _build_ir("<S> ::= @Node Left = <S> Right = ITEM | @Leaf ITEM")
@@ -343,7 +403,7 @@ def test_left_fold_is_not_classified_as_direct_recursion() -> None:
     assert analysis.recursive_calls == ()
 
 
-def test_mutual_recursion_is_not_transformed() -> None:
+def test_direct_self_tail_is_transformed_without_classifying_mutual_edges() -> None:
     analysis = analyze_direct_render(
         _build_ir(
             "<S> ::= ITEM <S> | <A>\n"
@@ -351,7 +411,13 @@ def test_mutual_recursion_is_not_transformed() -> None:
         )
     )
 
-    assert analysis.recursive_calls == ()
+    assert analysis.recursive_calls == (
+        RecursiveCallSite(
+            IrSite("S", 0, (("operation", 1),)),
+            "safe_tail_loop",
+            None,
+        ),
+    )
 
 
 def test_local_self_continuation_remains_safe_inside_a_mutual_component() -> None:

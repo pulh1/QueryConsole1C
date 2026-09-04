@@ -1352,6 +1352,19 @@ def test_direct_nested_discarded_call_does_not_adopt_a_non_none_base_result() ->
     assert analysis.recursive_calls == ()
 
 
+def test_direct_nested_discarded_call_does_not_adopt_an_implicit_constructor() -> None:
+    direct, parser_ir, _ = _generate("<S> ::= ITEM -= (<S>) | @End STOP")
+    analysis = analyze_direct_render(parser_ir)
+
+    _, result = _execute(
+        direct.module_text,
+        [Token("ITEM"), Token("ITEM"), Token("STOP")],
+    )
+
+    assert result is None
+    assert analysis.recursive_calls == ()
+
+
 def test_direct_nested_resolved_discarded_call_does_not_adopt_a_non_none_base_result() -> None:
     direct, parser_ir, source = _generate("<S> ::= ITEM -= (<S>) | := Истина STOP")
     production = parser_ir.productions[0]

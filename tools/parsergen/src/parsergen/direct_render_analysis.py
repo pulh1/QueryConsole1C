@@ -119,7 +119,7 @@ class _Analyzer:
         self.decisions: list[DecisionRenderFacts] = []
         self._calls_by_production: dict[str, set[str]] = {}
         self._scoped_effect_productions: set[str] = set()
-        self._syntax_only_productions: frozenset[str] = frozenset()
+        self._resultless_productions: frozenset[str] = frozenset()
 
     def analyze(self, parser_ir: ParserIr) -> DirectRenderAnalysis:
         self._calls_by_production = {
@@ -148,7 +148,19 @@ class _Analyzer:
                 )
             },
         )
-        self._syntax_only_productions = _syntax_only_productions(parser_ir)
+        self._resultless_productions = frozenset(
+            production.name
+            for production in parser_ir.productions
+            if all(
+                alternative.result_index is None
+                # A top-level constructor is the implicit alternative result.
+                and not any(
+                    isinstance(operation, ConstructNode)
+                    for operation in alternative.operations
+                )
+                for alternative in production.alternatives
+            )
+        )
         for production in parser_ir.productions:
             for alternative in production.alternatives:
                 site = IrSite(production.name, alternative.index, ())
@@ -163,16 +175,10 @@ class _Analyzer:
                     alternative.operations,
                     sequence_liveness,
                 )
-        components = _recursive_components(self._calls_by_production)
         return DirectRenderAnalysis(
             tuple(self.sequence_liveness),
             frozenset(self.mutable_owner_types),
-            tuple(
-                call
-                for call in self.recursive_calls
-                if call.kind == "local_continuation"
-                or _is_nonmutual_component(call.site.production, components)
-            ),
+            tuple(self.recursive_calls),
             tuple(self.result_flow),
             tuple(self.decisions),
         )
@@ -186,10 +192,10 @@ class _Analyzer:
     ) -> None:
         if (
             not operations
-            or production in self._scoped_effect_productions
-            or _contains_forbidden_recursion_state(operations)
+            or _contains_left_fold(operations)
         ):
             return
+        has_scoped_effects = production in self._scoped_effect_productions
         index = len(operations) - 1
         operation = operations[index]
         operation_site = _child_site(site, "operation", index)
@@ -209,13 +215,14 @@ class _Analyzer:
                     call_site,
                 )
                 if layout is not None:
-                    self.recursive_calls.append(
-                        RecursiveCallSite(
-                            call_site,
-                            "local_continuation",
-                            layout,
+                    if not has_scoped_effects:
+                        self.recursive_calls.append(
+                            RecursiveCallSite(
+                                call_site,
+                                "local_continuation",
+                                layout,
+                            )
                         )
-                    )
                     continue
                 propagates_unchanged = self._has_unchanged_result_flow(candidate)
                 self.result_flow.append(
@@ -226,7 +233,7 @@ class _Analyzer:
                     or self._has_live_enclosing_result(call_site)
                     or (
                         not propagates_unchanged
-                        and production not in self._syntax_only_productions
+                        and production not in self._resultless_productions
                     )
                 ):
                     continue
@@ -239,6 +246,8 @@ class _Analyzer:
                 index,
                 sequence_liveness.live_after[index],
             )
+            if layout.slots and has_scoped_effects:
+                continue
             self.recursive_calls.append(
                 RecursiveCallSite(
                     call_site,
@@ -695,61 +704,13 @@ def _contains_continuation_state(operations: tuple[Operation, ...]) -> bool:
     )
 
 
-def _contains_forbidden_recursion_state(
+def _contains_left_fold(
     operations: tuple[Operation, ...],
 ) -> bool:
     return any(
-        isinstance(operation, (AppendNearestOwner, LeftFold))
+        isinstance(operation, LeftFold)
         for operation in _walk_operations(operations)
     )
-
-
-def _recursive_components(
-    calls_by_production: dict[str, set[str]],
-) -> dict[str, frozenset[str]]:
-    names = frozenset(calls_by_production)
-    graph = {
-        production: frozenset(name for name in calls if name in names)
-        for production, calls in calls_by_production.items()
-    }
-    index = 0
-    indexes: dict[str, int] = {}
-    lowlinks: dict[str, int] = {}
-    stack: list[str] = []
-    on_stack: set[str] = set()
-    components: dict[str, frozenset[str]] = {}
-
-    def visit(name: str) -> None:
-        nonlocal index
-        indexes[name] = index
-        lowlinks[name] = index
-        index += 1
-        stack.append(name)
-        on_stack.add(name)
-        for target in graph[name]:
-            if target not in indexes:
-                visit(target)
-                lowlinks[name] = min(lowlinks[name], lowlinks[target])
-            elif target in on_stack:
-                lowlinks[name] = min(lowlinks[name], indexes[target])
-        if lowlinks[name] != indexes[name]:
-            return
-        component: list[str] = []
-        while True:
-            target = stack.pop()
-            on_stack.remove(target)
-            component.append(target)
-            if target == name:
-                break
-        frozen_component = frozenset(component)
-        components.update(
-            (member, frozen_component) for member in frozen_component
-        )
-
-    for name in graph:
-        if name not in indexes:
-            visit(name)
-    return components
 
 
 def _transitive_scoped_effect_productions(
@@ -767,77 +728,6 @@ def _transitive_scoped_effect_productions(
                 effect_productions.add(production)
                 changed = True
     return effect_productions
-
-
-def _syntax_only_productions(parser_ir: ParserIr) -> frozenset[str]:
-    syntax_only = {production.name for production in parser_ir.productions}
-    while True:
-        next_syntax_only = {
-            production.name
-            for production in parser_ir.productions
-            if all(
-                alternative.result_index is None
-                and _operations_are_syntax_only(
-                    alternative.operations,
-                    syntax_only,
-                )
-                for alternative in production.alternatives
-            )
-        }
-        if next_syntax_only == syntax_only:
-            return frozenset(syntax_only)
-        syntax_only = next_syntax_only
-
-
-def _operations_are_syntax_only(
-    operations: tuple[Operation, ...],
-    syntax_only_productions: set[str],
-) -> bool:
-    return all(
-        _operation_is_syntax_only(operation, syntax_only_productions)
-        for operation in operations
-    )
-
-
-def _operation_is_syntax_only(
-    operation: Operation,
-    syntax_only_productions: set[str],
-) -> bool:
-    if isinstance(operation, (ParseSymbol, DiscardSymbol)):
-        return not isinstance(operation.symbol, NonterminalCall) or (
-            operation.symbol.name in syntax_only_productions
-        )
-    if isinstance(operation, ConsumeKnownSymbol):
-        return True
-    if isinstance(operation, ResolvedRegion):
-        return _operations_are_syntax_only(
-            operation.operations,
-            syntax_only_productions,
-        )
-    if isinstance(operation, (Dispatch, RepeatLoop)):
-        return all(
-            _operations_are_syntax_only(branch.operations, syntax_only_productions)
-            for branch in operation.branches
-        )
-    if isinstance(operation, OptionalBranch):
-        return (
-            all(
-                _operations_are_syntax_only(branch.operations, syntax_only_productions)
-                for branch in operation.branches
-            )
-            and _operations_are_syntax_only(
-                operation.exit_operations,
-                syntax_only_productions,
-            )
-        )
-    return False
-
-
-def _is_nonmutual_component(
-    production: str,
-    components: dict[str, frozenset[str]],
-) -> bool:
-    return len(components[production]) == 1
 
 
 def _walk_operations(operations: tuple[Operation, ...]):
