@@ -49,6 +49,17 @@ class _ConstructorSite:
     trail: tuple[int, ...]
 
 
+@dataclass(frozen=True, slots=True)
+class _LocalContinuationFinish:
+    number: int
+    layout: ContinuationLayout
+    operation: Operation
+    trail: tuple[int, ...]
+    constructor_site: _ConstructorSite | None
+    result_index: int | None
+    operations: tuple[Operation, ...]
+
+
 class _DirectPythonRenderer:
     def __init__(
         self,
@@ -82,6 +93,16 @@ class _DirectPythonRenderer:
             for call in analysis.recursive_calls
             if call.kind == "safe_tail_loop"
         )
+        self._local_continuation_sites = {
+            (call.site.production, call.site.alternative, call.site.trail): call
+            for call in analysis.recursive_calls
+            if call.kind == "local_continuation"
+        }
+        self._continuation_finishes: dict[int, _LocalContinuationFinish] = {}
+        self._continuation_site_numbers: dict[object, int] = {}
+        self._rendering_operations: tuple[Operation, ...] = ()
+        self._rendering_result_index: int | None = None
+        self._has_local_continuations = False
 
     def render(self) -> str:
         return "\n\n".join((self._render_prelude(), self._render_parser())) + "\n"
@@ -128,57 +149,95 @@ class _DirectPythonRenderer:
             ),
         }
         self._rendering_production = production.name
+        local_calls = [
+            call
+            for (site_production, _, _), call in self._local_continuation_sites.items()
+            if site_production == production.name
+        ]
+        self._continuation_finishes = {}
+        self._continuation_site_numbers = {
+            call: index for index, call in enumerate(local_calls)
+        }
+        self._has_local_continuations = bool(local_calls)
         has_safe_tail_loop = any(
             site_production == production.name
             for site_production, _, _ in self._safe_tail_sites
         )
-        indent = "            " if has_safe_tail_loop else "        "
-        lines = [f"    def {self.production_names[production.name]}(self):"]
-        if has_safe_tail_loop:
-            lines.append("        while True:")
-        lines.append(f"{indent}start = self._offset()")
+        has_iteration_loop = has_safe_tail_loop or self._has_local_continuations
+        indent = "            " if has_iteration_loop else "        "
+        body = [f"{indent}start = self._offset()"]
         if production.decision is None:
             if len(production.alternatives) != 1:
                 raise ValueError("production alternatives require a canonical decision")
             self._rendering_alternative = production.alternatives[0].index
-            lines.extend(self._render_alternative(production.alternatives[0], indent))
+            body.extend(self._render_alternative(production.alternatives[0], indent))
             self._rendering_alternative = None
-            self._rendering_production = None
-            return "\n".join(lines)
-        lines.extend(self._render_decision(production.decision, indent, "outcome"))
-        for index, alternative in enumerate(production.alternatives):
-            prefix = "if" if index == 0 else "elif"
-            lines.append(
-                f"{indent}{prefix} outcome == ({production.name!r}, {alternative.index + 1!r}):"
+        else:
+            body.extend(self._render_decision(production.decision, indent, "outcome"))
+            for index, alternative in enumerate(production.alternatives):
+                prefix = "if" if index == 0 else "elif"
+                body.append(
+                    f"{indent}{prefix} outcome == ({production.name!r}, {alternative.index + 1!r}):"
+                )
+                self._rendering_alternative = alternative.index
+                body.extend(self._render_alternative(alternative, indent + "    "))
+            body.extend(
+                (
+                    f"{indent}else:",
+                    f"{indent}    raise RuntimeError(f\"decision outcome has no semantic branch: {{outcome!r}}\")",
+                )
             )
-            self._rendering_alternative = alternative.index
-            lines.extend(self._render_alternative(alternative, indent + "    "))
-        lines.extend(
-            (
-                f"{indent}else:",
-                f"{indent}    raise RuntimeError(f\"decision outcome has no semantic branch: {{outcome!r}}\")",
-            )
-        )
+        if self._has_local_continuations and len(self._continuation_finishes) != len(local_calls):
+            raise ValueError("direct renderer did not render every local continuation site")
+        lines = [f"    def {self.production_names[production.name]}(self):"]
+        if self._has_local_continuations:
+            lines.append("        continuations = []")
+            if len(local_calls) > 1:
+                lines.append("        continuation_sites = []")
+            for finish in self._continuation_finishes.values():
+                lines.extend(self._render_continuation_finish(finish, "        "))
+        if has_iteration_loop:
+            lines.append("        while True:")
+        lines.extend(body)
+        if self._has_local_continuations:
+            lines.extend(self._render_continuation_unwind("        "))
         self._rendering_alternative = None
         self._rendering_production = None
+        self._has_local_continuations = False
         return "\n".join(lines)
 
     def _render_alternative(self, alternative, indent: str) -> list[str]:
-        body, constructor_site = self._render_sequence(
-            alternative.operations,
-            alternative.result_index,
-            indent,
-            (),
-            None,
-        )
-        if constructor_site is None:
-            body.append(
-                f"{indent}return None"
-                if alternative.result_index is None
-                else f"{indent}return {self._value_name((alternative.result_index,))}"
+        previous_operations = self._rendering_operations
+        previous_result_index = self._rendering_result_index
+        self._rendering_operations = alternative.operations
+        self._rendering_result_index = alternative.result_index
+        try:
+            body, constructor_site = self._render_sequence(
+                alternative.operations,
+                alternative.result_index,
+                indent,
+                (),
+                None,
             )
+        finally:
+            self._rendering_operations = previous_operations
+            self._rendering_result_index = previous_result_index
+        result = (
+            "None"
+            if constructor_site is None and alternative.result_index is None
+            else (
+                self._value_name((alternative.result_index,))
+                if constructor_site is None
+                else self._freeze_expression(constructor_site, "start")
+            )
+        )
+        if self._has_local_continuations:
+            body.extend((f"{indent}result = {result}", f"{indent}break"))
+            return body
+        if constructor_site is None:
+            body.append(f"{indent}return {result}")
         else:
-            body.append(f"{indent}return {self._freeze_expression(constructor_site, 'start')}")
+            body.append(f"{indent}return {result}")
         return body
 
     def _render_decision(self, decision, indent: str, outcome: str) -> list[str]:
@@ -334,6 +393,18 @@ class _DirectPythonRenderer:
         value = self._value_name(trail)
         if self._is_safe_tail_call(trail):
             return [f"{indent}continue"], constructor_site
+        continuation = self._local_continuation_site(trail, operation)
+        if continuation is not None:
+            return (
+                self._render_local_continuation_push(
+                    continuation,
+                    operation,
+                    trail,
+                    constructor_site,
+                    indent,
+                ),
+                constructor_site,
+            )
         if isinstance(operation, ParseSymbol):
             if isinstance(operation.symbol, NonterminalCall):
                 return [f"{indent}{value} = self.{self._production_name(operation.symbol.name)}()"], constructor_site
@@ -529,6 +600,198 @@ class _DirectPythonRenderer:
             self._rendering_alternative,
             (("operation", trail[0]),),
         ) in self._safe_tail_sites
+
+    def _local_continuation_site(self, trail: tuple[int, ...], operation: Operation):
+        if (
+            self._rendering_production is None
+            or self._rendering_alternative is None
+            or len(trail) != 1
+        ):
+            return None
+        operation_site = (("operation", trail[0]),)
+        key = (
+            self._rendering_production,
+            self._rendering_alternative,
+            operation_site,
+        )
+        continuation = self._local_continuation_sites.get(key)
+        if continuation is not None:
+            return continuation
+        return self._local_continuation_sites.get(
+            (
+                self._rendering_production,
+                self._rendering_alternative,
+                (*operation_site, ("value", 0)),
+            )
+        )
+
+    def _render_local_continuation_push(
+        self,
+        continuation,
+        operation: Operation,
+        trail: tuple[int, ...],
+        constructor_site: _ConstructorSite | None,
+        indent: str,
+    ) -> list[str]:
+        if continuation.layout is None:
+            raise ValueError("local continuation is missing its layout")
+        number = self._continuation_site_numbers[continuation]
+        existing = self._continuation_finishes.get(number)
+        finish = _LocalContinuationFinish(
+            number,
+            continuation.layout,
+            operation,
+            trail,
+            constructor_site,
+            self._rendering_result_index,
+            self._rendering_operations,
+        )
+        if existing is not None and existing != finish:
+            raise ValueError("local continuation site was rendered inconsistently")
+        self._continuation_finishes[number] = finish
+        saved = ", ".join(
+            self._continuation_slot_expression(slot, finish)
+            for slot in continuation.layout.slots
+        )
+        if len(continuation.layout.slots) == 1:
+            saved += ","
+        lines = [f"{indent}continuations.append(({saved}))"]
+        if len(self._continuation_site_numbers) > 1:
+            lines.append(f"{indent}continuation_sites.append({number!r})")
+        return [*lines, f"{indent}continue"]
+
+    def _continuation_slot_expression(
+        self,
+        slot,
+        finish: _LocalContinuationFinish,
+    ) -> str:
+        if slot.kind == "span_start":
+            return "start"
+        if slot.kind == "operation_result":
+            if slot.index is None:
+                raise ValueError("operation-result continuation slot has no index")
+            return self._value_name((slot.index,))
+        if slot.kind == "wrap_seed":
+            if slot.index is None:
+                raise ValueError("wrap-seed continuation slot has no index")
+            return self._value_name((slot.index, 0))
+        if slot.kind in {"builder_field", "collection_accumulator"}:
+            if slot.index is None:
+                raise ValueError("builder continuation slot has no index")
+            try:
+                operation = finish.operations[slot.index]
+            except IndexError as error:
+                raise ValueError("continuation slot is outside its sequence") from error
+            if not isinstance(
+                operation,
+                (BindScalar, AppendCollection, ExtendCollection, ConcatScalar, IncrementScalar),
+            ):
+                raise ValueError("continuation slot does not name a builder operation")
+            property_name = (
+                "items"
+                if isinstance(operation, AppendCollection) and operation.property is None
+                else operation.property
+            )
+            return self._field_local(finish.constructor_site, property_name)
+        if slot.kind == "fold_accumulator":
+            raise ValueError("fold continuation is not supported by direct right recursion")
+        raise TypeError(slot.kind)
+
+    def _render_continuation_finish(
+        self,
+        finish: _LocalContinuationFinish,
+        indent: str,
+    ) -> list[str]:
+        restored = [
+            self._continuation_slot_expression(slot, finish)
+            for slot in finish.layout.slots
+        ]
+        lines = [f"{indent}def finish_site_{finish.number}(saved, result):"]
+        if len(restored) == 1:
+            lines.append(f"{indent}    {restored[0]}, = saved")
+        else:
+            lines.append(f"{indent}    {', '.join(restored)} = saved")
+        lines.extend(self._render_continuation_result_binding(finish, indent + "    "))
+        lines.append(f"{indent}    {self._continuation_finish_return(finish)}")
+        return lines
+
+    def _render_continuation_result_binding(
+        self,
+        finish: _LocalContinuationFinish,
+        indent: str,
+    ) -> list[str]:
+        operation = finish.operation
+        if isinstance(operation, BindScalar):
+            return [
+                f"{indent}{self._field_local(finish.constructor_site, operation.property)} = result"
+            ]
+        if isinstance(operation, AppendCollection):
+            property_name = "items" if operation.property is None else operation.property
+            return [
+                f"{indent}{self._field_local(finish.constructor_site, property_name)}.append(result)"
+            ]
+        if isinstance(operation, ExtendCollection):
+            target = self._field_local(finish.constructor_site, operation.property)
+            return [
+                f"{indent}{target}.extend(result.items if hasattr(result, 'items') else result) if result is not None else None"
+            ]
+        if isinstance(operation, ConcatScalar):
+            return [
+                f"{indent}{self._field_local(finish.constructor_site, operation.property)} += result"
+            ]
+        if isinstance(operation, IncrementScalar):
+            return [
+                f"{indent}{self._field_local(finish.constructor_site, operation.property)} += 1"
+            ]
+        if isinstance(operation, WrapValue):
+            target = self._value_name(finish.trail)
+            seed = self._value_name((*finish.trail, 0))
+            return [
+                f"{indent}{target} = result",
+                *self._render_wrap_apply(
+                    target,
+                    seed,
+                    operation.property,
+                    operation.prepend,
+                    indent,
+                ),
+            ]
+        if isinstance(operation, ParseSymbol):
+            return [f"{indent}{self._value_name(finish.trail)} = result"]
+        if isinstance(operation, DiscardSymbol):
+            return []
+        raise TypeError(
+            f"direct renderer cannot finish {type(operation).__name__} local continuation"
+        )
+
+    def _continuation_finish_return(self, finish: _LocalContinuationFinish) -> str:
+        if finish.constructor_site is not None:
+            return f"return {self._freeze_expression(finish.constructor_site, 'start')}"
+        if finish.result_index is None:
+            return "return None"
+        return f"return {self._value_name((finish.result_index,))}"
+
+    def _render_continuation_unwind(self, indent: str) -> list[str]:
+        finishes = tuple(self._continuation_finishes.values())
+        lines = [f"{indent}while continuations:", f"{indent}    saved = continuations.pop()"]
+        if len(finishes) == 1:
+            lines.append(f"{indent}    result = finish_site_0(saved, result)")
+        else:
+            lines.append(f"{indent}    continuation_site = continuation_sites.pop()")
+            for index, finish in enumerate(finishes):
+                prefix = "if" if index == 0 else "elif"
+                lines.append(f"{indent}    {prefix} continuation_site == {finish.number!r}:")
+                lines.append(
+                    f"{indent}        result = finish_site_{finish.number}(saved, result)"
+                )
+            lines.extend(
+                (
+                    f"{indent}    else:",
+                    f"{indent}        raise RuntimeError('unknown local continuation site')",
+                )
+            )
+        lines.append(f"{indent}return result")
+        return lines
 
     def _render_binding(
         self,

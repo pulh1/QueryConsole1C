@@ -825,7 +825,130 @@ def test_direct_constructor_recursion_is_not_rendered_as_a_tail_loop() -> None:
     generated_production = direct.module_text.split(f"    def {method}(self):", 1)[1]
 
     assert analysis.recursive_calls[0].kind == "local_continuation"
-    assert f"self.{method}()" in generated_production
+    assert "continuations = []" in generated_production
+    assert "def finish_site_0(saved, result):" in generated_production
+    assert f"self.{method}()" not in generated_production
+
+
+def test_value_carrying_right_recursion_builds_5000_linked_nodes() -> None:
+    _, direct, _, _ = _generated_pair(
+        "<S> ::= @Link Value = ITEM Rest = <S> | @End STOP"
+    )
+    parser = _execute_without_parse(direct.module_text)["GeneratedParser"]()
+    tokens = [Token("ITEM", start=index, end=index + 1) for index in range(5_000)]
+    tokens.append(Token("STOP", start=5_000, end=5_001))
+
+    node = parser.parse(tokens, "start")
+
+    count = 0
+    while type(node).__name__ == "Link":
+        assert node.span.start == count
+        count += 1
+        node = node.Rest
+    assert count == 5_000
+    assert type(node).__name__ == "End"
+
+
+def _record_constructor_calls(
+    namespace: dict[str, object],
+    name: str,
+    calls: list[tuple[str, tuple[int, int]]],
+    *,
+    fail_on: int | None = None,
+) -> None:
+    original = namespace[name]
+
+    def factory(*values: object) -> object:
+        span = values[-1]
+        calls.append((name, (span.start, span.end)))
+        if fail_on is not None and len(calls) == fail_on:
+            raise RuntimeError("injected freeze failure")
+        return original(*values)
+
+    namespace[name] = factory
+    namespace["AST_CLASSES"][name] = factory
+
+
+def test_value_carrying_right_recursion_preserves_freeze_and_span_order() -> None:
+    vm, direct, _, _ = _generated_pair(
+        "<S> ::= @Link Value = ITEM Rest = <S> | @End STOP"
+    )
+    tokens = [Token("ITEM", start=index, end=index + 1) for index in range(3)]
+    tokens.append(Token("STOP", start=3, end=4))
+    vm_namespace = _execute_without_parse(vm.module_text)
+    direct_namespace = _execute_without_parse(direct.module_text)
+    vm_calls: list[tuple[str, tuple[int, int]]] = []
+    direct_calls: list[tuple[str, tuple[int, int]]] = []
+    _record_constructor_calls(vm_namespace, "Link", vm_calls)
+    _record_constructor_calls(vm_namespace, "End", vm_calls)
+    _record_constructor_calls(direct_namespace, "Link", direct_calls)
+    _record_constructor_calls(direct_namespace, "End", direct_calls)
+
+    vm_result = vm_namespace["GeneratedParser"]().parse(tokens, "start")
+    direct_result = direct_namespace["GeneratedParser"]().parse(tokens, "start")
+
+    assert _shape(direct_result) == _shape(vm_result)
+    assert direct_calls == vm_calls == [
+        ("End", (3, 4)),
+        ("Link", (2, 4)),
+        ("Link", (1, 4)),
+        ("Link", (0, 4)),
+    ]
+
+
+def test_value_carrying_right_recursion_raises_on_the_same_freeze_node() -> None:
+    vm, direct, _, _ = _generated_pair(
+        "<S> ::= @Link Value = ITEM Rest = <S> | @End STOP"
+    )
+    tokens = [Token("ITEM", start=index, end=index + 1) for index in range(3)]
+    tokens.append(Token("STOP", start=3, end=4))
+    vm_namespace = _execute_without_parse(vm.module_text)
+    direct_namespace = _execute_without_parse(direct.module_text)
+    vm_calls: list[tuple[str, tuple[int, int]]] = []
+    direct_calls: list[tuple[str, tuple[int, int]]] = []
+    _record_constructor_calls(vm_namespace, "Link", vm_calls, fail_on=3)
+    _record_constructor_calls(vm_namespace, "End", vm_calls, fail_on=3)
+    _record_constructor_calls(direct_namespace, "Link", direct_calls, fail_on=3)
+    _record_constructor_calls(direct_namespace, "End", direct_calls, fail_on=3)
+
+    with pytest.raises(RuntimeError, match="^injected freeze failure$"):
+        vm_namespace["GeneratedParser"]().parse(tokens, "start")
+    with pytest.raises(RuntimeError, match="^injected freeze failure$"):
+        direct_namespace["GeneratedParser"]().parse(tokens, "start")
+
+    assert direct_calls == vm_calls
+
+
+def test_multiple_local_continuation_sites_unwind_lifo_without_single_site_tag_stack() -> None:
+    _, single_site, _, _ = _generated_pair(
+        "<S> ::= @Link Value = ITEM Rest = <S> | @End STOP"
+    )
+    vm, direct, _, _ = _generated_pair(
+        "<S> ::= @ItemA Value = A Rest = <S> | "
+        "@ItemB Value = B Rest = <S> | @End STOP"
+    )
+    tokens = [
+        Token("A", start=0, end=1),
+        Token("B", start=1, end=2),
+        Token("A", start=2, end=3),
+        Token("STOP", start=3, end=4),
+    ]
+
+    _, vm_result = _execute(vm.module_text, tokens)
+    _, direct_result = _execute(direct.module_text, tokens)
+
+    assert _shape(direct_result) == _shape(vm_result)
+    assert [
+        type(item).__name__
+        for item in (
+            direct_result,
+            direct_result.Rest,
+            direct_result.Rest.Rest,
+            direct_result.Rest.Rest.Rest,
+        )
+    ] == ["ItemA", "ItemB", "ItemA", "End"]
+    assert "continuation_sites = []" in direct.module_text
+    assert "continuation_sites = []" not in single_site.module_text
 
 
 def test_direct_tail_transform_matches_the_exact_safe_analysis_site() -> None:
@@ -842,7 +965,8 @@ def test_direct_tail_transform_matches_the_exact_safe_analysis_site() -> None:
         (1, "local_continuation"),
     }
     assert "        while True:" in generated_production
-    assert "self._p_0000()" in generated_production
+    assert "continuations = []" in generated_production
+    assert "self._p_0000()" not in generated_production
 
 
 @pytest.mark.parametrize(
