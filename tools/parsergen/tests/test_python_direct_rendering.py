@@ -951,6 +951,34 @@ def test_multiple_local_continuation_sites_unwind_lifo_without_single_site_tag_s
     assert "continuation_sites = []" not in single_site.module_text
 
 
+def test_wrap_value_local_continuation_saves_its_seed_before_recursing() -> None:
+    grammar = "<S> ::= <Leaf> Next => <S> | @End STOP\n<Leaf> ::= @Leaf ITEM"
+    vm, direct, _, _ = _generated_pair(grammar)
+    tokens = [Token("ITEM", start=0, end=4), Token("STOP", start=5, end=9)]
+
+    _, vm_result = _execute(vm.module_text, tokens)
+    direct_namespace, direct_result = _execute(direct.module_text, tokens)
+
+    assert _shape(direct_result) == _shape(vm_result)
+    assert type(direct_result).__name__ == "End"
+    assert type(direct_result.Next).__name__ == "Leaf"
+    assert direct_result.Next.span == direct_namespace["SourceSpan"](0, 4)
+    assert direct_result.span == direct_namespace["SourceSpan"](5, 9)
+
+
+def test_prepend_wrap_value_local_continuation_matches_vm() -> None:
+    grammar = "<S> ::= <Leaf> Items +=> <S> | @End STOP\n<Leaf> ::= @Leaf ITEM"
+    vm, direct, _, _ = _generated_pair(grammar)
+    tokens = [Token("ITEM", start=0, end=4), Token("STOP", start=5, end=9)]
+
+    _, vm_result = _execute(vm.module_text, tokens)
+    _, direct_result = _execute(direct.module_text, tokens)
+
+    assert _shape(direct_result) == _shape(vm_result)
+    assert type(direct_result).__name__ == "End"
+    assert type(direct_result.Items[0]).__name__ == "Leaf"
+
+
 def test_direct_tail_transform_matches_the_exact_safe_analysis_site() -> None:
     _, direct, parser_ir, _ = _generated_pair(
         "<S> ::= ITEM <S> | @Node Value = MARK <S> | @End STOP"

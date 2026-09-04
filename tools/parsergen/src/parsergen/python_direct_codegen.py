@@ -635,6 +635,15 @@ class _DirectPythonRenderer:
     ) -> list[str]:
         if continuation.layout is None:
             raise ValueError("local continuation is missing its layout")
+        lines: list[str] = []
+        if isinstance(operation, WrapValue):
+            seed_lines, _ = self._render_operation(
+                operation.seed,
+                indent,
+                (*trail, 0),
+                constructor_site,
+            )
+            lines.extend(seed_lines)
         number = self._continuation_site_numbers[continuation]
         existing = self._continuation_finishes.get(number)
         finish = _LocalContinuationFinish(
@@ -655,7 +664,7 @@ class _DirectPythonRenderer:
         )
         if len(continuation.layout.slots) == 1:
             saved += ","
-        lines = [f"{indent}continuations.append(({saved}))"]
+        lines.append(f"{indent}continuations.append(({saved}))")
         if len(self._continuation_site_numbers) > 1:
             lines.append(f"{indent}continuation_sites.append({number!r})")
         return [*lines, f"{indent}continue"]
