@@ -654,7 +654,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(stats["select_cartesian_materializations"], 0)
         self.assertEqual(stats["select_packed_product_rows"], 0)
 
-    def test_arithmetic_families_lower_to_canonical_left_folds(self) -> None:
+    def test_arithmetic_families_lower_to_canonical_left_folds_in_full_ir(self) -> None:
         parsed = parse_grammar(
             REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
             str(REPOSITORY_GRAMMAR),
@@ -675,14 +675,14 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=("АрифметическоеВыражение", "Слагаемое"),
         )
 
-        self.assertEqual(
-            tuple(production.name for production in parser_ir.productions),
-            ("АрифметическоеВыражение", "Слагаемое"),
-        )
-        for production in parser_ir.productions:
+        productions = {
+            production.name: production
+            for production in parser_ir.productions
+        }
+        for name in ("АрифметическоеВыражение", "Слагаемое"):
+            production = productions[name]
             with self.subTest(production=production.name):
                 self.assertEqual(len(production.alternatives), 1)
                 self.assertIsInstance(

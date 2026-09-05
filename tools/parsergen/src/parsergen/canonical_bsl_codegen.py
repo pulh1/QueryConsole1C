@@ -98,12 +98,6 @@ _GENERATED_LOCALS = frozenset(
 )
 
 
-@dataclass(frozen=True, slots=True)
-class CanonicalGeneratedFunctions:
-    module_fragment: str
-    constructor_names: tuple[str, ...]
-
-
 @dataclass(slots=True)
 class _RecursionRendering:
     """Emission state for one production; eligibility belongs to RecursionPlan."""
@@ -133,24 +127,6 @@ def generate_canonical_parser(
     ).generate()
 
 
-def generate_canonical_functions(
-    source: SourceGrammar,
-    parser_ir: ParserIr,
-    *,
-    abi_parameters: tuple[str, ...] = (),
-    call_argument_prefix: tuple[str, ...] = (),
-    named_predicates: Mapping[tuple[str, ...], str] | None = None,
-) -> CanonicalGeneratedFunctions:
-    return _CanonicalBslGenerator(
-        source,
-        parser_ir,
-        {},
-        named_predicates=named_predicates,
-    ).generate_functions(
-        abi_parameters,
-        call_argument_prefix,
-    )
-
 class _CanonicalBslGenerator:
     def __init__(
         self,
@@ -173,8 +149,6 @@ class _CanonicalBslGenerator:
         self._constructors: list[str] = []
         self._seen_constructors: set[str] = set()
         self._fold_left_values: list[str] = []
-        self._abi_parameters: tuple[str, ...] = ()
-        self._call_argument_prefix: tuple[str, ...] = ()
         self._recursion_rendering: _RecursionRendering | None = None
 
     def generate(self) -> GeneratedParser:
@@ -193,31 +167,6 @@ class _CanonicalBslGenerator:
             tuple(self._constructors),
         )
 
-    def generate_functions(
-        self,
-        abi_parameters: tuple[str, ...],
-        call_argument_prefix: tuple[str, ...],
-    ) -> CanonicalGeneratedFunctions:
-        self._abi_parameters = tuple(abi_parameters)
-        self._call_argument_prefix = tuple(call_argument_prefix)
-        self._validate_common_inputs()
-        self._validate_abi_parameters()
-        if (
-            self._call_argument_prefix
-            and len(self._call_argument_prefix) != len(self._abi_parameters)
-        ):
-            raise ValueError(
-                "call argument prefix must match ABI parameter count"
-            )
-        self._validate_generated_symbols(
-            include_template=False,
-            include_entrypoints=False,
-        )
-        return CanonicalGeneratedFunctions(
-            self._render_productions(),
-            tuple(self._constructors),
-        )
-
     def _validate_inputs(self) -> None:
         self._validate_common_inputs()
         if not self._entrypoints:
@@ -233,10 +182,7 @@ class _CanonicalBslGenerator:
                     f"entrypoint {entrypoint!r} references unknown "
                     f"production {production!r}"
                 )
-        self._validate_generated_symbols(
-            include_template=True,
-            include_entrypoints=True,
-        )
+        self._validate_generated_symbols()
 
     def _validate_common_inputs(self) -> None:
         if self._source != self._ir.source_grammar:
@@ -257,32 +203,6 @@ class _CanonicalBslGenerator:
             self._validate_parameters(production)
             if production.decision is not None:
                 self._validate_decision(production.decision)
-
-    def _validate_abi_parameters(self) -> None:
-        observed: set[str] = set()
-        declared = {
-            parameter.casefold()
-            for production in self._ir.productions
-            for parameter in production.parameters
-        }
-        for parameter in self._abi_parameters:
-            validate_bsl_identifier(parameter, "production ABI parameter")
-            key = parameter.casefold()
-            if key in observed:
-                raise ValueError(f"duplicate ABI parameter {parameter!r}")
-            if key in declared:
-                raise ValueError(
-                    f"ABI parameter {parameter!r} collides with declared parameter"
-                )
-            if (
-                key in _GENERATED_LOCALS
-                or _TEMPORARY.fullmatch(parameter)
-                or _DECISION_TOKEN.fullmatch(parameter)
-            ):
-                raise ValueError(
-                    f"ABI parameter {parameter!r} collides with generated local"
-                )
-            observed.add(key)
 
     def _validate_parameters(self, production: ProductionIr) -> None:
         observed: set[str] = set()
@@ -316,32 +236,25 @@ class _CanonicalBslGenerator:
         if decision.dag.lookahead != decision.source.lookahead:
             raise ValueError("canonical decision DAG lookahead differs")
 
-    def _validate_generated_symbols(
-        self,
-        *,
-        include_template: bool,
-        include_entrypoints: bool,
-    ) -> None:
+    def _validate_generated_symbols(self) -> None:
         symbols: list[tuple[str, str]] = []
         if self._named_predicates:
             symbols.append(
                 (_TOKEN_CLASS_HELPER_NAME, "named token-set helper")
             )
-        if include_template:
-            symbols.extend(
-                (matched.group(1), "canonical template helper")
-                for matched in _BSL_DECLARATION.finditer(_load_template())
-            )
+        symbols.extend(
+            (matched.group(1), "canonical template helper")
+            for matched in _BSL_DECLARATION.finditer(_load_template())
+        )
         symbols.extend(
             (f"НеТерминал{item.name}", f"production {item.name!r}")
             for item in self._ir.productions
         )
-        if include_entrypoints:
-            for entrypoint in self._entrypoints:
-                symbols.append((entrypoint, "exported entrypoint"))
-                symbols.append(
-                    (_entry_result_name(entrypoint), "derived result function")
-                )
+        for entrypoint in self._entrypoints:
+            symbols.append((entrypoint, "exported entrypoint"))
+            symbols.append(
+                (_entry_result_name(entrypoint), "derived result function")
+            )
         observed: dict[str, tuple[str, str]] = {}
         for name, origin in symbols:
             validate_bsl_identifier(name, origin)
@@ -392,7 +305,7 @@ class _CanonicalBslGenerator:
         self._temporary = 0
         parameters = ", ".join(
             f"{item} = Неопределено"
-            for item in (*self._abi_parameters, *production.parameters)
+            for item in production.parameters
         )
         calls = {
             call.site: call
@@ -985,12 +898,7 @@ class _CanonicalBslGenerator:
     def _symbol_call(self, symbol: SyntaxSymbol) -> str:
         if not isinstance(symbol, NonterminalCall):
             return _symbol_call(symbol)
-        arguments = (
-            (*self._call_argument_prefix, *symbol.arguments)
-            if symbol.arguments
-            else ()
-        )
-        return f"НеТерминал{symbol.name}({', '.join(arguments)})"
+        return f"НеТерминал{symbol.name}({', '.join(symbol.arguments)})"
 
     def _known_current_value(self, symbol: SyntaxSymbol) -> str:
         if isinstance(symbol, (Terminal, Lexeme)):

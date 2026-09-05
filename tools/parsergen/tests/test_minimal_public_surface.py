@@ -1,9 +1,12 @@
 import importlib.util
+import inspect
 
 import pytest
 
 import parsergen
+import parsergen.canonical_bsl_codegen as canonical_bsl_codegen
 from parsergen.config import ParsergenConfig, load_config
+from parsergen.parser_ir import build_parser_ir
 
 
 REMOVED = (
@@ -46,3 +49,12 @@ def test_public_surface_has_no_legacy_bsl_or_migration_path(tmp_path) -> None:
     assert not hasattr(ParsergenConfig, "canonical_productions")
     with pytest.raises(ValueError, match="unexpected top-level configuration keys: 'migration'"):
         load_config(config)
+
+
+def test_parser_ir_signature_has_no_projection_selector() -> None:
+    assert "production_names" not in inspect.signature(build_parser_ir).parameters
+
+
+def test_canonical_bsl_module_has_no_projection_fragment_seam() -> None:
+    assert not hasattr(canonical_bsl_codegen, "generate_canonical_functions")
+    assert not hasattr(canonical_bsl_codegen, "CanonicalGeneratedFunctions")
