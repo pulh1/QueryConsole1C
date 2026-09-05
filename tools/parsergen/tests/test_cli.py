@@ -277,7 +277,9 @@ class CliTests(unittest.TestCase):
         self.assertEqual(target_module.read_text(encoding="utf-8"), "stale")
         self.assertEqual(manager.read_bytes(), manager_before)
 
-    def test_validate_rejects_raw_action_before_generation(
+    # Mutation caught: allow generate to reach artifact replacement for a
+    # grammar containing arbitrary source actions.
+    def test_generate_rejects_raw_action_without_writing_artifacts(
         self,
     ) -> None:
         config, target = self.make_configured_project()
@@ -300,11 +302,12 @@ class CliTests(unittest.TestCase):
         )
         before = tuple(path.read_bytes() for path in artifact_paths)
 
-        completed = self.run_cli("validate", "--config", str(config))
+        completed = self.run_cli("generate", "--config", str(config))
 
         self.assertEqual(completed.returncode, 1)
+        self.assertEqual(completed.stdout, "")
         self.assertIn(
-            "arbitrary source actions require declarative bindings",
+            "error VAL104: arbitrary source actions require declarative bindings\n",
             completed.stderr,
         )
         self.assertEqual(

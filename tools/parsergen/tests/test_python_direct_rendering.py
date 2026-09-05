@@ -968,6 +968,33 @@ def test_direct_safe_tail_recursion_parses_5000_items_without_recursive_call() -
     assert f"self.{tail_method}()" not in generated_tail
 
 
+# Mutation caught: a renderer bypasses the shared eligibility decision and
+# iterates a parameterized call instead of retaining its ordinary call path.
+# Python's existing call contract is parameterless; BSL expressions are not
+# evaluated by this target.
+@pytest.mark.parametrize("body", [
+    "ITEM <S>(Context.Next()) | STOP",
+    "@Link Value = ITEM Rest = <S>(Context.Next()) | @End STOP",
+])
+def test_recursive_arguments_keep_normal_python_call_path(body: str) -> None:
+    direct, _, _ = _generate(f"<S>(Context) ::= {body}")
+    production = direct.module_text.split("    def _p_0000(self):", 1)[1]
+
+    assert "self._p_0000()" in production
+    assert "while True:" not in production
+    namespace, result = _execute(direct.module_text, [
+        Token("ITEM", "a", start=0, end=1),
+        Token("ITEM", "b", start=2, end=3),
+        Token("STOP", start=4, end=5),
+    ])
+    if body.startswith("@Link"):
+        assert (result.Value, result.Rest.Value) == ("ITEM", "ITEM")
+        assert type(result.Rest.Rest) is namespace["End"]
+        assert (result.span.start, result.span.end) == (0, 5)
+    else:
+        assert result is None
+
+
 def test_direct_constructor_recursion_is_not_rendered_as_a_tail_loop() -> None:
     direct, parser_ir, _ = _generate(
         "<S> ::= @Node Value = ITEM <S> | @End STOP"
@@ -1211,6 +1238,30 @@ def test_wrap_value_local_continuation_saves_its_seed_before_recursing() -> None
         direct_namespace["SourceSpan"](0, 4),
         direct_namespace["SourceSpan"](5, 9),
     )
+
+
+# Mutation caught: discard the live completed wrapper or overwrite its seed
+# with the nested recursive result while unwinding multiple frames.
+def test_completed_prefix_wrap_survives_discarded_recursive_results() -> None:
+    direct, _, _ = _generate(
+        "<S> ::= <Leaf> Next => <Wrapped> -= <S> | @End STOP\n"
+        "<Leaf> ::= @Leaf ITEM\n<Wrapped> ::= @Wrapped WRAP"
+    )
+    namespace, result = _execute(direct.module_text, [
+        Token("ITEM", start=0, end=1), Token("WRAP", start=2, end=3),
+        Token("ITEM", start=4, end=5), Token("WRAP", start=6, end=7),
+        Token("STOP", start=8, end=9),
+    ])
+
+    assert type(result) is namespace["Wrapped"]
+    assert type(result.Next) is namespace["Leaf"]
+    assert result.Next.span == namespace["SourceSpan"](0, 1)
+    assert result.span == namespace["SourceSpan"](2, 3)
+    production = direct.module_text.split("    def _p_0000(self):", 1)[1].split(
+        "    def _p_0001(self):", 1
+    )[0]
+    assert "continuations = []" in production
+    assert "self._p_0000()" not in production
 
 
 def test_prepend_wrap_value_local_continuation_preserves_items_and_seed() -> None:

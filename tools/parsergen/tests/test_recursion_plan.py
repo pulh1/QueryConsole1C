@@ -1,5 +1,7 @@
 from dataclasses import fields, is_dataclass, replace
 
+import pytest
+
 from parsergen.analysis import compute_analysis
 from parsergen.grammar_parser import parse_grammar
 from parsergen.parser_ir import (
@@ -128,3 +130,48 @@ def test_plan_never_emits_a_fold_accumulator_continuation_slot() -> None:
     plan = analyze_recursion_plan(source, parser_ir)
 
     assert plan.sites == ()
+
+
+# Mutation caught: replace calls with iteration while dropping evaluation of
+# actual arguments or the default-parameter reset of an omitted argument.
+@pytest.mark.parametrize("grammar", [
+    "<S>(Context) ::= ITEM <S>(Context.Next()) | STOP",
+    "<S>(Context) ::= @Link Value = ITEM Rest = <S>(Context.Next()) | @End STOP",
+    "<S>(Context) ::= ITEM <S>(Context) | STOP",
+    "<S>(Context) ::= ITEM <S> | STOP",
+    "<S>(First, Second) ::= ITEM <S>(Second, First) | STOP",
+    "<S>(Context) ::= (ITEM <S>(Context.Next()))?",
+])
+def test_plan_keeps_parameter_state_changes_recursive(grammar: str) -> None:
+    source, parser_ir = _build(grammar)
+
+    assert analyze_recursion_plan(source, parser_ir).sites == ()
+
+
+# Mutation caught: snapshot a completed prefix wrapper's seed a second time,
+# or remove the seed needed to finish a genuinely suspended WrapValue.
+@pytest.mark.parametrize("grammar, trail, slots", [
+    (
+        "<S> ::= <Leaf> Next => <Wrapped> -= <S> | @End STOP\n"
+        "<Leaf> ::= @Leaf ITEM\n<Wrapped> ::= @Wrapped WRAP",
+        (("operation", 1),),
+        (ContinuationSlot("operation_result", 0),),
+    ),
+    (
+        "<S> ::= <Leaf> Next => <S> | @End STOP\n<Leaf> ::= @Leaf ITEM",
+        (("operation", 0), ("value", 0)),
+        (ContinuationSlot("wrap_seed", 0),),
+    ),
+])
+def test_wrap_layout_saves_only_state_needed_after_recursion(
+    grammar: str, trail: tuple, slots: tuple[ContinuationSlot, ...],
+) -> None:
+    source, parser_ir = _build(grammar)
+
+    plan = analyze_recursion_plan(source, parser_ir)
+
+    assert len(plan.sites) == 1
+    call = plan.sites[0]
+    assert call.site == IrSite("S", 0, trail)
+    assert call.kind == "local_continuation"
+    assert call.layout == ContinuationLayout(slots)

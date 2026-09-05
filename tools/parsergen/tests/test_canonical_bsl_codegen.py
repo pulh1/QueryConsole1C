@@ -70,6 +70,19 @@ class CanonicalBslCodegenTests(unittest.TestCase):
         "<Tail> ::= VALUE"
     )
 
+    # Mutation caught: emit a tail/continuation transfer that loses argument
+    # evaluation, including its side effects, exceptions and next state.
+    def test_recursive_arguments_remain_evaluated_by_normal_bsl_calls(self) -> None:
+        for grammar in (
+            "<S>(Context) ::= ITEM <S>(Context.Next()) | STOP",
+            "<S>(Context) ::= @Link Value = ITEM Rest = <S>(Context.Next()) | @End STOP",
+        ):
+            with self.subTest(grammar=grammar):
+                function = _function(_build(grammar).module_text, "НеТерминалS")
+
+                self.assertEqual(function.count("НеТерминалS(Context.Next())"), 1)
+                self.assertNotIn("Пока Истина Цикл", function)
+
     # Mutation caught: ignore the shared tail_loop plan and retain the
     # recursive nonterminal call in canonical BSL output.
     def test_tail_loop_plan_removes_canonical_bsl_self_call(self) -> None:
@@ -134,6 +147,25 @@ class CanonicalBslCodegenTests(unittest.TestCase):
         self.assertIn('Продолжение.Вставить("Слот0", Значение1);', function)
         self.assertIn("РезультатПродукции.Next = Продолжение.Слот0;", function)
         self.assertNotIn("НеТерминалS();", function)
+
+    # Mutation caught: ask BSL to save a seed after its wrapper has already
+    # completed, or return the discarded recursive child instead of the wrapper.
+    def test_completed_prefix_wrap_restores_its_result_after_recursion(self) -> None:
+        function = _function(
+            _build(
+                "<S> ::= <Leaf> Next => <Wrapped> -= <S> | @End STOP\n"
+                "<Leaf> ::= @Leaf ITEM\n<Wrapped> ::= @Wrapped WRAP"
+            ).module_text,
+            "НеТерминалS",
+        )
+
+        self.assertIn("Значение2.Next = Значение1;", function)
+        self.assertIn('Продолжение.Вставить("Слот0", Значение2);', function)
+        self.assertIn("РезультатПродукции = Продолжение.Слот0;", function)
+        self.assertNotIn('Продолжение.Вставить("Слот1"', function)
+        self.assertNotIn("НеТерминалS();", function)
+        self.assertLess(function.index("Значение2.Next = Значение1;"),
+                        function.index("СтекПродолжений.Добавить"))
 
     # Mutation caught: fail to snapshot and restore the collection_accumulator
     # slot, allowing nested frames to share a collection receiver.

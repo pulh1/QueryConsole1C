@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Literal
 
@@ -21,6 +22,7 @@ from .parser_ir import (
     ParseBranchValue,
     ParseSymbol,
     ParserIr,
+    ProductionIr,
     RepeatLoop,
     ResolvedRegion,
     WrapOptional,
@@ -121,7 +123,7 @@ class _FinalDirectSelfCall:
 
 class _RecursionPlanner:
     def __init__(self) -> None:
-        self.sequence_liveness: list[SequenceLiveness] = []
+        self.sequence_liveness: dict[IrSite, SequenceLiveness] = {}
         self.sites: list[RecursiveCallSite] = []
         self.result_flow: list[ResultFlowFact] = []
         self._resultless_productions: frozenset[str] = frozenset()
@@ -155,26 +157,21 @@ class _RecursionPlanner:
         for production in parser_ir.productions:
             for alternative in production.alternatives:
                 site = IrSite(production.name, alternative.index, ())
-                sequence_liveness = next(
-                    item
-                    for item in self.sequence_liveness
-                    if item.site == site
-                )
                 self._direct_recursive_calls(
-                    production.name,
+                    production,
                     site,
                     alternative.operations,
-                    sequence_liveness,
+                    self.sequence_liveness[site],
                 )
         return RecursionPlan(
             tuple(self.sites),
-            tuple(self.sequence_liveness),
+            tuple(self.sequence_liveness.values()),
             tuple(self.result_flow),
         )
 
     def _direct_recursive_calls(
         self,
-        production: str,
+        production: ProductionIr,
         site: IrSite,
         operations: tuple[Operation, ...],
         sequence_liveness: SequenceLiveness,
@@ -229,7 +226,7 @@ class _RecursionPlanner:
                         or self._has_live_enclosing_result(call_site)
                         or (
                             not result_flow
-                            and production not in self._resultless_productions
+                            and production.name not in self._resultless_productions
                         )
                     ):
                         continue
@@ -259,7 +256,7 @@ class _RecursionPlanner:
                     result_flow = self._record_result_flow(candidate)
                     if (
                         not result_flow
-                        and production not in self._resultless_productions
+                        and production.name not in self._resultless_productions
                     ):
                         continue
                 else:
@@ -395,42 +392,30 @@ class _RecursionPlanner:
         return propagates_unchanged
 
     def _has_live_enclosing_result(self, call_site: IrSite) -> bool:
-        for sequence in self.sequence_liveness:
-            if (
-                sequence.site.production != call_site.production
-                or sequence.site.alternative != call_site.alternative
-            ):
-                continue
-            prefix = sequence.site.trail
-            if (
-                call_site.trail[: len(prefix)] != prefix
-                or len(call_site.trail) <= len(prefix)
-            ):
-                continue
-            kind, index = call_site.trail[len(prefix)]
-            if kind == "operation" and sequence.live_after[index] - {index}:
+        for sequence, index in self._enclosing_sequences(call_site):
+            if sequence.live_after[index] - {index}:
                 return True
         return False
+
+    def _enclosing_sequences(
+        self, call_site: IrSite
+    ) -> Iterator[tuple[SequenceLiveness, int]]:
+        # Only ancestors of this call can keep results live across it. Look
+        # them up by exact site, without rescanning other productions/branches.
+        for depth, (kind, index) in enumerate(call_site.trail):
+            if kind != "operation":
+                continue
+            sequence = self.sequence_liveness.get(IrSite(
+                call_site.production, call_site.alternative, call_site.trail[:depth]
+            ))
+            if sequence is not None:
+                yield sequence, index
 
     def _unchanged_result_flow(self, candidate: _FinalDirectSelfCall) -> bool:
         if not candidate.result_propagated:
             return False
         found_enclosing_sequence = False
-        for sequence in self.sequence_liveness:
-            if (
-                sequence.site.production != candidate.site.production
-                or sequence.site.alternative != candidate.site.alternative
-            ):
-                continue
-            prefix = sequence.site.trail
-            if (
-                candidate.site.trail[: len(prefix)] != prefix
-                or len(candidate.site.trail) <= len(prefix)
-            ):
-                continue
-            kind, index = candidate.site.trail[len(prefix)]
-            if kind != "operation":
-                continue
+        for sequence, index in self._enclosing_sequences(candidate.site):
             found_enclosing_sequence = True
             if sequence.live_after[index] != frozenset({index}):
                 return False
@@ -451,7 +436,7 @@ class _RecursionPlanner:
                 for index in range(len(operations))
             ),
         )
-        self.sequence_liveness.append(sequence_liveness)
+        self.sequence_liveness[site] = sequence_liveness
         for index, operation in enumerate(operations):
             self._operation(child_site(site, "operation", index), operation)
         return sequence_liveness
@@ -520,9 +505,9 @@ def child_site(site: IrSite, kind: TrailKind, index: int) -> IrSite:
 def _direct_self_call_site(
     site: IrSite,
     operation: Operation,
-    production: str,
+    production: ProductionIr,
 ) -> IrSite | None:
-    if _call_name(operation) == production:
+    if _is_stateless_self_call(operation, production):
         return site
     value = None
     if isinstance(
@@ -537,7 +522,7 @@ def _direct_self_call_site(
         ),
     ):
         value = operation.value
-    if _call_name(value) == production:
+    if _is_stateless_self_call(value, production):
         return child_site(site, "value", 0)
     return None
 
@@ -545,7 +530,7 @@ def _direct_self_call_site(
 def _final_direct_self_call_sites(
     site: IrSite,
     operation: Operation,
-    production: str,
+    production: ProductionIr,
 ) -> tuple[_FinalDirectSelfCall, ...]:
     direct = _direct_self_call_site(site, operation, production)
     if direct is not None:
@@ -609,12 +594,20 @@ def _final_direct_self_call_sites(
     return ()
 
 
-def _call_name(value: object) -> str | None:
-    if isinstance(value, (ParseSymbol, DiscardSymbol)) and isinstance(
-        value.symbol, NonterminalCall
-    ):
-        return value.symbol.name
-    return None
+def _is_stateless_self_call(value: object, production: ProductionIr) -> bool:
+    """Prove no call-parameter transition: zero formals and zero actuals.
+
+    Argument strings have no target-neutral expression model, so even apparent
+    identity forwarding is left recursive. Zero actuals alone is insufficient:
+    an ordinary call can reset omitted formal parameters to their defaults.
+    """
+    return (
+        not production.parameters
+        and isinstance(value, (ParseSymbol, DiscardSymbol))
+        and isinstance(value.symbol, NonterminalCall)
+        and value.symbol.name == production.name
+        and not value.symbol.arguments
+    )
 
 
 def _is_admissible_semantic_suffix(operations: tuple[Operation, ...]) -> bool:
@@ -631,6 +624,11 @@ def _continuation_layout(
         for index in sorted(live_after - {call_index})
     ]
     for index, operation in enumerate(operations[:call_index]):
+        if isinstance(operation, WrapValue) and index in live_after:
+            # This prefix wrap has finished: its live operation_result already
+            # contains the applied seed. Only a suspended wrap needs that seed
+            # separately (the call-index case below).
+            continue
         _append_continuation_slots(slots, operation, index)
     operation = operations[call_index]
     if isinstance(operation, WrapValue):
