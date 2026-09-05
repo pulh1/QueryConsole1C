@@ -251,7 +251,7 @@ class _BindingValidator:
                     property_name,
                 )
 
-        self._validate_paths(sequence, [frozenset()], repeated=False)
+        self._validate_paths(sequence, {frozenset()}, repeated=False)
 
         has_transparent_constant = any(
             isinstance(item, SourceConstantBinding)
@@ -361,10 +361,10 @@ class _BindingValidator:
     def _validate_paths(
         self,
         sequence: SourceSequence,
-        paths: list[frozenset[str]],
+        paths: set[frozenset[str]],
         *,
         repeated: bool,
-    ) -> list[frozenset[str]]:
+    ) -> set[frozenset[str]]:
         current = paths
         for item in sequence.items:
             if isinstance(item, SourceBinding):
@@ -377,7 +377,7 @@ class _BindingValidator:
                             item.span,
                             item.property,
                         )
-                    updated: list[frozenset[str]] = []
+                    updated: set[frozenset[str]] = set()
                     for path in current:
                         if item.property in path:
                             self._add(
@@ -386,13 +386,13 @@ class _BindingValidator:
                                 item.span,
                                 item.property,
                             )
-                        updated.append(path | {item.property})
+                        updated.add(path | {item.property})
                     current = updated
                 current = self._walk_value(item.value, current, repeated)
             elif isinstance(item, SourceConstantBinding):
                 if item.property is None:
                     continue
-                updated = []
+                updated = set()
                 for path in current:
                     if item.property in path:
                         self._add(
@@ -401,49 +401,49 @@ class _BindingValidator:
                             item.span,
                             item.property,
                         )
-                    updated.append(path | {item.property})
+                    updated.add(path | {item.property})
                 current = updated
             elif isinstance(item, SourceGroup):
                 current = self._walk_group(item, current, repeated)
             elif isinstance(item, SourceRepeat):
                 present = self._walk_value(item.body, current, True)
-                current = [*current, *present]
+                current = current | present
             elif isinstance(item, SourceOptional):
                 present = self._walk_value(item.body, current, repeated)
-                current = [*current, *present]
+                current = current | present
         return current
 
     def _walk_value(
         self,
         value: SourceValue,
-        paths: list[frozenset[str]],
+        paths: set[frozenset[str]],
         repeated: bool,
-    ) -> list[frozenset[str]]:
+    ) -> set[frozenset[str]]:
         if isinstance(value, SourceGroup):
             return self._walk_group(value, paths, repeated)
         if isinstance(value, SourceRepeat):
             present = self._walk_value(value.body, paths, True)
-            return [*paths, *present]
+            return paths | present
         if isinstance(value, SourceOptional):
             present = self._walk_value(value.body, paths, repeated)
-            return [*paths, *present]
+            return paths | present
         return paths
 
     def _walk_group(
         self,
         group: SourceGroup,
-        paths: list[frozenset[str]],
+        paths: set[frozenset[str]],
         repeated: bool,
-    ) -> list[frozenset[str]]:
-        return [
+    ) -> set[frozenset[str]]:
+        return {
             result
             for alternative in group.alternatives
             for result in self._validate_paths(
                 alternative.body,
-                list(paths),
+                paths,
                 repeated=repeated,
             )
-        ]
+        }
 
     def _add(
         self,
@@ -566,46 +566,46 @@ def semantic_child_counts(sequence: SourceSequence) -> tuple[int, ...]:
 
 
 def _semantic_execution_counts(sequence: SourceSequence) -> tuple[int, ...]:
-    counts = (0,)
+    counts = {0}
     for item in sequence.items:
         if isinstance(item, (NonterminalCall, IdentifierRef, Constant)) or (
             isinstance(item, SourceConstantBinding)
             and item.property is None
         ):
-            counts = tuple(value + 1 for value in counts)
+            counts = {value + 1 for value in counts}
         elif isinstance(item, SourceGroup):
-            counts = tuple(
+            counts = {
                 base + branch
                 for base in counts
                 for alternative in item.alternatives
                 for branch in _semantic_execution_counts(alternative.body)
-            )
+            }
         elif isinstance(item, SourceOptional):
             nested = _value_execution_counts(item.body)
-            counts = tuple(
+            counts = {
                 base + extra
                 for base in counts
                 for extra in (0, *nested)
-            )
+            }
         elif isinstance(item, SourceRepeat):
             nested = _value_execution_counts(item.body)
             if any(nested):
                 return (2,)
-    return counts
+    return tuple(sorted(counts))
 
 
 def _value_execution_counts(value: SourceValue) -> tuple[int, ...]:
     if isinstance(value, SourceOptional):
-        return (0, *_value_execution_counts(value.body))
+        return tuple(sorted({0, *_value_execution_counts(value.body)}))
     if isinstance(value, SourceRepeat):
         nested = _value_execution_counts(value.body)
         return (2,) if any(nested) else (0,)
     if isinstance(value, SourceGroup):
-        return tuple(
+        return tuple(sorted({
             count
             for alternative in value.alternatives
             for count in _semantic_execution_counts(alternative.body)
-        )
+        }))
     if isinstance(value, (NonterminalCall, IdentifierRef, Constant)):
         return (1,)
     return (0,)

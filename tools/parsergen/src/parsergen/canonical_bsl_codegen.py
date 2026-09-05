@@ -89,6 +89,7 @@ _TOKEN_CLASS_HELPER = """Функция ТокенПринадлежитКлас
 _GENERATED_LOCALS = frozenset(
     item.casefold()
     for item in (
+        "ЭлементКоллекции",
         "РезультатПродукции",
         "ЭтотУзел",
         "СтекПродолжений",
@@ -187,7 +188,19 @@ class _CanonicalBslGenerator:
                     f"entrypoint {entrypoint!r} references unknown "
                     f"production {production!r}"
                 )
-        self._validate_generated_symbols()
+        module_symbols = self._validate_generated_symbols()
+        # Template state, generated callables and the external constructor
+        # provider must remain visible inside every generated production.
+        module_symbols.add("ЭлементыМоделиЗапроса".casefold())
+        module_symbols.update(
+            matched.group(1).casefold()
+            for matched in re.finditer(
+                r"^Перем\s+([A-Za-zА-Яа-яЁё_][0-9A-Za-zА-Яа-яЁё_]*)\s*;",
+                _load_template(), re.MULTILINE | re.IGNORECASE,
+            )
+        )
+        for production in self._ir.productions:
+            self._validate_parameters(production, module_symbols)
 
     def _validate_common_inputs(self) -> None:
         if self._source != self._ir.source_grammar:
@@ -205,11 +218,12 @@ class _CanonicalBslGenerator:
                 f"НеТерминал{production.name}",
                 "generated production function",
             )
-            self._validate_parameters(production)
             if production.decision is not None:
                 self._validate_decision(production.decision)
 
-    def _validate_parameters(self, production: ProductionIr) -> None:
+    def _validate_parameters(
+        self, production: ProductionIr, module_symbols: set[str],
+    ) -> None:
         observed: set[str] = set()
         for parameter in production.parameters:
             validate_bsl_identifier(
@@ -224,12 +238,13 @@ class _CanonicalBslGenerator:
                 )
             if (
                 key in _GENERATED_LOCALS
+                or key in module_symbols
                 or _TEMPORARY.fullmatch(parameter)
                 or _DECISION_TOKEN.fullmatch(parameter)
             ):
                 raise ValueError(
                     f"production {production.name!r} formal parameter "
-                    f"{parameter!r} collides with generated local"
+                    f"{parameter!r} collides with generated local or module symbol"
                 )
             observed.add(key)
 
@@ -241,7 +256,7 @@ class _CanonicalBslGenerator:
         if decision.dag.lookahead != decision.source.lookahead:
             raise ValueError("canonical decision DAG lookahead differs")
 
-    def _validate_generated_symbols(self) -> None:
+    def _validate_generated_symbols(self) -> set[str]:
         symbols: list[tuple[str, str]] = []
         if self._named_predicates:
             symbols.append(
@@ -272,6 +287,7 @@ class _CanonicalBslGenerator:
                     f"{name!r} ({origin})"
                 )
             observed[key] = (name, origin)
+        return set(observed)
 
     def _render_entrypoints(self) -> str:
         return "\r\n\r\n".join(

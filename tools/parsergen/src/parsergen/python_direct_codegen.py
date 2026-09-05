@@ -79,10 +79,20 @@ class _DirectPythonRenderer:
             item.name: f"_p_{index:04d}"
             for index, item in enumerate(parser_ir.productions)
         }
+        # Canonical matchers may share one label across several source aliases.
+        # Retain every source name while merging repeated declarations as the
+        # resolver does, with the same sorted token-set order used by the IR.
+        identifier_types: dict[str, set[str]] = {}
+        for definition in source.identifier_definitions:
+            identifier_types.setdefault(definition.name, set()).update(definition.token_types)
         self.identifier_types = {
-            item.name: item.token_types for item in source.identifier_definitions
+            name: tuple(sorted(tokens)) for name, tokens in identifier_types.items()
         }
         self.schema_by_name = {item.name: item for item in schema}
+        # Grammar constructors are public module names. Keep dependencies in
+        # distinct aliases, including when a constructor itself uses an alias.
+        self._builtins = self._module_alias("builtins")
+        self._dataclasses = self._module_alias("dataclasses")
         self.local_names: dict[tuple[tuple[int, ...], str, str], str] = {}
         self.used_local_names: set[str] = set()
         self._decision_facts_index = 0
@@ -110,11 +120,19 @@ class _DirectPythonRenderer:
     def render(self) -> str:
         return "\n\n".join((self._render_prelude(), self._render_parser())) + "\n"
 
+    def _module_alias(self, module: str) -> str:
+        name = f"_parsergen_{module}"
+        while name in self.schema_by_name:
+            name += "_"
+        return name
+
     def _render_prelude(self) -> str:
         lines = [
             "from __future__ import annotations",
             "",
-            "from dataclasses import dataclass, replace",
+            f"import builtins as {self._builtins}",
+            f"import dataclasses as {self._dataclasses}",
+            "from dataclasses import dataclass",
             "",
             "",
             f'PARSERGEN_BACKEND_ID = "{PYTHON_SEMANTIC_BACKEND_ID}"',
@@ -130,9 +148,9 @@ class _DirectPythonRenderer:
             "# </parsergen:source-span>",
         ]
         for node in self.schema:
-            lines.extend(("", "", "@dataclass(frozen=True, slots=True)", f"class {node.name}:"))
+            lines.extend(("", "", f"@{self._dataclasses}.dataclass(frozen=True, slots=True)", f"class {node.name}:"))
             for field in node.fields:
-                lines.append(f"    {field.name}: object")
+                lines.append(f"    {field.name}: {self._builtins}.object")
             lines.append("    span: SourceSpan")
         lines.extend(("", "", "AST_CLASSES = {"))
         lines.extend(f'    "{node.name}": {node.name},' for node in self.schema)
@@ -202,7 +220,7 @@ class _DirectPythonRenderer:
             body.extend(
                 (
                     f"{indent}else:",
-                    f"{indent}    raise RuntimeError(f\"decision outcome has no semantic branch: {{outcome!r}}\")",
+                    f"{indent}    raise {self._builtins}.RuntimeError(f\"decision outcome has no semantic branch: {{outcome!r}}\")",
                 )
             )
         if self._has_local_continuations and len(self._continuation_finishes) != len(local_calls):
@@ -350,7 +368,7 @@ class _DirectPythonRenderer:
                     f"{indent}            self._syntax_error({node.expected!r})",
                 )
             )
-        lines.append(f"{indent}    raise RuntimeError(f\"invalid decision state: {{{state}!r}}\")")
+        lines.append(f"{indent}    raise {self._builtins}.RuntimeError(f\"invalid decision state: {{{state}!r}}\")")
         return lines
 
     def _render_branch_selection(
@@ -377,7 +395,7 @@ class _DirectPythonRenderer:
         lines.extend(
             (
                 f"{indent}else:",
-                f"{indent}    raise RuntimeError(f\"decision outcome has no semantic branch: {{{outcome}!r}}\")",
+                f"{indent}    raise {self._builtins}.RuntimeError(f\"decision outcome has no semantic branch: {{{outcome}!r}}\")",
             )
         )
         return lines
@@ -528,7 +546,7 @@ class _DirectPythonRenderer:
             lines.extend(
                 (
                     f"{indent}    if self._position == {position}:",
-                    f"{indent}        raise RuntimeError('repeat branch did not advance parser cursor')",
+                    f"{indent}        raise {self._builtins}.RuntimeError('repeat branch did not advance parser cursor')",
                     f"{indent}{value} = None",
                 )
             )
@@ -935,7 +953,7 @@ class _DirectPythonRenderer:
             lines.extend(
                 (
                     f"{indent}    else:",
-                    f"{indent}        raise RuntimeError('unknown local continuation site')",
+                    f"{indent}        raise {self._builtins}.RuntimeError('unknown local continuation site')",
                 )
             )
         lines.append(f"{indent}return result")
@@ -1012,7 +1030,7 @@ class _DirectPythonRenderer:
             lines.extend(
                 (
                     f"{indent}else:",
-                    f"{indent}    raise RuntimeError(f\"value decision outcome has no branch: {{{outcome}!r}}\")",
+                    f"{indent}    raise {self._builtins}.RuntimeError(f\"value decision outcome has no branch: {{{outcome}!r}}\")",
                 )
             )
             return lines
@@ -1185,8 +1203,8 @@ class _DirectPythonRenderer:
             )
         return lines
 
-    @staticmethod
     def _render_wrap_apply(
+        self,
         target: str,
         seed: str,
         property_name: str,
@@ -1194,11 +1212,11 @@ class _DirectPythonRenderer:
         indent: str,
     ) -> list[str]:
         replacement = (
-            f"({seed}, *(getattr({target}, {property_name!r}) or ()))"
+            f"({seed}, *({self._builtins}.getattr({target}, {property_name!r}) or ()))"
             if prepend
             else seed
         )
-        return [f"{indent}{target} = replace({target}, **{{{property_name!r}: {replacement}}})"]
+        return [f"{indent}{target} = {self._dataclasses}.replace({target}, **{{{property_name!r}: {replacement}}})"]
 
     def _render_left_fold(
         self,
@@ -1332,14 +1350,14 @@ class _DirectPythonRenderer:
         fields = self.schema_by_name[site.name].fields
         values = [
             (
-                f"tuple({self._field_local(site, field.name)})"
+                f"{self._builtins}.tuple({self._field_local(site, field.name)})"
                 if field.category == "collection"
                 else self._field_local(site, field.name)
             )
             for field in fields
         ]
         values.append(f"SourceSpan({start}, self._end_offset({start}))")
-        return f"{site.name}({', '.join(values)})"
+        return f"{self._builtins}.globals()[{site.name!r}]({', '.join(values)})"
 
     def _field_local(self, site: _ConstructorSite | None, property_name: str) -> str:
         if site is None:
@@ -1454,19 +1472,19 @@ class _DirectPythonRenderer:
 
     def _render_parser(self) -> str:
         lines = [
-            "class GeneratedParseError(ValueError):",
+            f"class GeneratedParseError({self._builtins}.ValueError):",
             "    def __init__(self, position, actual, expected):",
             "        self.position = position",
             "        self.actual = actual",
-            "        self.expected = tuple(expected)",
-            "        super().__init__(",
+            f"        self.expected = {self._builtins}.tuple(expected)",
+            f"        {self._builtins}.ValueError.__init__(self,",
             "            f\"unexpected {actual!r} at token {position}; expected {self.expected!r}\"",
             "        )",
             "",
             "",
             "class GeneratedParser:",
             "    def parse(self, tokens, entrypoint):",
-            "        self._tokens = tuple(tokens)",
+            f"        self._tokens = {self._builtins}.tuple(tokens)",
             "        self._position = 0",
         ]
         for index, (entrypoint, production) in enumerate(self.entrypoints.items()):
@@ -1480,8 +1498,8 @@ class _DirectPythonRenderer:
         lines.extend(
             (
                 "        else:",
-                "            raise ValueError(f\"unknown entrypoint {entrypoint!r}\")",
-                "        if self._position != len(self._tokens):",
+                f"            raise {self._builtins}.ValueError(f\"unknown entrypoint {{entrypoint!r}}\")",
+                f"        if self._position != {self._builtins}.len(self._tokens):",
                 "            self._raise(('$',))",
                 "        return result",
                 "",
@@ -1497,12 +1515,12 @@ class _DirectPythonRenderer:
                 "            return token.type",
                 "        if capture == 'text':",
                 "            return token.text",
-                "        value = getattr(token, 'value', None)",
+                f"        value = {self._builtins}.getattr(token, 'value', None)",
                 "        return token.text if value is None else value",
                 "",
                 "    def _type_at(self, offset):",
                 "        index = self._position + offset",
-                "        if index >= len(self._tokens):",
+                f"        if index >= {self._builtins}.len(self._tokens):",
                 "            return '$'",
                 "        return self._tokens[index].type",
                 "",
@@ -1510,7 +1528,7 @@ class _DirectPythonRenderer:
                 "        return self._type_at(offset)",
                 "",
                 "    def _offset(self):",
-                "        if self._position < len(self._tokens):",
+                f"        if self._position < {self._builtins}.len(self._tokens):",
                 "            return self._tokens[self._position].start",
                 "        if self._tokens:",
                 "            return self._tokens[-1].end",

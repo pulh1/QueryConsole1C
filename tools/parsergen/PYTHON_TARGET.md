@@ -21,6 +21,15 @@ declarative bindings determine deterministic scalar, collection, concat,
 increment and constant fields. Spans describe input tokens, not grammar source
 coordinates.
 
+AST constructor names may reuse Python built-in and dataclasses names. The
+renderer gives its dependencies distinct internal aliases and resolves
+constructors in the module namespace, so generated locals cannot shadow them.
+Repeated identifier declarations form one deterministic union of token types.
+For BSL, production formals must not shadow generated locals, template module
+state, generated functions or the constructor-provider module; conflicting
+names are rejected before rendering. Other BSL parameters and call expressions
+remain supported.
+
 The direct renderer uses ordinary production methods, locals, `if` and `while`.
 It consumes the common immutable `RecursionPlan` for exact eligible direct
 recursive call sites. A simple tail site becomes a production-local loop; a

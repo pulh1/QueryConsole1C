@@ -780,7 +780,8 @@ class _Optimizer:
                 )
                 result_index = _result_index(operations)
                 if result_index is None:
-                    return UndefinedValue("Неопределено", value.source_span)
+                    result_index = len(operations)
+                    operations = (*operations, UndefinedValue("Неопределено", value.source_span))
                 return ParseBranchValue(
                     operations,
                     result_index,
@@ -794,7 +795,8 @@ class _Optimizer:
                 else _result_index(operations)
             )
             if result_index is None:
-                return UndefinedValue("Неопределено", value.source_span)
+                result_index = len(operations)
+                operations = (*operations, UndefinedValue("Неопределено", value.source_span))
             return replace(
                 value,
                 operations=operations,

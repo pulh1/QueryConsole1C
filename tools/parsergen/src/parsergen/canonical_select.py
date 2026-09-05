@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass
 from typing import TypeAlias
 
@@ -79,11 +80,11 @@ def _export_language(
 ) -> SymbolicLanguage:
     root_state = compressed.descriptor_root(position)
     indexed: dict[tuple[object, int], int] = {(root_state, 0): 0}
-    pending: list[tuple[object, int]] = [(root_state, 0)]
+    pending: deque[tuple[object, int]] = deque([(root_state, 0)])
     nodes: list[SymbolicLanguageNode | None] = [None]
 
     while pending:
-        state_value, depth = pending.pop(0)
+        state_value, depth = pending.popleft()
         state = state_value
         node_index = indexed[(state, depth)]
         edges: list[SymbolicLanguageEdge] = []
@@ -165,11 +166,11 @@ def intersect_languages(
     right: SymbolicLanguage,
 ) -> SymbolicLanguage:
     indexed = {(left.root, right.root): 0}
-    pending = [(left.root, right.root)]
+    pending = deque([(left.root, right.root)])
     nodes: list[SymbolicLanguageNode | None] = [None]
 
     while pending:
-        left_state, right_state = pending.pop(0)
+        left_state, right_state = pending.popleft()
         node_index = indexed[(left_state, right_state)]
         targets: dict[int, set[str]] = {}
         for left_edge in left.nodes[left_state].edges:
