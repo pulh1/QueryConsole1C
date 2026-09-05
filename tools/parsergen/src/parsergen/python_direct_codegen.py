@@ -88,15 +88,9 @@ class _DirectPythonRenderer:
         self._active_fold_accumulator: str | None = None
         self._rendering_production: str | None = None
         self._rendering_alternative: int | None = None
-        self._safe_tail_sites = frozenset(
-            (call.site.production, call.site.alternative, call.site.trail)
-            for call in analysis.recursive_calls
-            if call.kind == "safe_tail_loop"
-        )
-        self._local_continuation_sites = {
+        self._recursion_sites = {
             (call.site.production, call.site.alternative, call.site.trail): call
-            for call in analysis.recursive_calls
-            if call.kind == "local_continuation"
+            for call in analysis.recursion_plan.sites
         }
         self._continuation_finishes: dict[int, _LocalContinuationFinish] = {}
         self._continuation_site_numbers: dict[object, int] = {}
@@ -169,19 +163,22 @@ class _DirectPythonRenderer:
             )
         local_calls = [
             call
-            for (site_production, _, _), call in self._local_continuation_sites.items()
-            if site_production == production.name
+            for call in self._recursion_sites.values()
+            if (
+                call.site.production == production.name
+                and call.kind == "local_continuation"
+            )
         ]
         self._continuation_finishes = {}
         self._continuation_site_numbers = {
             call: index for index, call in enumerate(local_calls)
         }
         self._has_local_continuations = bool(local_calls)
-        has_safe_tail_loop = any(
-            site_production == production.name
-            for site_production, _, _ in self._safe_tail_sites
+        has_tail_loop = any(
+            call.site.production == production.name and call.kind == "tail_loop"
+            for call in self._recursion_sites.values()
         )
-        has_iteration_loop = has_safe_tail_loop or self._has_local_continuations
+        has_iteration_loop = has_tail_loop or self._has_local_continuations
         indent = "            " if has_iteration_loop else "        "
         body = [f"{indent}start = self._offset()"]
         if production.decision is None:
@@ -660,11 +657,14 @@ class _DirectPythonRenderer:
         )
         if operation_site is None:
             return False
-        return (
-            self._rendering_production,
-            self._rendering_alternative,
-            operation_site,
-        ) in self._safe_tail_sites
+        call = self._recursion_sites.get(
+            (
+                self._rendering_production,
+                self._rendering_alternative,
+                operation_site,
+            )
+        )
+        return call is not None and call.kind == "tail_loop"
 
     def _local_continuation_site(self, trail: tuple[int, ...], operation: Operation):
         if (
@@ -682,15 +682,21 @@ class _DirectPythonRenderer:
             self._rendering_alternative,
             operation_site,
         )
-        continuation = self._local_continuation_sites.get(key)
-        if continuation is not None:
+        continuation = self._recursion_sites.get(key)
+        if continuation is not None and continuation.kind == "local_continuation":
             return continuation
-        return self._local_continuation_sites.get(
+        continuation = self._recursion_sites.get(
             (
                 self._rendering_production,
                 self._rendering_alternative,
                 (*operation_site, ("value", 0)),
             )
+        )
+        return (
+            continuation
+            if continuation is not None
+            and continuation.kind == "local_continuation"
+            else None
         )
 
     def _render_local_continuation_push(

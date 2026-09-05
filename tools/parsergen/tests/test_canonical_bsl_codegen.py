@@ -1,5 +1,6 @@
 import re
 import unittest
+from dataclasses import replace
 
 from parsergen.analysis import compute_analysis
 from parsergen.canonical_bsl_codegen import generate_canonical_parser
@@ -8,11 +9,10 @@ from parsergen.parser_ir import build_parser_ir
 from parsergen.resolver import resolve_grammar
 
 
-def _build(
+def _build_ir(
     source: str,
     k: int = 1,
     entrypoints: dict[str, str] | None = None,
-    named_predicates: dict[tuple[str, ...], str] | None = None,
 ):
     entries = entrypoints or {"Разобрать": "S"}
     parsed = parse_grammar(source, "grammar.txt")
@@ -34,8 +34,18 @@ def _build(
         resolution.grammar,
         analysis,
     )
+    return parsed.source_grammar, parser_ir, entries
+
+
+def _build(
+    source: str,
+    k: int = 1,
+    entrypoints: dict[str, str] | None = None,
+    named_predicates: dict[tuple[str, ...], str] | None = None,
+):
+    source_grammar, parser_ir, entries = _build_ir(source, k, entrypoints)
     return generate_canonical_parser(
-        parsed.source_grammar,
+        source_grammar,
         parser_ir,
         entries,
         named_predicates=named_predicates,
@@ -58,6 +68,145 @@ class CanonicalBslCodegenTests(unittest.TestCase):
         "<Choice> ::= @НовыйIn (NOT Inverted := Истина)? IN <Tail>\n"
         "<Tail> ::= VALUE"
     )
+
+    # Mutation caught: ignore the shared tail_loop plan and retain the
+    # recursive nonterminal call in canonical BSL output.
+    def test_tail_loop_plan_removes_canonical_bsl_self_call(self) -> None:
+        function = _function(
+            _build("<S> ::= ITEM <S> | STOP").module_text,
+            "НеТерминалS",
+        )
+
+        self.assertIn("Пока Истина Цикл", function)
+        self.assertIn("КонецЦикла;", function)
+        self.assertNotIn("НеТерминалS();", function)
+
+    # Mutation caught: render a local_continuation as a self-call rather than
+    # restoring the pending child binding before its constant suffix.
+    def test_local_continuation_plan_unwinds_constant_suffix_lifo(self) -> None:
+        function = _function(
+            _build(
+                "<S> ::= @Link Value = ITEM Rest = <S> Kind := Истина | @End STOP"
+            ).module_text,
+            "НеТерминалS",
+        )
+
+        self.assertIn("СтекПродолжений = Новый Массив;", function)
+        self.assertIn(
+            "СтекПродолжений.Получить(СтекПродолжений.Количество() - 1)",
+            function,
+        )
+        self.assertIn("СтекПродолжений.Удалить(СтекПродолжений.Количество() - 1);", function)
+        self.assertNotIn("НеТерминалS();", function)
+        self.assertLess(
+            function.index("СтекПродолжений.Получить"),
+            function.rindex("ЭтотУзел.Kind = Истина;"),
+        )
+
+    # Mutation caught: reuse a single mutable pending-node variable instead
+    # of storing each continuation layout in an independent stack frame.
+    def test_local_continuation_plan_stores_an_isolated_layout_frame(self) -> None:
+        function = _function(
+            _build("<S> ::= @Link Value = ITEM Rest = <S> | @End STOP").module_text,
+            "НеТерминалS",
+        )
+
+        self.assertIn("Продолжение = Новый Структура;", function)
+        self.assertIn('Продолжение.Вставить("Узел", ЭтотУзел);', function)
+        self.assertIn('Продолжение.Вставить("Слот1", ЭтотУзел.Value);', function)
+        self.assertIn("СтекПродолжений.Добавить(Продолжение);", function)
+        self.assertIn("ЭтотУзел = Продолжение.Узел;", function)
+        self.assertIn("ЭтотУзел.Value = Продолжение.Слот1;", function)
+
+    # Mutation caught: ignore the wrap_seed slot and reconstruct the wrapper
+    # from the recursive result without the already parsed seed.
+    def test_local_continuation_restores_wrap_seed_slot(self) -> None:
+        function = _function(
+            _build(
+                "<S> ::= <Leaf> Next => <S> | @End STOP\n"
+                "<Leaf> ::= @Leaf ITEM"
+            ).module_text,
+            "НеТерминалS",
+        )
+
+        self.assertIn('Продолжение.Вставить("Слот0", Значение1);', function)
+        self.assertIn("РезультатПродукции.Next = Продолжение.Слот0;", function)
+        self.assertNotIn("НеТерминалS();", function)
+
+    # Mutation caught: fail to snapshot and restore the collection_accumulator
+    # slot, allowing nested frames to share a collection receiver.
+    def test_local_continuation_restores_collection_accumulator_slot(self) -> None:
+        function = _function(
+            _build("<S> ::= @List Items += ITEM <S> | @End STOP").module_text,
+            "НеТерминалS",
+        )
+
+        self.assertIn('Продолжение.Вставить("Слот1", ЭтотУзел.Items);', function)
+        self.assertIn("ЭтотУзел.Items = Продолжение.Слот1;", function)
+        self.assertNotIn("НеТерминалS();", function)
+
+    # Mutation caught: only lower a top-level local_continuation and leave an
+    # exact nested OptionalBranch IrSite as a recursive BSL self-call.
+    def test_nested_optional_local_continuation_uses_its_exact_plan_site(self) -> None:
+        function = _function(
+            _build(
+                "<S> ::= @ModuleElements (METHOD Item = ITEM Rest = <S>)?"
+            ).module_text,
+            "НеТерминалS",
+        )
+
+        self.assertIn("Пока Истина Цикл", function)
+        self.assertIn("СтекПродолжений.Добавить(Продолжение);", function)
+        self.assertNotIn("НеТерминалS();", function)
+
+    # Mutation caught: consume only the first nested plan site and leave a
+    # second OptionalBranch continuation as a BSL self-call.
+    def test_multiple_nested_local_continuations_share_the_structural_dispatch(self) -> None:
+        function = _function(
+            _build(
+                "<S> ::= @Node ("
+                "A Item = ITEM Rest = <S> | "
+                "B First = ITEM (SEP Rest = <S>)?"
+                ")? | @End STOP"
+            ).module_text,
+            "НеТерминалS",
+        )
+
+        self.assertIn("Пока Истина Цикл", function)
+        self.assertGreaterEqual(
+            function.count("СтекПродолжений.Добавить(Продолжение);"),
+            2,
+        )
+        self.assertNotIn("НеТерминалS();", function)
+
+    # Mutation caught: restore the recursive result instead of the live
+    # operation_result slot selected by the shared continuation layout.
+    def test_local_continuation_restores_operation_result_slot(self) -> None:
+        source, parser_ir, entries = _build_ir(
+            "<S> ::= <A> -= <S> | STOP\n<A> ::= ITEM"
+        )
+        production = parser_ir.productions[0]
+        parser_ir = replace(
+            parser_ir,
+            productions=(
+                replace(
+                    production,
+                    alternatives=(
+                        replace(production.alternatives[0], result_index=0),
+                        *production.alternatives[1:],
+                    ),
+                ),
+                *parser_ir.productions[1:],
+            ),
+        )
+        function = _function(
+            generate_canonical_parser(source, parser_ir, entries).module_text,
+            "НеТерминалS",
+        )
+
+        self.assertIn('Продолжение.Вставить("Слот0", Значение1);', function)
+        self.assertIn("РезультатПродукции = Продолжение.Слот0;", function)
+        self.assertNotIn("НеТерминалS();", function)
 
     def test_named_token_set_helper_uses_cached_token_only(self) -> None:
         generated = _build(

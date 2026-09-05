@@ -16,11 +16,11 @@ from parsergen.decision_dag import (
 )
 from parsergen.grammar_parser import parse_grammar, parse_source_grammar
 from parsergen.lowering import lower_source_grammar
-from parsergen.direct_render_analysis import (
+from parsergen.direct_render_analysis import analyze_direct_render
+from parsergen.recursion_plan import (
     ContinuationSlot,
     IrSite,
     ResultFlowFact,
-    analyze_direct_render,
 )
 from parsergen.parser_ir import (
     AssignConstant,
@@ -976,7 +976,7 @@ def test_direct_constructor_recursion_is_not_rendered_as_a_tail_loop() -> None:
     method = "_p_0000"
     generated_production = direct.module_text.split(f"    def {method}(self):", 1)[1]
 
-    assert analysis.recursive_calls[0].kind == "local_continuation"
+    assert analysis.recursion_plan.sites[0].kind == "local_continuation"
     assert "continuations = []" in generated_production
     assert "def finish_site_0(saved, result):" in generated_production
     assert f"self.{method}()" not in generated_production
@@ -1093,7 +1093,7 @@ def test_bsl_shaped_optional_recursion_builds_1500_linked_nodes_iteratively(
     assert "self._p_0000()" not in direct.module_text.split(
         "    def _p_0000(self):", 1
     )[1]
-    assert len(analyze_direct_render(parser_ir).recursive_calls) == 1
+    assert len(analyze_direct_render(parser_ir).recursion_plan.sites) == 1
     for index in range(1_500):
         assert getattr(node, property_name) == "ITEM"
         assert node.span.start == index * item_width
@@ -1236,9 +1236,10 @@ def test_direct_tail_transform_matches_the_exact_safe_analysis_site() -> None:
     generated_production = direct.module_text.split("    def _p_0000(self):", 1)[1]
 
     assert {
-        (call.site.alternative, call.kind) for call in analysis.recursive_calls
+        (call.site.alternative, call.kind)
+        for call in analysis.recursion_plan.sites
     } == {
-        (0, "safe_tail_loop"),
+        (0, "tail_loop"),
         (1, "local_continuation"),
     }
     assert "        while True:" in generated_production
@@ -1287,7 +1288,7 @@ def test_direct_local_continuation_preserves_builder_fields_changed_by_control(
     assert (getattr(result, property_name), getattr(result.Rest, property_name)) == expected
     assert all(
         call.layout is not None and slot in call.layout.slots
-        for call in analyze_direct_render(parser_ir).recursive_calls
+        for call in analyze_direct_render(parser_ir).recursion_plan.sites
     )
 
 
@@ -1309,8 +1310,8 @@ def test_direct_safe_tail_recursion_inside_final_control_region_is_iterative(
 
     assert parser.parse([Token("ITEM") for _ in range(5_000)], "start") is None
     assert sys.getrecursionlimit() == original_limit
-    assert len(analysis.recursive_calls) == 1
-    assert analysis.recursive_calls[0].kind == "safe_tail_loop"
+    assert len(analysis.recursion_plan.sites) == 1
+    assert analysis.recursion_plan.sites[0].kind == "tail_loop"
 
 
 @pytest.mark.parametrize(
@@ -1330,13 +1331,15 @@ def test_direct_nested_tail_does_not_discard_a_live_enclosing_result(
     direct, parser_ir, _ = _generate(grammar)
     analysis = analyze_direct_render(parser_ir)
     outer = next(
-        item for item in analysis.sequence_liveness if item.site == IrSite("S", 0, ())
+        item
+        for item in analysis.recursion_plan.sequence_liveness
+        if item.site == IrSite("S", 0, ())
     )
 
     _, result = _execute(direct.module_text, tokens)
 
     assert outer.live_after == tuple(frozenset({0}) for _ in outer.live_after)
-    assert analysis.recursive_calls == ()
+    assert analysis.recursion_plan.sites == ()
     assert result is True
 
 
@@ -1370,7 +1373,9 @@ def test_direct_nested_resolved_region_does_not_discard_a_live_enclosing_result(
     direct = generate_python_semantic_parser(source, nested_ir, {"start": "S"})
     analysis = analyze_direct_render(nested_ir)
     outer = next(
-        item for item in analysis.sequence_liveness if item.site == IrSite("S", 0, ())
+        item
+        for item in analysis.recursion_plan.sequence_liveness
+        if item.site == IrSite("S", 0, ())
     )
 
     _, result = _execute(
@@ -1379,7 +1384,7 @@ def test_direct_nested_resolved_region_does_not_discard_a_live_enclosing_result(
     )
 
     assert outer.live_after == tuple(frozenset({0}) for _ in outer.live_after)
-    assert analysis.recursive_calls == ()
+    assert analysis.recursion_plan.sites == ()
     assert result is True
 
 
@@ -1387,7 +1392,9 @@ def test_direct_nested_discarded_call_does_not_adopt_a_non_none_base_result() ->
     direct, parser_ir, _ = _generate("<S> ::= ITEM -= (<S>) | := Истина STOP")
     analysis = analyze_direct_render(parser_ir)
     outer = next(
-        item for item in analysis.sequence_liveness if item.site == IrSite("S", 0, ())
+        item
+        for item in analysis.recursion_plan.sequence_liveness
+        if item.site == IrSite("S", 0, ())
     )
 
     _, result = _execute(
@@ -1397,7 +1404,7 @@ def test_direct_nested_discarded_call_does_not_adopt_a_non_none_base_result() ->
 
     assert outer.live_after == (frozenset(), frozenset())
     assert result is None
-    assert analysis.result_flow == (
+    assert analysis.recursion_plan.result_flow == (
         ResultFlowFact(
             IrSite(
                 "S",
@@ -1407,7 +1414,7 @@ def test_direct_nested_discarded_call_does_not_adopt_a_non_none_base_result() ->
             False,
         ),
     )
-    assert analysis.recursive_calls == ()
+    assert analysis.recursion_plan.sites == ()
 
 
 def test_direct_nested_discarded_call_does_not_adopt_an_implicit_constructor() -> None:
@@ -1420,7 +1427,7 @@ def test_direct_nested_discarded_call_does_not_adopt_an_implicit_constructor() -
     )
 
     assert result is None
-    assert analysis.recursive_calls == ()
+    assert analysis.recursion_plan.sites == ()
 
 
 def test_direct_nested_resolved_discarded_call_does_not_adopt_a_non_none_base_result() -> None:
@@ -1459,8 +1466,8 @@ def test_direct_nested_resolved_discarded_call_does_not_adopt_a_non_none_base_re
     )
 
     assert result is None
-    assert analysis.result_flow[0].propagates_unchanged is False
-    assert analysis.recursive_calls == ()
+    assert analysis.recursion_plan.result_flow[0].propagates_unchanged is False
+    assert analysis.recursion_plan.sites == ()
 
 
 def test_direct_nested_propagated_call_keeps_a_non_none_base_iterative() -> None:
@@ -1471,8 +1478,8 @@ def test_direct_nested_propagated_call_keeps_a_non_none_base_iterative() -> None
 
     assert parser.parse([Token("ITEM") for _ in range(1_500)] + [Token("STOP")], "start") is True
     assert sys.getrecursionlimit() == original_limit
-    assert analysis.result_flow[0].propagates_unchanged is True
-    assert analysis.recursive_calls[0].kind == "safe_tail_loop"
+    assert analysis.recursion_plan.result_flow[0].propagates_unchanged is True
+    assert analysis.recursion_plan.sites[0].kind == "tail_loop"
 
 
 def test_direct_nested_discarded_syntax_only_call_stays_iterative() -> None:
@@ -1483,8 +1490,8 @@ def test_direct_nested_discarded_syntax_only_call_stays_iterative() -> None:
 
     assert parser.parse([Token("ITEM") for _ in range(5_000)] + [Token("STOP")], "start") is None
     assert sys.getrecursionlimit() == original_limit
-    assert analysis.result_flow[0].propagates_unchanged is False
-    assert analysis.recursive_calls[0].kind == "safe_tail_loop"
+    assert analysis.recursion_plan.result_flow[0].propagates_unchanged is False
+    assert analysis.recursion_plan.sites[0].kind == "tail_loop"
 
 
 @pytest.mark.parametrize(
@@ -1500,7 +1507,7 @@ def test_direct_nested_recursion_does_not_transform_non_tail_or_live_sites(
 ) -> None:
     _, parser_ir, _ = _generate(grammar)
 
-    assert analyze_direct_render(parser_ir).recursive_calls == ()
+    assert analyze_direct_render(parser_ir).recursion_plan.sites == ()
 
 
 @pytest.mark.parametrize(

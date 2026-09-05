@@ -58,6 +58,12 @@ from .parser_ir import (
     WrapValue,
     UndefinedValue,
 )
+from .recursion_plan import (
+    IrSite,
+    RecursiveCallSite,
+    analyze_recursion_plan,
+    child_site,
+)
 from .generated_parser import GeneratedParser, empty_select_table
 from .source_model import SourceGrammar
 from .value_table_codec import ColumnKind, ValueColumn, ValueTable
@@ -82,7 +88,13 @@ _TOKEN_CLASS_HELPER = """Функция ТокенПринадлежитКлас
 КонецФункции"""
 _GENERATED_LOCALS = frozenset(
     item.casefold()
-    for item in ("РезультатПродукции", "ЭтотУзел")
+    for item in (
+        "РезультатПродукции",
+        "ЭтотУзел",
+        "СтекПродолжений",
+        "Продолжение",
+        "ЭлементПродолжения",
+    )
 )
 
 
@@ -136,6 +148,7 @@ class _CanonicalBslGenerator:
     ) -> None:
         self._source = source
         self._ir = parser_ir
+        self._recursion_plan = analyze_recursion_plan(source, parser_ir)
         self._entrypoints = entrypoints
         self._named_predicates = dict(named_predicates or {})
         self._decisions = CanonicalDecisionRenderer(
@@ -148,6 +161,11 @@ class _CanonicalBslGenerator:
         self._fold_left_values: list[str] = []
         self._abi_parameters: tuple[str, ...] = ()
         self._call_argument_prefix: tuple[str, ...] = ()
+        self._active_nested_continuations: dict[
+            IrSite, tuple[int, RecursiveCallSite, AlternativeIr, BindScalar]
+        ] | None = None
+        self._active_nested_values: list[str | None] | None = None
+        self._active_tail_calls: dict[IrSite, RecursiveCallSite] | None = None
 
     def generate(self) -> GeneratedParser:
         self._validate_inputs()
@@ -366,22 +384,304 @@ class _CanonicalBslGenerator:
             f"{item} = Неопределено"
             for item in (*self._abi_parameters, *production.parameters)
         )
+        continuations = self._local_continuations(production)
+        continuation = self._simple_local_continuation(
+            production,
+            continuations,
+        )
+        if continuation is not None:
+            return self._render_local_continuation_production(
+                production,
+                parameters,
+                continuation,
+            )
+        nested_continuation = self._nested_local_continuation(
+            production,
+            continuations,
+        )
+        if nested_continuation is not None:
+            return self._render_nested_local_continuation_production(
+                production,
+                parameters,
+                nested_continuation,
+            )
+        if continuations:
+            raise ValueError(
+                "canonical renderer cannot consume local continuation plan sites"
+            )
+        tail_calls = self._simple_tail_loop_calls(production)
         lines = [
             f"Функция НеТерминал{production.name}({parameters})",
             "\tРезультатПродукции = Неопределено;",
         ]
-        if production.decision is None:
-            lines.extend(
-                self._render_alternative(
-                    production.alternatives[0],
-                    "\t",
-                    production.name,
+        body_indent = "\t\t" if tail_calls else "\t"
+        if tail_calls:
+            lines.append("\tПока Истина Цикл")
+        previous_tail_calls = self._active_tail_calls
+        self._active_tail_calls = {call.site: call for call in tail_calls}
+        try:
+            if production.decision is None:
+                lines.extend(
+                    self._render_alternative(
+                        production.alternatives[0],
+                        body_indent,
+                        production.name,
+                        site=IrSite(
+                            production.name,
+                            production.alternatives[0].index,
+                            (),
+                        ),
+                    )
+                )
+                if tail_calls:
+                    lines.append(f"{body_indent}Прервать;")
+            else:
+                alternatives_by_outcome = {
+                    AlternativeOutcome(production.name, alternative.index + 1):
+                    alternative
+                    for alternative in production.alternatives
+                }
+
+                def render_leaf(leaf, path_facts, indent: str) -> list[str]:
+                    if isinstance(leaf, ImmediateError):
+                        return [
+                            self._syntax_error_line(
+                                indent,
+                                production.name,
+                                leaf.expected,
+                            )
+                        ]
+                    if isinstance(leaf, ExitDecision):
+                        raise ValueError("production decision must not exit")
+                    assert isinstance(leaf, CommitAlternative)
+                    alternative = alternatives_by_outcome.get(leaf.outcome)
+                    if alternative is None:
+                        raise ValueError(
+                            "production decision references unknown outcome"
+                        )
+                    body = self._render_alternative(
+                        alternative,
+                        indent,
+                        production.name,
+                        site=IrSite(production.name, alternative.index, ()),
+                    )
+                    if tail_calls:
+                        body.append(f"{indent}Прервать;")
+                    return body
+
+                lines.extend(
+                    self._decisions.render(
+                        production.decision,
+                        indent=body_indent,
+                        token_prefix="ТокенРешения",
+                        render_leaf=render_leaf,
+                    )
+                )
+        finally:
+            self._active_tail_calls = previous_tail_calls
+        if tail_calls:
+            lines.append("\tКонецЦикла;")
+        lines.extend(("\tВозврат РезультатПродукции;", "КонецФункции"))
+        return "\r\n".join(lines)
+
+    def _simple_tail_loop_calls(
+        self,
+        production: ProductionIr,
+    ) -> tuple[RecursiveCallSite, ...]:
+        calls: list[RecursiveCallSite] = []
+        for call in self._recursion_plan.sites:
+            if call.site.production != production.name or call.kind != "tail_loop":
+                continue
+            trail = call.site.trail
+            if len(trail) != 1 or trail[0][0] != "operation":
+                return ()
+            alternative = next(
+                (
+                    item
+                    for item in production.alternatives
+                    if item.index == call.site.alternative
+                ),
+                None,
+            )
+            if alternative is None or trail[0][1] >= len(alternative.operations):
+                return ()
+            operation = alternative.operations[trail[0][1]]
+            if not (
+                isinstance(operation, ParseSymbol)
+                and isinstance(operation.symbol, NonterminalCall)
+                and operation.symbol.name == production.name
+            ):
+                return ()
+            calls.append(call)
+        return tuple(calls)
+
+    def _simple_local_continuation(
+        self,
+        production: ProductionIr,
+        calls: tuple[RecursiveCallSite, ...],
+    ) -> tuple[RecursiveCallSite, AlternativeIr, int, Operation] | None:
+        if len(calls) != 1:
+            return None
+        call = calls[0]
+        if call.layout is None:
+            raise ValueError("local continuation is missing its layout")
+        trail = call.site.trail
+        if (
+            not trail
+            or trail[0][0] != "operation"
+            or trail[0][1] < 0
+        ):
+            return None
+        alternative = next(
+            (
+                item
+                for item in production.alternatives
+                if item.index == call.site.alternative
+            ),
+            None,
+        )
+        if alternative is None or trail[0][1] >= len(alternative.operations):
+            return None
+        operation_index = trail[0][1]
+        operation = alternative.operations[operation_index]
+        direct = trail == (("operation", operation_index),)
+        bound = trail == (("operation", operation_index), ("value", 0))
+        if not (
+            (direct and isinstance(operation, (ParseSymbol, DiscardSymbol)))
+            or (
+                bound
+                and isinstance(
+                    operation,
+                    (
+                        BindScalar,
+                        AppendCollection,
+                        ExtendCollection,
+                        ConcatScalar,
+                        IncrementScalar,
+                        WrapValue,
+                    ),
                 )
             )
+        ):
+            return None
+        return call, alternative, operation_index, operation
+
+    def _local_continuations(
+        self,
+        production: ProductionIr,
+    ) -> tuple[RecursiveCallSite, ...]:
+        """Return the planner's sites without deriving any target eligibility."""
+        return tuple(
+            call
+            for call in self._recursion_plan.sites
+            if (
+                call.site.production == production.name
+                and call.kind == "local_continuation"
+            )
+        )
+
+    def _nested_local_continuation(
+        self,
+        production: ProductionIr,
+        calls: tuple[RecursiveCallSite, ...],
+    ) -> tuple[tuple[RecursiveCallSite, AlternativeIr, BindScalar], ...] | None:
+        """Resolve exact nested plan sites to their existing IR operations.
+
+        The plan is authoritative: this method only follows its ``IrSite`` to
+        locate the operation whose already-rendered call must become a frame
+        push.  Nested layouts are emitted by the common planner only for a
+        bound direct call, so no recursion safety decision is made here.
+        """
+        continuations: list[tuple[RecursiveCallSite, AlternativeIr, BindScalar]] = []
+        for call in calls:
+            if call.layout is None:
+                return None
+            alternative = next(
+                (
+                    item
+                    for item in production.alternatives
+                    if item.index == call.site.alternative
+                ),
+                None,
+            )
+            if alternative is None:
+                raise ValueError("continuation plan references unknown alternative")
+            operation = self._operation_at_site(alternative, call.site.trail)
+            if not isinstance(operation, BindScalar):
+                return None
+            continuations.append((call, alternative, operation))
+        return tuple(continuations) or None
+
+    def _operation_at_site(
+        self,
+        alternative: AlternativeIr,
+        trail,
+    ) -> Operation:
+        operations = alternative.operations
+        position = 0
+        current: Operation | None = None
+        while position < len(trail):
+            kind, index = trail[position]
+            if kind != "operation" or index >= len(operations):
+                raise ValueError("continuation plan has an invalid operation trail")
+            current = operations[index]
+            position += 1
+            if position == len(trail):
+                return current
+            kind, index = trail[position]
+            if kind == "value":
+                if index != 0 or position != len(trail) - 1:
+                    raise ValueError("continuation plan has an invalid value trail")
+                return current
+            if isinstance(current, ResolvedRegion) and kind == "region" and index == 0:
+                operations = current.operations
+            elif isinstance(current, (Dispatch, RepeatLoop, OptionalBranch)) and kind == "branch" and index < len(current.branches):
+                operations = current.branches[index].operations
+            elif isinstance(current, OptionalBranch) and kind == "exit" and index == 0:
+                operations = current.exit_operations
+            else:
+                raise ValueError("continuation plan has an unsupported nested trail")
+            position += 1
+        raise ValueError("continuation plan trail does not name an operation")
+
+    def _render_nested_local_continuation_production(
+        self,
+        production: ProductionIr,
+        parameters: str,
+        continuations: tuple[tuple[RecursiveCallSite, AlternativeIr, BindScalar], ...],
+    ) -> str:
+        by_alternative: dict[int, tuple[RecursiveCallSite, ...]] = {}
+        for call, alternative, operation in continuations:
+            by_alternative[alternative.index] = (
+                *by_alternative.get(alternative.index, ()),
+                call,
+            )
+        lines = [
+            f"Функция НеТерминал{production.name}({parameters})",
+            "\tРезультатПродукции = Неопределено;",
+            "\tСтекПродолжений = Новый Массив;",
+            "\tПока Истина Цикл",
+        ]
+        body_indent = "\t\t"
+
+        def render_alternative(
+            alternative: AlternativeIr,
+            indent: str,
+        ) -> list[str]:
+            body, _ = self._render_local_continuation_alternative(
+                alternative,
+                indent,
+                production.name,
+                by_alternative.get(alternative.index, ()),
+            )
+            body.append(f"{indent}Прервать;")
+            return body
+
+        if production.decision is None:
+            lines.extend(render_alternative(production.alternatives[0], body_indent))
         else:
             alternatives_by_outcome = {
-                AlternativeOutcome(production.name, alternative.index + 1):
-                    alternative
+                AlternativeOutcome(production.name, alternative.index + 1): alternative
                 for alternative in production.alternatives
             }
 
@@ -402,28 +702,508 @@ class _CanonicalBslGenerator:
                     raise ValueError(
                         "production decision references unknown outcome"
                     )
-                return self._render_alternative(
-                    alternative,
-                    indent,
-                    production.name,
-                )
+                return render_alternative(alternative, indent)
 
             lines.extend(
                 self._decisions.render(
                     production.decision,
-                    indent="\t",
+                    indent=body_indent,
                     token_prefix="ТокенРешения",
                     render_leaf=render_leaf,
                 )
             )
+        lines.extend(
+            self._render_nested_local_continuation_unwind(
+                continuations,
+                "\t",
+            )
+        )
         lines.extend(("\tВозврат РезультатПродукции;", "КонецФункции"))
         return "\r\n".join(lines)
+
+    def _render_local_continuation_alternative(
+        self,
+        alternative: AlternativeIr,
+        indent: str,
+        error_label: str,
+        nested_calls: tuple[RecursiveCallSite, ...],
+    ) -> tuple[list[str], list[str | None]]:
+        has_constructor = any(
+            isinstance(item, ConstructNode) for item in alternative.operations
+        )
+        required_result_index = (
+            None if has_constructor else alternative.result_index
+        )
+        sequence_site = IrSite(error_label, alternative.index, ())
+        lines: list[str] = []
+        values: list[str | None] = []
+        previous_calls = self._active_nested_continuations
+        previous_values = self._active_nested_values
+        self._active_nested_continuations = {
+            call.site: (index, call, alternative, self._operation_at_site(alternative, call.site.trail))
+            for index, call in enumerate(nested_calls)
+        }
+        self._active_nested_values = values
+        try:
+            for index, item in enumerate(alternative.operations):
+                if isinstance(item, DiscardSymbol):
+                    rendered = [f"{indent}{self._symbol_call(item.symbol)};"]
+                    value = None
+                elif (
+                    isinstance(item, ParseSymbol)
+                    and index != required_result_index
+                ):
+                    rendered = [f"{indent}{self._symbol_call(item.symbol)};"]
+                    value = None
+                else:
+                    rendered, value = self._render_operation(
+                        item,
+                        indent,
+                        error_label,
+                        site=child_site(sequence_site, "operation", index),
+                    )
+                lines.extend(rendered)
+                values.append(value)
+        finally:
+            self._active_nested_continuations = previous_calls
+            self._active_nested_values = previous_values
+        if has_constructor:
+            lines.append(f"{indent}РезультатПродукции = ЭтотУзел;")
+        elif alternative.result_index is not None:
+            value = values[alternative.result_index]
+            if value is None:
+                raise ValueError("transparent result operation has no value")
+            lines.append(f"{indent}РезультатПродукции = {value};")
+        return lines, values
+
+    def _render_nested_local_continuation_push(
+        self,
+        frame_kind: int,
+        call: RecursiveCallSite,
+        alternative: AlternativeIr,
+        indent: str,
+    ) -> list[str]:
+        assert call.layout is not None
+        values = self._active_nested_values
+        if values is None:
+            raise ValueError("nested continuation has no enclosing values")
+        lines = [
+            f"{indent}Продолжение = Новый Структура;",
+            f'{indent}Продолжение.Вставить("Вид", {frame_kind});',
+        ]
+        has_node = any(
+            isinstance(item, ConstructNode) for item in alternative.operations
+        )
+        if has_node:
+            lines.append(f'{indent}Продолжение.Вставить("Узел", ЭтотУзел);')
+        for slot_index, slot in enumerate(call.layout.slots):
+            expression = self._continuation_slot_expression(
+                slot,
+                alternative,
+                values,
+                None,
+            )
+            lines.append(
+                f'{indent}Продолжение.Вставить("Слот{slot_index}", {expression});'
+            )
+        lines.extend(
+            (
+                f"{indent}СтекПродолжений.Добавить(Продолжение);",
+                f"{indent}Продолжить;",
+            )
+        )
+        return lines
+
+    def _render_nested_local_continuation_unwind(
+        self,
+        continuations: tuple[tuple[RecursiveCallSite, AlternativeIr, BindScalar], ...],
+        indent: str,
+    ) -> list[str]:
+        lines = [
+            f"{indent}КонецЦикла;",
+            f"{indent}Пока СтекПродолжений.Количество() > 0 Цикл",
+            (
+                f"{indent}\tПродолжение = СтекПродолжений.Получить("
+                "СтекПродолжений.Количество() - 1);"
+            ),
+            f"{indent}\tСтекПродолжений.Удалить(СтекПродолжений.Количество() - 1);",
+        ]
+        for index, (call, alternative, operation) in enumerate(continuations):
+            keyword = "Если" if index == 0 else "ИначеЕсли"
+            lines.append(f"{indent}\t{keyword} Продолжение.Вид = {index} Тогда")
+            lines.extend(
+                self._render_nested_local_continuation_restore(
+                    call,
+                    alternative,
+                    operation,
+                    indent + "\t\t",
+                )
+            )
+        lines.extend(
+            (
+                f"{indent}\tИначе",
+                f"{indent}\t\tВызватьИсключение \"Неизвестное продолжение\";",
+                f"{indent}\tКонецЕсли;",
+                f"{indent}КонецЦикла;",
+            )
+        )
+        return lines
+
+    def _render_nested_local_continuation_restore(
+        self,
+        call: RecursiveCallSite,
+        alternative: AlternativeIr,
+        operation: BindScalar,
+        indent: str,
+    ) -> list[str]:
+        assert call.layout is not None
+        has_node = any(
+            isinstance(item, ConstructNode) for item in alternative.operations
+        )
+        lines: list[str] = []
+        if has_node:
+            lines.append(f"{indent}ЭтотУзел = Продолжение.Узел;")
+        for slot_index, slot in enumerate(call.layout.slots):
+            stored = f"Продолжение.Слот{slot_index}"
+            if slot.kind in {"builder_field", "collection_accumulator"}:
+                property_name = self._continuation_property(slot, alternative)
+                if property_name is not None:
+                    lines.append(f"{indent}ЭтотУзел.{property_name} = {stored};")
+            elif slot.kind == "span_start" and has_node:
+                lines.append(f"{indent}ЭтотУзел = {stored};")
+            elif slot.kind in {"operation_result", "fold_accumulator"}:
+                lines.append(f"{indent}РезультатПродукции = {stored};")
+        lines.extend(
+            self._render_continuation_result_binding(operation, call, indent)
+        )
+        for suffix_index in call.layout.suffix_indices:
+            try:
+                suffix = alternative.operations[suffix_index]
+            except IndexError as error:
+                raise ValueError("continuation suffix is outside its sequence") from error
+            if not isinstance(suffix, AssignConstant):
+                raise ValueError("continuation suffix is not a constant assignment")
+            suffix_lines, _ = self._render_operation(
+                suffix,
+                indent,
+                str(alternative.index),
+            )
+            lines.extend(suffix_lines)
+        if has_node:
+            lines.append(f"{indent}РезультатПродукции = ЭтотУзел;")
+        return lines
+
+    def _render_local_continuation_production(
+        self,
+        production: ProductionIr,
+        parameters: str,
+        continuation: tuple[RecursiveCallSite, AlternativeIr, int, Operation],
+    ) -> str:
+        call, recursive_alternative, operation_index, operation = continuation
+        lines = [
+            f"Функция НеТерминал{production.name}({parameters})",
+            "\tРезультатПродукции = Неопределено;",
+            "\tСтекПродолжений = Новый Массив;",
+            "\tПока Истина Цикл",
+        ]
+        body_indent = "\t\t"
+
+        def render_alternative(
+            alternative: AlternativeIr,
+            indent: str,
+        ) -> list[str]:
+            if alternative.index == recursive_alternative.index:
+                return self._render_local_continuation_push(
+                    alternative,
+                    operation_index,
+                    operation,
+                    call,
+                    indent,
+                    production.name,
+                )
+            body = self._render_alternative(
+                alternative,
+                indent,
+                production.name,
+            )
+            body.append(f"{indent}Прервать;")
+            return body
+
+        if production.decision is None:
+            lines.extend(render_alternative(production.alternatives[0], body_indent))
+        else:
+            alternatives_by_outcome = {
+                AlternativeOutcome(production.name, alternative.index + 1): alternative
+                for alternative in production.alternatives
+            }
+
+            def render_leaf(leaf, path_facts, indent: str) -> list[str]:
+                if isinstance(leaf, ImmediateError):
+                    return [
+                        self._syntax_error_line(
+                            indent,
+                            production.name,
+                            leaf.expected,
+                        )
+                    ]
+                if isinstance(leaf, ExitDecision):
+                    raise ValueError("production decision must not exit")
+                assert isinstance(leaf, CommitAlternative)
+                alternative = alternatives_by_outcome.get(leaf.outcome)
+                if alternative is None:
+                    raise ValueError(
+                        "production decision references unknown outcome"
+                    )
+                return render_alternative(alternative, indent)
+
+            lines.extend(
+                self._decisions.render(
+                    production.decision,
+                    indent=body_indent,
+                    token_prefix="ТокенРешения",
+                    render_leaf=render_leaf,
+                )
+            )
+        lines.extend(
+            self._render_local_continuation_unwind(
+                call,
+                recursive_alternative,
+                operation,
+                "\t",
+            )
+        )
+        lines.extend(("\tВозврат РезультатПродукции;", "КонецФункции"))
+        return "\r\n".join(lines)
+
+    def _render_local_continuation_push(
+        self,
+        alternative: AlternativeIr,
+        operation_index: int,
+        operation: Operation,
+        call: RecursiveCallSite,
+        indent: str,
+        error_label: str,
+    ) -> list[str]:
+        prefix, values = self._render_operations(
+            alternative.operations[:operation_index],
+            indent,
+            error_label,
+            required_result_index=(
+                alternative.result_index
+                if (
+                    alternative.result_index is not None
+                    and alternative.result_index < operation_index
+                )
+                else None
+            ),
+        )
+        wrap_seed: str | None = None
+        if isinstance(operation, WrapValue):
+            seed_lines, wrap_seed = self._render_operation(
+                operation.seed,
+                indent,
+                error_label,
+            )
+            prefix.extend(seed_lines)
+        assert call.layout is not None
+        has_node = any(
+            isinstance(item, ConstructNode)
+            for item in alternative.operations[:operation_index]
+        )
+        lines = [*prefix, f"{indent}Продолжение = Новый Структура;"]
+        if has_node:
+            lines.append(
+                f"{indent}Продолжение.Вставить(\"Узел\", ЭтотУзел);"
+            )
+        for slot_index, slot in enumerate(call.layout.slots):
+            expression = self._continuation_slot_expression(
+                slot,
+                alternative,
+                values,
+                wrap_seed,
+            )
+            lines.append(
+                f"{indent}Продолжение.Вставить(\"Слот{slot_index}\", {expression});"
+            )
+        lines.extend(
+            (
+                f"{indent}СтекПродолжений.Добавить(Продолжение);",
+                f"{indent}Продолжить;",
+            )
+        )
+        return lines
+
+    def _continuation_slot_expression(
+        self,
+        slot,
+        alternative: AlternativeIr,
+        values: list[str | None],
+        wrap_seed: str | None,
+    ) -> str:
+        if slot.kind == "span_start":
+            return "ЭтотУзел"
+        if slot.kind == "operation_result":
+            if slot.index is None or slot.index >= len(values):
+                raise ValueError("continuation result slot is outside its prefix")
+            value = values[slot.index]
+            if value is None:
+                raise ValueError("continuation result slot has no value")
+            return value
+        if slot.kind == "wrap_seed":
+            if wrap_seed is None:
+                raise ValueError("continuation wrap-seed slot has no value")
+            return wrap_seed
+        if slot.kind == "fold_accumulator":
+            return "РезультатПродукции"
+        if slot.kind in {"builder_field", "collection_accumulator"}:
+            property_name = self._continuation_property(slot, alternative)
+            return (
+                "ЭтотУзел"
+                if property_name is None
+                else f"ЭтотУзел.{property_name}"
+            )
+        raise TypeError(slot.kind)
+
+    def _continuation_property(self, slot, alternative: AlternativeIr) -> str | None:
+        if slot.property is not None:
+            return slot.property
+        if slot.index is None or slot.index >= len(alternative.operations):
+            raise ValueError("continuation builder slot is outside its sequence")
+        operation = alternative.operations[slot.index]
+        if isinstance(operation, AppendCollection):
+            return operation.property
+        if isinstance(
+            operation,
+            (
+                BindScalar,
+                ExtendCollection,
+                ConcatScalar,
+                IncrementScalar,
+                AssignConstant,
+            ),
+        ):
+            return operation.property
+        raise ValueError("continuation builder slot has no bound property")
+
+    def _render_local_continuation_unwind(
+        self,
+        call: RecursiveCallSite,
+        alternative: AlternativeIr,
+        operation: Operation,
+        indent: str,
+    ) -> list[str]:
+        assert call.layout is not None
+        has_node = any(isinstance(item, ConstructNode) for item in alternative.operations)
+        lines = [
+            f"{indent}КонецЦикла;",
+            f"{indent}Пока СтекПродолжений.Количество() > 0 Цикл",
+            (
+                f"{indent}\tПродолжение = СтекПродолжений.Получить("
+                "СтекПродолжений.Количество() - 1);"
+            ),
+            f"{indent}\tСтекПродолжений.Удалить(СтекПродолжений.Количество() - 1);",
+        ]
+        if has_node:
+            lines.append(f"{indent}\tЭтотУзел = Продолжение.Узел;")
+        for slot_index, slot in enumerate(call.layout.slots):
+            stored = f"Продолжение.Слот{slot_index}"
+            if slot.kind in {"builder_field", "collection_accumulator"}:
+                property_name = self._continuation_property(slot, alternative)
+                if property_name is not None:
+                    lines.append(
+                        f"{indent}\tЭтотУзел.{property_name} = {stored};"
+                    )
+            elif slot.kind == "span_start" and has_node:
+                lines.append(f"{indent}\tЭтотУзел = {stored};")
+            elif slot.kind == "operation_result":
+                lines.append(f"{indent}\tРезультатПродукции = {stored};")
+            elif slot.kind == "fold_accumulator":
+                lines.append(f"{indent}\tРезультатПродукции = {stored};")
+        lines.extend(
+            self._render_continuation_result_binding(
+                operation,
+                call,
+                indent + "\t",
+            )
+        )
+        for index in call.layout.suffix_indices:
+            try:
+                suffix = alternative.operations[index]
+            except IndexError as error:
+                raise ValueError("continuation suffix is outside its sequence") from error
+            if not isinstance(suffix, AssignConstant):
+                raise ValueError("continuation suffix is not a constant assignment")
+            suffix_lines, _ = self._render_operation(
+                suffix,
+                indent + "\t",
+                alternative.index.__str__(),
+            )
+            lines.extend(suffix_lines)
+        if isinstance(operation, WrapValue):
+            pass
+        elif has_node:
+            lines.append(f"{indent}\tРезультатПродукции = ЭтотУзел;")
+        lines.append(f"{indent}КонецЦикла;")
+        return lines
+
+    def _render_continuation_result_binding(
+        self,
+        operation: Operation,
+        call: RecursiveCallSite,
+        indent: str,
+    ) -> list[str]:
+        if isinstance(operation, BindScalar):
+            return [f"{indent}ЭтотУзел.{operation.property} = РезультатПродукции;"]
+        if isinstance(operation, AppendCollection):
+            target = "ЭтотУзел" if operation.property is None else f"ЭтотУзел.{operation.property}"
+            return [f"{indent}{target}.Добавить(РезультатПродукции);"]
+        if isinstance(operation, ExtendCollection):
+            return [
+                f"{indent}Если РезультатПродукции <> Неопределено Тогда",
+                f"{indent}\tДля Каждого ЭлементПродолжения Из РезультатПродукции Цикл",
+                f"{indent}\t\tЭтотУзел.{operation.property}.Добавить(ЭлементПродолжения);",
+                f"{indent}\tКонецЦикла;",
+                f"{indent}КонецЕсли;",
+            ]
+        if isinstance(operation, ConcatScalar):
+            return [
+                f"{indent}ЭтотУзел.{operation.property} = ЭтотУзел.{operation.property} + РезультатПродукции;"
+            ]
+        if isinstance(operation, IncrementScalar):
+            return [
+                f"{indent}ЭтотУзел.{operation.property} = ЭтотУзел.{operation.property} + 1;"
+            ]
+        if isinstance(operation, WrapValue):
+            assert call.layout is not None
+            seed_index = next(
+                (
+                    index
+                    for index, slot in enumerate(call.layout.slots)
+                    if slot.kind == "wrap_seed"
+                ),
+                None,
+            )
+            if seed_index is None:
+                raise ValueError("wrap continuation is missing its seed slot")
+            validate_bsl_member_name(operation.property, "wrapped property")
+            seed = f"Продолжение.Слот{seed_index}"
+            binding = (
+                f"РезультатПродукции.{operation.property}.Вставить(0, {seed});"
+                if operation.prepend
+                else f"РезультатПродукции.{operation.property} = {seed};"
+            )
+            return [f"{indent}{binding}"]
+        if isinstance(operation, (ParseSymbol, DiscardSymbol)):
+            return []
+        raise TypeError(type(operation))
 
     def _render_alternative(
         self,
         alternative: AlternativeIr,
         indent: str,
         error_label: str,
+        *,
+        site: IrSite | None = None,
     ) -> list[str]:
         has_constructor = any(
             isinstance(operation, ConstructNode)
@@ -436,6 +1216,7 @@ class _CanonicalBslGenerator:
             required_result_index=(
                 None if has_constructor else alternative.result_index
             ),
+            site=site,
         )
         if has_constructor:
             lines.append(f"{indent}РезультатПродукции = ЭтотУзел;")
@@ -453,11 +1234,29 @@ class _CanonicalBslGenerator:
         error_label: str,
         *,
         required_result_index: int | None = None,
+        site: IrSite | None = None,
     ) -> tuple[list[str], list[str | None]]:
         lines: list[str] = []
         values: list[str | None] = []
         for index, operation in enumerate(operations):
-            if isinstance(operation, DiscardSymbol):
+            operation_site = (
+                None if site is None else child_site(site, "operation", index)
+            )
+            tail_call = (
+                None
+                if self._active_tail_calls is None or operation_site is None
+                else self._active_tail_calls.get(operation_site)
+            )
+            if tail_call is not None:
+                if not isinstance(operation, ParseSymbol):
+                    raise ValueError("tail-loop plan does not name a parse operation")
+                rendered = [f"{indent}Продолжить;"]
+                # The enclosing transparent alternative can name this final
+                # operation as its result. The generated assignment is
+                # unreachable after `Продолжить`, but the renderer still
+                # needs a syntactically valid value while assembling it.
+                value = "Неопределено"
+            elif isinstance(operation, DiscardSymbol):
                 rendered = [
                     f"{indent}{self._symbol_call(operation.symbol)};"
                 ]
@@ -475,6 +1274,7 @@ class _CanonicalBslGenerator:
                     operation,
                     indent,
                     error_label,
+                    site=operation_site,
                 )
             lines.extend(rendered)
             values.append(value)
@@ -485,7 +1285,30 @@ class _CanonicalBslGenerator:
         operation: Operation,
         indent: str,
         error_label: str,
+        *,
+        site: IrSite | None = None,
     ) -> tuple[list[str], str | None]:
+        continuations = self._active_nested_continuations
+        continuation = (
+            None
+            if continuations is None or site is None
+            else continuations.get(child_site(site, "value", 0))
+        )
+        if continuation is not None:
+            frame_kind, call, alternative, _ = continuation
+            if not isinstance(operation, BindScalar):
+                raise ValueError(
+                    "nested continuation plan does not name a scalar binding"
+                )
+            return (
+                self._render_nested_local_continuation_push(
+                    frame_kind,
+                    call,
+                    alternative,
+                    indent,
+                ),
+                None,
+            )
         if isinstance(operation, ParseSymbol):
             temporary = self._new_temporary()
             return (
@@ -513,6 +1336,11 @@ class _CanonicalBslGenerator:
                 indent,
                 error_label,
                 required_result_index=operation.result_index,
+                site=(
+                    None
+                    if site is None
+                    else child_site(site, "region", 0)
+                ),
             )
             return (
                 lines,
@@ -622,12 +1450,14 @@ class _CanonicalBslGenerator:
                 operation,
                 indent,
                 error_label,
+                site=site,
             )
         if isinstance(operation, OptionalBranch):
             return self._render_optional(
                 operation,
                 indent,
                 error_label,
+                site=site,
             )
         if isinstance(operation, WrapOptional):
             return self._render_wrap_optional(
@@ -968,6 +1798,8 @@ class _CanonicalBslGenerator:
         dispatch: Dispatch,
         indent: str,
         error_label: str,
+        *,
+        site: IrSite | None = None,
     ) -> tuple[list[str], str | None]:
         result = self._branch_result_temporary(dispatch.branches)
         branches_by_outcome = {
@@ -996,6 +1828,11 @@ class _CanonicalBslGenerator:
                 required_result_index=(
                     branch.result_index if result is not None else None
                 ),
+                site=(
+                    None
+                    if site is None
+                    else child_site(site, "branch", dispatch.branches.index(branch))
+                ),
             )
             if result is not None:
                 assert branch.result_index is not None
@@ -1018,6 +1855,8 @@ class _CanonicalBslGenerator:
         optional: OptionalBranch,
         indent: str,
         error_label: str,
+        *,
+        site: IrSite | None = None,
     ) -> tuple[list[str], str | None]:
         result = self._branch_result_temporary(optional.branches)
         branches_by_outcome = {
@@ -1038,6 +1877,11 @@ class _CanonicalBslGenerator:
                     optional.exit_operations,
                     leaf_indent,
                     error_label,
+                    site=(
+                        None
+                        if site is None
+                        else child_site(site, "exit", 0)
+                    ),
                 )
                 if result is not None:
                     exit_lines.append(
@@ -1054,6 +1898,11 @@ class _CanonicalBslGenerator:
                 error_label,
                 required_result_index=(
                     branch.result_index if result is not None else None
+                ),
+                site=(
+                    None
+                    if site is None
+                    else child_site(site, "branch", optional.branches.index(branch))
                 ),
             )
             if result is not None:
