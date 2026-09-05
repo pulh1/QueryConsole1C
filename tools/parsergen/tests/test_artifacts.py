@@ -15,7 +15,7 @@ from parsergen.artifacts import (
     render_artifacts,
     replace_artifacts,
 )
-from parsergen.bsl_codegen import GeneratedParser
+from parsergen.generated_parser import GeneratedParser
 from parsergen.value_table_codec import (
     ColumnKind,
     ValueColumn,

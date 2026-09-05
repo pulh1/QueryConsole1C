@@ -58,6 +58,7 @@ from .parser_ir import (
     WrapValue,
     UndefinedValue,
 )
+from .generated_parser import GeneratedParser, empty_select_table
 from .source_model import SourceGrammar
 from .value_table_codec import ColumnKind, ValueColumn, ValueTable
 
@@ -86,13 +87,6 @@ _GENERATED_LOCALS = frozenset(
 
 
 @dataclass(frozen=True, slots=True)
-class CanonicalGeneratedParser:
-    module_text: str
-    identifier_table: ValueTable
-    constructor_names: tuple[str, ...]
-
-
-@dataclass(frozen=True, slots=True)
 class CanonicalGeneratedFunctions:
     module_fragment: str
     constructor_names: tuple[str, ...]
@@ -104,7 +98,7 @@ def generate_canonical_parser(
     entrypoints: Mapping[str, str],
     *,
     named_predicates: Mapping[tuple[str, ...], str] | None = None,
-) -> CanonicalGeneratedParser:
+) -> GeneratedParser:
     return _CanonicalBslGenerator(
         source,
         parser_ir,
@@ -155,7 +149,7 @@ class _CanonicalBslGenerator:
         self._abi_parameters: tuple[str, ...] = ()
         self._call_argument_prefix: tuple[str, ...] = ()
 
-    def generate(self) -> CanonicalGeneratedParser:
+    def generate(self) -> GeneratedParser:
         self._validate_inputs()
         module = _substitute_template(
             _load_template(),
@@ -164,8 +158,9 @@ class _CanonicalBslGenerator:
             self._render_productions(),
             self._ir.lookahead,
         )
-        return CanonicalGeneratedParser(
+        return GeneratedParser(
             module,
+            empty_select_table(self._ir.lookahead),
             _identifier_table(self._source),
             tuple(self._constructors),
         )

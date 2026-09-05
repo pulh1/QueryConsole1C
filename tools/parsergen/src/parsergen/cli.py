@@ -15,10 +15,10 @@ from .analysis import (
 )
 from .artifacts import compare_artifacts, render_artifacts, replace_artifacts
 from .config import ParsergenConfig, load_config
+from .canonical_bsl_codegen import generate_canonical_parser
 from .diagnostics import Diagnostic, Severity
 from .grammar_parser import parse_grammar
 from .generated_parser import GeneratedParser
-from .hybrid_bsl_codegen import generate_hybrid_parser
 from .lowering import LoweringResult
 from .model import Grammar
 from .parser_ir import build_parser_ir
@@ -73,6 +73,7 @@ def compile_from_config(config: ParsergenConfig) -> Compilation:
         config.entrypoints,
         (*parsed.diagnostics, *resolved_result.diagnostics),
         lowering=parsed.lowering,
+        source_grammar=parsed.source_grammar,
     )
     return Compilation(
         parsed.grammar,
@@ -94,33 +95,18 @@ def generate_from_compilation(
         or compilation.analysis is None
     ):
         raise ValueError("grammar did not produce a complete analysis")
-    if not config.canonical_productions:
-        from .bsl_codegen import generate_parser
-
-        return generate_parser(
-            compilation.grammar,
-            compilation.resolved,
-            compilation.analysis,
-            config.entrypoints,
-        )
     if compilation.source_grammar is None or compilation.lowering is None:
-        raise ValueError("canonical migration requires source grammar lowering")
+        raise ValueError("grammar did not produce source lowering")
     parser_ir = build_parser_ir(
         compilation.source_grammar,
         compilation.lowering,
         compilation.resolved,
         compilation.analysis,
-        production_names=config.canonical_productions,
         entrypoint_productions=config.entrypoints.values(),
     )
-    return generate_hybrid_parser(
+    return generate_canonical_parser(
         compilation.source_grammar,
-        compilation.lowering,
-        compilation.grammar,
-        compilation.resolved,
-        compilation.analysis,
         parser_ir,
-        canonical_productions=config.canonical_productions,
         entrypoints=config.entrypoints,
     )
 

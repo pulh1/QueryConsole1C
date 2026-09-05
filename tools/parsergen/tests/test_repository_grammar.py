@@ -8,7 +8,7 @@ from parsergen.analysis import (
     find_select_conflicts,
 )
 from parsergen.grammar_parser import parse_grammar
-from parsergen.hybrid_bsl_codegen import generate_hybrid_parser
+from parsergen.canonical_bsl_codegen import generate_canonical_parser
 from parsergen.parser_ir import LeftFold, build_parser_ir
 from parsergen.resolver import resolve_grammar
 
@@ -34,75 +34,6 @@ def _assert_child_result_pair(
         )
 
 
-MIGRATED_PRODUCTIONS = (
-    "ПакетЗапросов",
-    "ЗапросПакета",
-    "ЗапросУничтожения",
-    "ЗапросВыбора",
-    "ОбъединяемыйЗапрос",
-    "ОператорОбъединения",
-    "ТипОбъединенияЗапроса",
-    "ПоляВыборки",
-    "ПолеВыборки",
-    "ВыражениеВсеПоляВыборки",
-    "ВыражениеВсеПоля",
-    "Псевдоним",
-    "БлокИз",
-    "ИсточникДанныхЗапроса",
-    "СписокСоединений",
-    "ПраваяЧастьСоединения",
-    "ИсточникДанныхСоединения",
-    "ТипСоединения",
-    "ИсточникДанных",
-    "ПрисоединяемаяТаблица",
-    "ИсточникДанныхТаблицаЗначений",
-    "ИсточникДанныхВременнаяТаблица",
-    "ИсточникДанныхТаблица",
-    "ИсточникДанныхВложенныйЗапрос",
-    "СписокПараметров",
-    "ПараметрТаблицы",
-    "СписокЭлементовУпорядочивания",
-    "ЭлементУпорядочивания",
-    "НаправлениеУпорядочивания",
-    "ПоляИтогов",
-    "КонтрольныеТочкиИтогов",
-    "КонтрольнаяТочкаИтогов",
-    "ТипКонтрольнойТочки",
-    "РасширениеСКД",
-    "Выражение",
-    "ЛогическоеСлагаемое",
-    "ЛогическийМножитель",
-    "ЛогическийОператор",
-    "ТипСсылочногоПоля",
-    "ОперандВ",
-    "ЛогическаяОперация",
-    "ЛогическаяОперацияБезОтрицания",
-    "ОперандСравнения",
-    "ОператорПодобно",
-    "ШаблонПодобия",
-    "АрифметическоеВыражение",
-    "Слагаемое",
-    "УнарнаяОперация",
-    "Множитель",
-    "Операнд",
-    "Поле",
-    "РазыменованиеПослеСкобок",
-    "ВыражениеВсеПоляИсточника",
-    "ПоляВложеннойТаблицы",
-    "СписокВыражений",
-    "ВыражениеМоделиЗапроса",
-    "СписокВыраженийМодели",
-    "ПриведениеТипа",
-    "ОписаниеТипа",
-    "Выбор",
-    "КогдаТогда",
-    "Константа",
-    "Параметр",
-    "АгрегатнаяФункция",
-    "Функция",
-    "ТипПериода",
-)
-
 
 def _generated_function(module: str, production: str) -> str:
     marker = f"Функция НеТерминал{production}("
@@ -127,23 +58,16 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             2,
             ("ПакетЗапросов", "Выражение"),
         )
-        canonical = MIGRATED_PRODUCTIONS
         parser_ir = build_parser_ir(
             parsed.source_grammar,
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=canonical,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=canonical,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         function = _generated_function(
@@ -185,23 +109,16 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             2,
             ("ПакетЗапросов", "Выражение"),
         )
-        canonical = MIGRATED_PRODUCTIONS
         parser_ir = build_parser_ir(
             parsed.source_grammar,
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=canonical,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=canonical,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         function = _generated_function(
@@ -246,23 +163,16 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             2,
             ("ПакетЗапросов", "Выражение"),
         )
-        canonical = MIGRATED_PRODUCTIONS
         parser_ir = build_parser_ir(
             parsed.source_grammar,
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=canonical,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=canonical,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         function = _generated_function(
@@ -304,23 +214,16 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             2,
             ("ПакетЗапросов", "Выражение"),
         )
-        canonical = MIGRATED_PRODUCTIONS
         parser_ir = build_parser_ir(
             parsed.source_grammar,
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=canonical,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=canonical,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         function = _generated_function(generated.module_text, "ТипСоединения")
@@ -357,23 +260,16 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             2,
             ("ПакетЗапросов", "Выражение"),
         )
-        canonical = MIGRATED_PRODUCTIONS
         parser_ir = build_parser_ir(
             parsed.source_grammar,
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=canonical,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=canonical,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         function = _generated_function(generated.module_text, "Псевдоним")
@@ -403,23 +299,16 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             2,
             ("ПакетЗапросов", "Выражение"),
         )
-        canonical = MIGRATED_PRODUCTIONS
         parser_ir = build_parser_ir(
             parsed.source_grammar,
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=canonical,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=canonical,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         function = _generated_function(generated.module_text, "ТипПериода")
@@ -446,23 +335,16 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             2,
             ("ПакетЗапросов", "Выражение"),
         )
-        canonical = MIGRATED_PRODUCTIONS
         parser_ir = build_parser_ir(
             parsed.source_grammar,
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=canonical,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=canonical,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         function = _generated_function(generated.module_text, "ЗапросПакета")
@@ -488,23 +370,16 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             2,
             ("ПакетЗапросов", "Выражение"),
         )
-        canonical = MIGRATED_PRODUCTIONS
         parser_ir = build_parser_ir(
             parsed.source_grammar,
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=canonical,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=canonical,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         function = _generated_function(generated.module_text, "Операнд")
@@ -540,23 +415,16 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             2,
             ("ПакетЗапросов", "Выражение"),
         )
-        canonical = MIGRATED_PRODUCTIONS
         parser_ir = build_parser_ir(
             parsed.source_grammar,
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=canonical,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=canonical,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         function = _generated_function(generated.module_text, "Множитель")
@@ -584,23 +452,16 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             2,
             ("ПакетЗапросов", "Выражение"),
         )
-        canonical = MIGRATED_PRODUCTIONS
         parser_ir = build_parser_ir(
             parsed.source_grammar,
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=canonical,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=canonical,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         module = generated.module_text
@@ -644,23 +505,16 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             2,
             ("ПакетЗапросов", "Выражение"),
         )
-        canonical = MIGRATED_PRODUCTIONS
         parser_ir = build_parser_ir(
             parsed.source_grammar,
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=canonical,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=canonical,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         module = generated.module_text
@@ -700,17 +554,11 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=MIGRATED_PRODUCTIONS,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=MIGRATED_PRODUCTIONS,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         function = _generated_function(generated.module_text, "ЗапросУничтожения")
@@ -862,18 +710,12 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=MIGRATED_PRODUCTIONS,
         )
 
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=MIGRATED_PRODUCTIONS,
-            entrypoints={
+            {
                 "РазобратьПакетЗапросов": "ПакетЗапросов",
                 "РазобратьВыражение": "Выражение",
             },
@@ -921,7 +763,6 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=MIGRATED_PRODUCTIONS,
         )
 
         productions = {
@@ -937,15 +778,10 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
                     LeftFold,
                 )
 
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=MIGRATED_PRODUCTIONS,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
         module = generated.module_text
         self.assertNotIn("Функция НеТерминалЛогическоеИли(", module)
@@ -988,7 +824,6 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=MIGRATED_PRODUCTIONS,
         )
 
         productions = {
@@ -999,15 +834,10 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(len(comparison.alternatives), 1)
         self.assertIsInstance(comparison.alternatives[0].operations[0], LeftFold)
 
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=MIGRATED_PRODUCTIONS,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
         module = generated.module_text
         self.assertNotIn("Функция НеТерминалОперацияСравнения(", module)
@@ -1067,18 +897,12 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=MIGRATED_PRODUCTIONS,
             entrypoint_productions=("ПакетЗапросов", "Выражение"),
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=MIGRATED_PRODUCTIONS,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         module = generated.module_text
@@ -1184,17 +1008,11 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=MIGRATED_PRODUCTIONS,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=MIGRATED_PRODUCTIONS,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         module = generated.module_text
@@ -1232,17 +1050,11 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=MIGRATED_PRODUCTIONS,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=MIGRATED_PRODUCTIONS,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         module = generated.module_text
@@ -1287,17 +1099,11 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=MIGRATED_PRODUCTIONS,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=MIGRATED_PRODUCTIONS,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         module = generated.module_text
@@ -1335,17 +1141,11 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=MIGRATED_PRODUCTIONS,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=MIGRATED_PRODUCTIONS,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         module = generated.module_text
@@ -1394,17 +1194,11 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=MIGRATED_PRODUCTIONS,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=MIGRATED_PRODUCTIONS,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         function = _generated_function(generated.module_text, "КогдаТогда")
@@ -1440,23 +1234,16 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             2,
             ("ПакетЗапросов", "Выражение"),
         )
-        canonical = MIGRATED_PRODUCTIONS
         parser_ir = build_parser_ir(
             parsed.source_grammar,
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=canonical,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=canonical,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         function = _generated_function(
@@ -1494,23 +1281,16 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             2,
             ("ПакетЗапросов", "Выражение"),
         )
-        canonical = MIGRATED_PRODUCTIONS
         parser_ir = build_parser_ir(
             parsed.source_grammar,
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=canonical,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=canonical,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         module = generated.module_text
@@ -1546,23 +1326,16 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             2,
             ("ПакетЗапросов", "Выражение"),
         )
-        canonical = MIGRATED_PRODUCTIONS
         parser_ir = build_parser_ir(
             parsed.source_grammar,
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=canonical,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=canonical,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         module = generated.module_text
@@ -1605,17 +1378,11 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=MIGRATED_PRODUCTIONS,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=MIGRATED_PRODUCTIONS,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         function = _generated_function(generated.module_text, "Параметр")
@@ -1649,17 +1416,11 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=MIGRATED_PRODUCTIONS,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=MIGRATED_PRODUCTIONS,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         function = _generated_function(generated.module_text, "Константа")
@@ -1704,17 +1465,11 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=MIGRATED_PRODUCTIONS,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=MIGRATED_PRODUCTIONS,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         function = _generated_function(generated.module_text, "ТипСсылочногоПоля")
@@ -1755,17 +1510,11 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=MIGRATED_PRODUCTIONS,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=MIGRATED_PRODUCTIONS,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         module = generated.module_text
@@ -1842,17 +1591,11 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=MIGRATED_PRODUCTIONS,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=MIGRATED_PRODUCTIONS,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         module = generated.module_text
@@ -2008,17 +1751,11 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=MIGRATED_PRODUCTIONS,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=MIGRATED_PRODUCTIONS,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         module = generated.module_text
@@ -2067,32 +1804,16 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             2,
             ("ПакетЗапросов", "Выражение"),
         )
-        selected = {
-            *MIGRATED_PRODUCTIONS,
-            "СписокЭлементовУпорядочивания",
-            "КонтрольныеТочкиИтогов",
-        }
-        canonical = tuple(
-            production.name
-            for production in parsed.source_grammar.productions
-            if production.name in selected
-        )
         parser_ir = build_parser_ir(
             parsed.source_grammar,
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=canonical,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=canonical,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         module = generated.module_text
@@ -2144,23 +1865,16 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             2,
             ("ПакетЗапросов", "Выражение"),
         )
-        canonical = MIGRATED_PRODUCTIONS
         parser_ir = build_parser_ir(
             parsed.source_grammar,
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=canonical,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=canonical,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         module = generated.module_text
@@ -2217,28 +1931,16 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             2,
             ("ПакетЗапросов", "Выражение"),
         )
-        selected = {*MIGRATED_PRODUCTIONS, "ПоляВыборки", "ПоляИтогов"}
-        canonical = tuple(
-            production.name
-            for production in parsed.source_grammar.productions
-            if production.name in selected
-        )
         parser_ir = build_parser_ir(
             parsed.source_grammar,
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=canonical,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=canonical,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         select_fields = _generated_function(
@@ -2266,11 +1968,6 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             self.assertNotIn("НомерВариантаПродукции", function)
 
     def test_dcs_boundary_shell_uses_canonical_dispatch(self) -> None:
-        expected = {
-            "РасширениеСКД",
-        }
-        self.assertTrue(expected.issubset(MIGRATED_PRODUCTIONS))
-
         parsed = parse_grammar(
             REPOSITORY_GRAMMAR.read_text(encoding="utf-8-sig"),
             str(REPOSITORY_GRAMMAR),
@@ -2290,17 +1987,11 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=MIGRATED_PRODUCTIONS,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=MIGRATED_PRODUCTIONS,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         extension = _generated_function(generated.module_text, "РасширениеСКД")
@@ -2347,17 +2038,11 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=MIGRATED_PRODUCTIONS,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=MIGRATED_PRODUCTIONS,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         module = generated.module_text
@@ -2427,17 +2112,11 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=MIGRATED_PRODUCTIONS,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=MIGRATED_PRODUCTIONS,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         module = generated.module_text
@@ -2527,33 +2206,16 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             2,
             ("ПакетЗапросов", "Выражение"),
         )
-        selected = {
-            *MIGRATED_PRODUCTIONS,
-            "ИсточникДанныхЗапроса",
-            "ПраваяЧастьСоединения",
-            "ИсточникДанныхСоединения",
-        }
-        canonical = tuple(
-            production.name
-            for production in parsed.source_grammar.productions
-            if production.name in selected
-        )
         parser_ir = build_parser_ir(
             parsed.source_grammar,
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=canonical,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=canonical,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         module = generated.module_text
@@ -2642,17 +2304,11 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
             parsed.lowering,
             resolution.grammar,
             analysis,
-            production_names=MIGRATED_PRODUCTIONS,
         )
-        generated = generate_hybrid_parser(
+        generated = generate_canonical_parser(
             parsed.source_grammar,
-            parsed.lowering,
-            parsed.grammar,
-            resolution.grammar,
-            analysis,
             parser_ir,
-            canonical_productions=MIGRATED_PRODUCTIONS,
-            entrypoints={"Разобрать": "ПакетЗапросов"},
+            {"Разобрать": "ПакетЗапросов"},
         )
 
         module = generated.module_text
