@@ -30,6 +30,7 @@ from parsergen.direct_render_analysis import (
     ContinuationSlot,
     IrSite,
     RecursiveCallSite,
+    ResultFlowFact,
     analyze_direct_render,
 )
 
@@ -492,3 +493,14 @@ def test_final_direct_self_call_preserves_a_live_prior_result() -> None:
     assert analysis.recursive_calls[0].layout == ContinuationLayout(
         (ContinuationSlot("operation_result", 0),)
     )
+
+
+def test_direct_discarded_self_call_requires_unchanged_result_flow() -> None:
+    analysis = analyze_direct_render(
+        _build_ir("<S> ::= 'a' -= <S> | @End STOP")
+    )
+
+    assert analysis.result_flow == (
+        ResultFlowFact(IrSite("S", 0, (("operation", 1),)), False),
+    )
+    assert analysis.recursive_calls == ()

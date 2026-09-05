@@ -952,6 +952,59 @@ def test_value_carrying_right_recursion_builds_5000_linked_nodes() -> None:
     assert type(node).__name__ == "End"
 
 
+def test_direct_local_continuation_does_not_leak_alternative_defaults() -> None:
+    direct, _, _ = _generate("<S> ::= @Link X = A Rest = <S> | @Link Y = B")
+
+    namespace, result = _execute(
+        direct.module_text,
+        [Token("A"), Token("B")],
+    )
+
+    assert type(result) is namespace["Link"]
+    assert (result.X, result.Y) == ("A", None)
+    assert type(result.Rest) is namespace["Link"]
+    assert (result.Rest.X, result.Rest.Y) == (None, "B")
+
+
+def test_direct_discarded_self_call_returns_none_instead_of_base_result() -> None:
+    direct, _, _ = _generate("<S> ::= 'a' -= <S> | @End STOP")
+
+    _, result = _execute(
+        direct.module_text,
+        [Token("a"), Token("STOP")],
+    )
+
+    assert result is None
+
+
+def test_direct_right_recursion_with_constant_suffix_is_iterative() -> None:
+    direct, _, _ = _generate(
+        "<S> ::= @Link Value = ITEM Rest = <S> Kind := Истина | @End STOP"
+    )
+    namespace = _execute_without_parse(direct.module_text)
+    parser = namespace["GeneratedParser"]()
+    tokens = [
+        Token("ITEM", text=str(index), start=index, end=index + 1)
+        for index in range(1_500)
+    ]
+    tokens.append(Token("STOP", start=1_500, end=1_501))
+    original_limit = sys.getrecursionlimit()
+
+    node = parser.parse(tokens, "start")
+
+    values = []
+    starts = []
+    while type(node) is namespace["Link"]:
+        assert node.Kind is True
+        values.append(node.Value)
+        starts.append(node.span.start)
+        node = node.Rest
+    assert sys.getrecursionlimit() == original_limit
+    assert values == ["ITEM"] * 1_500
+    assert starts == list(range(1_500))
+    assert type(node) is namespace["End"]
+
+
 @pytest.mark.parametrize(
     ("grammar", "item_tokens", "item_width", "property_name"),
     (

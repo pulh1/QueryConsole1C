@@ -86,6 +86,7 @@ class ContinuationSlot:
 @dataclass(frozen=True, slots=True)
 class ContinuationLayout:
     slots: tuple[ContinuationSlot, ...]
+    suffix_indices: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -196,69 +197,99 @@ class _Analyzer:
         ):
             return
         has_scoped_effects = production in self._scoped_effect_productions
-        index = len(operations) - 1
-        operation = operations[index]
-        operation_site = _child_site(site, "operation", index)
-        for candidate in _final_direct_self_call_sites(
-            operation_site,
-            operation,
-            production,
-        ):
-            call_site = candidate.site
-            if call_site not in {
+        for index, operation in enumerate(operations):
+            suffix_indices = tuple(range(index + 1, len(operations)))
+            if suffix_indices and not _is_admissible_semantic_suffix(
+                operations[index + 1 :]
+            ):
+                continue
+            operation_site = _child_site(site, "operation", index)
+            for candidate in _final_direct_self_call_sites(
                 operation_site,
-                _child_site(operation_site, "value", 0),
-            }:
-                layout = _nested_continuation_layout(
-                    operations,
-                    sequence_liveness,
-                    call_site,
-                )
-                if layout is not None:
-                    if not has_scoped_effects:
-                        self.recursive_calls.append(
-                            RecursiveCallSite(
-                                call_site,
-                                "local_continuation",
-                                layout,
-                            )
-                        )
-                    continue
-                if candidate.requires_post_return:
-                    continue
-                propagates_unchanged = self._has_unchanged_result_flow(candidate)
-                self.result_flow.append(
-                    ResultFlowFact(call_site, propagates_unchanged)
-                )
-                if (
-                    _contains_continuation_state(operations)
-                    or self._has_live_enclosing_result(call_site)
-                    or (
-                        not propagates_unchanged
-                        and production not in self._resultless_productions
+                operation,
+                production,
+            ):
+                call_site = candidate.site
+                if call_site not in {
+                    operation_site,
+                    _child_site(operation_site, "value", 0),
+                }:
+                    if suffix_indices:
+                        continue
+                    layout = _nested_continuation_layout(
+                        operations,
+                        sequence_liveness,
+                        call_site,
                     )
+                    if layout is not None:
+                        if not has_scoped_effects:
+                            self.recursive_calls.append(
+                                RecursiveCallSite(
+                                    call_site,
+                                    "local_continuation",
+                                    layout,
+                                )
+                            )
+                        continue
+                    if candidate.requires_post_return:
+                        continue
+                    propagates_unchanged = self._has_unchanged_result_flow(candidate)
+                    self.result_flow.append(
+                        ResultFlowFact(call_site, propagates_unchanged)
+                    )
+                    if (
+                        _contains_continuation_state(operations)
+                        or self._has_live_enclosing_result(call_site)
+                        or (
+                            not propagates_unchanged
+                            and production not in self._resultless_productions
+                        )
+                    ):
+                        continue
+                    self.recursive_calls.append(
+                        RecursiveCallSite(call_site, "safe_tail_loop", None)
+                    )
+                    continue
+                layout = _continuation_layout(
+                    operations,
+                    index,
+                    sequence_liveness.live_after[index],
+                )
+                if suffix_indices:
+                    layout = ContinuationLayout(layout.slots, suffix_indices)
+                if layout.slots and has_scoped_effects:
+                    continue
+                if (
+                    not layout.slots
+                    and not layout.suffix_indices
+                    and candidate.requires_post_return
                 ):
                     continue
+                if not layout.slots and not layout.suffix_indices:
+                    propagates_unchanged = self._has_unchanged_result_flow(candidate)
+                    self.result_flow.append(
+                        ResultFlowFact(call_site, propagates_unchanged)
+                    )
+                    if (
+                        not propagates_unchanged
+                        and production not in self._resultless_productions
+                    ):
+                        continue
                 self.recursive_calls.append(
-                    RecursiveCallSite(call_site, "safe_tail_loop", None)
+                    RecursiveCallSite(
+                        call_site,
+                        (
+                            "local_continuation"
+                            if layout.slots or layout.suffix_indices
+                            else "safe_tail_loop"
+                        ),
+                        (
+                            layout
+                            if layout.slots or layout.suffix_indices
+                            else None
+                        ),
+                    )
                 )
-                continue
-            layout = _continuation_layout(
-                operations,
-                index,
-                sequence_liveness.live_after[index],
-            )
-            if layout.slots and has_scoped_effects:
-                continue
-            if not layout.slots and candidate.requires_post_return:
-                continue
-            self.recursive_calls.append(
-                RecursiveCallSite(
-                    call_site,
-                    "safe_tail_loop" if not layout.slots else "local_continuation",
-                    None if not layout.slots else layout,
-                )
-            )
 
     def _has_live_enclosing_result(self, call_site: IrSite) -> bool:
         for sequence in self.sequence_liveness:
@@ -541,6 +572,10 @@ def _call_name(value: object) -> str | None:
     ):
         return value.symbol.name
     return None
+
+
+def _is_admissible_semantic_suffix(operations: tuple[Operation, ...]) -> bool:
+    return all(isinstance(operation, AssignConstant) for operation in operations)
 
 
 def _continuation_layout(

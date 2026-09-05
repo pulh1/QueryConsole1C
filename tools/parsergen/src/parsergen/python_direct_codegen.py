@@ -814,35 +814,42 @@ class _DirectPythonRenderer:
                 raise ValueError("wrap-seed continuation slot has no index")
             return self._value_name((slot.index, 0))
         if slot.kind in {"builder_field", "collection_accumulator"}:
-            if slot.property is not None:
-                return self._field_local(finish.constructor_site, slot.property)
-            if slot.index is None:
-                raise ValueError("builder continuation slot has no index")
-            try:
-                operation = finish.operations[slot.index]
-            except IndexError as error:
-                raise ValueError("continuation slot is outside its sequence") from error
-            if not isinstance(
-                operation,
-                (
-                    BindScalar,
-                    AppendCollection,
-                    ExtendCollection,
-                    ConcatScalar,
-                    IncrementScalar,
-                    AssignConstant,
-                ),
-            ):
-                raise ValueError("continuation slot does not name a builder operation")
-            property_name = (
-                "items"
-                if isinstance(operation, AppendCollection) and operation.property is None
-                else operation.property
-            )
+            property_name = self._continuation_field_property(slot, finish)
             return self._field_local(finish.constructor_site, property_name)
         if slot.kind == "fold_accumulator":
             raise ValueError("fold continuation is not supported by direct right recursion")
         raise TypeError(slot.kind)
+
+    def _continuation_field_property(
+        self,
+        slot,
+        finish: _LocalContinuationFinish,
+    ) -> str:
+        if slot.property is not None:
+            return slot.property
+        if slot.index is None:
+            raise ValueError("builder continuation slot has no index")
+        try:
+            operation = finish.operations[slot.index]
+        except IndexError as error:
+            raise ValueError("continuation slot is outside its sequence") from error
+        if not isinstance(
+            operation,
+            (
+                BindScalar,
+                AppendCollection,
+                ExtendCollection,
+                ConcatScalar,
+                IncrementScalar,
+                AssignConstant,
+            ),
+        ):
+            raise ValueError("continuation slot does not name a builder operation")
+        return (
+            "items"
+            if isinstance(operation, AppendCollection) and operation.property is None
+            else operation.property
+        )
 
     def _render_continuation_finish(
         self,
@@ -854,12 +861,58 @@ class _DirectPythonRenderer:
             for slot in finish.layout.slots
         ]
         lines = [f"{indent}def finish_site_{finish.number}(saved, result):"]
-        if len(restored) == 1:
+        if not restored:
+            pass
+        elif len(restored) == 1:
             lines.append(f"{indent}    {restored[0]}, = saved")
         else:
             lines.append(f"{indent}    {', '.join(restored)} = saved")
+        lines.extend(self._render_continuation_field_defaults(finish, indent + "    "))
         lines.extend(self._render_continuation_result_binding(finish, indent + "    "))
+        lines.extend(self._render_continuation_suffix(finish, indent + "    "))
         lines.append(f"{indent}    {self._continuation_finish_return(finish)}")
+        return lines
+
+    def _render_continuation_field_defaults(
+        self,
+        finish: _LocalContinuationFinish,
+        indent: str,
+    ) -> list[str]:
+        if finish.constructor_site is None:
+            return []
+        restored_properties = {
+            self._continuation_field_property(slot, finish)
+            for slot in finish.layout.slots
+            if slot.kind in {"builder_field", "collection_accumulator"}
+        }
+        initial = {
+            "scalar": "None",
+            "collection": "[]",
+            "concat": "\"\"",
+            "increment": "0",
+        }
+        return [
+            f"{indent}{self._field_local(finish.constructor_site, field.name)} = {initial[field.category]}"
+            for field in self.schema_by_name[finish.constructor_site.name].fields
+            if field.name not in restored_properties
+        ]
+
+    def _render_continuation_suffix(
+        self,
+        finish: _LocalContinuationFinish,
+        indent: str,
+    ) -> list[str]:
+        lines: list[str] = []
+        for index in finish.layout.suffix_indices:
+            try:
+                operation = finish.operations[index]
+            except IndexError as error:
+                raise ValueError("continuation suffix is outside its sequence") from error
+            if not isinstance(operation, AssignConstant):
+                raise ValueError("continuation suffix is not a constant assignment")
+            lines.append(
+                f"{indent}{self._field_local(finish.constructor_site, operation.property)} = {self._constant(operation.value)!r}"
+            )
         return lines
 
     def _render_continuation_result_binding(
