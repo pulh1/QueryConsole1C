@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdclass:DataProcessor xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="0726fbb9-d86a-4d47-bbe7-cc5babca273f">
+  <producedTypes>
+    <objectType typeId="74679ccb-10a9-4478-98d8-9e64c18b8492" valueTypeId="f19b7303-0406-48f3-9ac8-4290c42e0be6"/>
+    <managerType typeId="ab241fa7-bd69-4058-a0c5-9b70817d095d" valueTypeId="2752593e-2b8b-48cd-ad3b-5ca9eb262d8b"/>
+  </producedTypes>
+  <name>КОНС_ПоставщикМетаданныхТаблицШпион</name>
+  <useStandardCommands>true</useStandardCommands>
+</mdclass:DataProcessor>
