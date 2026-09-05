@@ -5,7 +5,8 @@ from dataclasses import replace
 from parsergen.analysis import compute_analysis
 from parsergen.canonical_bsl_codegen import generate_canonical_parser
 from parsergen.grammar_parser import parse_grammar
-from parsergen.parser_ir import build_parser_ir
+from parsergen.parser_ir import Dispatch, ResolvedRegion, build_parser_ir
+from parsergen.recursion_plan import analyze_recursion_plan
 from parsergen.resolver import resolve_grammar
 
 
@@ -102,6 +103,7 @@ class CanonicalBslCodegenTests(unittest.TestCase):
             function.index("СтекПродолжений.Получить"),
             function.rindex("ЭтотУзел.Kind = Истина;"),
         )
+        self.assertEqual(function.count("ЭтотУзел.Kind = Истина;"), 1)
 
     # Mutation caught: reuse a single mutable pending-node variable instead
     # of storing each continuation layout in an independent stack frame.
@@ -207,6 +209,124 @@ class CanonicalBslCodegenTests(unittest.TestCase):
         self.assertIn('Продолжение.Вставить("Слот0", Значение1);', function)
         self.assertIn("РезультатПродукции = Продолжение.Слот0;", function)
         self.assertNotIn("НеТерминалS();", function)
+
+    # Mutation caught: restrict tail_loop lowering to a top-level ParseSymbol
+    # and leave an exact nested/DiscardSymbol planner site recursive.
+    def test_tail_loop_plan_consumes_nested_and_discarded_sites(self) -> None:
+        for grammar in (
+            "<S> ::= (ITEM <S>) | STOP",
+            "<S> ::= ITEM -= <S> | STOP",
+            "<S> ::= (ITEM <S> | MARK <S>) | STOP",
+            "<S> ::= ITEM -= (<S>) | STOP",
+            "<S> ::= (ITEM <S>)?",
+        ):
+            with self.subTest(grammar=grammar):
+                source, parser_ir, _ = _build_ir(grammar)
+                self.assertTrue(analyze_recursion_plan(source, parser_ir).sites)
+                function = _function(_build(grammar).module_text, "НеТерминалS")
+
+                self.assertIn("Пока Истина Цикл", function)
+                self.assertNotIn("НеТерминалS();", function)
+
+    # Mutation caught: stop carrying IrSite through an optimized resolved
+    # region and leave its planner-issued tail call recursive.
+    def test_tail_loop_plan_consumes_resolved_region_site(self) -> None:
+        source, parser_ir, entries = _build_ir("<S> ::= (ITEM <S>) | STOP")
+        production = parser_ir.productions[0]
+        alternative = production.alternatives[0]
+        dispatch = alternative.operations[0]
+        self.assertIsInstance(dispatch, Dispatch)
+        branch = dispatch.branches[0]
+        parser_ir = replace(
+            parser_ir,
+            productions=(replace(
+                production,
+                alternatives=(replace(
+                    alternative,
+                    operations=(ResolvedRegion(
+                        branch.operations, branch.result_index, dispatch.source_span
+                    ),),
+                ), *production.alternatives[1:]),
+            ),),
+        )
+        plan = analyze_recursion_plan(source, parser_ir)
+        self.assertEqual(len(plan.sites), 1)
+        self.assertEqual(plan.sites[0].site.trail,
+                         (("operation", 0), ("region", 0), ("operation", 1)))
+        function = _function(
+            generate_canonical_parser(source, parser_ir, entries).module_text,
+            "НеТерминалS",
+        )
+        self.assertIn("Пока Истина Цикл", function)
+        self.assertNotIn("НеТерминалS();", function)
+
+    # Mutation caught: select the local_continuation renderer first and let a
+    # simultaneous tail_loop site remain a recursive BSL self-call.
+    def test_mixed_tail_and_local_plan_sites_share_one_structural_loop(self) -> None:
+        for recursive_value in ("<S>", "Rest = <S>"):
+            with self.subTest(recursive_value=recursive_value):
+                source, parser_ir, entries = _build_ir(
+                    "<S> ::= ITEM <S> | "
+                    f"@Node Value = MARK {recursive_value} | @End STOP"
+                )
+                self.assertEqual(
+                    [(call.site.alternative, call.kind) for call in
+                     analyze_recursion_plan(source, parser_ir).sites],
+                    [(0, "tail_loop"), (1, "local_continuation")],
+                )
+                function = _function(
+                    generate_canonical_parser(source, parser_ir, entries).module_text,
+                    "НеТерминалS",
+                )
+                self.assertIn("Пока Истина Цикл", function)
+                self.assertIn("СтекПродолжений = Новый Массив;", function)
+                self.assertNotIn("НеТерминалS();", function)
+
+    # Mutation caught: reject multiple direct constructor continuations rather
+    # than emitting frames for every planner-issued local site.
+    def test_multiple_direct_continuations_are_all_lowered(self) -> None:
+        for recursive_value in ("<S>", "Rest = <S>"):
+            with self.subTest(recursive_value=recursive_value):
+                function = _function(
+                    _build(
+                        f"<S> ::= @A Value = A {recursive_value} | "
+                        f"@B Value = B {recursive_value} | @End STOP"
+                    ).module_text,
+                    "НеТерминалS",
+                )
+                self.assertEqual(
+                    function.count("СтекПродолжений.Добавить(Продолжение);"),
+                    2,
+                )
+                self.assertNotIn("НеТерминалS();", function)
+
+    # Mutation caught: number continuation frame kinds per alternative, so
+    # two different alternatives both push `Вид = 0` and unwind as the first.
+    def test_cross_alternative_continuation_frames_use_global_plan_tags(self) -> None:
+        function = _function(
+            _build(
+                "<S> ::= @A A (Value = ITEM Rest = <S>)? | "
+                "@B B (Other = ITEM Tail = <S>)? | @End STOP"
+            ).module_text,
+            "НеТерминалS",
+        )
+
+        pushes = re.findall(
+            r'Продолжение = Новый Структура;(.*?)СтекПродолжений.Добавить',
+            function, re.S,
+        )
+        self.assertEqual(len(pushes), 2)
+        for frame, tag, field in zip(pushes, (0, 1), ("Value", "Other")):
+            self.assertIn(f'Продолжение.Вставить("Вид", {tag});', frame)
+            self.assertIn(f'Продолжение.Вставить("Слот1", ЭтотУзел.{field});', frame)
+        first, second = function.split("ИначеЕсли Продолжение.Вид = 1 Тогда")
+        first = first.split("Если Продолжение.Вид = 0 Тогда")[1]
+        self.assertIn("ЭтотУзел.Value = Продолжение.Слот1;", first)
+        self.assertIn("ЭтотУзел.Rest = РезультатПродукции;", first)
+        self.assertNotIn("ЭтотУзел.Other =", first)
+        self.assertIn("ЭтотУзел.Other = Продолжение.Слот1;", second)
+        self.assertIn("ЭтотУзел.Tail = РезультатПродукции;", second)
+        self.assertNotIn("ЭтотУзел.Value =", second)
 
     def test_named_token_set_helper_uses_cached_token_only(self) -> None:
         generated = _build(
