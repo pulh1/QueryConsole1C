@@ -125,11 +125,33 @@ Parsergen не знает о Worker, hot reload, общих модулях 1С �
 `project_full_ast_module` является production extractor полного AST в модель
 hot reload, а не отдельным parser или semantic profile.
 
+### 4.4. Legacy и hybrid BSL codegen
+
+Реальный поиск production consumers показал, что единственная поставляемая
+grammar языка запросов уже полностью canonical: все 66 productions входят в
+canonical path. Runtime использует Python target. Произвольные inline BSL
+actions встречаются только в тестах и исторической миграционной документации.
+
+По решению пользователя обратная совместимость этого неиспользуемого legacy
+API больше не является требованием. Удаляются:
+
+- `bsl_codegen.py` и `BslGenerator`;
+- `semantic_actions.py` и compiler произвольных inline BSL actions;
+- `hybrid_bsl_codegen.py`;
+- migration selection `canonical_productions` из config, CLI и
+  `parsergen.toml`;
+- legacy/hybrid tests и migration audit, не проверяющие production canonical
+  parser.
+
+`generated_parser.py` сохраняется как нейтральная модель результата генерации
+для `artifacts.py`. Canonical BSL renderer должен возвращать эту модель
+напрямую, без hybrid adapter.
+
 ## 5. Что сохраняется
 
 Сохраняются:
 
-- combined grammar и обратная совместимость её semantic actions;
+- combined grammar и обратная совместимость её декларативных semantic actions;
 - общий `SourceGrammar` и `ParserIr`;
 - существующие FIRST/FOLLOW/SELECT и decision DAG;
 - специализация, reachability и path-fact optimizations;
@@ -142,6 +164,9 @@ hot reload, а не отдельным parser или semantic profile.
 
 Public generator после cleanup не должен содержать второй Python execution
 engine. Direct renderer остаётся единственным production Python target.
+
+Canonical BSL renderer становится единственным BSL target. В parsergen после
+cleanup существует ровно два renderer: один для BSL и один для Python.
 
 ## 6. Общая оптимизация рекурсии
 
@@ -183,19 +208,20 @@ renderer отвечает только за синтаксис locals, loops и 
 
 ## 7. BSL codegen
 
-Для текущего QueryConsole production path используется один canonical BSL
-renderer. `hybrid_bsl_codegen.py` является orchestration, а не третьим
-renderer.
+После cleanup остаётся один BSL renderer — canonical. CLI всегда строит общий
+`ParserIr` для полного достижимого production graph и передаёт его canonical
+renderer. Переходный список `[migration].canonical_productions` больше не
+нужен и удаляется.
 
-`bsl_codegen.py` временно сохраняется как compatibility route для старых
-combined grammars с произвольными inline `Action`: текущий общий IR такие
-actions намеренно отвергает. Простое удаление файла нарушит ранее заявленную
-обратную совместимость других consumers.
+Произвольные inline BSL actions намеренно становятся неподдерживаемым legacy
+синтаксисом. Combined grammar продолжает поддерживать декларативные semantic
+actions: constructors, scalar bindings, collections, wraps, folds, repeats и
+constants. Ошибка для raw inline action должна быть ранней и однозначной, до
+начала generation.
 
-Физическая консолидация legacy и canonical BSL emitters является отдельной
-задачей. Она возможна после переноса arbitrary actions и legacy ABI в общий IR
-и прохождения тех же byte-gates. В рамках текущего cleanup нельзя объявлять
-legacy renderer удалённым переименованием adapter.
+Удаление legacy/hybrid слоя не разрешает изменение production BSL artifacts.
+Canonical renderer уже формирует все 66 productions QueryConsole, поэтому
+fresh byte-gate обязан остаться зелёным.
 
 ## 8. Миграция runtime на combined grammar
 
@@ -300,7 +326,8 @@ parsergen package SHA256:
 
 Обязательные проверки parsergen:
 
-- combined grammar с declarative bindings и legacy inline actions;
+- combined grammar с declarative bindings;
+- явный диагностический отказ для произвольных inline BSL actions;
 - EBNF, multiple entrypoints, wraps, folds, repeats и constants;
 - shared recursion plan и consumption обоими targets;
 - 1 500/5 000 элементов;
@@ -340,11 +367,13 @@ Raw-byte tests не заменяются последними двумя ком�
 3. вернуть runtime combined grammar и доказать pre-cleanup `module_text` parity;
 4. удалить separated/scoped frontend и вернуть базовые source/lowering/IR paths;
 5. удалить owner/scoped paths из direct analysis и Python renderer;
-6. вынести общий `RecursionPlan` и подключить оба target;
-7. обновить runtime generator, manifest и Python artifact одним разрешённым
+6. удалить legacy/hybrid BSL codegen и migration selection, переключить CLI на
+   единственный canonical BSL renderer;
+7. вынести общий `RecursionPlan` и подключить оба target;
+8. обновить runtime generator, manifest и Python artifact одним разрешённым
    transition commit;
-8. удалить Worker parser/profile consumers;
-9. обновить документацию, версию parsergen и выполнить все gates.
+9. удалить Worker parser/profile consumers;
+10. обновить документацию, версию parsergen и выполнить все gates.
 
 История опубликованного PR не переписывается. Cleanup commits добавляются
 поверх готовых direct fixes, затем текущий `master` подмешивается обычным merge.
@@ -364,10 +393,9 @@ Force push не требуется.
 `0.2.0`. Следующая версия parsergen должна быть `0.3.0`, а не повторно
 публиковаться как `0.2.0`.
 
-Сохраняется backward compatibility combined grammars. Совместимость consumers,
-использующих экспериментальные separated profiles, намеренно прекращается.
-
-Legacy BSL compatibility сохраняется до отдельной консолидации emitters.
+Сохраняется совместимость декларативных combined grammars. Совместимость
+consumers, использующих экспериментальные separated profiles, raw inline BSL
+actions или migration/hybrid API, намеренно прекращается.
 
 ## 13. Документация
 
@@ -389,8 +417,11 @@ Legacy BSL compatibility сохраняется до отдельной конс
 - один combined authoring frontend;
 - один общий `ParserIr`;
 - один общий `RecursionPlan`;
+- один canonical BSL renderer и один direct Python renderer;
 - direct Python и canonical BSL targets используют общий план;
 - multiple profiles и scoped append отсутствуют;
+- `bsl_codegen.py`, `semantic_actions.py`, `hybrid_bsl_codegen.py` и
+  `canonical_productions` отсутствуют;
 - QueryConsole fresh BSL artifacts побайтово неизменны;
 - Python artifact прошёл явно разрешённый одноразовый transition и получил
   новый воспроизводимый byte baseline;
