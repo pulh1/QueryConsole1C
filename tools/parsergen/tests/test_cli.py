@@ -312,6 +312,21 @@ class CliTests(unittest.TestCase):
             before,
         )
 
+    def test_validate_rejects_raw_action_nested_inside_binding(self) -> None:
+        config, _target = self.make_configured_project()
+        (self.root / "grammar.txt").write_text(
+            "<S> ::= @Node Value = (ITEM {X = 1})",
+            encoding="utf-8",
+        )
+
+        completed = self.run_cli("validate", "--config", str(config))
+
+        self.assertEqual(completed.returncode, 1)
+        self.assertIn(
+            "error VAL104: arbitrary source actions require declarative bindings",
+            completed.stderr,
+        )
+
     def test_declarative_combined_grammar_generates_bsl_and_python(
         self,
     ) -> None:

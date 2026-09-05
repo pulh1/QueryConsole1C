@@ -23,6 +23,7 @@ from .resolver import (
 )
 from .source_model import (
     SourceGrammar,
+    SourceBinding,
     SourceGroup,
     SourceOptional,
     SourceRepeat,
@@ -952,12 +953,17 @@ def _source_actions(sequence: SourceSequence) -> Iterable[Action]:
     for item in sequence.items:
         if isinstance(item, Action):
             yield item
+        elif isinstance(item, SourceBinding):
+            yield from _source_value_actions(item.value)
         elif isinstance(item, SourceGroup):
-            for alternative in item.alternatives:
-                yield from _source_actions(alternative.body)
-        elif (
-            isinstance(item, (SourceRepeat, SourceOptional))
-            and isinstance(item.body, SourceGroup)
-        ):
-            for alternative in item.body.alternatives:
-                yield from _source_actions(alternative.body)
+            yield from _source_value_actions(item)
+        elif isinstance(item, (SourceRepeat, SourceOptional)):
+            yield from _source_value_actions(item)
+
+
+def _source_value_actions(value: object) -> Iterable[Action]:
+    if isinstance(value, SourceGroup):
+        for alternative in value.alternatives:
+            yield from _source_actions(alternative.body)
+    elif isinstance(value, (SourceRepeat, SourceOptional)):
+        yield from _source_value_actions(value.body)
