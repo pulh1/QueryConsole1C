@@ -1,5 +1,7 @@
 # Parsergen Direct Target Finalization Implementation Plan
 
+> **Status:** Superseded by `2026-09-05-parsergen-minimal-multi-target.md`. Commit `a012492` from Task 1 remains required regression evidence; the remaining tasks are replaced by the minimal architecture plan.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Preserve the generated direct Python target, remove projection-only scoped semantics, and close the semantic-equivalence gaps found by the final architecture review.
