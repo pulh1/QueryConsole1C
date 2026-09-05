@@ -1,6 +1,6 @@
 # Parsergen Direct Target Finalization Implementation Plan
 
-> **Status:** Superseded by `2026-09-05-parsergen-minimal-multi-target.md`. Commit `a012492` from Task 1 remains required regression evidence; the remaining tasks are replaced by the minimal architecture plan.
+> **Status:** Superseded by [`2026-09-05-parsergen-minimal-multi-target-design.md`](../specs/2026-09-05-parsergen-minimal-multi-target-design.md). Commit `a012492` from Task 1 remains required regression evidence; the remaining tasks are replaced by the minimal architecture plan.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

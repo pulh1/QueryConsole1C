@@ -1,5 +1,7 @@
 # Minimal Parsergen Scoped Append Implementation Plan
 
+> **Status:** Superseded by [`2026-09-05-parsergen-minimal-multi-target-design.md`](../specs/2026-09-05-parsergen-minimal-multi-target-design.md). Historical implementation evidence is retained; scoped owner semantics are not part of parsergen 0.3.0.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Реализовать `^Owner.Collection += anchor/$CurrentField` непосредственно поверх separated semantics без coalesced/FactSeq слоя.

@@ -1,5 +1,7 @@
 # Прямой Python-target семантического parsergen
 
+> **Status:** Superseded by [`2026-09-05-parsergen-minimal-multi-target-design.md`](2026-09-05-parsergen-minimal-multi-target-design.md). Historical direct-renderer evidence is retained; the scoped/profile assumptions below are not part of parsergen 0.3.0.
+
 ## 1. Контекст и цель
 
 Текущий `generate_python_semantic_parser()` сериализует `ParserIr` в таблицы

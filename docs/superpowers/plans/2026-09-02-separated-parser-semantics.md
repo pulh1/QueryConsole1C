@@ -1,5 +1,7 @@
 # Separated Parser Semantics Implementation Plan
 
+> **Status:** Superseded by [`2026-09-05-parsergen-minimal-multi-target-design.md`](../specs/2026-09-05-parsergen-minimal-multi-target-design.md). Historical implementation evidence is retained; separated semantics are not part of parsergen 0.3.0.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add an optional action-only semantic profile that binds to named anchors in one syntax grammar and feeds the existing lowering, Parser IR, decision DAG, and Python semantic codegen without changing the legacy combined-grammar path.

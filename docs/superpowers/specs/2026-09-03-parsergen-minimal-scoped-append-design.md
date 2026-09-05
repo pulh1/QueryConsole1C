@@ -1,5 +1,7 @@
 # Минимальный scoped append для parsergen
 
+> **Status:** Superseded by [`2026-09-05-parsergen-minimal-multi-target-design.md`](2026-09-05-parsergen-minimal-multi-target-design.md). Historical design evidence is retained; scoped owner semantics are not part of parsergen 0.3.0.
+
 ## Цель
 
 Добавить в разделённый semantic profile две формы:
