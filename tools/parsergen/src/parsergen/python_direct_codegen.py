@@ -33,6 +33,7 @@ from .parser_ir import (
     WrapOptional,
     WrapValue,
 )
+from .recursion_plan import RecursiveCallSite
 from .source_model import SourceGrammar
 
 if TYPE_CHECKING:
@@ -92,6 +93,11 @@ class _DirectPythonRenderer:
             (call.site.production, call.site.alternative, call.site.trail): call
             for call in analysis.recursion_plan.sites
         }
+        self._recursion_sites_by_production: dict[str, list[RecursiveCallSite]] = {}
+        for call in self._recursion_sites.values():
+            self._recursion_sites_by_production.setdefault(
+                call.site.production, []
+            ).append(call)
         self._continuation_finishes: dict[int, _LocalContinuationFinish] = {}
         self._continuation_site_numbers: dict[object, int] = {}
         self._rendering_operations: tuple[Operation, ...] = ()
@@ -161,13 +167,11 @@ class _DirectPythonRenderer:
                 (),
                 (),
             )
+        production_calls = self._recursion_sites_by_production.get(production.name, ())
         local_calls = [
             call
-            for call in self._recursion_sites.values()
-            if (
-                call.site.production == production.name
-                and call.kind == "local_continuation"
-            )
+            for call in production_calls
+            if call.kind == "local_continuation"
         ]
         self._continuation_finishes = {}
         self._continuation_site_numbers = {
@@ -175,8 +179,7 @@ class _DirectPythonRenderer:
         }
         self._has_local_continuations = bool(local_calls)
         has_tail_loop = any(
-            call.site.production == production.name and call.kind == "tail_loop"
-            for call in self._recursion_sites.values()
+            call.kind == "tail_loop" for call in production_calls
         )
         has_iteration_loop = has_tail_loop or self._has_local_continuations
         indent = "            " if has_iteration_loop else "        "

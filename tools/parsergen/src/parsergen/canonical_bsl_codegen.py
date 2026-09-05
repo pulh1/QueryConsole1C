@@ -139,6 +139,11 @@ class _CanonicalBslGenerator:
         self._source = source
         self._ir = parser_ir
         self._recursion_plan = analyze_recursion_plan(source, parser_ir)
+        self._recursion_sites_by_production: dict[str, list[RecursiveCallSite]] = {}
+        for call in self._recursion_plan.sites:
+            self._recursion_sites_by_production.setdefault(
+                call.site.production, []
+            ).append(call)
         self._entrypoints = entrypoints
         self._named_predicates = dict(named_predicates or {})
         self._decisions = CanonicalDecisionRenderer(
@@ -309,8 +314,7 @@ class _CanonicalBslGenerator:
         )
         calls = {
             call.site: call
-            for call in self._recursion_plan.sites
-            if call.site.production == production.name
+            for call in self._recursion_sites_by_production.get(production.name, ())
         }
         rendering = _RecursionRendering(
             calls=calls,

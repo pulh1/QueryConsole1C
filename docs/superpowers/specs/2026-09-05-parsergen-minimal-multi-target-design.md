@@ -162,6 +162,16 @@ API больше не является требованием. Удаляютс�
 - общие cardinality, liveness, result-flow и continuation fixes;
 - точные diagnostics и error tuples.
 
+Параметры продукций и аргументы вызовов остаются возможностями combined
+frontend, общего IR и BSL target. Direct Python не исполняет передаваемые как
+текст BSL-выражения: публичный `generate_python_semantic_parser` до построения
+AST schema и rendering отклоняет любой formal parameter или actual argument
+в `SourceGrammar`, включая вложенные и недостижимые вызовы, с
+`ValueError("Python target does not support production parameters or nonterminal call arguments")`.
+Это проверка возможностей Python target, а не общая ошибка grammar или условие
+eligibility в `RecursionPlan`. Runtime combined grammar не использует параметры
+и аргументы и остаётся допустимым входом для Python target.
+
 Public generator после cleanup не должен содержать второй Python execution
 engine. Direct renderer остаётся единственным production Python target.
 
@@ -393,7 +403,8 @@ Force push не требуется.
 `0.2.0`. Следующая версия parsergen должна быть `0.3.0`, а не повторно
 публиковаться как `0.2.0`.
 
-Сохраняется совместимость декларативных combined grammars. Совместимость
+Сохраняется совместимость декларативных combined grammars с учётом явного
+ограничения Python target на параметры и аргументы из раздела 5. Совместимость
 consumers, использующих экспериментальные separated profiles, raw inline BSL
 actions или migration/hybrid API, намеренно прекращается.
 

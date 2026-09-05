@@ -968,31 +968,17 @@ def test_direct_safe_tail_recursion_parses_5000_items_without_recursive_call() -
     assert f"self.{tail_method}()" not in generated_tail
 
 
-# Mutation caught: a renderer bypasses the shared eligibility decision and
-# iterates a parameterized call instead of retaining its ordinary call path.
-# Python's existing call contract is parameterless; BSL expressions are not
-# evaluated by this target.
+# Mutation caught: direct Python accepts recursive call state it cannot execute.
 @pytest.mark.parametrize("body", [
     "ITEM <S>(Context.Next()) | STOP",
     "@Link Value = ITEM Rest = <S>(Context.Next()) | @End STOP",
 ])
-def test_recursive_arguments_keep_normal_python_call_path(body: str) -> None:
-    direct, _, _ = _generate(f"<S>(Context) ::= {body}")
-    production = direct.module_text.split("    def _p_0000(self):", 1)[1]
-
-    assert "self._p_0000()" in production
-    assert "while True:" not in production
-    namespace, result = _execute(direct.module_text, [
-        Token("ITEM", "a", start=0, end=1),
-        Token("ITEM", "b", start=2, end=3),
-        Token("STOP", start=4, end=5),
-    ])
-    if body.startswith("@Link"):
-        assert (result.Value, result.Rest.Value) == ("ITEM", "ITEM")
-        assert type(result.Rest.Rest) is namespace["End"]
-        assert (result.span.start, result.span.end) == (0, 5)
-    else:
-        assert result is None
+def test_recursive_arguments_are_rejected_by_python_target(body: str) -> None:
+    with pytest.raises(
+        ValueError,
+        match="^Python target does not support production parameters or nonterminal call arguments$",
+    ):
+        _generate(f"<S>(Context) ::= {body}")
 
 
 def test_direct_constructor_recursion_is_not_rendered_as_a_tail_loop() -> None:

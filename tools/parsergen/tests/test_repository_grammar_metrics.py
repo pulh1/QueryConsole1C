@@ -1,14 +1,29 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 import re
 import unittest
+from unittest.mock import patch
 
+from parsergen.analysis import compute_analysis
 from parsergen.canonical_bsl_codegen import generate_canonical_parser
 from parsergen.cli import compile_from_config
 from parsergen.config import load_config
-from parsergen.decision_dag import aggregate_decision_dag_metrics
-from parsergen.parser_ir import build_parser_ir
+from parsergen.decision_dag import (
+    CommitAlternative,
+    aggregate_decision_dag_metrics,
+    decision_paths,
+)
+from parsergen.grammar_parser import parse_grammar
+from parsergen.parser_ir import (
+    ConsumeKnownSymbol,
+    Dispatch,
+    ParseSymbol,
+    WrapOptional,
+    build_parser_ir,
+)
+from parsergen.resolver import resolve_grammar
 from tests.parser_ir_metrics import (
     decision_path_metrics,
     parser_ir_decisions,
@@ -86,6 +101,95 @@ def _generated_bsl_shape(module_text: str) -> dict[str, int]:
             default=0,
         ),
     }
+
+
+def _build_metrics_ir(grammar: str):
+    parsed = parse_grammar(grammar, "metrics.grammar")
+    assert parsed.diagnostics == ()
+    resolved = resolve_grammar(parsed.grammar)
+    assert resolved.diagnostics == ()
+    analysis = compute_analysis(resolved.grammar, 1, ("S",))
+    return build_parser_ir(
+        parsed.source_grammar, parsed.lowering, resolved.grammar, analysis,
+        entrypoint_productions=("S",),
+    )
+
+
+class DecisionPathMetricsTests(unittest.TestCase):
+    # Both cases catch dropped decision_paths fallback traversal: metrics must
+    # report validation already implied by the fallback's decision path.
+    def test_redundant_validations_include_unspecialized_fallback_commit_paths(self) -> None:
+        with patch(
+            "parsergen.parser_ir_optimization.optimize_parser_ir",
+            side_effect=lambda parser_ir: parser_ir,
+        ):
+            parser_ir = _build_metrics_ir("<S> ::= (A | B)")
+        production = parser_ir.productions[0]
+        alternative = production.alternatives[0]
+        dispatch = alternative.operations[0]
+        assert isinstance(dispatch, Dispatch)
+        first_branch, fallback_branch = dispatch.branches
+        first_parse = first_branch.operations[0]
+        assert isinstance(first_parse, ParseSymbol)
+        first_path = next(
+            path for path in decision_paths(dispatch.decision.dag)
+            if isinstance(path.leaf, CommitAlternative)
+            and path.leaf.outcome == first_branch.outcome
+        )
+        specialized = replace(
+            first_branch,
+            operations=(ConsumeKnownSymbol(
+                first_parse.symbol, False,
+                first_path.facts[0].predicate.token_types, first_parse.source_span,
+            ),),
+            path_facts=first_path.facts,
+        )
+        dispatch = replace(dispatch, branches=(specialized, fallback_branch))
+        alternative = replace(alternative, operations=(dispatch,))
+        production = replace(production, alternatives=(alternative,))
+        parser_ir = replace(parser_ir, productions=(production,))
+
+        self.assertEqual(decision_path_metrics(parser_ir), {
+            "specialized_paths": 1,
+            "known_symbol_consumes": 1,
+            "redundant_validations": 1,
+        })
+
+    def test_redundant_validations_include_single_collapsed_composed_fallback(self) -> None:
+        parser_ir = _build_metrics_ir(
+            "#ID_Name ::= A\n"
+            "<S> ::= <Base> Child => <Choice>?\n"
+            "<Base> ::= @NewBase BASE\n"
+            "<Choice> ::= @NewChoice #ID_Name"
+        )
+        production = parser_ir.productions[0]
+        alternative = production.alternatives[0]
+        wrapper = alternative.operations[0]
+        assert isinstance(wrapper, WrapOptional)
+        self.assertEqual(len(wrapper.branches), 1)
+        fallback = wrapper.branches[0]
+        self.assertIsNone(fallback.path_facts)
+        self.assertTrue(wrapper.decision.caller_callee_composed)
+        self.assertEqual(fallback.outcome.production, "Choice")
+        self.assertNotEqual(wrapper.decision.source.production, fallback.outcome.production)
+        self.assertNotIn("Choice", {item.name for item in parser_ir.productions})
+        known_index, known = next(
+            (index, operation) for index, operation in enumerate(fallback.operations)
+            if isinstance(operation, ConsumeKnownSymbol)
+        )
+        operations = list(fallback.operations)
+        operations[known_index] = ParseSymbol(known.symbol, known.source_span)
+        fallback = replace(fallback, operations=tuple(operations))
+        wrapper = replace(wrapper, branches=(fallback,))
+        alternative = replace(alternative, operations=(wrapper,))
+        production = replace(production, alternatives=(alternative,))
+        parser_ir = replace(parser_ir, productions=(production,))
+
+        self.assertEqual(decision_path_metrics(parser_ir), {
+            "specialized_paths": 0,
+            "known_symbol_consumes": 0,
+            "redundant_validations": 1,
+        })
 
 
 class RepositoryGrammarMetricsTests(unittest.TestCase):

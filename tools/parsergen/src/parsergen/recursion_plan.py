@@ -178,12 +178,16 @@ class _RecursionPlanner:
     ) -> None:
         if not operations or _contains_left_fold(operations):
             return
+        admissible_suffix = [True] * (len(operations) + 1)
+        for index in range(len(operations) - 1, -1, -1):
+            admissible_suffix[index] = (
+                admissible_suffix[index + 1]
+                and isinstance(operations[index], AssignConstant)
+            )
         for index, operation in enumerate(operations):
-            suffix_indices = tuple(range(index + 1, len(operations)))
-            if suffix_indices and not _is_admissible_semantic_suffix(
-                operations[index + 1 :]
-            ):
+            if not admissible_suffix[index + 1]:
                 continue
+            has_suffix = index + 1 < len(operations)
             operation_site = child_site(site, "operation", index)
             for candidate in _final_direct_self_call_sites(
                 operation_site,
@@ -201,7 +205,7 @@ class _RecursionPlanner:
                     operation_site,
                     child_site(operation_site, "value", 0),
                 }:
-                    if suffix_indices:
+                    if has_suffix:
                         continue
                     layout = _nested_continuation_layout(
                         operations,
@@ -244,8 +248,10 @@ class _RecursionPlanner:
                     index,
                     sequence_liveness.live_after[index],
                 )
-                if suffix_indices:
-                    layout = ContinuationLayout(layout.slots, suffix_indices)
+                if has_suffix:
+                    layout = ContinuationLayout(
+                        layout.slots, tuple(range(index + 1, len(operations)))
+                    )
                 if (
                     not layout.slots
                     and not layout.suffix_indices
@@ -608,10 +614,6 @@ def _is_stateless_self_call(value: object, production: ProductionIr) -> bool:
         and value.symbol.name == production.name
         and not value.symbol.arguments
     )
-
-
-def _is_admissible_semantic_suffix(operations: tuple[Operation, ...]) -> bool:
-    return all(isinstance(operation, AssignConstant) for operation in operations)
 
 
 def _continuation_layout(

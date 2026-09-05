@@ -5,6 +5,14 @@ production Python target. It accepts the common combined-grammar `ParserIr`
 after semantic optimization and produces deterministic standalone Python
 source plus immutable AST schema metadata.
 
+Production formal parameters and nonterminal call arguments are unsupported by
+the Python target. At the public generation boundary, any such declaration or
+call anywhere in `SourceGrammar` (including nested or unreachable code) raises
+`ValueError("Python target does not support production parameters or nonterminal call arguments")`
+before AST schema discovery and rendering. Argument expressions are opaque BSL
+text; Python does not evaluate them. The combined frontend, common IR and BSL
+target retain their parameter/argument support.
+
 The generated module publishes `GeneratedParser`, `GeneratedParseError`,
 `SourceSpan`, generated frozen/slotted AST classes and `AST_CLASSES`. It imports
 only the Python standard library; it does not import parsergen or interpret a
@@ -22,7 +30,8 @@ not reimplemented in this renderer.
 
 There is no Python VM target, syntax-only target, separated semantic profile,
 owner stack, scoped append or projection mode. Combined grammar with
-declarative semantics is the only input contract shared with canonical BSL.
+declarative semantics is the only authoring format shared with canonical BSL;
+the Python capability restriction above applies to that shared input model.
 
 The package version is `0.3.0`. See the binding architecture and cross-target
 fences in

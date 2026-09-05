@@ -27,7 +27,13 @@ from .parser_ir import (
     WrapOptional,
     WrapValue,
 )
-from .source_model import SourceGrammar
+from .source_model import (
+    SourceBinding,
+    SourceGrammar,
+    SourceGroup,
+    SourceOptional,
+    SourceRepeat,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,6 +80,7 @@ def generate_python_semantic_parser(
     """Generate Python AST classes from canonical semantic Parser IR."""
     if source != parser_ir.source_grammar:
         raise ValueError("source grammar does not match Parser IR")
+    _validate_python_call_contract(source)
     _validate_entrypoints(parser_ir, entrypoints)
     schema = _SchemaBuilder(parser_ir).build()
     from .python_direct_codegen import render_direct_python_module
@@ -97,6 +104,35 @@ def _generate_direct_python_semantic_parser(
 ) -> GeneratedPythonSemanticParser:
     """Private compatibility seam for direct-renderer tests."""
     return generate_python_semantic_parser(source, parser_ir, entrypoints)
+
+
+def _validate_python_call_contract(source: SourceGrammar) -> None:
+    """Reject opaque call state before schema discovery or direct rendering."""
+    def has_arguments(value: object) -> bool:
+        if isinstance(value, NonterminalCall):
+            return bool(value.arguments)
+        if isinstance(value, SourceBinding):
+            return has_arguments(value.value)
+        if isinstance(value, (SourceOptional, SourceRepeat)):
+            return has_arguments(value.body)
+        if isinstance(value, SourceGroup):
+            return any(
+                has_arguments(item)
+                for alternative in value.alternatives
+                for item in alternative.body.items
+            )
+        return False
+
+    if any(production.parameters for production in source.productions) or any(
+        has_arguments(item)
+        for production in source.productions
+        for alternative in production.alternatives
+        for item in alternative.body.items
+    ):
+        raise ValueError(
+            "Python target does not support production parameters "
+            "or nonterminal call arguments"
+        )
 
 
 def _validate_entrypoints(
