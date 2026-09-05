@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, fields, is_dataclass, replace
 import sys
+from unittest.mock import patch
 
 import pytest
 
@@ -13,7 +14,8 @@ from parsergen.decision_dag import (
     DecisionEdge,
     LookaheadDecision,
 )
-from parsergen.grammar_parser import parse_grammar
+from parsergen.grammar_parser import parse_grammar, parse_source_grammar
+from parsergen.lowering import lower_source_grammar
 from parsergen.direct_render_analysis import (
     ContinuationSlot,
     IrSite,
@@ -128,12 +130,87 @@ def _generate(
     return direct, parser_ir, parsed.source_grammar
 
 
+def _generate_legacy_group_wrap(source: str):
+    parsed = parse_source_grammar(source, "legacy-group-wrap.grammar")
+    assert parsed.diagnostics == ()
+    assert parsed.grammar is not None
+    rejected_lowering = lower_source_grammar(parsed.grammar)
+    assert tuple(
+        (diagnostic.code, diagnostic.message)
+        for diagnostic in rejected_lowering.diagnostics
+    ) == (
+        (
+            "BIND210",
+            "returned-child decorator requires one seed and one semantic child",
+        ),
+    )
+    lowering = replace(rejected_lowering, diagnostics=())
+    resolved = resolve_grammar(lowering.grammar)
+    assert resolved.grammar is not None
+    with patch(
+        "parsergen.parser_ir_optimization.optimize_parser_ir",
+        side_effect=lambda parser_ir: parser_ir,
+    ), patch(
+        "parsergen.parser_ir.lower_source_grammar",
+        return_value=lowering,
+    ):
+        parser_ir = build_parser_ir(
+            parsed.grammar,
+            lowering,
+            resolved.grammar,
+            compute_analysis(resolved.grammar, 1, ("S",)),
+            entrypoint_productions=("S",),
+        )
+    return generate_python_semantic_parser(
+        parsed.grammar,
+        parser_ir,
+        {"start": "S"},
+    )
+
+
 def test_direct_module_compiles_and_preserves_runtime_shape() -> None:
     direct, _, _ = _generate("<S> ::= ITEM")
     direct_namespace, direct_result = _execute(direct.module_text, [Token("ITEM")])
 
     assert _shape(direct_result) is None
     assert direct_namespace["GeneratedParser"]().parse([Token("ITEM")], "start") is None
+
+
+def test_unscoped_optional_group_wrap_generates_a_compilable_parser() -> None:
+    generated = _generate_legacy_group_wrap(
+        "<S> ::= <Seed> Child => (<A> | <B>)?\n"
+        "<Seed> ::= @Seed SEED\n"
+        "<A> ::= @A A\n"
+        "<B> ::= @B B"
+    )
+
+    compile(generated.module_text, "<generated-legacy-group-wrap>", "exec")
+
+
+@pytest.mark.parametrize(
+    ("operator", "property_name"),
+    (("Child =>", "Child"), ("Children +=>", "Children")),
+)
+def test_unscoped_required_group_wrap_preserves_each_branch_at_runtime(
+    operator: str,
+    property_name: str,
+) -> None:
+    generated = _generate_legacy_group_wrap(
+        f"<S> ::= <Seed> {operator} (<A> | <B>)\n"
+        "<Seed> ::= @Seed SEED\n"
+        "<A> ::= @A A\n"
+        "<B> ::= @B B"
+    )
+
+    for branch_token in ("A", "B"):
+        namespace, node = _execute(
+            generated.module_text,
+            [Token("SEED", start=0, end=1), Token(branch_token, start=2, end=3)],
+        )
+
+        children = (node.Child,) if property_name == "Child" else node.Children
+        assert type(node) is namespace[branch_token]
+        assert tuple(type(child).__name__ for child in children) == ("Seed",)
 
 
 def test_direct_captured_terminal_is_exact() -> None:
