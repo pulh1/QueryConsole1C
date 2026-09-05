@@ -20,7 +20,6 @@ from parsergen.direct_render_analysis import (
     ResultFlowFact,
     analyze_direct_render,
 )
-from parsergen.lowering import lower_source_grammar
 from parsergen.parser_ir import (
     AssignConstant,
     CanonicalDecision,
@@ -35,9 +34,6 @@ from parsergen.parser_ir import (
 from parsergen.python_direct_codegen import _DirectPythonRenderer
 from parsergen.python_semantic_codegen import generate_python_semantic_parser
 from parsergen.resolver import resolve_grammar
-from parsergen.semantic_profile_binding import bind_semantic_profile
-from parsergen.semantic_profile_parser import parse_semantic_profile
-from parsergen.syntax_grammar_parser import parse_syntax_grammar
 
 
 @dataclass(frozen=True)
@@ -130,30 +126,6 @@ def _generate(
         mapping,
     )
     return direct, parser_ir, parsed.source_grammar
-
-
-def _generate_bound(syntax_source: str, profile_source: str):
-    syntax = parse_syntax_grammar(syntax_source, "direct-runtime-test.grammar")
-    profile = parse_semantic_profile(profile_source, "direct-runtime-test.semantic")
-    assert syntax.diagnostics == () and syntax.grammar is not None
-    assert profile.diagnostics == () and profile.profile is not None
-    bound = bind_semantic_profile(syntax.grammar, profile.profile)
-    assert bound.diagnostics == () and bound.source_grammar is not None
-    lowering = lower_source_grammar(bound.source_grammar)
-    assert lowering.diagnostics == () and lowering.grammar is not None
-    resolved = resolve_grammar(lowering.grammar)
-    assert resolved.diagnostics == () and resolved.grammar is not None
-    parser_ir = build_parser_ir(
-        bound.source_grammar,
-        lowering,
-        resolved.grammar,
-        compute_analysis(resolved.grammar, 1, ("S",)),
-        entrypoint_productions=("S",),
-    )
-    return (
-        generate_python_semantic_parser(bound.source_grammar, parser_ir, {"start": "S"}),
-        parser_ir,
-    )
 
 
 def test_direct_module_compiles_and_preserves_runtime_shape() -> None:
@@ -1242,50 +1214,6 @@ def test_direct_local_continuation_preserves_builder_fields_changed_by_control(
     )
 
 
-def test_direct_recursion_keeps_transitively_pending_scoped_owner_effects() -> None:
-    direct, parser_ir = _generate_bound(
-        "#Value ::= ITEM\n"
-        "<Tap> ::= [tap] value: #Value\n"
-        "<S> ::= [root] tap: <Tap> rest: <S> | STOP",
-        "profile worker\n"
-        "<Tap>[tap] {\n"
-        "^Owner.Items += value\n"
-        "}\n"
-        "<S>[root] {\n"
-        "@Owner\n"
-        "Rest = rest\n"
-        "}\n",
-    )
-    analysis = analyze_direct_render(parser_ir)
-
-    _, result = _execute(
-        direct.module_text,
-        [Token("ITEM", "ITEM"), Token("ITEM", "ITEM"), Token("STOP")],
-    )
-
-    assert analysis.recursive_calls == ()
-    assert (result.Items, result.Rest.Items) == (("ITEM",), ("ITEM",))
-
-
-def test_direct_scoped_owner_state_local_cannot_collide_with_owner_state_field() -> None:
-    direct, _ = _generate_bound(
-        "#Value ::= ITEM\n"
-        "<Tap> ::= [tap] value: #Value\n"
-        "<S> ::= [root] tap: <Tap>",
-        "profile worker\n"
-        "<Tap>[tap] {\n"
-        "^Owner.owner_state += value\n"
-        "}\n"
-        "<S>[root] {\n"
-        "@Owner\n"
-        "}\n",
-    )
-
-    _, result = _execute(direct.module_text, [Token("ITEM", "ITEM")])
-
-    assert result.owner_state == ("ITEM",)
-
-
 @pytest.mark.parametrize(
     "grammar",
     (
@@ -1416,28 +1344,6 @@ def test_direct_nested_discarded_call_does_not_adopt_an_implicit_constructor() -
 
     assert result is None
     assert analysis.recursive_calls == ()
-
-
-def test_direct_scoped_effect_payload_runs_after_recursive_result_returns() -> None:
-    direct, parser_ir = _generate_bound(
-        "<S> ::= [root] chain: <Tail>\n"
-        "<Tail> ::= [step] discard: ITEM rest: <Tail> | "
-        "[end] discard: STOP",
-        "profile worker\n"
-        "<S>[root] {\n@Owner\n-= chain\n}\n"
-        "<Tail>[step] {\n"
-        "-= discard\n^Owner.Items += rest\n-= rest\n}\n"
-        "<Tail>[end] {\n-= discard\n}\n",
-    )
-    item_count = 300
-
-    _, result = _execute(
-        direct.module_text,
-        [Token("ITEM") for _ in range(item_count)] + [Token("STOP")],
-    )
-
-    assert analyze_direct_render(parser_ir).recursive_calls == ()
-    assert result.Items == (None,) * item_count
 
 
 def test_direct_nested_resolved_discarded_call_does_not_adopt_a_non_none_base_result() -> None:

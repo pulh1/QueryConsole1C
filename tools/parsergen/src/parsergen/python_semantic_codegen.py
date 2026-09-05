@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, fields, is_dataclass
+from dataclasses import dataclass
 import keyword
 from typing import Mapping
 
 from .direct_render_analysis import analyze_direct_render
 from .model import NonterminalCall
 from .parser_ir import (
-    AppendNearestOwner,
     AppendCollection,
     AssignConstant,
     BindScalar,
@@ -132,21 +131,9 @@ class _SchemaBuilder:
         for production in self.parser_ir.productions:
             for alternative in production.alternatives:
                 self._operations(alternative.operations, None)
-        self._scoped_fields(self.parser_ir.productions)
         return tuple(
             AstNodeSchema(name, tuple(self.fields[name])) for name in self.order
         )
-
-    def _scoped_fields(self, value: object) -> None:
-        if isinstance(value, AppendNearestOwner) and value.owner in self.fields:
-            self._field(value.owner, value.property, "collection")
-        if isinstance(value, (tuple, list)):
-            for item in value:
-                self._scoped_fields(item)
-        elif is_dataclass(value):
-            for field in fields(value):
-                if field.name not in {"decision", "source_span", "span"}:
-                    self._scoped_fields(getattr(value, field.name))
 
     def _operations(
         self,
@@ -171,9 +158,6 @@ class _SchemaBuilder:
                 self._field(current, operation.property, "concat")
             elif isinstance(operation, IncrementScalar):
                 self._field(current, operation.property, "increment")
-            elif isinstance(operation, AppendNearestOwner):
-                if operation.value is not None:
-                    self._bound_value_operations(operation.value, current)
             elif isinstance(operation, ResolvedRegion):
                 current = self._operations(operation.operations, current)
             elif isinstance(operation, Dispatch):
@@ -214,10 +198,7 @@ class _SchemaBuilder:
         value: object,
         active: str | None,
     ) -> None:
-        if isinstance(value, AppendNearestOwner):
-            if value.value is not None:
-                self._bound_value_operations(value.value, active)
-        elif isinstance(value, ParseBranchValue):
+        if isinstance(value, ParseBranchValue):
             self._operations(value.operations, active)
         elif isinstance(value, DispatchValue):
             for branch in value.branches:
@@ -248,12 +229,6 @@ class _SchemaBuilder:
         value: object,
         seen: frozenset[str] = frozenset(),
     ) -> set[str]:
-        if isinstance(value, AppendNearestOwner):
-            return (
-                self._value_constructors(value.value, seen)
-                if value.value is not None
-                else set()
-            )
         if isinstance(value, ParseSymbol):
             symbol = value.symbol
             if isinstance(symbol, NonterminalCall):
@@ -296,8 +271,6 @@ class _SchemaBuilder:
             elif isinstance(operation, ParseSymbol) and isinstance(
                 operation.symbol, NonterminalCall
             ):
-                result.update(self._value_constructors(operation, seen))
-            elif isinstance(operation, AppendNearestOwner):
                 result.update(self._value_constructors(operation, seen))
             elif isinstance(operation, ResolvedRegion):
                 result.update(self._result_constructors(operation.operations, seen))

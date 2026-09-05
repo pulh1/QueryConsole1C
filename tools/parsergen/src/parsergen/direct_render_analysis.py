@@ -6,7 +6,6 @@ from typing import Literal
 from .decision_dag import LookaheadDecision
 from .parser_ir import (
     AppendCollection,
-    AppendNearestOwner,
     AssignConstant,
     BindScalar,
     BranchIr,
@@ -105,7 +104,6 @@ class ResultFlowFact:
 @dataclass(frozen=True, slots=True)
 class DirectRenderAnalysis:
     sequence_liveness: tuple[SequenceLiveness, ...]
-    mutable_owner_types: frozenset[str]
     recursive_calls: tuple[RecursiveCallSite, ...]
     result_flow: tuple[ResultFlowFact, ...]
     decisions: tuple[DecisionRenderFacts, ...]
@@ -114,18 +112,12 @@ class DirectRenderAnalysis:
 class _Analyzer:
     def __init__(self) -> None:
         self.sequence_liveness: list[SequenceLiveness] = []
-        self.mutable_owner_types: set[str] = set()
         self.recursive_calls: list[RecursiveCallSite] = []
         self.result_flow: list[ResultFlowFact] = []
         self.decisions: list[DecisionRenderFacts] = []
-        self._calls_by_production: dict[str, set[str]] = {}
-        self._scoped_effect_productions: set[str] = set()
         self._resultless_productions: frozenset[str] = frozenset()
 
     def analyze(self, parser_ir: ParserIr) -> DirectRenderAnalysis:
-        self._calls_by_production = {
-            production.name: set() for production in parser_ir.productions
-        }
         for production in parser_ir.productions:
             production_site = IrSite(production.name, None, ())
             if production.decision is not None:
@@ -137,18 +129,6 @@ class _Analyzer:
                     alternative.operations,
                     alternative.result_index,
                 )
-        self._scoped_effect_productions = _transitive_scoped_effect_productions(
-            self._calls_by_production,
-            {
-                production.name
-                for production in parser_ir.productions
-                if any(
-                    isinstance(operation, AppendNearestOwner)
-                    for alternative in production.alternatives
-                    for operation in _walk_operations(alternative.operations)
-                )
-            },
-        )
         self._resultless_productions = frozenset(
             production.name
             for production in parser_ir.productions
@@ -178,7 +158,6 @@ class _Analyzer:
                 )
         return DirectRenderAnalysis(
             tuple(self.sequence_liveness),
-            frozenset(self.mutable_owner_types),
             tuple(self.recursive_calls),
             tuple(self.result_flow),
             tuple(self.decisions),
@@ -196,7 +175,6 @@ class _Analyzer:
             or _contains_left_fold(operations)
         ):
             return
-        has_scoped_effects = production in self._scoped_effect_productions
         for index, operation in enumerate(operations):
             suffix_indices = tuple(range(index + 1, len(operations)))
             if suffix_indices and not _is_admissible_semantic_suffix(
@@ -222,14 +200,13 @@ class _Analyzer:
                         call_site,
                     )
                     if layout is not None:
-                        if not has_scoped_effects:
-                            self.recursive_calls.append(
-                                RecursiveCallSite(
-                                    call_site,
-                                    "local_continuation",
-                                    layout,
-                                )
+                        self.recursive_calls.append(
+                            RecursiveCallSite(
+                                call_site,
+                                "local_continuation",
+                                layout,
                             )
+                        )
                         continue
                     if candidate.requires_post_return:
                         continue
@@ -257,8 +234,6 @@ class _Analyzer:
                 )
                 if suffix_indices:
                     layout = ContinuationLayout(layout.slots, suffix_indices)
-                if layout.slots and has_scoped_effects:
-                    continue
                 if (
                     not layout.slots
                     and not layout.suffix_indices
@@ -362,9 +337,6 @@ class _Analyzer:
         return sequence_liveness
 
     def _operation(self, site: IrSite, operation: Operation) -> None:
-        name = _call_name(operation)
-        if name is not None:
-            self._calls_by_production[site.production].add(name)
         if isinstance(operation, ResolvedRegion):
             self._sequence(
                 _child_site(site, "region", 0),
@@ -402,13 +374,6 @@ class _Analyzer:
                 "recursive_branch",
                 operation.recursive_branches,
             )
-        elif isinstance(operation, AppendNearestOwner):
-            self.mutable_owner_types.add(operation.owner)
-            if operation.value is not None:
-                self._bound_value(
-                    _child_site(site, "value", 0),
-                    operation.value,
-                )
         elif isinstance(
             operation,
             (
@@ -477,7 +442,6 @@ def _direct_self_call_site(
             ExtendCollection,
             ConcatScalar,
             IncrementScalar,
-            AppendNearestOwner,
             WrapValue,
         ),
     ):
@@ -761,23 +725,6 @@ def _contains_left_fold(
     )
 
 
-def _transitive_scoped_effect_productions(
-    calls_by_production: dict[str, set[str]],
-    direct_effect_productions: set[str],
-) -> set[str]:
-    effect_productions = set(direct_effect_productions)
-    changed = True
-    while changed:
-        changed = False
-        for production, calls in calls_by_production.items():
-            if production in effect_productions:
-                continue
-            if calls & effect_productions:
-                effect_productions.add(production)
-                changed = True
-    return effect_productions
-
-
 def _walk_operations(operations: tuple[Operation, ...]):
     for operation in operations:
         yield operation
@@ -808,18 +755,13 @@ def _walk_operations(operations: tuple[Operation, ...]):
                 ExtendCollection,
                 ConcatScalar,
                 IncrementScalar,
-                AppendNearestOwner,
             ),
         ):
             yield from _walk_bound_value_operations(operation.value)
 
 
 def _walk_bound_value_operations(value: object):
-    if isinstance(value, AppendNearestOwner):
-        yield value
-        if value.value is not None:
-            yield from _walk_bound_value_operations(value.value)
-    elif isinstance(value, DispatchValue):
+    if isinstance(value, DispatchValue):
         for branch in value.branches:
             yield from _walk_operations(branch.value.operations)
     elif isinstance(value, ParseBranchValue):

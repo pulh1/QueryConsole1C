@@ -22,7 +22,6 @@ from .source_model import (
     SourceItem,
     SourceOptional,
     SourceRepeat,
-    SourceScopedValue,
     SourceSequence,
     SourceValue,
 )
@@ -290,11 +289,6 @@ class _BindingValidator:
                 ).kind is _ResultKind.SEMANTIC
                 valid = valid and semantic_child_counts(after) == (0,)
                 value = binding.value
-                while (
-                    isinstance(value, SourceScopedValue)
-                    and value.value is not None
-                ):
-                    value = value.value
                 valid = valid and not isinstance(value, SourceRepeat)
                 child = value.body if isinstance(value, SourceOptional) else value
                 valid = valid and _value_semantic_counts(child) == (1,)
@@ -352,8 +346,6 @@ class _BindingValidator:
                 self._validate_transparent_primary(item.body)
             elif isinstance(item, SourceBinding):
                 self._validate_transparent_value(item.value)
-            elif isinstance(item, SourceScopedValue) and item.value is not None:
-                self._validate_transparent_value(item.value)
 
     def _validate_transparent_primary(self, primary) -> None:
         if isinstance(primary, SourceGroup):
@@ -361,10 +353,7 @@ class _BindingValidator:
                 self._validate_transparent_constants(alternative.body)
 
     def _validate_transparent_value(self, value) -> None:
-        if isinstance(value, SourceScopedValue):
-            if value.value is not None:
-                self._validate_transparent_value(value.value)
-        elif isinstance(value, (SourceRepeat, SourceOptional)):
+        if isinstance(value, (SourceRepeat, SourceOptional)):
             self._validate_transparent_primary(value.body)
         elif isinstance(value, SourceGroup):
             self._validate_transparent_primary(value)
@@ -400,9 +389,6 @@ class _BindingValidator:
                         updated.append(path | {item.property})
                     current = updated
                 current = self._walk_value(item.value, current, repeated)
-            elif isinstance(item, SourceScopedValue):
-                if item.value is not None:
-                    current = self._walk_value(item.value, current, repeated)
             elif isinstance(item, SourceConstantBinding):
                 if item.property is None:
                     continue
@@ -435,10 +421,6 @@ class _BindingValidator:
     ) -> list[frozenset[str]]:
         if isinstance(value, SourceGroup):
             return self._walk_group(value, paths, repeated)
-        if isinstance(value, SourceScopedValue):
-            if value.value is None:
-                return paths
-            return self._walk_value(value.value, paths, repeated)
         if isinstance(value, SourceRepeat):
             present = self._walk_value(value.body, paths, True)
             return [*paths, *present]
@@ -485,7 +467,6 @@ def _contains_directive(sequence: SourceSequence) -> bool:
                 SourceConstructor,
                 SourceBinding,
                 SourceConstantBinding,
-                SourceScopedValue,
             ),
         )
     )
@@ -503,19 +484,10 @@ def _collect(sequence: SourceSequence, kinds):
             result.extend(_collect_value(item.body, kinds))
         elif isinstance(item, SourceBinding):
             result.extend(_collect_value(item.value, kinds))
-        elif isinstance(item, SourceScopedValue) and item.value is not None:
-            result.extend(_collect_value(item.value, kinds))
     return tuple(result)
 
 
 def _collect_value(value: SourceValue, kinds):
-    if isinstance(value, SourceScopedValue):
-        nested = (
-            _collect_value(value.value, kinds)
-            if value.value is not None
-            else ()
-        )
-        return ((value,) if isinstance(value, kinds) else ()) + nested
     if isinstance(value, SourceGroup):
         return tuple(
             item
@@ -528,10 +500,6 @@ def _collect_value(value: SourceValue, kinds):
 
 
 def _cardinality(value: SourceValue) -> BindingCardinality:
-    if isinstance(value, SourceScopedValue):
-        if value.value is None:
-            return BindingCardinality(0, 0)
-        return _cardinality(value.value)
     if isinstance(value, SourceOptional):
         return BindingCardinality(0, 1)
     if isinstance(value, SourceRepeat):
@@ -574,8 +542,6 @@ def _sequence_value_cardinality(
 
 
 def _value_category(value: object) -> int:
-    if isinstance(value, SourceScopedValue):
-        return _value_category(value.value)
     if isinstance(value, (NonterminalCall, IdentifierRef, Constant)):
         return 1
     if isinstance(value, (Terminal, Lexeme)):
@@ -625,31 +591,10 @@ def _semantic_execution_counts(sequence: SourceSequence) -> tuple[int, ...]:
             nested = _value_execution_counts(item.body)
             if any(nested):
                 return (2,)
-        elif isinstance(item, SourceScopedValue) and item.value is not None:
-            nested = _scoped_execution_counts(item.value)
-            counts = tuple(
-                base + extra
-                for base in counts
-                for extra in nested
-            )
     return counts
 
 
-def _scoped_execution_counts(value: SourceValue) -> tuple[int, ...]:
-    while isinstance(value, SourceScopedValue):
-        if value.value is None:
-            return (0,)
-        value = value.value
-    if isinstance(value, SourceRepeat):
-        return (0,)
-    return _value_execution_counts(value)
-
-
 def _value_execution_counts(value: SourceValue) -> tuple[int, ...]:
-    if isinstance(value, SourceScopedValue):
-        if value.value is None:
-            return (0,)
-        return _scoped_execution_counts(value.value)
     if isinstance(value, SourceOptional):
         return (0, *_value_execution_counts(value.body))
     if isinstance(value, SourceRepeat):
@@ -667,10 +612,6 @@ def _value_execution_counts(value: SourceValue) -> tuple[int, ...]:
 
 
 def _value_semantic_counts(value: SourceValue) -> tuple[int, ...]:
-    if isinstance(value, SourceScopedValue):
-        if value.value is None:
-            return (0,)
-        return _value_semantic_counts(value.value)
     if isinstance(value, SourceOptional):
         return (0, *_value_semantic_counts(value.body))
     if isinstance(value, SourceRepeat):
@@ -722,22 +663,7 @@ def _branch_results(
 
 def _source_operation_result(value: SourceItem) -> _SourceOperationResult:
     kind = _ResultKind.NONE
-    if isinstance(value, SourceScopedValue):
-        if value.value is not None:
-            payload_value = value.value
-            while (
-                isinstance(payload_value, SourceScopedValue)
-                and payload_value.value is not None
-            ):
-                payload_value = payload_value.value
-            if not isinstance(payload_value, SourceRepeat):
-                payload = _source_operation_result(value.value)
-                if payload.kind in (
-                    _ResultKind.SEMANTIC,
-                    _ResultKind.MULTIPLE,
-                ):
-                    kind = payload.kind
-    elif isinstance(value, SourceGroup):
+    if isinstance(value, SourceGroup):
         branch_results = tuple(
             _branch_results(alternative.body)
             for alternative in value.alternatives

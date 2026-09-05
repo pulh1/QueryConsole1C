@@ -4,7 +4,6 @@ import pytest
 
 from parsergen.analysis import compute_analysis
 from parsergen.grammar_parser import parse_grammar
-from parsergen.lowering import lower_source_grammar
 from parsergen.parser_ir import (
     BranchIr,
     CanonicalDecision,
@@ -14,9 +13,6 @@ from parsergen.parser_ir import (
     build_parser_ir,
 )
 from parsergen.resolver import resolve_grammar
-from parsergen.semantic_profile_binding import bind_semantic_profile
-from parsergen.semantic_profile_parser import parse_semantic_profile
-from parsergen.syntax_grammar_parser import parse_syntax_grammar
 from parsergen.decision_dag import (
     CanonicalDecisionDag,
     CommitAlternative,
@@ -48,31 +44,6 @@ def _build_ir(source: str, *, k: int = 1) -> ParserIr:
     return build_parser_ir(
         parsed.source_grammar,
         parsed.lowering,
-        resolved.grammar,
-        analysis,
-        entrypoint_productions=("S",),
-    )
-
-
-def _build_bound_ir(syntax_source: str, profile_source: str) -> ParserIr:
-    syntax = parse_syntax_grammar(syntax_source, "direct-test.grammar")
-    profile = parse_semantic_profile(profile_source, "direct-test.semantic")
-    assert syntax.diagnostics == ()
-    assert syntax.grammar is not None
-    assert profile.diagnostics == ()
-    assert profile.profile is not None
-    bound = bind_semantic_profile(syntax.grammar, profile.profile)
-    assert bound.diagnostics == ()
-    assert bound.source_grammar is not None
-    lowering = lower_source_grammar(bound.source_grammar)
-    assert lowering.diagnostics == ()
-    resolved = resolve_grammar(lowering.grammar)
-    assert resolved.diagnostics == ()
-    assert resolved.grammar is not None
-    analysis = compute_analysis(resolved.grammar, 1, ("S",))
-    return build_parser_ir(
-        bound.source_grammar,
-        lowering,
         resolved.grammar,
         analysis,
         entrypoint_productions=("S",),
@@ -114,28 +85,6 @@ def test_sequence_liveness_retains_its_result_after_it_is_produced() -> None:
 
     assert result_index is not None
     assert sequence.live_after[result_index] == frozenset({result_index})
-
-
-def test_analysis_discovers_owner_types_in_nested_scoped_values() -> None:
-    parser_ir = _build_bound_ir(
-        "#Value ::= ID\n"
-        "#Other ::= NAME\n"
-        "<S> ::= [root] value: (#Value | #Other)",
-        "profile worker\n"
-        "<S>[root] {\n"
-        "@Owner\n"
-        "^Owner.Items += value\n"
-        "}\n",
-    )
-
-    analysis = analyze_direct_render(parser_ir)
-
-    assert analysis.mutable_owner_types == frozenset({"Owner"})
-    assert analysis.decisions[0].site == IrSite(
-        "S",
-        0,
-        (("operation", 1), ("value", 0)),
-    )
 
 
 def test_decision_indegrees_follow_dag_edges() -> None:
@@ -318,99 +267,6 @@ def test_pending_constructor_freeze_prevents_tail_loop() -> None:
             ContinuationSlot("builder_field", 1),
         )
     )
-
-
-def test_pending_scoped_effect_prevents_recursion_transformation() -> None:
-    analysis = analyze_direct_render(
-        _build_bound_ir(
-            "#Value ::= ITEM\n"
-            "<S> ::= [root] value: #Value <S> | STOP",
-            "profile worker\n"
-            "<S>[root] {\n"
-            "@Owner\n"
-            "^Owner.Items += value\n"
-            "}\n",
-        )
-    )
-
-    assert analysis.recursive_calls == ()
-
-
-@pytest.mark.parametrize(
-    ("syntax_source", "profile_source", "production", "trail"),
-    (
-        (
-            "#Item ::= ITEM\n"
-            "<S> ::= [root] elements: <Elements>\n"
-            "<Elements> ::= [elements] ([item] item: #Item rest: <Elements>)?",
-            "profile worker\n"
-            "<S>[root] {\n@Owner\n-= elements\n}\n"
-            "<Elements>[item] {\n"
-            "^Owner.Items += item\n-= item\n-= rest\n}\n",
-            "Elements",
-            (
-                ("operation", 0),
-                ("branch", 0),
-                ("operation", 1),
-            ),
-        ),
-        (
-            "#Item ::= ITEM\n"
-            "<S> ::= [root] body: <Block>\n"
-            "<Block> ::= [block] ([first] first: <Statement> "
-            "([rest] separator: SEP rest: <Block>)?)?\n"
-            "<Statement> ::= [statement] value: #Item | "
-            "[nested] discard: AGAIN nested: <Block> discard_2: END",
-            "profile worker\n"
-            "<S>[root] {\n@Owner\n-= body\n}\n"
-            "<Block>[first] {\n-= first\n}\n"
-            "<Block>[rest] {\n-= separator\n-= rest\n}\n"
-            "<Statement>[statement] {\n"
-            "^Owner.Items += value\n-= value\n}\n"
-            "<Statement>[nested] {\n"
-            "-= discard\n-= nested\n-= discard_2\n}\n",
-            "Block",
-            (
-                ("operation", 0),
-                ("branch", 0),
-                ("operation", 1),
-                ("branch", 0),
-                ("operation", 1),
-            ),
-        ),
-    ),
-    ids=("direct-scoped-effect", "transitive-scoped-effect"),
-)
-def test_resultless_discarded_tail_preserves_scoped_effects_iteratively(
-    syntax_source: str,
-    profile_source: str,
-    production: str,
-    trail: tuple[tuple[str, int], ...],
-) -> None:
-    analysis = analyze_direct_render(_build_bound_ir(syntax_source, profile_source))
-
-    assert RecursiveCallSite(
-        IrSite(production, 0, trail),
-        "safe_tail_loop",
-        None,
-    ) in analysis.recursive_calls
-
-
-def test_self_call_inside_scoped_effect_payload_is_not_a_tail_call() -> None:
-    analysis = analyze_direct_render(
-        _build_bound_ir(
-            "<S> ::= [root] chain: <Tail>\n"
-            "<Tail> ::= [step] discard: ITEM rest: <Tail> | "
-            "[end] discard: STOP",
-            "profile worker\n"
-            "<S>[root] {\n@Owner\n-= chain\n}\n"
-            "<Tail>[step] {\n"
-            "-= discard\n^Owner.Items += rest\n-= rest\n}\n"
-            "<Tail>[end] {\n-= discard\n}\n",
-        )
-    )
-
-    assert analysis.recursive_calls == ()
 
 
 def test_left_fold_is_not_classified_as_direct_recursion() -> None:

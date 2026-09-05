@@ -12,7 +12,6 @@ from .source_model import (
     SourceConstantBinding,
     SourceConstructor,
     SourceGrammar,
-    SourceScopedValue,
 )
 
 
@@ -91,8 +90,6 @@ def _direct_self_reference(
             value = item.value
         else:
             value = item
-        while isinstance(value, SourceScopedValue) and value.value is not None:
-            value = value.value
         if not isinstance(value, NonterminalCall):
             return None
         if value.name != production:

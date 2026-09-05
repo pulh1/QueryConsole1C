@@ -8,7 +8,6 @@ from .decision_dag import CommitAlternative, ExitDecision, ImmediateError, Looka
 from .model import Constant, IdentifierRef, Lexeme, NonterminalCall, SyntaxSymbol, Terminal
 from .parser_ir import (
     AppendCollection,
-    AppendNearestOwner,
     AssignConstant,
     BindScalar,
     BranchIr,
@@ -51,16 +50,6 @@ class _ConstructorSite:
 
 
 @dataclass(frozen=True, slots=True)
-class _OwnerStateLayout:
-    owner: str
-    properties: tuple[str, ...]
-    class_name: str
-    stack_name: str
-    queue_name: str
-    field_names: tuple[str, ...]
-
-
-@dataclass(frozen=True, slots=True)
 class _LocalContinuationFinish:
     number: int
     layout: ContinuationLayout
@@ -93,35 +82,6 @@ class _DirectPythonRenderer:
             item.name: item.token_types for item in source.identifier_definitions
         }
         self.schema_by_name = {item.name: item for item in schema}
-        self._used_global_names = {
-            "AST_CLASSES",
-            "GeneratedParseError",
-            "GeneratedParser",
-            "NODE_DEFAULTS",
-            "SourceSpan",
-            "dataclass",
-            "replace",
-            *(node.name for node in schema),
-        }
-        owner_collection_properties = {
-            owner: tuple(
-                field.name
-                for field in self.schema_by_name[owner].fields
-                if field.category == "collection"
-            )
-            for owner in sorted(analysis.mutable_owner_types)
-            if owner in self.schema_by_name
-        }
-        self.owner_state_layouts: dict[str, _OwnerStateLayout] = {}
-        for index, (owner, properties) in enumerate(owner_collection_properties.items()):
-            self.owner_state_layouts[owner] = _OwnerStateLayout(
-                owner,
-                properties,
-                self._allocate_global_name("_OwnerState"),
-                f"_owner_stack_{index}",
-                "_queue",
-                tuple(f"_field_{field_index}" for field_index in range(len(properties))),
-            )
         self.local_names: dict[tuple[tuple[int, ...], str, str], str] = {}
         self.used_local_names: set[str] = set()
         self._decision_facts_index = 0
@@ -174,15 +134,6 @@ class _DirectPythonRenderer:
             for field in node.fields:
                 lines.append(f"    {field.name}: object")
             lines.append("    span: SourceSpan")
-        for layout in self.owner_state_layouts.values():
-            lines.extend(("", "", f"class {layout.class_name}:"))
-            slots = (layout.queue_name, *layout.field_names)
-            lines.append(f"    __slots__ = {slots!r}")
-            parameters = ", ".join(layout.field_names)
-            lines.append(f"    def __init__(self, {parameters}):")
-            lines.append(f"        self.{layout.queue_name} = []")
-            for field_name in layout.field_names:
-                lines.append(f"        self.{field_name} = {field_name}")
         lines.extend(("", "", "AST_CLASSES = {"))
         lines.extend(f'    "{node.name}": {node.name},' for node in self.schema)
         lines.append("}")
@@ -298,8 +249,6 @@ class _DirectPythonRenderer:
                 else self._freeze_expression(constructor_site, "start")
             )
         )
-        if constructor_site is not None:
-            body.extend(self._render_owner_state_close(constructor_site, indent))
         if self._has_local_continuations:
             body.extend((f"{indent}result = {result}", f"{indent}break"))
             return body
@@ -606,17 +555,7 @@ class _DirectPythonRenderer:
             return [f"{indent}{value} = {self._constant(operation.value)!r}"], constructor_site
         if isinstance(operation, ConstructNode):
             site = _ConstructorSite(operation.constructor, trail)
-            lines = self._construct_locals(site, indent)
-            lines.extend(self._render_owner_state_start(site, indent))
-            return lines, site
-        if isinstance(operation, AppendNearestOwner):
-            return self._render_append_nearest_owner(
-                operation,
-                value,
-                indent,
-                trail,
-                constructor_site,
-            ), constructor_site
+            return self._construct_locals(site, indent), site
         if isinstance(operation, BindScalar):
             return self._render_binding(
                 operation.value,
@@ -1012,7 +951,6 @@ class _DirectPythonRenderer:
                 ParseBranchValue,
                 DispatchValue,
                 FoldLeftValue,
-                AppendNearestOwner,
             ),
         ):
             raise TypeError(
@@ -1037,14 +975,6 @@ class _DirectPythonRenderer:
             if self._active_fold_accumulator is None:
                 raise ValueError("fold-left value used outside LeftFold")
             return [f"{indent}{value} = {self._active_fold_accumulator}"]
-        if isinstance(bound_value, AppendNearestOwner):
-            return self._render_append_nearest_owner(
-                bound_value,
-                value,
-                indent,
-                trail,
-                constructor_site,
-            )
         if isinstance(bound_value, ParseBranchValue):
             return self._render_parse_branch_value(
                 bound_value,
@@ -1149,7 +1079,6 @@ class _DirectPythonRenderer:
         if has_construct:
             if branch_constructor is None:
                 raise RuntimeError("branch constructor is missing")
-            lines.extend(self._render_owner_state_close(branch_constructor, indent))
             lines.append(f"{indent}{target} = {self._freeze_expression(branch_constructor, start)}")
         elif result_index is None:
             lines.append(f"{indent}{target} = {none_result or 'None'}")
@@ -1403,98 +1332,6 @@ class _DirectPythonRenderer:
         values.append(f"SourceSpan({start}, self._end_offset({start}))")
         return f"{site.name}({', '.join(values)})"
 
-    def _render_owner_state_start(
-        self,
-        site: _ConstructorSite,
-        indent: str,
-    ) -> list[str]:
-        layout = self.owner_state_layouts.get(site.name)
-        if layout is None:
-            return []
-        state = self._owner_state_local(site)
-        collections = ", ".join(
-            self._field_local(site, property_name)
-            for property_name in layout.properties
-        )
-        return [
-            f"{indent}{state} = {layout.class_name}({collections})",
-            f"{indent}self.{layout.stack_name}.append({state})",
-        ]
-
-    def _render_owner_state_close(
-        self,
-        site: _ConstructorSite,
-        indent: str,
-    ) -> list[str]:
-        layout = self.owner_state_layouts.get(site.name)
-        if layout is None:
-            return []
-        state = self._owner_state_local(site)
-        stack = layout.stack_name
-        lines = [
-            f"{indent}for _, _, property_name, payload in sorted({state}.{layout.queue_name}, key=lambda item: item[:2]):",
-        ]
-        for index, property_name in enumerate(layout.properties):
-            prefix = "if" if index == 0 else "elif"
-            lines.append(f"{indent}    {prefix} property_name == {property_name!r}:")
-            lines.append(
-                f"{indent}        {state}.{layout.field_names[index]}.append(payload)"
-            )
-        lines.extend(
-            (
-                f"{indent}    else:",
-                f"{indent}        raise RuntimeError(f\"unknown scoped owner property: {{property_name!r}}\")",
-                f"{indent}{state}.{layout.queue_name}.clear()",
-                f"{indent}if not self.{stack} or self.{stack}[-1] is not {state}:",
-                f"{indent}    raise RuntimeError('owner stack is inconsistent')",
-                f"{indent}self.{stack}.pop()",
-            )
-        )
-        return lines
-
-    def _render_append_nearest_owner(
-        self,
-        operation: AppendNearestOwner,
-        target: str,
-        indent: str,
-        trail: tuple[int, ...],
-        constructor_site: _ConstructorSite | None,
-    ) -> list[str]:
-        owner = self._control_name("scoped_owner", trail)
-        layout = self.owner_state_layouts.get(operation.owner)
-        stack = None if layout is None else layout.stack_name
-        lines = (
-            [f"{indent}{owner} = self.{stack}[-1] if self.{stack} else None"]
-            if stack is not None
-            else []
-        )
-        if operation.value is None:
-            if constructor_site is None:
-                raise RuntimeError("current-field scoped append has no active constructor")
-            lines.append(
-                f"{indent}{target} = {self._field_local(constructor_site, operation.current_field)}"
-            )
-        else:
-            payload_trail = (*trail, 1)
-            lines.extend(
-                self._render_bound_value(
-                    operation.value,
-                    indent,
-                    payload_trail,
-                    constructor_site,
-                )
-            )
-            lines.append(f"{indent}{target} = {self._value_name(payload_trail)}")
-        if stack is not None:
-            lines.extend(
-                (
-                    f"{indent}if {owner} is not None:",
-                    f"{indent}    self._enqueue_sequence += 1",
-                    f"{indent}    {owner}.{layout.queue_name}.append(({operation.source_order!r}, self._enqueue_sequence, {operation.property!r}, {target}))",
-                )
-            )
-        return lines
-
     def _field_local(self, site: _ConstructorSite | None, property_name: str) -> str:
         if site is None:
             raise RuntimeError("semantic binding has no active constructor")
@@ -1503,18 +1340,6 @@ class _DirectPythonRenderer:
             if field.name == property_name:
                 return self._allocate_local(site, field.name)
         raise ValueError(f"unknown field {site.name}.{property_name}")
-
-    def _owner_state_local(self, site: _ConstructorSite) -> str:
-        return self._allocate_local(site, "owner_state", namespace="owner_state")
-
-    def _allocate_global_name(self, prefix: str) -> str:
-        index = 0
-        while True:
-            name = f"{prefix}_{index}"
-            if name not in self._used_global_names:
-                self._used_global_names.add(name)
-                return name
-            index += 1
 
     def _allocate_local(
         self,
@@ -1603,19 +1428,12 @@ class _DirectPythonRenderer:
                     ExtendCollection,
                     ConcatScalar,
                     IncrementScalar,
-                    AppendNearestOwner,
                 ),
             ):
                 names.update(self._bound_value_names(operation.value, (*operation_trail, 0)))
         return names
 
     def _bound_value_names(self, value: object, trail: tuple[int, ...]) -> set[str]:
-        if isinstance(value, AppendNearestOwner):
-            return (
-                self._bound_value_names(value.value, (*trail, 1))
-                if value.value is not None
-                else set()
-            )
         if isinstance(value, ParseBranchValue):
             return self._value_names(value.operations, trail)
         if isinstance(value, DispatchValue):
@@ -1641,30 +1459,24 @@ class _DirectPythonRenderer:
             "    def parse(self, tokens, entrypoint):",
             "        self._tokens = tuple(tokens)",
             "        self._position = 0",
-            "        self._enqueue_sequence = 0",
         ]
-        for layout in self.owner_state_layouts.values():
-            lines.append(f"        self.{layout.stack_name} = []")
-        lines.append("        try:")
         for index, (entrypoint, production) in enumerate(self.entrypoints.items()):
             prefix = "if" if index == 0 else "elif"
             lines.extend(
                 (
-                    f"            {prefix} entrypoint == {entrypoint!r}:",
-                    f"                result = self.{self._production_name(production)}()",
+                    f"        {prefix} entrypoint == {entrypoint!r}:",
+                    f"            result = self.{self._production_name(production)}()",
                 )
             )
         lines.extend(
             (
-                "            else:",
-                "                raise ValueError(f\"unknown entrypoint {entrypoint!r}\")",
-                "            if self._position != len(self._tokens):",
-                "                self._raise(('$',))",
-                "            return result",
-                "        finally:",
-                "            self._clear_owner_state()",
+                "        else:",
+                "            raise ValueError(f\"unknown entrypoint {entrypoint!r}\")",
+                "        if self._position != len(self._tokens):",
+                "            self._raise(('$',))",
+                "        return result",
                 "",
-            "    def _consume(self, expected, capture):",
+                "    def _consume(self, expected, capture):",
                 "        actual = self._lookahead(0)",
                 "        if actual not in expected:",
                 "            self._raise(expected)",
@@ -1709,16 +1521,6 @@ class _DirectPythonRenderer:
                 "        self._syntax_error(expected)",
             )
         )
-        lines.extend(("", "    def _clear_owner_state(self):"))
-        for layout in self.owner_state_layouts.values():
-            lines.extend(
-                (
-                    f"        for owner_state in self.{layout.stack_name}:",
-                    f"            owner_state.{layout.queue_name}.clear()",
-                    f"        self.{layout.stack_name}.clear()",
-                )
-            )
-        lines.append("        self._enqueue_sequence = 0")
         lines.extend(("", *self._render_productions().splitlines()))
         return "\n".join(lines)
 

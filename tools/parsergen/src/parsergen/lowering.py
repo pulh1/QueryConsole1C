@@ -30,7 +30,6 @@ from .source_model import (
     SourcePrimary,
     SourceProduction,
     SourceRepeat,
-    SourceScopedValue,
     SourceSequence,
 )
 from .source_validation import validate_source_grammar
@@ -357,12 +356,6 @@ class _Lowerer:
                     )
                 )
                 item = item.value
-            while isinstance(item, SourceScopedValue):
-                if item.value is None:
-                    break
-                item = item.value
-            if isinstance(item, SourceScopedValue):
-                continue
             if isinstance(item, SourceGroup):
                 result.append(
                     self._lower_group(

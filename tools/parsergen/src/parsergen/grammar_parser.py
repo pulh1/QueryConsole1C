@@ -509,22 +509,6 @@ def _parse_source_sequence(
             continue
         symbol_start = index
         char = body[index]
-        if char == "^":
-            end = index + 1
-            target = _BINDING_TARGET.match(body, end)
-            if target is not None:
-                end = target.end()
-                operator = _next_nonspace(body, end)
-                if operator is not None and body.startswith("+=", operator):
-                    end = operator + 2
-            _error(
-                bag,
-                "GP010",
-                "scoped append is not supported in combined grammar",
-                _span(text, path, start_offset + index, start_offset + index + 1),
-            )
-            index = end
-            continue
         if char == "@":
             if pending_binding is not None:
                 _error(

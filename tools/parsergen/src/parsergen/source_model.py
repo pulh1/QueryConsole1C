@@ -65,22 +65,6 @@ class SourceConstructor:
 
 
 @dataclass(frozen=True, slots=True)
-class SourceScopedValue:
-    owner: str
-    property: str
-    value: SourceValue | None
-    current_field: str | None
-    span: SourceSpan
-    source_order: int = 0
-
-    def __post_init__(self) -> None:
-        if (self.value is None) == (self.current_field is None):
-            raise ValueError(
-                "SourceScopedValue requires exactly one of value/current_field"
-            )
-
-
-@dataclass(frozen=True, slots=True)
 class SourceBinding:
     property: str | None
     mode: BindingMode
@@ -98,9 +82,7 @@ class SourceConstantBinding:
 
 
 SourcePrimary: TypeAlias = SyntaxSymbol | SourceGroup
-SourceValue: TypeAlias = (
-    SourcePrimary | SourceRepeat | SourceOptional | SourceScopedValue
-)
+SourceValue: TypeAlias = SourcePrimary | SourceRepeat | SourceOptional
 SourceItem: TypeAlias = (
     SyntaxSymbol
     | Action
@@ -108,7 +90,6 @@ SourceItem: TypeAlias = (
     | SourceRepeat
     | SourceOptional
     | SourceConstructor
-    | SourceScopedValue
     | SourceBinding
     | SourceConstantBinding
 )
