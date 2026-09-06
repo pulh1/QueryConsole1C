@@ -521,6 +521,27 @@ class _FirstContinuation:
         self.base_packed = base_packed
 
 
+_SuffixItem = TypeVar("_SuffixItem")
+
+
+@dataclass(frozen=True, slots=True)
+class _SuffixView(Generic[_SuffixItem]):
+    """Constant-space indexed tail of an immutable sequence."""
+
+    values: tuple[_SuffixItem, ...]
+    start: int
+
+    def __len__(self) -> int:
+        return len(self.values) - self.start
+
+    def __getitem__(self, position: int) -> _SuffixItem:
+        if position < 0:
+            position += len(self)
+        if not 0 <= position < len(self):
+            raise IndexError(position)
+        return self.values[self.start + position]
+
+
 class _ContinuationFirst:
     """Compute compressed FIRST(k) facts through direct continuations."""
 
@@ -625,19 +646,39 @@ class _ContinuationFirst:
         self.matcher_labels = tuple(matcher_labels)
         self.matcher_definition_order = tuple(definition_order)
 
-        variants: list[tuple[int, ...]] = []
-        variant_ids: dict[tuple[int, ...], int] = {}
+        # Hash-cons suffix identities from (head, tail identity), in O(total
+        # RHS size). Equal tails still share a variant, without copying or
+        # hashing every increasingly long suffix tuple.
+        suffix_ids: dict[tuple[int, int], int] = {}
+        alternative_suffix_ids: list[list[int]] = []
+        for rhs in encoded_alternatives:
+            ids = [0] * (len(rhs) + 1)  # 0 is the shared empty suffix.
+            for position in range(len(rhs) - 1, -1, -1):
+                key = (rhs[position], ids[position + 1])
+                suffix_id = suffix_ids.get(key)
+                if suffix_id is None:
+                    suffix_id = len(suffix_ids) + 1
+                    suffix_ids[key] = suffix_id
+                ids[position] = suffix_id
+            alternative_suffix_ids.append(ids)
 
-        def intern(rhs: tuple[int, ...]) -> int:
-            variant_id = variant_ids.get(rhs)
+        variants: list[_SuffixView[int]] = []
+        variant_sources: list[tuple[int, int]] = []
+        variant_ids: dict[int, int] = {}
+
+        def intern(alternative_id: int, position: int) -> int:
+            suffix_id = alternative_suffix_ids[alternative_id][position]
+            variant_id = variant_ids.get(suffix_id)
             if variant_id is None:
                 variant_id = len(variants)
-                variant_ids[rhs] = variant_id
-                variants.append(rhs)
+                variant_ids[suffix_id] = variant_id
+                variants.append(_SuffixView(encoded_alternatives[alternative_id], position))
+                variant_sources.append((alternative_id, position))
             return variant_id
 
         alternative_variant_ids = tuple(
-            intern(rhs) for rhs in encoded_alternatives
+            intern(alternative_id, 0)
+            for alternative_id in range(len(encoded_alternatives))
         )
         alternatives_by_lhs: list[list[int]] = [
             [] for _ in self.production_names
@@ -661,7 +702,7 @@ class _ContinuationFirst:
                     _FollowOccurrence(
                         parent_id,
                         -symbol - 1,
-                        intern(rhs[position + 1 :]),
+                        intern(alternative_id, position + 1),
                     )
                 )
 
@@ -706,8 +747,8 @@ class _ContinuationFirst:
                 productive[owner_id] = True
                 productive_queue.append(owner_id)
 
-        productive_suffixes: list[tuple[bool, ...]] = []
-        for rhs in self.variants:
+        productive_by_alternative: list[tuple[bool, ...]] = []
+        for rhs in encoded_alternatives:
             suffix = [False] * (len(rhs) + 1)
             suffix[-1] = True
             for position in range(len(rhs) - 1, -1, -1):
@@ -716,8 +757,11 @@ class _ContinuationFirst:
                     symbol > 0 or productive[-symbol - 1]
                 )
                 suffix[position] = symbol_productive and suffix[position + 1]
-            productive_suffixes.append(tuple(suffix))
-        self.productive_suffixes = tuple(productive_suffixes)
+            productive_by_alternative.append(tuple(suffix))
+        self.productive_suffixes = tuple(
+            _SuffixView(productive_by_alternative[alternative_id], position)
+            for alternative_id, position in variant_sources
+        )
 
         matcher_count = len(self.matcher_tokens) - 1
         self.bits = max(1, matcher_count.bit_length())
@@ -1759,12 +1803,12 @@ class _CompressedAnalysis:
         found: set[tuple[int, ...]] = set()
 
         def walk(
-            rhs: tuple[int, ...],
+            rhs: _SuffixView[int],
             rhs_position: int,
             prefix: tuple[int, ...],
             active: frozenset[int],
             continuations: tuple[
-                tuple[tuple[int, ...], int, frozenset[int]],
+                tuple[_SuffixView[int], int, frozenset[int]],
                 ...,
             ],
         ) -> None:

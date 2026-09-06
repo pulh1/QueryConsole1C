@@ -210,6 +210,17 @@ class DirectLeftRecursionValidationTests(unittest.TestCase):
         )
         self.assertEqual(report.diagnostics[0].span.start.line, 1)
 
+    def test_rejects_nullable_optional_semantic_base(self) -> None:
+        report = _validate(
+            "<A> ::= @НовыйA Левый = <A> Оператор = '+' Правый = <T> | <T>?\n"
+            "<T> ::= ITEM"
+        )
+
+        self.assertEqual(
+            [item.code for item in report.diagnostics],
+            ["LR203"],
+        )
+
     def test_rejects_arbitrary_action_in_direct_lr_production(self) -> None:
         report = _validate("<A> ::= <A> x {Значение = 1} | y")
 

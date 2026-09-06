@@ -9,6 +9,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from parsergen.cli import compile_from_config
+from parsergen.config import load_config
+from parsergen.parser_ir import build_parser_ir
+from parsergen.python_semantic_codegen import generate_python_semantic_parser
+
 
 class CliTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -27,38 +32,6 @@ class CliTests(unittest.TestCase):
         )
         return subprocess.run(
             (sys.executable, "-m", "parsergen", *arguments),
-            capture_output=True,
-            check=False,
-            encoding="utf-8",
-            env=environment,
-        )
-
-    def run_full_canonical_cli_without_legacy_backend(
-        self,
-        *arguments: str,
-    ) -> subprocess.CompletedProcess[str]:
-        environment = os.environ.copy()
-        source_path = str(Path(__file__).parents[1] / "src")
-        existing = environment.get("PYTHONPATH")
-        environment["PYTHONPATH"] = (
-            os.pathsep.join((source_path, existing)) if existing else source_path
-        )
-        script = """
-import importlib.abc
-import sys
-
-class BlockLegacyBackend(importlib.abc.MetaPathFinder):
-    def find_spec(self, fullname, path=None, target=None):
-        if fullname == "parsergen.bsl_codegen":
-            raise RuntimeError("legacy backend imported by canonical route")
-        return None
-
-sys.meta_path.insert(0, BlockLegacyBackend())
-from parsergen.cli import main
-raise SystemExit(main(sys.argv[1:]))
-"""
-        return subprocess.run(
-            (sys.executable, "-c", script, *arguments),
             capture_output=True,
             check=False,
             encoding="utf-8",
@@ -304,66 +277,9 @@ raise SystemExit(main(sys.argv[1:]))
         self.assertEqual(target_module.read_text(encoding="utf-8"), "stale")
         self.assertEqual(manager.read_bytes(), manager_before)
 
-    def test_generate_uses_hybrid_backend_only_with_explicit_migration(self) -> None:
-        config, target = self.make_configured_project()
-        (self.root / "grammar.txt").write_text(
-            "<S> ::= <Expr> {ЭтотУзел = ТекущийЭлемент}\n"
-            "<Expr> ::= @НовыйБинарный Левая = <Expr> "
-            "Оператор = '+' Правая = <Term> | <Term>\n"
-            "<Term> ::= {ЭтотУзел = НовыйТерм} ITEM | "
-            "{ЭтотУзел = НовыйТерм} NUMBER",
-            encoding="utf-8",
-        )
-        config.write_text(
-            'grammar = "grammar.txt"\n'
-            'target = "Парсер"\n'
-            "lookahead = 1\n"
-            "[migration]\n"
-            'canonical_productions = ["Expr"]\n'
-            "[entrypoints]\n"
-            '"Разобрать" = "S"\n',
-            encoding="utf-8",
-        )
-
-        completed = self.run_cli("generate", "--config", str(config))
-
-        self.assertEqual(completed.returncode, 0, completed.stderr)
-        module = (target / "ObjectModule.bsl").read_text(encoding="utf-8")
-        expression = module.split("Функция НеТерминалExpr", 1)[1].split(
-            "КонецФункции",
-            1,
-        )[0]
-        self.assertEqual(expression.count("Пока "), 1)
-        self.assertNotIn("НомерВариантаПродукции", expression)
-        self.assertNotIn("Функция НеТерминал__parsergen_ebnf__", module)
-
-    def test_full_canonical_generate_does_not_import_legacy_backend(self) -> None:
-        config, _target = self.make_configured_project()
-        (self.root / "grammar.txt").write_text(
-            "<S> ::= @НовыйS ITEM",
-            encoding="utf-8",
-        )
-        config.write_text(
-            'grammar = "grammar.txt"\n'
-            'target = "Парсер"\n'
-            "lookahead = 1\n"
-            "[migration]\n"
-            'canonical_productions = ["S"]\n'
-            "[entrypoints]\n"
-            '"Разобрать" = "S"\n',
-            encoding="utf-8",
-        )
-
-        completed = self.run_full_canonical_cli_without_legacy_backend(
-            "generate",
-            "--config",
-            str(config),
-        )
-
-        self.assertEqual(completed.returncode, 0, completed.stderr)
-        self.assertNotIn("legacy backend imported", completed.stderr)
-
-    def test_generate_rejects_canonical_action_before_writing_artifacts(
+    # Mutation caught: allow generate to reach artifact replacement for a
+    # grammar containing arbitrary source actions.
+    def test_generate_rejects_raw_action_without_writing_artifacts(
         self,
     ) -> None:
         config, target = self.make_configured_project()
@@ -375,8 +291,6 @@ raise SystemExit(main(sys.argv[1:]))
             'grammar = "grammar.txt"\n'
             'target = "Парсер"\n'
             "lookahead = 1\n"
-            "[migration]\n"
-            'canonical_productions = ["S"]\n'
             "[entrypoints]\n"
             '"Разобрать" = "S"\n',
             encoding="utf-8",
@@ -390,12 +304,67 @@ raise SystemExit(main(sys.argv[1:]))
 
         completed = self.run_cli("generate", "--config", str(config))
 
-        self.assertEqual(completed.returncode, 2)
-        self.assertIn("arbitrary source actions", completed.stderr)
+        self.assertEqual(completed.returncode, 1)
+        self.assertEqual(completed.stdout, "")
+        self.assertIn(
+            "error VAL104: arbitrary source actions require declarative bindings\n",
+            completed.stderr,
+        )
         self.assertEqual(
             tuple(path.read_bytes() for path in artifact_paths),
             before,
         )
+
+    def test_validate_rejects_raw_action_nested_inside_binding(self) -> None:
+        config, _target = self.make_configured_project()
+        (self.root / "grammar.txt").write_text(
+            "<S> ::= @Node Value = (ITEM {X = 1})",
+            encoding="utf-8",
+        )
+
+        completed = self.run_cli("validate", "--config", str(config))
+
+        self.assertEqual(completed.returncode, 1)
+        self.assertIn(
+            "error VAL104: arbitrary source actions require declarative bindings",
+            completed.stderr,
+        )
+
+    def test_declarative_combined_grammar_generates_bsl_and_python(
+        self,
+    ) -> None:
+        config, target = self.make_configured_project()
+        (self.root / "grammar.txt").write_text(
+            "<S> ::= @НовыйS Значение = ITEM",
+            encoding="utf-8",
+        )
+
+        bsl = self.run_cli("generate", "--config", str(config))
+
+        self.assertEqual(bsl.returncode, 0, bsl.stderr)
+        self.assertIn(
+            "ЭлементыМоделиЗапроса.НовыйS(",
+            (target / "ObjectModule.bsl").read_text(encoding="utf-8"),
+        )
+        compilation = compile_from_config(load_config(config))
+        assert compilation.source_grammar is not None
+        assert compilation.lowering is not None
+        assert compilation.resolved is not None
+        assert compilation.analysis is not None
+        parser_ir = build_parser_ir(
+            compilation.source_grammar,
+            compilation.lowering,
+            compilation.resolved,
+            compilation.analysis,
+            entrypoint_productions=("S",),
+        )
+        generated_python = generate_python_semantic_parser(
+            compilation.source_grammar,
+            parser_ir,
+            {"parse": "S"},
+        )
+
+        self.assertIn("class GeneratedParser:", generated_python.module_text)
 
     def test_generate_layout_failure_returns_two_without_partial_writes(
         self,

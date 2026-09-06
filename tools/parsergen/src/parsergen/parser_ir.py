@@ -324,7 +324,6 @@ def build_parser_ir(
     resolved: ResolvedGrammar,
     analysis: AnalysisResult,
     *,
-    production_names: Collection[str] | None = None,
     entrypoint_productions: Collection[str] | None = None,
 ) -> ParserIr:
     if any(
@@ -339,20 +338,14 @@ def build_parser_ir(
         raise ValueError("lowered grammar does not match resolved grammar")
     if analysis._resolved_grammar is not resolved:
         raise ValueError("analysis is not bound to the resolved grammar")
-    selected_names = _selected_production_names(source, production_names)
-    required_decisions = _required_decision_productions(
-        lowering,
-        frozenset(selected_names),
-    )
-    conflicts = tuple(
-        conflict
-        for conflict in find_canonical_select_conflicts(resolved, analysis)
-        if conflict.production in required_decisions
-    )
+    conflicts = find_canonical_select_conflicts(resolved, analysis)
     if conflicts:
         raise ValueError("overlapping canonical SELECT prevents Parser IR")
+    source_names = frozenset(
+        production.name for production in source.productions
+    )
     protected_entrypoints = frozenset(
-        selected_names
+        source_names
         if entrypoint_productions is None
         else entrypoint_productions
     )
@@ -360,47 +353,11 @@ def build_parser_ir(
         source,
         lowering,
         analysis,
-        frozenset(selected_names),
         protected_entrypoints,
     ).build()
     from .parser_ir_optimization import optimize_parser_ir
 
     return optimize_parser_ir(parser_ir)
-
-
-def _selected_production_names(
-    source: SourceGrammar,
-    production_names: Collection[str] | None,
-) -> tuple[str, ...]:
-    source_order = tuple(production.name for production in source.productions)
-    if production_names is None:
-        return source_order
-    requested_values = tuple(production_names)
-    requested = frozenset(requested_values)
-    if len(requested) != len(requested_values):
-        raise ValueError("duplicate Parser IR production")
-    unknown = requested.difference(source_order)
-    if unknown:
-        formatted = ", ".join(repr(item) for item in sorted(unknown))
-        raise ValueError(f"unknown Parser IR production: {formatted}")
-    return tuple(name for name in source_order if name in requested)
-
-
-def _required_decision_productions(
-    lowering: LoweringResult,
-    selected_names: frozenset[str],
-) -> frozenset[str]:
-    required = set(selected_names)
-    for construct in lowering.constructs:
-        if construct.source_production not in selected_names:
-            continue
-        required.add(construct.production)
-        if construct.tail_production is not None:
-            required.add(construct.tail_production)
-    for recursion in lowering.left_recursions:
-        if recursion.production in selected_names:
-            required.add(recursion.tail_production)
-    return frozenset(required)
 
 
 class _ParserIrBuilder:
@@ -409,7 +366,6 @@ class _ParserIrBuilder:
         source: SourceGrammar,
         lowering: LoweringResult,
         analysis: AnalysisResult,
-        selected_names: frozenset[str],
         entrypoint_productions: frozenset[str],
     ) -> None:
         self._source = source
@@ -417,7 +373,6 @@ class _ParserIrBuilder:
         self._analysis = analysis
         self._matcher_definitions = canonical_matcher_definitions(analysis)
         self._lookahead = analysis.k
-        self._selected_names = selected_names
         self._entrypoint_productions = entrypoint_productions
         self._decisions: dict[
             tuple[str, int | None], CanonicalDecision
@@ -432,7 +387,6 @@ class _ParserIrBuilder:
         productions = tuple(
             self._production(production)
             for production in self._source.productions
-            if production.name in self._selected_names
         )
         return ParserIr(
             productions,
@@ -667,7 +621,8 @@ class _ParserIrBuilder:
                             "returned-child decorator has no semantic seed"
                         )
                     seed = result.pop()
-                    if isinstance(item.value, SourceOptional):
+                    value = item.value
+                    if isinstance(value, SourceOptional):
                         result.append(self._wrap_optional(item, seed))
                     else:
                         result.append(self._wrap_value(item, seed))
@@ -722,11 +677,12 @@ class _ParserIrBuilder:
         binding: SourceBinding,
         seed: Operation,
     ) -> WrapOptional:
-        if not isinstance(binding.value, SourceOptional):
+        value = binding.value
+        if not isinstance(value, SourceOptional):
             raise ValueError("returned-child decorator must be optional")
         if binding.property is None:
             raise ValueError("returned-child decorator requires a property")
-        optional = binding.value
+        optional = value
         construct = self._construct(
             optional.span,
             LoweredConstructKind.OPTIONAL,
@@ -736,10 +692,7 @@ class _ParserIrBuilder:
             if isinstance(optional.body, SourceGroup)
             else (optional.body,)
         ) + 1
-        branches = self._primary_branches(
-            optional.body,
-            construct.production,
-        )
+        branches = self._primary_branches(optional.body, construct.production)
         if not all(branch.result_index is not None for branch in branches):
             raise ValueError(
                 "returned-child decorator must produce a semantic child"
@@ -761,7 +714,8 @@ class _ParserIrBuilder:
         binding: SourceBinding,
         seed: Operation,
     ) -> WrapValue:
-        if isinstance(binding.value, (SourceOptional, SourceRepeat)):
+        value = binding.value
+        if isinstance(value, (SourceOptional, SourceRepeat)):
             raise ValueError("required returned-child decorator has invalid value")
         if binding.property is None:
             raise ValueError("returned-child decorator requires a property")
@@ -769,16 +723,17 @@ class _ParserIrBuilder:
             binding.property,
             binding.mode is BindingMode.WRAP_PREPEND,
             seed,
-            self._bound_value(binding.value),
+            self._bound_value(value),
             binding.span,
         )
 
     def _binding(self, binding: SourceBinding) -> tuple[Operation, ...]:
         kind = _binding_origin_kind(binding.mode)
         origin = self._binding_origin(binding.span, kind)
+        value = binding.value
         if binding.mode is BindingMode.DISCARD:
-            if isinstance(binding.value, SourceOptional):
-                optional = binding.value
+            if isinstance(value, SourceOptional):
+                optional = value
                 construct = self._construct(
                     optional.span,
                     LoweredConstructKind.OPTIONAL,
@@ -803,26 +758,26 @@ class _ParserIrBuilder:
                         optional.span,
                     ),
                 )
-            if isinstance(binding.value, SourceRepeat):
-                return self._repeat(binding.value, binding)
-            if isinstance(binding.value, SourceGroup):
+            if isinstance(value, SourceRepeat):
+                return self._repeat(value, binding)
+            if isinstance(value, SourceGroup):
                 construct = self._construct(
-                    binding.value.span,
+                    value.span,
                     LoweredConstructKind.GROUP,
                 )
                 return (
                     Dispatch(
                         self._decision(construct.production),
                         self._discard_primary_branches(
-                            binding.value,
+                            value,
                             construct.production,
                         ),
-                        binding.value.span,
+                        value.span,
                     ),
                 )
-            return (DiscardSymbol(binding.value, origin.source_span),)
-        if isinstance(binding.value, SourceOptional):
-            optional = binding.value
+            return (DiscardSymbol(value, origin.source_span),)
+        if isinstance(value, SourceOptional):
+            optional = value
             construct = self._construct(
                 optional.span,
                 LoweredConstructKind.OPTIONAL,
@@ -857,12 +812,12 @@ class _ParserIrBuilder:
                     optional.span,
                 ),
             )
-        if isinstance(binding.value, SourceRepeat):
-            return self._repeat(binding.value, binding)
+        if isinstance(value, SourceRepeat):
+            return self._repeat(value, binding)
         return (
             self._binding_operation(
                 binding,
-                self._bound_value(binding.value),
+                self._bound_value(value),
             ),
         )
 
@@ -1235,6 +1190,16 @@ def _produces_transparent_value(operation: Operation) -> bool:
         return True
     return False
 
+
+def _bound_value_is_transparent(value: BoundValue) -> bool:
+    if isinstance(value, ParseBranchValue):
+        return _produces_transparent_value(value.operations[value.result_index])
+    if isinstance(value, DispatchValue):
+        return bool(value.branches) and all(
+            _bound_value_is_transparent(branch.value)
+            for branch in value.branches
+        )
+    return _produces_transparent_value(value)
 
 def _binding_origin_kind(mode: BindingMode) -> BindingOriginKind:
     if mode is BindingMode.APPEND:

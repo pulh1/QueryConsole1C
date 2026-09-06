@@ -146,9 +146,16 @@ def _operation_spans(operations: tuple[Operation, ...]):
                 yield from _operation_spans(branch.operations)
         elif isinstance(
             operation,
-            (BindScalar, AppendCollection, ExtendCollection, ConcatScalar, IncrementScalar),
+            (
+                BindScalar,
+                AppendCollection,
+                ExtendCollection,
+                ConcatScalar,
+                IncrementScalar,
+            ),
         ):
-            yield from _bound_operation_spans(operation.value)
+            if operation.value is not None:
+                yield from _bound_operation_spans(operation.value)
 
 
 def _bound_operation_spans(value):
@@ -230,7 +237,6 @@ def optimize_parser_ir(parser_ir: ParserIr) -> ParserIr:
         result,
         productions=_reachable_productions(result),
     )
-
 
 class _Optimizer:
     def __init__(
@@ -774,7 +780,8 @@ class _Optimizer:
                 )
                 result_index = _result_index(operations)
                 if result_index is None:
-                    return UndefinedValue("Неопределено", value.source_span)
+                    result_index = len(operations)
+                    operations = (*operations, UndefinedValue("Неопределено", value.source_span))
                 return ParseBranchValue(
                     operations,
                     result_index,
@@ -788,7 +795,8 @@ class _Optimizer:
                 else _result_index(operations)
             )
             if result_index is None:
-                return UndefinedValue("Неопределено", value.source_span)
+                result_index = len(operations)
+                operations = (*operations, UndefinedValue("Неопределено", value.source_span))
             return replace(
                 value,
                 operations=operations,

@@ -15,11 +15,19 @@ from .diagnostics import (
     SourceSpan,
 )
 from .lowering import LoweredConstruct, LoweringResult
-from .model import Grammar, IdentifierDefinition, IdentifierRef, NonterminalCall
+from .model import Action, Grammar, IdentifierDefinition, IdentifierRef, NonterminalCall
 from .resolver import (
     ResolvedAlternative,
     ResolvedGrammar,
     ResolvedNonterminal,
+)
+from .source_model import (
+    SourceGrammar,
+    SourceBinding,
+    SourceGroup,
+    SourceOptional,
+    SourceRepeat,
+    SourceSequence,
 )
 
 
@@ -55,6 +63,7 @@ def validate_grammar(
     prior_diagnostics: Iterable[Diagnostic] = (),
     *,
     lowering: LoweringResult | None = None,
+    source_grammar: SourceGrammar | None = None,
 ) -> ValidationReport:
     return _Validator(
         grammar,
@@ -63,6 +72,7 @@ def validate_grammar(
         entrypoints,
         prior_diagnostics,
         lowering,
+        source_grammar,
     ).run()
 
 
@@ -75,12 +85,14 @@ class _Validator:
         entrypoints: Mapping[str, str],
         prior_diagnostics: Iterable[Diagnostic],
         lowering: LoweringResult | None,
+        source_grammar: SourceGrammar | None,
     ) -> None:
         self.grammar = grammar
         self.resolved = resolved
         self.analysis = analysis
         self.entrypoints = entrypoints
         self.lowering = lowering
+        self.source_grammar = source_grammar
         self.bag = DiagnosticBag(prior_diagnostics)
         if lowering is not None:
             self.bag.extend(
@@ -88,6 +100,8 @@ class _Validator:
                 for item in lowering.diagnostics
                 if item.code.startswith("LR")
             )
+
+        self._report_unsupported_source_actions()
         self.productions = {
             production.name: production
             for production in grammar.productions
@@ -169,6 +183,21 @@ class _Validator:
             nullable,
         )
         return ValidationReport(self.bag.sorted())
+
+    def _report_unsupported_source_actions(self) -> None:
+        if self.source_grammar is None:
+            return
+        for production in self.source_grammar.productions:
+            for alternative in production.alternatives:
+                for action in _source_actions(alternative.body):
+                    self.bag.add(
+                        self._diagnostic(
+                            "VAL104",
+                            Severity.ERROR,
+                            "arbitrary source actions require declarative bindings",
+                            action.span,
+                        )
+                    )
 
     def _fallback_span(self) -> SourceSpan:
         if self.grammar.productions:
@@ -918,3 +947,23 @@ class _Validator:
             related,
             MappingProxyType(dict(details or {})),
         )
+
+
+def _source_actions(sequence: SourceSequence) -> Iterable[Action]:
+    for item in sequence.items:
+        if isinstance(item, Action):
+            yield item
+        elif isinstance(item, SourceBinding):
+            yield from _source_value_actions(item.value)
+        elif isinstance(item, SourceGroup):
+            yield from _source_value_actions(item)
+        elif isinstance(item, (SourceRepeat, SourceOptional)):
+            yield from _source_value_actions(item)
+
+
+def _source_value_actions(value: object) -> Iterable[Action]:
+    if isinstance(value, SourceGroup):
+        for alternative in value.alternatives:
+            yield from _source_actions(alternative.body)
+    elif isinstance(value, (SourceRepeat, SourceOptional)):
+        yield from _source_value_actions(value.body)

@@ -81,28 +81,24 @@ def _direct_self_reference(
             (SourceConstructor, SourceConstantBinding, Action),
         ):
             continue
-        if isinstance(item, NonterminalCall):
-            if item.name != production:
-                return None
-            return DirectSelfReference(
-                index,
-                item,
-                None,
-                None,
-                item.span,
-            )
+        property_name: str | None = None
+        binding_mode: BindingMode | None = None
+        source_span = item.span
         if isinstance(item, SourceBinding):
+            property_name = item.property
+            binding_mode = item.mode
             value = item.value
-            if not isinstance(value, NonterminalCall):
-                return None
-            if value.name != production:
-                return None
-            return DirectSelfReference(
-                index,
-                value,
-                item.property,
-                item.mode,
-                item.span,
-            )
-        return None
+        else:
+            value = item
+        if not isinstance(value, NonterminalCall):
+            return None
+        if value.name != production:
+            return None
+        return DirectSelfReference(
+            index,
+            value,
+            property_name,
+            binding_mode,
+            source_span,
+        )
     return None

@@ -1,11 +1,14 @@
+from dataclasses import replace
 import unittest
 from unittest.mock import patch
 
 from parsergen.analysis import compute_analysis
 from parsergen.canonical_select import AlternativeOutcome
 from parsergen.decision_dag import ExitDecision, LookaheadDecision
-from parsergen.grammar_parser import parse_grammar
+from parsergen.grammar_parser import parse_grammar, parse_source_grammar
+from parsergen.lowering import lower_source_grammar
 from parsergen.parser_ir import (
+    DispatchValue,
     Dispatch,
     ExtendCollection,
     OptionalBranch,
@@ -34,6 +37,40 @@ def _build(source: str, k: int = 1):
         resolved.grammar,
         analysis,
     )
+
+
+def _build_legacy_group_wrap_ir(source: str):
+    parsed = parse_source_grammar(source, "legacy-group-wrap.grammar")
+    assert parsed.diagnostics == ()
+    assert parsed.grammar is not None
+    rejected_lowering = lower_source_grammar(parsed.grammar)
+    assert tuple(
+        (diagnostic.code, diagnostic.message)
+        for diagnostic in rejected_lowering.diagnostics
+    ) == (
+        (
+            "BIND210",
+            "returned-child decorator requires one seed and one semantic child",
+        ),
+    )
+    lowering = replace(rejected_lowering, diagnostics=())
+    resolved = resolve_grammar(lowering.grammar)
+    assert resolved.grammar is not None
+    analysis = compute_analysis(resolved.grammar, 1, ("S",))
+    with patch(
+        "parsergen.parser_ir_optimization.optimize_parser_ir",
+        side_effect=lambda parser_ir: parser_ir,
+    ), patch(
+        "parsergen.parser_ir.lower_source_grammar",
+        return_value=lowering,
+    ):
+        return build_parser_ir(
+            parsed.grammar,
+            lowering,
+            resolved.grammar,
+            analysis,
+            entrypoint_productions=("S",),
+        )
 
 
 class ParserIrTests(unittest.TestCase):
@@ -76,6 +113,45 @@ class ParserIrTests(unittest.TestCase):
         self.assertIsInstance(alternative.operations[0], WrapValue)
         self.assertEqual(alternative.result_index, 0)
 
+    def test_unscoped_optional_group_wrap_keeps_value_producing_branches(
+        self,
+    ) -> None:
+        parser_ir = _build_legacy_group_wrap_ir(
+            "<S> ::= <Seed> Child => (<A> | <B>)?\n"
+            "<Seed> ::= @Seed SEED\n"
+            "<A> ::= @A A\n"
+            "<B> ::= @B B"
+        )
+
+        wrapper = parser_ir.productions[0].alternatives[0].operations[0]
+        self.assertIsInstance(wrapper, WrapOptional)
+        self.assertTrue(wrapper.branches)
+        self.assertTrue(
+            all(
+                isinstance(branch.operations[0], ParseSymbol)
+                and branch.result_index == 0
+                for branch in wrapper.branches
+            )
+        )
+
+    def test_unscoped_required_group_wrap_keeps_dispatch_value(self) -> None:
+        for operator, property_name in (
+            ("Child =>", "Child"),
+            ("Children +=>", "Children"),
+        ):
+            with self.subTest(operator=operator):
+                parser_ir = _build_legacy_group_wrap_ir(
+                    f"<S> ::= <Seed> {operator} (<A> | <B>)\n"
+                    "<Seed> ::= @Seed SEED\n"
+                    "<A> ::= @A A\n"
+                    "<B> ::= @B B"
+                )
+
+                wrapper = parser_ir.productions[0].alternatives[0].operations[0]
+                self.assertIsInstance(wrapper, WrapValue)
+                self.assertEqual(wrapper.prepend, property_name == "Children")
+                self.assertIsInstance(wrapper.value, DispatchValue)
+
     def test_collection_extend_is_one_structural_operation(self) -> None:
         parser_ir = _build(
             "<S> ::= @НовыйУзел Элементы *= <Items>\n"
@@ -86,97 +162,6 @@ class ParserIrTests(unittest.TestCase):
         self.assertEqual(len(alternative.operations), 2)
         self.assertIsInstance(alternative.operations[1], ExtendCollection)
         self.assertIsNone(alternative.result_index)
-
-    def test_projection_builds_only_selected_production_and_skips_legacy_actions(
-        self,
-    ) -> None:
-        parsed = parse_grammar(
-            "<S> ::= <Expr> {Legacy = ТекущийЭлемент}\n"
-            "<Expr> ::= <Term>\n"
-            "<Term> ::= ITEM"
-        )
-        assert parsed.grammar is not None
-        assert parsed.source_grammar is not None
-        assert parsed.lowering is not None
-        resolved = resolve_grammar(parsed.grammar)
-        assert resolved.grammar is not None
-        analysis = compute_analysis(resolved.grammar, 1, ("S",))
-
-        parser_ir = build_parser_ir(
-            parsed.source_grammar,
-            parsed.lowering,
-            resolved.grammar,
-            analysis,
-            production_names=("Expr",),
-        )
-
-        self.assertEqual(
-            tuple(item.name for item in parser_ir.productions),
-            ("Expr",),
-        )
-        self.assertEqual(
-            parser_ir.entrypoint_productions,
-            frozenset({"Expr"}),
-        )
-
-    def test_projection_ignores_conflict_owned_by_legacy_island(self) -> None:
-        parsed = parse_grammar(
-            "<S> ::= <Expr> <Legacy>\n"
-            "<Expr> ::= ITEM\n"
-            "<Legacy> ::= 'a'* 'a'"
-        )
-        assert parsed.grammar is not None
-        assert parsed.source_grammar is not None
-        assert parsed.lowering is not None
-        resolved = resolve_grammar(parsed.grammar)
-        assert resolved.grammar is not None
-        analysis = compute_analysis(resolved.grammar, 1, ("S",))
-
-        parser_ir = build_parser_ir(
-            parsed.source_grammar,
-            parsed.lowering,
-            resolved.grammar,
-            analysis,
-            production_names=("Expr",),
-        )
-
-        self.assertEqual(parser_ir.productions[0].name, "Expr")
-
-    def test_projection_rejects_unknown_production(self) -> None:
-        parsed = parse_grammar("<S> ::= ITEM")
-        assert parsed.grammar is not None
-        assert parsed.source_grammar is not None
-        assert parsed.lowering is not None
-        resolved = resolve_grammar(parsed.grammar)
-        assert resolved.grammar is not None
-        analysis = compute_analysis(resolved.grammar, 1, ("S",))
-
-        with self.assertRaisesRegex(ValueError, "unknown Parser IR production"):
-            build_parser_ir(
-                parsed.source_grammar,
-                parsed.lowering,
-                resolved.grammar,
-                analysis,
-                production_names=("Missing",),
-            )
-
-    def test_projection_rejects_duplicate_production(self) -> None:
-        parsed = parse_grammar("<S> ::= ITEM")
-        assert parsed.grammar is not None
-        assert parsed.source_grammar is not None
-        assert parsed.lowering is not None
-        resolved = resolve_grammar(parsed.grammar)
-        assert resolved.grammar is not None
-        analysis = compute_analysis(resolved.grammar, 1, ("S",))
-
-        with self.assertRaisesRegex(ValueError, "duplicate Parser IR production"):
-            build_parser_ir(
-                parsed.source_grammar,
-                parsed.lowering,
-                resolved.grammar,
-                analysis,
-                production_names=("S", "S"),
-            )
 
     def test_transparent_nonterminal_identifier_and_constant_have_result(
         self,

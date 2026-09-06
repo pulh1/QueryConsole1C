@@ -1,5 +1,7 @@
 # Parsergen Hybrid Codegen Implementation Plan
 
+> **Status:** Superseded by [`2026-09-05-parsergen-minimal-multi-target-design.md`](../specs/2026-09-05-parsergen-minimal-multi-target-design.md). Historical implementation evidence is retained; projection, hybrid code generation, and migration routing are not part of parsergen 0.3.0.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Собрать один generated BSL module из canonical production-функций и явно оставленных legacy islands, не делая canonical Parser IR зависимым от legacy matcher artifact.

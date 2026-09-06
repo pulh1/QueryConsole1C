@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 
 from .diagnostics import Diagnostic, DiagnosticBag, Severity, SourceSpan
 from .model import (
@@ -39,6 +40,19 @@ class BindingValidationReport:
     @property
     def has_errors(self) -> bool:
         return bool(self.diagnostics)
+
+
+class _ResultKind(Enum):
+    NONE = 0
+    RAW = 1
+    SEMANTIC = 2
+    MULTIPLE = 3
+
+
+@dataclass(frozen=True, slots=True)
+class _SourceOperationResult:
+    item: SourceItem
+    kind: _ResultKind
 
 
 def validate_bindings(grammar: SourceGrammar) -> BindingValidationReport:
@@ -237,9 +251,14 @@ class _BindingValidator:
                     property_name,
                 )
 
-        self._validate_paths(sequence, [frozenset()], repeated=False)
+        self._validate_paths(sequence, {frozenset()}, repeated=False)
 
-        if not constructors and not bindings:
+        has_transparent_constant = any(
+            isinstance(item, SourceConstantBinding)
+            and item.property is None
+            for item in sequence.items
+        )
+        if not constructors and not bindings and not has_transparent_constant:
             semantic_counts = semantic_child_counts(sequence)
             if any(count > 1 for count in semantic_counts):
                 self._add(
@@ -260,7 +279,14 @@ class _BindingValidator:
                 index = sequence.items.index(binding)
                 before = SourceSequence(sequence.items[:index], sequence.span)
                 after = SourceSequence(sequence.items[index + 1 :], sequence.span)
-                valid = semantic_child_counts(before) == (1,)
+                seed_counts = _semantic_execution_counts(before)
+                valid = bool(seed_counts) and all(
+                    count == 1 for count in seed_counts
+                )
+                valid = valid and bool(before.items)
+                valid = valid and _source_operation_result(
+                    before.items[-1]
+                ).kind is _ResultKind.SEMANTIC
                 valid = valid and semantic_child_counts(after) == (0,)
                 value = binding.value
                 valid = valid and not isinstance(value, SourceRepeat)
@@ -304,7 +330,7 @@ class _BindingValidator:
             if (
                 len(constants) > 1
                 or has_constructor
-                or any(count > 0 for count in semantic_counts)
+                or semantic_counts != (1,)
             ):
                 self._add(
                     "BIND208",
@@ -335,10 +361,10 @@ class _BindingValidator:
     def _validate_paths(
         self,
         sequence: SourceSequence,
-        paths: list[frozenset[str]],
+        paths: set[frozenset[str]],
         *,
         repeated: bool,
-    ) -> list[frozenset[str]]:
+    ) -> set[frozenset[str]]:
         current = paths
         for item in sequence.items:
             if isinstance(item, SourceBinding):
@@ -351,7 +377,7 @@ class _BindingValidator:
                             item.span,
                             item.property,
                         )
-                    updated: list[frozenset[str]] = []
+                    updated: set[frozenset[str]] = set()
                     for path in current:
                         if item.property in path:
                             self._add(
@@ -360,13 +386,13 @@ class _BindingValidator:
                                 item.span,
                                 item.property,
                             )
-                        updated.append(path | {item.property})
+                        updated.add(path | {item.property})
                     current = updated
                 current = self._walk_value(item.value, current, repeated)
             elif isinstance(item, SourceConstantBinding):
                 if item.property is None:
                     continue
-                updated = []
+                updated = set()
                 for path in current:
                     if item.property in path:
                         self._add(
@@ -375,49 +401,49 @@ class _BindingValidator:
                             item.span,
                             item.property,
                         )
-                    updated.append(path | {item.property})
+                    updated.add(path | {item.property})
                 current = updated
             elif isinstance(item, SourceGroup):
                 current = self._walk_group(item, current, repeated)
             elif isinstance(item, SourceRepeat):
                 present = self._walk_value(item.body, current, True)
-                current = [*current, *present]
+                current = current | present
             elif isinstance(item, SourceOptional):
                 present = self._walk_value(item.body, current, repeated)
-                current = [*current, *present]
+                current = current | present
         return current
 
     def _walk_value(
         self,
         value: SourceValue,
-        paths: list[frozenset[str]],
+        paths: set[frozenset[str]],
         repeated: bool,
-    ) -> list[frozenset[str]]:
+    ) -> set[frozenset[str]]:
         if isinstance(value, SourceGroup):
             return self._walk_group(value, paths, repeated)
         if isinstance(value, SourceRepeat):
             present = self._walk_value(value.body, paths, True)
-            return [*paths, *present]
+            return paths | present
         if isinstance(value, SourceOptional):
             present = self._walk_value(value.body, paths, repeated)
-            return [*paths, *present]
+            return paths | present
         return paths
 
     def _walk_group(
         self,
         group: SourceGroup,
-        paths: list[frozenset[str]],
+        paths: set[frozenset[str]],
         repeated: bool,
-    ) -> list[frozenset[str]]:
-        return [
+    ) -> set[frozenset[str]]:
+        return {
             result
             for alternative in group.alternatives
             for result in self._validate_paths(
                 alternative.body,
-                list(paths),
+                paths,
                 repeated=repeated,
             )
-        ]
+        }
 
     def _add(
         self,
@@ -437,7 +463,11 @@ def _contains_directive(sequence: SourceSequence) -> bool:
     return bool(
         _collect(
             sequence,
-            (SourceConstructor, SourceBinding, SourceConstantBinding),
+            (
+                SourceConstructor,
+                SourceBinding,
+                SourceConstantBinding,
+            ),
         )
     )
 
@@ -500,15 +530,23 @@ def _sequence_value_cardinality(
     semantic_children = [
         item
         for item in sequence.items
-        if isinstance(item, (NonterminalCall, IdentifierRef, Constant))
+        if _value_category(item) == 1
     ]
     semantic = semantic_children or [
         item
         for item in sequence.items
-        if isinstance(item, (Terminal, Lexeme))
+        if _value_category(item) == 2
     ]
     count = len(semantic)
     return BindingCardinality(count, count)
+
+
+def _value_category(value: object) -> int:
+    if isinstance(value, (NonterminalCall, IdentifierRef, Constant)):
+        return 1
+    if isinstance(value, (Terminal, Lexeme)):
+        return 2
+    return 0
 
 
 def _valid_constant(value: str) -> bool:
@@ -516,32 +554,69 @@ def _valid_constant(value: str) -> bool:
 
 
 def semantic_child_counts(sequence: SourceSequence) -> tuple[int, ...]:
-    counts = (0,)
+    results = _branch_results(sequence)
+    if any(result.kind is _ResultKind.MULTIPLE for result in results):
+        return (2,)
+    return (
+        sum(
+            result.kind is _ResultKind.SEMANTIC
+            for result in results
+        ),
+    )
+
+
+def _semantic_execution_counts(sequence: SourceSequence) -> tuple[int, ...]:
+    counts = {0}
     for item in sequence.items:
-        if isinstance(item, (NonterminalCall, IdentifierRef, Constant)):
-            counts = tuple(value + 1 for value in counts)
+        if isinstance(item, (NonterminalCall, IdentifierRef, Constant)) or (
+            isinstance(item, SourceConstantBinding)
+            and item.property is None
+        ):
+            counts = {value + 1 for value in counts}
         elif isinstance(item, SourceGroup):
-            counts = tuple(
+            counts = {
                 base + branch
                 for base in counts
                 for alternative in item.alternatives
-                for branch in semantic_child_counts(alternative.body)
-            )
+                for branch in _semantic_execution_counts(alternative.body)
+            }
         elif isinstance(item, SourceOptional):
-            nested = _value_semantic_counts(item.body)
-            counts = tuple(
+            nested = _value_execution_counts(item.body)
+            counts = {
                 base + extra
                 for base in counts
                 for extra in (0, *nested)
-            )
+            }
         elif isinstance(item, SourceRepeat):
-            nested = _value_semantic_counts(item.body)
-            if any(value for value in nested):
+            nested = _value_execution_counts(item.body)
+            if any(nested):
                 return (2,)
-    return counts
+    return tuple(sorted(counts))
+
+
+def _value_execution_counts(value: SourceValue) -> tuple[int, ...]:
+    if isinstance(value, SourceOptional):
+        return tuple(sorted({0, *_value_execution_counts(value.body)}))
+    if isinstance(value, SourceRepeat):
+        nested = _value_execution_counts(value.body)
+        return (2,) if any(nested) else (0,)
+    if isinstance(value, SourceGroup):
+        return tuple(sorted({
+            count
+            for alternative in value.alternatives
+            for count in _semantic_execution_counts(alternative.body)
+        }))
+    if isinstance(value, (NonterminalCall, IdentifierRef, Constant)):
+        return (1,)
+    return (0,)
 
 
 def _value_semantic_counts(value: SourceValue) -> tuple[int, ...]:
+    if isinstance(value, SourceOptional):
+        return (0, *_value_semantic_counts(value.body))
+    if isinstance(value, SourceRepeat):
+        nested = _value_semantic_counts(value.body)
+        return (2,) if any(nested) else (0,)
     if isinstance(value, SourceGroup):
         return tuple(
             count
@@ -551,3 +626,79 @@ def _value_semantic_counts(value: SourceValue) -> tuple[int, ...]:
     if isinstance(value, (NonterminalCall, IdentifierRef, Constant)):
         return (1,)
     return (0,)
+
+
+def _branch_results(
+    sequence: SourceSequence,
+) -> tuple[_SourceOperationResult, ...]:
+    operations: list[_SourceOperationResult] = []
+    for item in sequence.items:
+        if (
+            isinstance(item, SourceBinding)
+            and item.mode in (BindingMode.WRAP, BindingMode.WRAP_PREPEND)
+            and operations
+        ):
+            operations.pop()
+        operations.append(_source_operation_result(item))
+    semantic = tuple(
+        operation
+        for operation in operations
+        if operation.kind is _ResultKind.SEMANTIC
+    )
+    multiple = tuple(
+        operation
+        for operation in operations
+        if operation.kind is _ResultKind.MULTIPLE
+    )
+    if multiple:
+        return multiple
+    if semantic:
+        return semantic
+    return tuple(
+        operation
+        for operation in operations
+        if operation.kind is _ResultKind.RAW
+    )
+
+
+def _source_operation_result(value: SourceItem) -> _SourceOperationResult:
+    kind = _ResultKind.NONE
+    if isinstance(value, SourceGroup):
+        branch_results = tuple(
+            _branch_results(alternative.body)
+            for alternative in value.alternatives
+        )
+        if any(
+            any(result.kind is _ResultKind.MULTIPLE for result in results)
+            or sum(
+                result.kind is _ResultKind.SEMANTIC
+                for result in results
+            )
+            > 1
+            for results in branch_results
+        ):
+            kind = _ResultKind.MULTIPLE
+        elif branch_results and all(
+            len(results) == 1
+            and results[0].kind is _ResultKind.SEMANTIC
+            for results in branch_results
+        ):
+            kind = _ResultKind.SEMANTIC
+    elif isinstance(value, SourceOptional):
+        payload = _source_operation_result(value.body)
+        if payload.kind in (_ResultKind.SEMANTIC, _ResultKind.MULTIPLE):
+            kind = payload.kind
+    elif isinstance(value, SourceRepeat):
+        if any(_value_execution_counts(value.body)):
+            kind = _ResultKind.MULTIPLE
+    elif isinstance(value, SourceBinding):
+        if value.mode in (BindingMode.WRAP, BindingMode.WRAP_PREPEND):
+            kind = _ResultKind.SEMANTIC
+    elif isinstance(value, SourceConstantBinding):
+        if value.property is None:
+            kind = _ResultKind.SEMANTIC
+    elif isinstance(value, (NonterminalCall, IdentifierRef, Constant)):
+        kind = _ResultKind.SEMANTIC
+    elif isinstance(value, (Terminal, Lexeme)):
+        kind = _ResultKind.RAW
+    return _SourceOperationResult(value, kind)

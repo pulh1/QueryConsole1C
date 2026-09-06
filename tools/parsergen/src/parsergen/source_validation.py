@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Mapping
 
-from .binding_validation import semantic_child_counts
+from .binding_validation import _semantic_execution_counts
 from .diagnostics import Diagnostic, DiagnosticBag, Severity
 from .left_recursion import (
     DirectLeftRecursion,
@@ -185,6 +185,12 @@ def _record_primary_facts(
                 production_facts,
                 node_facts,
             )
+    elif isinstance(primary, (SourceRepeat, SourceOptional)):
+        _record_primary_facts(
+            primary.body,
+            production_facts,
+            node_facts,
+        )
 
 
 def _choice_facts(alternatives: tuple[SourceFacts, ...]) -> SourceFacts:
@@ -499,7 +505,11 @@ def _has_declarative_directive(sequence: SourceSequence) -> bool:
     return any(
         isinstance(
             item,
-            (SourceConstructor, SourceBinding, SourceConstantBinding),
+            (
+                SourceConstructor,
+                SourceBinding,
+                SourceConstantBinding,
+            ),
         )
         for item in sequence.items
     )
@@ -528,7 +538,8 @@ def _base_returns_one_value(alternative: SourceAlternative) -> bool:
         for item in alternative.body.items
     ):
         return True
-    return semantic_child_counts(alternative.body) == (1,)
+    counts = _semantic_execution_counts(alternative.body)
+    return bool(counts) and all(count == 1 for count in counts)
 
 
 def _first_nested_action(production: SourceProduction) -> Action | None:

@@ -1,5 +1,7 @@
 # Разделение синтаксической грамматики и semantic profile в parsergen
 
+> **Status:** Superseded by [`2026-09-05-parsergen-minimal-multi-target-design.md`](2026-09-05-parsergen-minimal-multi-target-design.md). Historical design evidence is retained; separated semantics are not part of parsergen 0.3.0.
+
 ## 1. Контекст и цель
 
 Сейчас declarative constructors и bindings находятся непосредственно в source
