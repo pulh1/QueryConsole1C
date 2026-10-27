@@ -580,8 +580,8 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         self.assertEqual(parsed.diagnostics, ())
         assert parsed.source_grammar is not None
         assert parsed.grammar is not None
-        self.assertEqual(len(parsed.source_grammar.productions), 66)
-        self.assertEqual(len(parsed.grammar.productions), 156)
+        self.assertEqual(len(parsed.source_grammar.productions), 67)
+        self.assertEqual(len(parsed.grammar.productions), 157)
         self.assertNotIn(
             "КакОпционально",
             {item.name for item in parsed.source_grammar.productions},
@@ -609,6 +609,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
                 "ID_ПолеБезРазыменования": 31,
                 "ID_ГруппаТипаСсылки": 1,
                 "ID_ИмяТипа": 17,
+                "ID_Функция": 22,
             },
         )
 
@@ -1217,7 +1218,7 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         )
         self.assertNotIn("НомерВариантаПродукции", function)
 
-    def test_aggregate_functions_generate_name_and_argument_bindings(
+    def test_generic_functions_generate_optional_expression_list(
         self,
     ) -> None:
         parsed = parse_grammar(
@@ -1248,19 +1249,19 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
 
         function = _generated_function(
             generated.module_text,
-            "АгрегатнаяФункция",
+            "ВызовФункции",
         )
-        for token in ("СУММА", "МАКСИМУМ", "МИНИМУМ", "СРЕДНЕЕ"):
-            with self.subTest(token=token):
-                self.assertEqual(function.count(f'Терминал("{token}")'), 1)
         self.assertEqual(
             function.count(
-                "ЭлементыМоделиЗапроса.НовыйАгрегатнаяФункция("
+                "ЭлементыМоделиЗапроса.НовыйВызовФункции("
             ),
-            4,
+            1,
         )
-        self.assertEqual(function.count("ЭтотУзел.ИмяФункции ="), 4)
-        self.assertEqual(function.count("ЭтотУзел.Аргумент ="), 5)
+        self.assertEqual(function.count("ЭтотУзел.ИмяФункции ="), 1)
+        self.assertEqual(function.count("ЭтотУзел.Аргументы ="), 1)
+        self.assertNotIn("ЭтотУзел.Аргументы = Неопределено;", function)
+        self.assertIn("НеТерминалСписокВыражений()", function)
+        self.assertNotIn("ЭтотУзел.Аргумент =", function)
         self.assertNotIn("ТекущийЭлемент", function)
         self.assertNotIn("НомерВариантаПродукции", function)
 
@@ -1349,12 +1350,12 @@ class RepositoryGrammarCompatibilityTests(unittest.TestCase):
         function = _generated_function(module, "Функция")
         self.assertEqual(
             function.count("ЭлементыМоделиЗапроса.НовыйФункция"),
-            22,
+            6,
         )
-        self.assertEqual(function.count("ЭтотУзел.Аргументы.Добавить("), 2)
+        self.assertNotIn("ЭтотУзел.Аргументы.Добавить(", function)
         self.assertEqual(function.count("ЭтотУзел.ЧастиПути.Добавить("), 3)
         self.assertEqual(function.count("ЭтотУзел.ТипПериода ="), 4)
-        self.assertEqual(function.count("Пока "), 1)
+        self.assertEqual(function.count("Пока "), 0)
         self.assertNotIn("ТекущийЭлемент", function)
         self.assertNotIn("НомерВариантаПродукции", function)
 

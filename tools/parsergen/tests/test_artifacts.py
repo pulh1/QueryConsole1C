@@ -112,7 +112,7 @@ class ArtifactTests(unittest.TestCase):
         fixture = Path(__file__).parent / "fixtures/reference_parser/Templates"
         for relative, expected_rows in (
             ("ТаблицаПервыхСимволовВариантов/Template.txt", 0),
-            ("ОпределенияИдентификаторов/Template.txt", 276),
+            ("ОпределенияИдентификаторов/Template.txt", 298),
         ):
             with self.subTest(relative=relative):
                 content = (fixture / relative).read_bytes()

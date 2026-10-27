@@ -76,8 +76,8 @@ class ValueTableCodecTests(unittest.TestCase):
             [column.kind for column in identifiers.columns],
             [ColumnKind.STRING, ColumnKind.STRING],
         )
-        self.assertEqual(len(identifiers.rows), 276)
-        self.assertEqual(identifiers.rows[0], ("ID_Полный", "ID"))
+        self.assertEqual(len(identifiers.rows), 298)
+        self.assertEqual(identifiers.rows[0], ("ID_Функция", "ID"))
         self.assertEqual(
             identifiers.rows[-1],
             ("ID_ПолеБезРазыменования", "ССЫЛКА"),
