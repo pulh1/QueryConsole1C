@@ -14,6 +14,10 @@
 
 **Spec:** [2026-10-27-generic-query-function-calls-design.md](../specs/2026-10-27-generic-query-function-calls-design.md), принята пользователем 2026-10-27.
 
+Контракт каталога и контекстов после пользовательского ревью уточнён
+[отдельным планом](2026-10-27-query-functions-review-fixes.md); он имеет приоритет
+над историческими Interfaces ниже.
+
 **Состояние 27.10.2026:** реализация Tasks 2–5 и автоматические проверки
 выполнены; три P2-замечания независимого ревью исправлены и проверены RED→GREEN.
 Финальный прогон: Python 761 passed / 1 skipped; YAxUnit 571 passed / 3 skipped.

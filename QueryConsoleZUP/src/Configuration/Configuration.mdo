@@ -92,6 +92,8 @@
   <commonModules>CommonModule.ОтчетыКлиентПереопределяемый</commonModules>
   <commonModules>CommonModule.УниверсальныйОтчетРасширенныйКлиент</commonModules>
   <commonModules>CommonModule.МетаданныеТаблицЗапроса</commonModules>
+  <commonModules>CommonModule.КОНС_РеестрФункцийЯзыкаЗапросов</commonModules>
+  <commonModules>CommonModule.КОНС_РеестрФункцийЯзыкаЗапросовПовтИсп</commonModules>
   <settingsStorages>SettingsStorage.ХранилищеВариантовОтчетов</settingsStorages>
   <functionalOptions>FunctionalOption.ИспользоватьИсториюИзмененияШтатногоРасписания</functionalOptions>
   <definedTypes>DefinedType.МестоВыплатыЗарплатыСотрудников</definedTypes>

@@ -108,6 +108,27 @@ EDT выбирает для текущей базы **8.3.27.2170**. Факти�
 
 ## Независимое ревью
 
+После пользовательского ревью выполнен дополнительный рефакторинг по
+[согласованным семи замечаниям](../plans/2026-10-27-query-functions-review-fixes.md):
+каталог вынесен в реестр с обёрткой повторного использования; массивы количеств
+и допустимых типов заполняются непосредственно; фиксированный результат имеет
+тип ОписаниеТипов, вывод по аргументам задаётся числом; сохранён булев признак
+Агрегатная; специальные проверки выполняются по имени; базовый контекст
+выражения отделён от сведений о запросе, корень хранится в посетителе.
+
+Новые контрактные проверки дали 4 ожидаемых failures до реализации и **4/4
+passed** после неё. Отдельная регрессия nullable первого аргумента и чистого
+NULL следующего дала RED→GREEN. Полный модуль семантики: **35/35 passed**.
+Итоговый общий прогон восьми модулей: **576 passed, 3 прежних skipped**.
+В восьми затронутых объектах EDT сохранились **33 фоновых диагностики**,
+новых нет; ERRORS нет. `validate`, `generate --check`, проверка байтовых
+эталонов parsergen (**1/1 passed**) и `git diff --check` прошли.
+Грамматика и generated parser не менялись.
+
+Независимое ревью этих изменений отдельным агентом gpt-6-astra не выявило
+существенных замечаний. Проверки на 8.3.24, прежние спорные SQL-пробы и UI
+остаются обозначенными выше ограничениями.
+
 Fresh-context ревью диапазона `382ed96..aa0dd53` выполнено отдельным агентом
 gpt-6-astra. Приняты три P2-замечания: потеря оператора в сортировке,
 обход ограничений через параметры ВТ и недостаточная проверка поля размера
@@ -134,11 +155,16 @@ gpt-6-astra. Приняты три P2-замечания: потеря опер�
 
 ## Изменённые файлы
 
+- [QueryConsoleZUP/src/CommonModules/КОНС_РеестрФункцийЯзыкаЗапросов/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/КОНС_РеестрФункцийЯзыкаЗапросов/Module.bsl)
+- [QueryConsoleZUP/src/CommonModules/КОНС_РеестрФункцийЯзыкаЗапросов/КОНС_РеестрФункцийЯзыкаЗапросов.mdo](../../../QueryConsoleZUP/src/CommonModules/КОНС_РеестрФункцийЯзыкаЗапросов/КОНС_РеестрФункцийЯзыкаЗапросов.mdo)
+- [QueryConsoleZUP/src/CommonModules/КОНС_РеестрФункцийЯзыкаЗапросовПовтИсп/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/КОНС_РеестрФункцийЯзыкаЗапросовПовтИсп/Module.bsl)
+- [QueryConsoleZUP/src/CommonModules/КОНС_РеестрФункцийЯзыкаЗапросовПовтИсп/КОНС_РеестрФункцийЯзыкаЗапросовПовтИсп.mdo](../../../QueryConsoleZUP/src/CommonModules/КОНС_РеестрФункцийЯзыкаЗапросовПовтИсп/КОНС_РеестрФункцийЯзыкаЗапросовПовтИсп.mdo)
 - [QueryConsoleZUP/src/CommonModules/МодельЗапросаУтилиты/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/МодельЗапросаУтилиты/Module.bsl)
 - [QueryConsoleZUP/src/CommonModules/ОбработкаМоделиЗапроса/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/ОбработкаМоделиЗапроса/Module.bsl)
 - [QueryConsoleZUP/src/CommonModules/ОбходМоделиЯзыкаВыражений/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/ОбходМоделиЯзыкаВыражений/Module.bsl)
 - [QueryConsoleZUP/src/CommonModules/СемантическийАнализВыраженийУтилиты/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/СемантическийАнализВыраженийУтилиты/Module.bsl)
 - [QueryConsoleZUP/src/CommonModules/ЭлементыМоделиЗапроса/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/ЭлементыМоделиЗапроса/Module.bsl)
+- [QueryConsoleZUP/src/Configuration/Configuration.mdo](../../../QueryConsoleZUP/src/Configuration/Configuration.mdo)
 - [QueryConsoleZUP/src/DataProcessors/ГенераторFeatureФайлов/ObjectModule.bsl](../../../QueryConsoleZUP/src/DataProcessors/ГенераторFeatureФайлов/ObjectModule.bsl)
 - [QueryConsoleZUP/src/DataProcessors/ГенераторТекстовВыражений/ObjectModule.bsl](../../../QueryConsoleZUP/src/DataProcessors/ГенераторТекстовВыражений/ObjectModule.bsl)
 - [QueryConsoleZUP/src/DataProcessors/ОбработчикРазыменованийДляСКДПосетитель/ObjectModule.bsl](../../../QueryConsoleZUP/src/DataProcessors/ОбработчикРазыменованийДляСКДПосетитель/ObjectModule.bsl)
@@ -150,6 +176,7 @@ gpt-6-astra. Приняты три P2-замечания: потеря опер�
 - [QueryConsoleZUP/src/DataProcessors/Шаблон_ПосетительМоделиВыражений/ObjectModule.bsl](../../../QueryConsoleZUP/src/DataProcessors/Шаблон_ПосетительМоделиВыражений/ObjectModule.bsl)
 - [docs/superpowers/matrices/2026-10-27-query-function-coverage.md](../../../docs/superpowers/matrices/2026-10-27-query-function-coverage.md)
 - [docs/superpowers/plans/2026-10-27-generic-query-function-calls.md](../../../docs/superpowers/plans/2026-10-27-generic-query-function-calls.md)
+- [docs/superpowers/plans/2026-10-27-query-functions-review-fixes.md](../../../docs/superpowers/plans/2026-10-27-query-functions-review-fixes.md)
 - [docs/superpowers/specs/2026-10-27-generic-query-function-calls-design.md](../../../docs/superpowers/specs/2026-10-27-generic-query-function-calls-design.md)
 - [tools/parsergen/grammar/query-language.grammar](../../../tools/parsergen/grammar/query-language.grammar)
 - [tools/parsergen/tests/fixtures/reference_parser/ObjectModule.bsl](../../../tools/parsergen/tests/fixtures/reference_parser/ObjectModule.bsl)
