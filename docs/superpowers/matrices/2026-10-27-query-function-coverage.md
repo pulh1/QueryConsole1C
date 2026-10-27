@@ -50,11 +50,14 @@
 - UUID проверен моделью для ссылочного поля, пустой ссылки, NULL,
   Неопределено и несовместимого числового типа.
 - Контекст создания ВТ не передаётся во вложенный запрос; запрещены
-  АВТОНОМЕРЗАПИСИ в арифметике, другом вызове, ГДЕ и объединении.
+  АВТОНОМЕРЗАПИСИ в арифметике, другом вызове, ГДЕ, объединении и параметрах
+  виртуальной таблицы. СГРУППИРОВАНОПО проверен также в сортировке.
 - СКД обходит вложенные общие вызовы; делегирование проверяет флаг функций,
   всех детей и запрещает агрегаты, контекстные функции и размер данных.
 - Конструктор меняет агрегат, снимает и добавляет агрегирование, создаёт поле
   итогов с новым узлом; специальные КОЛИЧЕСТВО сохраняют отдельный узел.
+- Размер данных принимает поле в скобочных оболочках и отклоняет приведение
+  константы, даже когда парсер оборачивает его в Разыменование.
 
 ## Сохранённый специальный синтаксис
 
@@ -86,18 +89,79 @@ EDT выбирает для текущей базы **8.3.27.2170**. Факти�
 
 ## Результаты прогонов
 
-- parsergen: **761 passed, 1 skipped**, 54.28 с. Пропуск — создание Windows
+- parsergen после исправлений ревью: **761 passed, 1 skipped**, 50.02 с. Пропуск — создание Windows
   symlink без привилегии, WinError 1314; тот же пропуск был в baseline.
-- Пять модулей YAxUnit: **269 passed, 1 skipped**, без ошибок и падений.
-  Пропуск существующий: `ПредставлениеРабочиеМестаСотрудников` читает
+- Заключительный общий прогон восьми модулей YAxUnit после исправлений:
+  **571 passed, 3 skipped**, без ошибок и падений.
+  Первый пропуск существующий: `ПредставлениеРабочиеМестаСотрудников` читает
   `ОписаниеФильтра` вместо `ОписаниеВТФильтр`; этот дефект не менялся.
-- Ещё три модуля (полные запросы, прикладные потребители, лексер):
-  **301 passed, 2 skipped**. Пропуски требуют `ДанныеФормыДерево` и были
-  зарегистрированы тестами до изменения функций. Всего YAxUnit: 570 passed,
-  3 skipped.
+  Два других пропуска требуют `ДанныеФормыДерево` и были зарегистрированы
+  тестами до изменения функций.
+- Отдельная opt-in регрессия `НеделяСохраняетИмяФункции`: **1/1 passed**
+  после миграции AST. Всего выполнено 572 успешных YAxUnit-сценария.
 - `validate`, `generate --check`, `git diff --check` прошли.
 - После точечной ревалидации новых диагностик в сопоставленных объектах
   относительно baseline нет. У парсера остаются предупреждения о префиксе
   имени и языке `ru` в неизменённом завершающем фрагменте модуля.
 - Команда `tools/parsergen/benchmarks/audit_migration.py` из skill отсутствует
   в репозитории; её успешный запуск не заявляется.
+
+## Независимое ревью
+
+Fresh-context ревью диапазона `382ed96..aa0dd53` выполнено отдельным агентом
+gpt-6-astra. Приняты три P2-замечания: потеря оператора в сортировке,
+обход ограничений через параметры ВТ и недостаточная проверка поля размера
+данных. Все три воспроизведены реальными тестами YAxUnit (2 failures,
+1 error), исправлены одним проходом; повторно **3/3 passed**.
+После исправлений новых диагностик EDT нет; в 13 затронутых объектах остаётся
+264 фоновых диагностики. Изменённый тестовый модуль не имеет ERRORS.
+
+## Решения при исполнении
+
+| Решение | Основание и последствие |
+|---|---|
+| Продолжить исполнение после согласования без повторного разрешения | Пользователь принял план; ошибочное толкование означало бы преждевременное начало |
+| Работать в текущей feature-ветке без нового worktree | К ней привязаны EDT и база; меньше изоляции, компенсировано точечными guarded-правками и коммитами |
+| Использовать фактическую сигнатуру helper вывода типа параметра | Проверена через EDT; лишний аргумент из исходного плана нарушал бы вывод типа |
+| Делать независимую часть модели до окончания спорных SQL-проб | AST не зависит от спорных сигнатур; при расхождении потребуется поправить описание функции и тест |
+| Убрать неподтверждённые SQL-пробы из обычной регистрации | Совместный запуск дал fatal SQL; правила UUID до изолированной проверки опираются на справку |
+| Не запрещать GROUPING без группировки до runtime-сверки | Требование принятой спецификации; спорный случай пока может быть отклонён самой платформой |
+| Объединить implementation checkpoint после миграции consumers | Промежуточные коммиты сохраняли бы известный сбой конструктора/итогов; итоговый diff крупнее |
+| Заменить отсутствующий migration audit фактическими доступными проверками | Скрипта нет в репозитории; отдельный migration audit не считается выполненным |
+| Оставить непроверенные runtime/UI gates явными ограничениями | Справка и модель на 8.3.27 не доказывают поведение 8.3.24/UI; возможные расхождения потребуют доработки |
+| Не расширять границы на двуязычность, группирующие наборы, точные позиции новых ошибок и performance benchmark | Это исключено scope либо не измерялось; для этих возможностей нужна отдельная работа |
+| Сохранить текущую ветку без merge/push | Так предписывает принятый план; интеграция остаётся отдельным действием пользователя |
+
+## Изменённые файлы
+
+- [QueryConsoleZUP/src/CommonModules/МодельЗапросаУтилиты/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/МодельЗапросаУтилиты/Module.bsl)
+- [QueryConsoleZUP/src/CommonModules/ОбработкаМоделиЗапроса/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/ОбработкаМоделиЗапроса/Module.bsl)
+- [QueryConsoleZUP/src/CommonModules/ОбходМоделиЯзыкаВыражений/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/ОбходМоделиЯзыкаВыражений/Module.bsl)
+- [QueryConsoleZUP/src/CommonModules/СемантическийАнализВыраженийУтилиты/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/СемантическийАнализВыраженийУтилиты/Module.bsl)
+- [QueryConsoleZUP/src/CommonModules/ЭлементыМоделиЗапроса/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/ЭлементыМоделиЗапроса/Module.bsl)
+- [QueryConsoleZUP/src/DataProcessors/ГенераторFeatureФайлов/ObjectModule.bsl](../../../QueryConsoleZUP/src/DataProcessors/ГенераторFeatureФайлов/ObjectModule.bsl)
+- [QueryConsoleZUP/src/DataProcessors/ГенераторТекстовВыражений/ObjectModule.bsl](../../../QueryConsoleZUP/src/DataProcessors/ГенераторТекстовВыражений/ObjectModule.bsl)
+- [QueryConsoleZUP/src/DataProcessors/ОбработчикРазыменованийДляСКДПосетитель/ObjectModule.bsl](../../../QueryConsoleZUP/src/DataProcessors/ОбработчикРазыменованийДляСКДПосетитель/ObjectModule.bsl)
+- [QueryConsoleZUP/src/DataProcessors/Парсер/ObjectModule.bsl](../../../QueryConsoleZUP/src/DataProcessors/Парсер/ObjectModule.bsl)
+- [QueryConsoleZUP/src/DataProcessors/Парсер/Templates/ОпределенияИдентификаторов/Template.txt](../../../QueryConsoleZUP/src/DataProcessors/Парсер/Templates/ОпределенияИдентификаторов/Template.txt)
+- [QueryConsoleZUP/src/DataProcessors/ПостроительМоделиЗапроса/ObjectModule.bsl](../../../QueryConsoleZUP/src/DataProcessors/ПостроительМоделиЗапроса/ObjectModule.bsl)
+- [QueryConsoleZUP/src/DataProcessors/ПроверкаПрименимостиОтбораПосетитель/ObjectModule.bsl](../../../QueryConsoleZUP/src/DataProcessors/ПроверкаПрименимостиОтбораПосетитель/ObjectModule.bsl)
+- [QueryConsoleZUP/src/DataProcessors/СемантическийАнализВыраженийПосетитель/ObjectModule.bsl](../../../QueryConsoleZUP/src/DataProcessors/СемантическийАнализВыраженийПосетитель/ObjectModule.bsl)
+- [QueryConsoleZUP/src/DataProcessors/Шаблон_ПосетительМоделиВыражений/ObjectModule.bsl](../../../QueryConsoleZUP/src/DataProcessors/Шаблон_ПосетительМоделиВыражений/ObjectModule.bsl)
+- [docs/superpowers/matrices/2026-10-27-query-function-coverage.md](../../../docs/superpowers/matrices/2026-10-27-query-function-coverage.md)
+- [docs/superpowers/plans/2026-10-27-generic-query-function-calls.md](../../../docs/superpowers/plans/2026-10-27-generic-query-function-calls.md)
+- [docs/superpowers/specs/2026-10-27-generic-query-function-calls-design.md](../../../docs/superpowers/specs/2026-10-27-generic-query-function-calls-design.md)
+- [tools/parsergen/grammar/query-language.grammar](../../../tools/parsergen/grammar/query-language.grammar)
+- [tools/parsergen/tests/fixtures/reference_parser/ObjectModule.bsl](../../../tools/parsergen/tests/fixtures/reference_parser/ObjectModule.bsl)
+- [tools/parsergen/tests/fixtures/reference_parser/Templates/ОпределенияИдентификаторов/Template.txt](../../../tools/parsergen/tests/fixtures/reference_parser/Templates/ОпределенияИдентификаторов/Template.txt)
+- [tools/parsergen/tests/test_artifacts.py](../../../tools/parsergen/tests/test_artifacts.py)
+- [tools/parsergen/tests/test_direct_python_bsl_artifact_fence.py](../../../tools/parsergen/tests/test_direct_python_bsl_artifact_fence.py)
+- [tools/parsergen/tests/test_reference_parser.py](../../../tools/parsergen/tests/test_reference_parser.py)
+- [tools/parsergen/tests/test_repository_grammar.py](../../../tools/parsergen/tests/test_repository_grammar.py)
+- [tools/parsergen/tests/test_repository_grammar_metrics.py](../../../tools/parsergen/tests/test_repository_grammar_metrics.py)
+- [tools/parsergen/tests/test_value_table_codec.py](../../../tools/parsergen/tests/test_value_table_codec.py)
+- [yaxunit/src/CommonModules/КОНС_ОМ_ОбработкаМоделиЗапроса/Module.bsl](../../../yaxunit/src/CommonModules/КОНС_ОМ_ОбработкаМоделиЗапроса/Module.bsl)
+- [yaxunit/src/CommonModules/КОНС_Обр_МодельВыражений_МО/Module.bsl](../../../yaxunit/src/CommonModules/КОНС_Обр_МодельВыражений_МО/Module.bsl)
+- [yaxunit/src/CommonModules/КОНС_Обр_Парсер_МО/Module.bsl](../../../yaxunit/src/CommonModules/КОНС_Обр_Парсер_МО/Module.bsl)
+- [yaxunit/src/CommonModules/КОНС_Обр_ПарсерБудущаяГрамматика_МО/Module.bsl](../../../yaxunit/src/CommonModules/КОНС_Обр_ПарсерБудущаяГрамматика_МО/Module.bsl)
+- [yaxunit/src/CommonModules/КОНС_Обр_ПостроениеИГенерацияЗапросов_МО/Module.bsl](../../../yaxunit/src/CommonModules/КОНС_Обр_ПостроениеИГенерацияЗапросов_МО/Module.bsl)
