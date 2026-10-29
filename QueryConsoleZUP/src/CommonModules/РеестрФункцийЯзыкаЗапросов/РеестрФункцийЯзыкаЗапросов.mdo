@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mdclass:CommonModule xmlns:mdclass="http://g5.1c.ru/v8/dt/metadata/mdclass" uuid="dfacd55d-546b-4ef2-aa19-efd582241e10">
-  <name>КОНС_РеестрФункцийЯзыкаЗапросов</name>
+  <name>РеестрФункцийЯзыкаЗапросов</name>
   <server>true</server>
   <externalConnection>true</externalConnection>
   <clientOrdinaryApplication>true</clientOrdinaryApplication>

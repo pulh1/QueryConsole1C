@@ -137,6 +137,80 @@ gpt-6-astra. Приняты три P2-замечания: потеря опер�
 После исправлений новых диагностик EDT нет; в 13 затронутых объектах остаётся
 264 фоновых диагностики. Изменённый тестовый модуль не имеет ERRORS.
 
+## Исправления по ревью семантики, 29.10.2026
+
+Согласованный [план](../plans/2026-10-29-query-function-semantic-review.md)
+выполнен относительно baseline-коммита `3f73387`. Предыдущие результаты выше
+сохранены как история; текущий контракт описан в
+[спецификации 29.10](../specs/2026-10-29-query-function-semantic-review-design.md).
+
+- Реестр и его обёртка переименованы через EDT без КОНС_; UUID и флаги
+  сохранены, у обёртки остаётся DuringSession.
+- Ограничения типов — разреженное Соответствие с номерами аргументов с 1.
+  Свободная позиция не создаёт записи; ограниченная содержит непустой массив.
+  Оба читателя и вывод типов параметров используют новый контракт.
+- Правила применения функций передаются явно и обязательно. Общий контекст
+  не содержит текущего запроса, оператора и роли. Нет подмен/откатов контекста,
+  отдельного начала обхода, готового посетителя в аргументах или хранения корня.
+- Каждый анализ создаёт нового посетителя. Стек вызовов проверяет
+  ПРЕДСТАВЛЕНИЕ в семи существующих парах callbacks: общий вызов, КОЛИЧЕСТВО,
+  ВЫРАЗИТЬ и четыре периодные функции. Вложенный запрос имеет свой стек.
+- ПроанализироватьВызовФункции проверяет аргументы и выводит тип результата.
+  Все callers обработки/конструктора и самостоятельного вывода типа мигрированы.
+
+| Проверка | Фактический результат |
+| --- | --- |
+| Baseline перед реализацией | 48/48 passed |
+| Новый контракт ограничений | RED 6 ошибок отсутствующего поля/метода → GREEN 52/52 в двух модулях |
+| Обязательные правила, отсутствие полей контекста | RED → GREEN 87/87 в трёх модулях |
+| ПРЕДСТАВЛЕНИЕ в специальном синтаксисе | RED 6 случаев → GREEN 96/96 в трёх модулях |
+| Полная матрица АвтоНомера и команды конструктора | 107/107 passed в трёх модулях |
+| Итоговые восемь связанных модулей | 608 passed, 3 skipped, 0 failed, 0 errors (всего 611) |
+| Два теста независимости посетителей после последней правки fixture | 2/2 passed |
+| git diff HEAD --check | Пройден |
+| Грамматика, parsergen и ПоставщикИсполняемыхПредставлений относительно baseline | Не изменены |
+| Независимое read-only ревью реализации | Подтверждённых findings нет; код, тесты и метаданные проверены отдельным агентом |
+
+Матрица АвтоНомера включает положительные случаи отдельного поля ВТ,
+группировки с агрегатом в другом поле и объединения внутри источника.
+Отрицательные случаи: обычная выборка, оба объединения верхнего уровня,
+вложение в функцию/арифметику/ВЫБОР/скобки, WHERE, JOIN, HAVING, группировка,
+сортировка, отбор СКД, параметр ВТ, итоги, индекс, дополнение периодами
+и вложенный запрос. Проверены добавление поля конструктора, отклонение
+недопустимых команд без изменения модели, генерация и повторный разбор,
+включая сохранение имени НЕДЕЛЯ.
+
+Прогон выполнен на **8.3.27.2170**, не на целевой 8.3.24.1758.
+Подтверждённой конфигурации запуска тестов на 8.3.24 не было; ручная UI-проверка
+конструктора не выполнена. Спорные UUID/GROUPING SQL-пробы не запускались.
+Три прежних пропуска: несовпадение ОписаниеФильтра/ОписаниеВТФильтр в
+ПредставлениеРабочиеМестаСотрудников и два сценария, требующие ДанныеФормыДерево.
+
+Итоговая точечная ревалидация EDT охватывает 11 рабочих объектов и три тестовых
+модуля. В тестах остаются прежние 33 диагностики, ERRORS=0. В рабочих объектах
+все **36 ERRORS** относятся к неизменённой форме
+DataCompositionAvailableTableParameters (Parameters/Items/ThisForm и другие
+недоступные имена); чистота всего родительского объекта не заявляется.
+Два новых extension-md-object-prefix ожидаемы по прямому требованию снять
+КОНС_ с реестра; настройки общей проверки не менялись.
+
+После полной ревалидации остаются также три constructor-function-return-section
+на возврате РазобратьЗапрос: «Элементы с типом Массив не возвращается».
+Метод и его возврат относительно baseline не изменены. После ревалидации
+парсера и фабрики модели эти сообщения исчезают, после общей ревалидации
+появляются вновь. Причина нестабильной диагностики не установлена; она не
+скрыта подавлением и не объявлена исправленной. Новых ERRORS в изменённых
+методах не обнаружено.
+
+Остальные полностью полученные списки диагностик совпали с baseline без учёта
+сдвига строк. Для конструктора сравнение дополнено 23 наборами MINOR по коду
+проверки и списком MAJOR: отличий нет. Общий вывод MINOR ограничен сервером
+100 000 символов; один из 400 фоновых MINOR не удалось выделить отдельно,
+поэтому полное сравнение каждого его сообщения не заявляется.
+
+Локальный отчёт итогового прогона:
+`C:/Users/pkhlu/AppData/Local/Temp/edt-mcp-yaxunit/QueryConsoleZUP_______________66770191d_98fa4b5bebadec022956961323cd3134f9e2a7fa/report.md`.
+
 ## Решения при исполнении
 
 | Решение | Основание и последствие |
@@ -153,12 +227,38 @@ gpt-6-astra. Приняты три P2-замечания: потеря опер�
 | Не расширять границы на двуязычность, группирующие наборы, точные позиции новых ошибок и performance benchmark | Это исключено scope либо не измерялось; для этих возможностей нужна отдельная работа |
 | Сохранить текущую ветку без merge/push | Так предписывает принятый план; интеграция остаётся отдельным действием пользователя |
 
-## Изменённые файлы
+## Изменённые файлы по плану 29.10
 
-- [QueryConsoleZUP/src/CommonModules/КОНС_РеестрФункцийЯзыкаЗапросов/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/КОНС_РеестрФункцийЯзыкаЗапросов/Module.bsl)
-- [QueryConsoleZUP/src/CommonModules/КОНС_РеестрФункцийЯзыкаЗапросов/КОНС_РеестрФункцийЯзыкаЗапросов.mdo](../../../QueryConsoleZUP/src/CommonModules/КОНС_РеестрФункцийЯзыкаЗапросов/КОНС_РеестрФункцийЯзыкаЗапросов.mdo)
-- [QueryConsoleZUP/src/CommonModules/КОНС_РеестрФункцийЯзыкаЗапросовПовтИсп/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/КОНС_РеестрФункцийЯзыкаЗапросовПовтИсп/Module.bsl)
-- [QueryConsoleZUP/src/CommonModules/КОНС_РеестрФункцийЯзыкаЗапросовПовтИсп/КОНС_РеестрФункцийЯзыкаЗапросовПовтИсп.mdo](../../../QueryConsoleZUP/src/CommonModules/КОНС_РеестрФункцийЯзыкаЗапросовПовтИсп/КОНС_РеестрФункцийЯзыкаЗапросовПовтИсп.mdo)
+- [docs/superpowers/matrices/2026-10-27-query-function-coverage.md](../../../docs/superpowers/matrices/2026-10-27-query-function-coverage.md)
+- [docs/superpowers/plans/2026-10-27-query-functions-review-fixes.md](../../../docs/superpowers/plans/2026-10-27-query-functions-review-fixes.md)
+- [docs/superpowers/plans/2026-10-29-query-function-semantic-review.md](../../../docs/superpowers/plans/2026-10-29-query-function-semantic-review.md)
+- [docs/superpowers/specs/2026-10-27-generic-query-function-calls-design.md](../../../docs/superpowers/specs/2026-10-27-generic-query-function-calls-design.md)
+- [docs/superpowers/specs/2026-10-29-query-function-semantic-review-design.md](../../../docs/superpowers/specs/2026-10-29-query-function-semantic-review-design.md)
+- [QueryConsoleZUP/src/CommonModules/МодельЗапросаУтилиты/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/МодельЗапросаУтилиты/Module.bsl)
+- [QueryConsoleZUP/src/CommonModules/ОбработкаМоделиЗапроса/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/ОбработкаМоделиЗапроса/Module.bsl)
+- [QueryConsoleZUP/src/CommonModules/РеестрФункцийЯзыкаЗапросов/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/РеестрФункцийЯзыкаЗапросов/Module.bsl)
+- [QueryConsoleZUP/src/CommonModules/РеестрФункцийЯзыкаЗапросов/РеестрФункцийЯзыкаЗапросов.mdo](../../../QueryConsoleZUP/src/CommonModules/РеестрФункцийЯзыкаЗапросов/РеестрФункцийЯзыкаЗапросов.mdo)
+- [QueryConsoleZUP/src/CommonModules/РеестрФункцийЯзыкаЗапросовПовтИсп/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/РеестрФункцийЯзыкаЗапросовПовтИсп/Module.bsl)
+- [QueryConsoleZUP/src/CommonModules/РеестрФункцийЯзыкаЗапросовПовтИсп/РеестрФункцийЯзыкаЗапросовПовтИсп.mdo](../../../QueryConsoleZUP/src/CommonModules/РеестрФункцийЯзыкаЗапросовПовтИсп/РеестрФункцийЯзыкаЗапросовПовтИсп.mdo)
+- [QueryConsoleZUP/src/CommonModules/СемантическийАнализВыраженийУтилиты/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/СемантическийАнализВыраженийУтилиты/Module.bsl)
+- [QueryConsoleZUP/src/Configuration/Configuration.mdo](../../../QueryConsoleZUP/src/Configuration/Configuration.mdo)
+- [QueryConsoleZUP/src/DataProcessors/ГенераторТекстовВыражений/ObjectModule.bsl](../../../QueryConsoleZUP/src/DataProcessors/ГенераторТекстовВыражений/ObjectModule.bsl)
+- [QueryConsoleZUP/src/DataProcessors/КонструкторЗапросов/Forms/КонструкторЗапросов/Module.bsl](../../../QueryConsoleZUP/src/DataProcessors/КонструкторЗапросов/Forms/КонструкторЗапросов/Module.bsl)
+- [QueryConsoleZUP/src/DataProcessors/ОбработчикРазыменованийДляСКДПосетитель/ObjectModule.bsl](../../../QueryConsoleZUP/src/DataProcessors/ОбработчикРазыменованийДляСКДПосетитель/ObjectModule.bsl)
+- [QueryConsoleZUP/src/DataProcessors/ПостроительМоделиЗапроса/ObjectModule.bsl](../../../QueryConsoleZUP/src/DataProcessors/ПостроительМоделиЗапроса/ObjectModule.bsl)
+- [QueryConsoleZUP/src/DataProcessors/ПроверкаПрименимостиОтбораПосетитель/ObjectModule.bsl](../../../QueryConsoleZUP/src/DataProcessors/ПроверкаПрименимостиОтбораПосетитель/ObjectModule.bsl)
+- [QueryConsoleZUP/src/DataProcessors/СемантическийАнализВыраженийПосетитель/ManagerModule.bsl](../../../QueryConsoleZUP/src/DataProcessors/СемантическийАнализВыраженийПосетитель/ManagerModule.bsl)
+- [QueryConsoleZUP/src/DataProcessors/СемантическийАнализВыраженийПосетитель/ObjectModule.bsl](../../../QueryConsoleZUP/src/DataProcessors/СемантическийАнализВыраженийПосетитель/ObjectModule.bsl)
+- [yaxunit/src/CommonModules/КОНС_Обр_МодельВыражений_МО/Module.bsl](../../../yaxunit/src/CommonModules/КОНС_Обр_МодельВыражений_МО/Module.bsl)
+- [yaxunit/src/CommonModules/КОНС_Обр_ПостроениеИГенерацияЗапросов_МО/Module.bsl](../../../yaxunit/src/CommonModules/КОНС_Обр_ПостроениеИГенерацияЗапросов_МО/Module.bsl)
+- [yaxunit/src/CommonModules/КОНС_ОМ_ОбработкаМоделиЗапроса/Module.bsl](../../../yaxunit/src/CommonModules/КОНС_ОМ_ОбработкаМоделиЗапроса/Module.bsl)
+
+## Файлы исходной реализации и прежних исправлений
+
+- [QueryConsoleZUP/src/CommonModules/РеестрФункцийЯзыкаЗапросов/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/РеестрФункцийЯзыкаЗапросов/Module.bsl)
+- [QueryConsoleZUP/src/CommonModules/РеестрФункцийЯзыкаЗапросов/РеестрФункцийЯзыкаЗапросов.mdo](../../../QueryConsoleZUP/src/CommonModules/РеестрФункцийЯзыкаЗапросов/РеестрФункцийЯзыкаЗапросов.mdo)
+- [QueryConsoleZUP/src/CommonModules/РеестрФункцийЯзыкаЗапросовПовтИсп/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/РеестрФункцийЯзыкаЗапросовПовтИсп/Module.bsl)
+- [QueryConsoleZUP/src/CommonModules/РеестрФункцийЯзыкаЗапросовПовтИсп/РеестрФункцийЯзыкаЗапросовПовтИсп.mdo](../../../QueryConsoleZUP/src/CommonModules/РеестрФункцийЯзыкаЗапросовПовтИсп/РеестрФункцийЯзыкаЗапросовПовтИсп.mdo)
 - [QueryConsoleZUP/src/CommonModules/МодельЗапросаУтилиты/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/МодельЗапросаУтилиты/Module.bsl)
 - [QueryConsoleZUP/src/CommonModules/ОбработкаМоделиЗапроса/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/ОбработкаМоделиЗапроса/Module.bsl)
 - [QueryConsoleZUP/src/CommonModules/ОбходМоделиЯзыкаВыражений/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/ОбходМоделиЯзыкаВыражений/Module.bsl)
