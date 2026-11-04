@@ -1,0 +1,352 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-04",
+  "baselineCommit": "bc42f70",
+  "platform": "8.3.27.2170",
+  "processBits": 64,
+  "databaseKind": "File infobase (demo ZUP)",
+  "previousReport": "2026-10-29-groupedby-runtime.json",
+  "userDecision": "Current investigation and implementation use8.3.27. 8.3.24 execution is outside this task.",
+  "method": "Separate COM connection/process per query. Loaded comcntr.dll FileVersionInfo.FileVersion confirmed8.3.27.2170. Native errors repeated through VBScript IDispatch because PowerShell masks native COM descriptions with NullReferenceException. No application query model involved.",
+  "summary": {
+    "successfulQueries": 12,
+    "queryErrors": 6,
+    "nativeErrorsConfirmed": 6,
+    "caseCount": 18
+  },
+  "findings": [
+    "Parameters, arithmetic, scalar functions, CASE and nested GROUPEDBY with record-independent operands are accepted both with and without GROUP BY; observed result=false.",
+    "SUM(1), COUNT(*) and a subquery inside the operand are rejected both with and without GROUP BY.",
+    "Explicit GROUP BY1 and GROUP BY&Parameter do not change the observed false for constant/parameter GROUPEDBY operands.",
+    "Combined with14 original cases:32 distinct queries,19 successful and13 rejected.",
+    "Exact grouped expression matching remains required for row-dependent operands; absence of GROUP BY cannot silently bypass the check."
+  ],
+  "runs": [
+    {
+      "id": "01_parameter_no_group",
+      "description": "parameter, no GROUP BY",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(&Параметр) КАК Результат\nИЗ (ВЫБРАТЬ 1 КАК Поле ОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ 2) КАК Источник",
+      "parameters": {
+        "Параметр": 7
+      },
+      "status": "success",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-11-04T12:11:24.2210789Z",
+      "finishedUtc": "2026-11-04T12:11:43.1974088Z",
+      "rows": [
+        {
+          "Результат": false
+        },
+        {
+          "Результат": false
+        }
+      ],
+      "nativeError": null,
+      "initialPowerShellInteropError": null
+    },
+    {
+      "id": "02_parameter_group",
+      "description": "parameter, ordinary grouping",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(&Параметр) КАК Результат\nИЗ (ВЫБРАТЬ 1 КАК Поле ОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ 2) КАК Источник\nСГРУППИРОВАТЬ ПО Источник.Поле",
+      "parameters": {
+        "Параметр": 7
+      },
+      "status": "success",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-11-04T12:11:48.1816534Z",
+      "finishedUtc": "2026-11-04T12:12:06.3806727Z",
+      "rows": [
+        {
+          "Результат": false
+        },
+        {
+          "Результат": false
+        }
+      ],
+      "nativeError": null,
+      "initialPowerShellInteropError": null
+    },
+    {
+      "id": "03_arithmetic_no_group",
+      "description": "arithmetic, no GROUP BY",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(1 + 1) КАК Результат\nИЗ (ВЫБРАТЬ 1 КАК Поле ОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ 2) КАК Источник",
+      "parameters": {},
+      "status": "success",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-11-04T12:12:11.2273004Z",
+      "finishedUtc": "2026-11-04T12:12:27.8581433Z",
+      "rows": [
+        {
+          "Результат": false
+        },
+        {
+          "Результат": false
+        }
+      ],
+      "nativeError": null,
+      "initialPowerShellInteropError": null
+    },
+    {
+      "id": "04_arithmetic_group",
+      "description": "arithmetic, ordinary grouping",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(1 + 1) КАК Результат\nИЗ (ВЫБРАТЬ 1 КАК Поле ОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ 2) КАК Источник\nСГРУППИРОВАТЬ ПО Источник.Поле",
+      "parameters": {},
+      "status": "success",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-11-04T12:12:32.822833Z",
+      "finishedUtc": "2026-11-04T12:12:49.5241872Z",
+      "rows": [
+        {
+          "Результат": false
+        },
+        {
+          "Результат": false
+        }
+      ],
+      "nativeError": null,
+      "initialPowerShellInteropError": null
+    },
+    {
+      "id": "05_function_no_group",
+      "description": "function, no GROUP BY",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(ГОД(ДАТАВРЕМЯ(2026, 1, 1))) КАК Результат\nИЗ (ВЫБРАТЬ 1 КАК Поле ОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ 2) КАК Источник",
+      "parameters": {},
+      "status": "success",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-11-04T12:12:54.4460868Z",
+      "finishedUtc": "2026-11-04T12:13:07.5632603Z",
+      "rows": [
+        {
+          "Результат": false
+        },
+        {
+          "Результат": false
+        }
+      ],
+      "nativeError": null,
+      "initialPowerShellInteropError": null
+    },
+    {
+      "id": "06_function_group",
+      "description": "function, ordinary grouping",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(ГОД(ДАТАВРЕМЯ(2026, 1, 1))) КАК Результат\nИЗ (ВЫБРАТЬ 1 КАК Поле ОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ 2) КАК Источник\nСГРУППИРОВАТЬ ПО Источник.Поле",
+      "parameters": {},
+      "status": "success",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-11-04T12:13:12.5456536Z",
+      "finishedUtc": "2026-11-04T12:13:24.8838583Z",
+      "rows": [
+        {
+          "Результат": false
+        },
+        {
+          "Результат": false
+        }
+      ],
+      "nativeError": null,
+      "initialPowerShellInteropError": null
+    },
+    {
+      "id": "07_case_no_group",
+      "description": "case, no GROUP BY",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(ВЫБОР КОГДА &Параметр = 7 ТОГДА 1 ИНАЧЕ 2 КОНЕЦ) КАК Результат\nИЗ (ВЫБРАТЬ 1 КАК Поле ОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ 2) КАК Источник",
+      "parameters": {
+        "Параметр": 7
+      },
+      "status": "success",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-11-04T12:13:29.8971919Z",
+      "finishedUtc": "2026-11-04T12:13:42.4986408Z",
+      "rows": [
+        {
+          "Результат": false
+        },
+        {
+          "Результат": false
+        }
+      ],
+      "nativeError": null,
+      "initialPowerShellInteropError": null
+    },
+    {
+      "id": "08_case_group",
+      "description": "case, ordinary grouping",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(ВЫБОР КОГДА &Параметр = 7 ТОГДА 1 ИНАЧЕ 2 КОНЕЦ) КАК Результат\nИЗ (ВЫБРАТЬ 1 КАК Поле ОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ 2) КАК Источник\nСГРУППИРОВАТЬ ПО Источник.Поле",
+      "parameters": {
+        "Параметр": 7
+      },
+      "status": "success",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-11-04T12:13:47.4871631Z",
+      "finishedUtc": "2026-11-04T12:13:59.0342077Z",
+      "rows": [
+        {
+          "Результат": false
+        },
+        {
+          "Результат": false
+        }
+      ],
+      "nativeError": null,
+      "initialPowerShellInteropError": null
+    },
+    {
+      "id": "09_aggregate_no_group",
+      "description": "aggregate, no GROUP BY",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(СУММА(1)) КАК Результат\nИЗ (ВЫБРАТЬ 1 КАК Поле ОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ 2) КАК Источник",
+      "parameters": {},
+      "status": "error",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-11-04T12:14:03.9465196Z",
+      "finishedUtc": "2026-11-04T12:14:16.5222593Z",
+      "rows": [],
+      "nativeError": "QUERY_ERROR 1001\r\n{(1, 9)}: Field is not in group \"СГРУППИРОВАНОПО(СУММА(1))\"\r\nВЫБРАТЬ <<?>>СГРУППИРОВАНОПО(СУММА(1)) КАК Результат\r\n",
+      "initialPowerShellInteropError": "Object reference not set to an instance of an object."
+    },
+    {
+      "id": "10_aggregate_group",
+      "description": "aggregate, ordinary grouping",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(СУММА(1)) КАК Результат\nИЗ (ВЫБРАТЬ 1 КАК Поле ОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ 2) КАК Источник\nСГРУППИРОВАТЬ ПО Источник.Поле",
+      "parameters": {},
+      "status": "error",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-11-04T12:14:21.4757785Z",
+      "finishedUtc": "2026-11-04T12:14:33.8485659Z",
+      "rows": [],
+      "nativeError": "QUERY_ERROR 1001\r\n{(1, 9)}: Field is not in group \"СГРУППИРОВАНОПО(СУММА(1))\"\r\nВЫБРАТЬ <<?>>СГРУППИРОВАНОПО(СУММА(1)) КАК Результат\r\n",
+      "initialPowerShellInteropError": "Object reference not set to an instance of an object."
+    },
+    {
+      "id": "11_nested_groupedby_no_group",
+      "description": "nested_groupedby, no GROUP BY",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(СГРУППИРОВАНОПО(1)) КАК Результат\nИЗ (ВЫБРАТЬ 1 КАК Поле ОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ 2) КАК Источник",
+      "parameters": {},
+      "status": "success",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-11-04T12:14:38.7281864Z",
+      "finishedUtc": "2026-11-04T12:14:51.3097175Z",
+      "rows": [
+        {
+          "Результат": false
+        },
+        {
+          "Результат": false
+        }
+      ],
+      "nativeError": null,
+      "initialPowerShellInteropError": null
+    },
+    {
+      "id": "12_nested_groupedby_group",
+      "description": "nested_groupedby, ordinary grouping",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(СГРУППИРОВАНОПО(1)) КАК Результат\nИЗ (ВЫБРАТЬ 1 КАК Поле ОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ 2) КАК Источник\nСГРУППИРОВАТЬ ПО Источник.Поле",
+      "parameters": {},
+      "status": "success",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-11-04T12:14:56.1640814Z",
+      "finishedUtc": "2026-11-04T12:15:08.4452755Z",
+      "rows": [
+        {
+          "Результат": false
+        },
+        {
+          "Результат": false
+        }
+      ],
+      "nativeError": null,
+      "initialPowerShellInteropError": null
+    },
+    {
+      "id": "13_count_no_group",
+      "description": "КОЛИЧЕСТВО(*) без группировки",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(КОЛИЧЕСТВО(*)) КАК Результат ИЗ (ВЫБРАТЬ 1 КАК Поле ОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ 2) КАК Источник",
+      "parameters": {},
+      "status": "error",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-11-04T12:17:22.5067006Z",
+      "finishedUtc": "2026-11-04T12:17:34.9753214Z",
+      "rows": [],
+      "nativeError": "QUERY_ERROR 1001\r\n{(1, 9)}: Field is not in group \"СГРУППИРОВАНОПО(КОЛИЧЕСТВО(*))\"\r\nВЫБРАТЬ <<?>>СГРУППИРОВАНОПО(КОЛИЧЕСТВО(*)) КАК Результат ИЗ (ВЫБРАТЬ 1 КАК Поле ОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ 2) КАК Источник\r\n",
+      "initialPowerShellInteropError": "Object reference not set to an instance of an object."
+    },
+    {
+      "id": "14_count_group",
+      "description": "КОЛИЧЕСТВО(*) при группировке",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(КОЛИЧЕСТВО(*)) КАК Результат ИЗ (ВЫБРАТЬ 1 КАК Поле ОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ 2) КАК Источник СГРУППИРОВАТЬ ПО Источник.Поле",
+      "parameters": {},
+      "status": "error",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-11-04T12:17:39.9807418Z",
+      "finishedUtc": "2026-11-04T12:17:56.9690124Z",
+      "rows": [],
+      "nativeError": "QUERY_ERROR 1001\r\n{(1, 9)}: Field is not in group \"СГРУППИРОВАНОПО(КОЛИЧЕСТВО(*))\"\r\nВЫБРАТЬ <<?>>СГРУППИРОВАНОПО(КОЛИЧЕСТВО(*)) КАК Результат ИЗ (ВЫБРАТЬ 1 КАК Поле ОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ 2) КАК Источник СГРУППИРОВАТЬ ПО Источник.Поле\r\n",
+      "initialPowerShellInteropError": "Object reference not set to an instance of an object."
+    },
+    {
+      "id": "15_subquery_no_group",
+      "description": "Подзапрос в аргументе без группировки",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(1 В (ВЫБРАТЬ 1)) КАК Результат ИЗ (ВЫБРАТЬ 1 КАК Поле ОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ 2) КАК Источник",
+      "parameters": {},
+      "status": "error",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-11-04T12:18:01.8655317Z",
+      "finishedUtc": "2026-11-04T12:18:14.4476301Z",
+      "rows": [],
+      "nativeError": "QUERY_ERROR 1001\r\nDBMS error:\r\nSQL error: Invalid syntax\r\n",
+      "initialPowerShellInteropError": "Object reference not set to an instance of an object."
+    },
+    {
+      "id": "16_subquery_group",
+      "description": "Подзапрос в аргументе при группировке",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(1 В (ВЫБРАТЬ 1)) КАК Результат ИЗ (ВЫБРАТЬ 1 КАК Поле ОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ 2) КАК Источник СГРУППИРОВАТЬ ПО Источник.Поле",
+      "parameters": {},
+      "status": "error",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-11-04T12:18:19.4159234Z",
+      "finishedUtc": "2026-11-04T12:18:31.7812905Z",
+      "rows": [],
+      "nativeError": "QUERY_ERROR 1001\r\n{(1, 9)}: Field is not in group \"СГРУППИРОВАНОПО(1 В\r\n(ВЫБРАТЬ\r\n1))\"\r\nВЫБРАТЬ <<?>>СГРУППИРОВАНОПО(1 В (ВЫБРАТЬ 1)) КАК Результат ИЗ (ВЫБРАТЬ 1 КАК Поле ОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ 2) КАК Источник СГРУППИРОВАТЬ ПО Источник.Поле\r\n",
+      "initialPowerShellInteropError": "Object reference not set to an instance of an object."
+    },
+    {
+      "id": "17_literal_as_group_key",
+      "description": "Константа сама является ключом",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(1) КАК Результат ИЗ (ВЫБРАТЬ 1 КАК Поле ОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ 2) КАК Источник СГРУППИРОВАТЬ ПО 1",
+      "parameters": {},
+      "status": "success",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-11-04T12:18:36.7291316Z",
+      "finishedUtc": "2026-11-04T12:18:49.548048Z",
+      "rows": [
+        {
+          "Результат": false
+        }
+      ],
+      "nativeError": null,
+      "initialPowerShellInteropError": null
+    },
+    {
+      "id": "18_parameter_as_group_key",
+      "description": "Параметр сам является ключом",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(&Параметр) КАК Результат ИЗ (ВЫБРАТЬ 1 КАК Поле ОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ 2) КАК Источник СГРУППИРОВАТЬ ПО &Параметр",
+      "parameters": {
+        "Параметр": 7
+      },
+      "status": "success",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-11-04T12:18:53.5591957Z",
+      "finishedUtc": "2026-11-04T12:19:05.5504766Z",
+      "rows": [
+        {
+          "Результат": false
+        }
+      ],
+      "nativeError": null,
+      "initialPowerShellInteropError": null
+    }
+  ],
+  "limits": [
+    "Observed on8.3.27.2170 and a file infobase; no SQL-backend comparison.",
+    "Grouping-set grammar support is outside the implementation scope; existing platform probes cover grouping-set behavior."
+  ]
+}
