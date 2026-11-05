@@ -1,0 +1,994 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-29",
+  "baselineCommit": "bc42f70",
+  "method": "Queries executed directly by V83.COMConnector in separate Windows PowerShell processes. Native errors repeated independently in VBScript through IDispatch to avoid a .NET NullReferenceException masking the platform description.",
+  "databaseKind": "File infobase (demo ZUP)",
+  "platform": "8.3.27.2170",
+  "platformEvidence": "Loaded C:/Program Files/1cv8/8.3.27.2170/bin/comcntr.dll; FileVersionInfo.FileVersion=8.3.27.2170 in each successful connection.",
+  "processBits": 64,
+  "sourceData": [
+    {
+      "Регион": "X",
+      "Число": 1,
+      "Категория": "А"
+    },
+    {
+      "Регион": "Y",
+      "Число": 2,
+      "Категория": "А"
+    },
+    {
+      "Регион": "X",
+      "Число": 4,
+      "Категория": "Б"
+    },
+    {
+      "Регион": "X",
+      "Число": 8,
+      "Категория": null
+    }
+  ],
+  "summary": {
+    "caseCount": 14,
+    "successfulQueries": 7,
+    "queryErrors": 7,
+    "nativeErrorsConfirmed": 7
+  },
+  "target8324": {
+    "error": "This configuration extension requires platform version 8.3.27 or later.\nCurrent platform version: 8.3.24.1368.",
+    "status": "blocked_before_query_execution",
+    "processBits": 32,
+    "queriesExecuted": 0,
+    "attemptedVersion": "8.3.24.1368"
+  },
+  "findings": [
+    "Ordinary GROUP BY accepts its exact key; grouped rows, including an original NULL key, return true.",
+    "Grouping sets return false for an omitted key; a source NULL grouped as a key remains true. An empty grouping set returns false for the omitted key.",
+    "A non-grouped field, a different expression over the key, a field contained inside a different grouped expression, and an aggregate argument fail with Field is not in group.",
+    "The exact compound expression listed in GROUP BY is accepted.",
+    "Literal 1 and literal NULL are accepted under ordinary grouping and return false. Literal 1 is also accepted without FROM/GROUP BY and returns false.",
+    "A field with no GROUP BY at the current query level fails with DBMS error: SQL error: Invalid syntax; grouping only in a nested source does not change that.",
+    "EDT validation differs from runtime on cases 02, 07, 08, 13 and 14; it cannot replace execution.",
+    "Static comparison with current semantic visitor: exact-key-only validation rejects valid literal cases 10 and 11; bypass when grouping is empty lets cases 02 and 14 reach platform SQL errors. No production code was changed in this investigation."
+  ],
+  "runs": [
+    {
+      "id": "01_plain_group_key",
+      "description": "Обычная группировка, её ключ",
+      "query": "ВЫБРАТЬ Источник.Категория, СГРУППИРОВАНОПО(Источник.Категория) КАК Признак, СУММА(Источник.Число) КАК Сумма\nИЗ (ВЫБРАТЬ \"А\" КАК Категория, \"X\" КАК Регион, 1 КАК Число\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"А\", \"Y\", 2\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"Б\", \"X\", 4\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ NULL, \"X\", 8) КАК Источник\nСГРУППИРОВАТЬ ПО Источник.Категория",
+      "status": "success",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-10-29T11:23:31.3001891Z",
+      "finishedUtc": "2026-10-29T11:23:40.3184051Z",
+      "columns": [
+        "Категория",
+        "Признак",
+        "Сумма"
+      ],
+      "rows": [
+        {
+          "Категория": "А",
+          "Признак": true,
+          "Сумма": 3
+        },
+        {
+          "Категория": "Б",
+          "Признак": true,
+          "Сумма": 4
+        },
+        {
+          "Категория": null,
+          "Признак": true,
+          "Сумма": 8
+        }
+      ],
+      "rawCells": [
+        {
+          "Категория": {
+            "value": "А",
+            "null": false,
+            "transportType": "System.String"
+          },
+          "Признак": {
+            "value": true,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "Сумма": {
+            "value": 3,
+            "null": false,
+            "transportType": "System.Int32"
+          }
+        },
+        {
+          "Категория": {
+            "value": "Б",
+            "null": false,
+            "transportType": "System.String"
+          },
+          "Признак": {
+            "value": true,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "Сумма": {
+            "value": 4,
+            "null": false,
+            "transportType": "System.Int32"
+          }
+        },
+        {
+          "Категория": {
+            "value": null,
+            "null": true,
+            "transportType": "System.DBNull"
+          },
+          "Признак": {
+            "value": true,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "Сумма": {
+            "value": 8,
+            "null": false,
+            "transportType": "System.Int32"
+          }
+        }
+      ],
+      "nativeError": null,
+      "initialPowerShellInteropError": null,
+      "edtValidation": {
+        "valid": true,
+        "success": true,
+        "warningCount": 0,
+        "infoCount": 0,
+        "issues": [],
+        "errorCount": 0,
+        "dcsMode": false
+      }
+    },
+    {
+      "id": "02_no_group_field",
+      "description": "Поле без секции группировки",
+      "query": "ВЫБРАТЬ Источник.Категория, СГРУППИРОВАНОПО(Источник.Категория) КАК Признак\nИЗ (ВЫБРАТЬ \"А\" КАК Категория, \"X\" КАК Регион, 1 КАК Число\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"А\", \"Y\", 2\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"Б\", \"X\", 4\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ NULL, \"X\", 8) КАК Источник",
+      "status": "error",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-10-29T11:23:42.542559Z",
+      "finishedUtc": "2026-10-29T11:23:51.4634082Z",
+      "columns": [
+        "Категория",
+        "Признак"
+      ],
+      "rows": [],
+      "rawCells": [],
+      "nativeError": "QUERY_ERROR 1001\r\nDBMS error:\r\nSQL error: Invalid syntax\r\n",
+      "initialPowerShellInteropError": "Object reference not set to an instance of an object.",
+      "edtValidation": {
+        "valid": true,
+        "success": true,
+        "warningCount": 0,
+        "infoCount": 0,
+        "issues": [],
+        "errorCount": 0,
+        "dcsMode": false
+      }
+    },
+    {
+      "id": "03_plain_group_other_field",
+      "description": "Обычная группировка по другому полю",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(Источник.Регион) КАК Признак, СУММА(Источник.Число) КАК Сумма\nИЗ (ВЫБРАТЬ \"А\" КАК Категория, \"X\" КАК Регион, 1 КАК Число\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"А\", \"Y\", 2\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"Б\", \"X\", 4\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ NULL, \"X\", 8) КАК Источник\nСГРУППИРОВАТЬ ПО Источник.Категория",
+      "status": "error",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-10-29T11:23:53.7189357Z",
+      "finishedUtc": "2026-10-29T11:24:02.5661588Z",
+      "columns": [
+        "Признак",
+        "Сумма"
+      ],
+      "rows": [],
+      "rawCells": [],
+      "nativeError": "QUERY_ERROR 1001\r\n{(1, 9)}: Field is not in group \"СГРУППИРОВАНОПО(Источник.Регион)\"\r\nВЫБРАТЬ <<?>>СГРУППИРОВАНОПО(Источник.Регион) КАК Признак, СУММА(Источник.Число) КАК Сумма\r\n",
+      "initialPowerShellInteropError": "Object reference not set to an instance of an object.",
+      "edtValidation": {
+        "valid": false,
+        "success": true,
+        "warningCount": 0,
+        "infoCount": 0,
+        "issues": [
+          {
+            "severity": "ERROR",
+            "message": "Поле должно присутствовать в секции 'СГРУППИРОВАТЬ ПО'",
+            "line": 1,
+            "column": 34,
+            "offset": 33
+          }
+        ],
+        "errorCount": 1,
+        "dcsMode": false
+      }
+    },
+    {
+      "id": "04_two_grouping_sets",
+      "description": "Два группирующих набора; исходный NULL",
+      "query": "ВЫБРАТЬ Источник.Категория, Источник.Регион, СГРУППИРОВАНОПО(Источник.Категория) КАК ПоКатегории, СГРУППИРОВАНОПО(Источник.Регион) КАК ПоРегиону, СУММА(Источник.Число) КАК Сумма\nИЗ (ВЫБРАТЬ \"А\" КАК Категория, \"X\" КАК Регион, 1 КАК Число\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"А\", \"Y\", 2\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"Б\", \"X\", 4\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ NULL, \"X\", 8) КАК Источник\nСГРУППИРОВАТЬ ПО ГРУППИРУЮЩИМ НАБОРАМ ((Источник.Категория), (Источник.Регион))",
+      "status": "success",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-10-29T11:24:04.7794409Z",
+      "finishedUtc": "2026-10-29T11:24:13.7229105Z",
+      "columns": [
+        "Категория",
+        "Регион",
+        "ПоКатегории",
+        "ПоРегиону",
+        "Сумма"
+      ],
+      "rows": [
+        {
+          "Категория": "А",
+          "Регион": null,
+          "ПоКатегории": true,
+          "ПоРегиону": false,
+          "Сумма": 3
+        },
+        {
+          "Категория": "Б",
+          "Регион": null,
+          "ПоКатегории": true,
+          "ПоРегиону": false,
+          "Сумма": 4
+        },
+        {
+          "Категория": null,
+          "Регион": null,
+          "ПоКатегории": true,
+          "ПоРегиону": false,
+          "Сумма": 8
+        },
+        {
+          "Категория": null,
+          "Регион": "X",
+          "ПоКатегории": false,
+          "ПоРегиону": true,
+          "Сумма": 13
+        },
+        {
+          "Категория": null,
+          "Регион": "Y",
+          "ПоКатегории": false,
+          "ПоРегиону": true,
+          "Сумма": 2
+        }
+      ],
+      "rawCells": [
+        {
+          "Категория": {
+            "value": "А",
+            "null": false,
+            "transportType": "System.String"
+          },
+          "Регион": {
+            "value": null,
+            "null": true,
+            "transportType": "System.DBNull"
+          },
+          "ПоКатегории": {
+            "value": true,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "ПоРегиону": {
+            "value": false,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "Сумма": {
+            "value": 3,
+            "null": false,
+            "transportType": "System.Int32"
+          }
+        },
+        {
+          "Категория": {
+            "value": "Б",
+            "null": false,
+            "transportType": "System.String"
+          },
+          "Регион": {
+            "value": null,
+            "null": true,
+            "transportType": "System.DBNull"
+          },
+          "ПоКатегории": {
+            "value": true,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "ПоРегиону": {
+            "value": false,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "Сумма": {
+            "value": 4,
+            "null": false,
+            "transportType": "System.Int32"
+          }
+        },
+        {
+          "Категория": {
+            "value": null,
+            "null": true,
+            "transportType": "System.DBNull"
+          },
+          "Регион": {
+            "value": null,
+            "null": true,
+            "transportType": "System.DBNull"
+          },
+          "ПоКатегории": {
+            "value": true,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "ПоРегиону": {
+            "value": false,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "Сумма": {
+            "value": 8,
+            "null": false,
+            "transportType": "System.Int32"
+          }
+        },
+        {
+          "Категория": {
+            "value": null,
+            "null": true,
+            "transportType": "System.DBNull"
+          },
+          "Регион": {
+            "value": "X",
+            "null": false,
+            "transportType": "System.String"
+          },
+          "ПоКатегории": {
+            "value": false,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "ПоРегиону": {
+            "value": true,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "Сумма": {
+            "value": 13,
+            "null": false,
+            "transportType": "System.Int32"
+          }
+        },
+        {
+          "Категория": {
+            "value": null,
+            "null": true,
+            "transportType": "System.DBNull"
+          },
+          "Регион": {
+            "value": "Y",
+            "null": false,
+            "transportType": "System.String"
+          },
+          "ПоКатегории": {
+            "value": false,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "ПоРегиону": {
+            "value": true,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "Сумма": {
+            "value": 2,
+            "null": false,
+            "transportType": "System.Int32"
+          }
+        }
+      ],
+      "nativeError": null,
+      "initialPowerShellInteropError": null,
+      "edtValidation": {
+        "valid": true,
+        "success": true,
+        "warningCount": 0,
+        "infoCount": 0,
+        "issues": [],
+        "errorCount": 0,
+        "dcsMode": false
+      }
+    },
+    {
+      "id": "05_sets_other_field",
+      "description": "Аргумент отсутствует во всех наборах",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(Источник.Число) КАК Признак, СУММА(Источник.Число) КАК Сумма\nИЗ (ВЫБРАТЬ \"А\" КАК Категория, \"X\" КАК Регион, 1 КАК Число\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"А\", \"Y\", 2\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"Б\", \"X\", 4\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ NULL, \"X\", 8) КАК Источник\nСГРУППИРОВАТЬ ПО ГРУППИРУЮЩИМ НАБОРАМ ((Источник.Категория), (Источник.Регион))",
+      "status": "error",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-10-29T11:24:15.9152534Z",
+      "finishedUtc": "2026-10-29T11:24:25.597302Z",
+      "columns": [
+        "Признак",
+        "Сумма"
+      ],
+      "rows": [],
+      "rawCells": [],
+      "nativeError": "QUERY_ERROR 1001\r\n{(1, 9)}: Field is not in group \"СГРУППИРОВАНОПО(Источник.Число)\"\r\nВЫБРАТЬ <<?>>СГРУППИРОВАНОПО(Источник.Число) КАК Признак, СУММА(Источник.Число) КАК Сумма\r\n",
+      "initialPowerShellInteropError": "Object reference not set to an instance of an object.",
+      "edtValidation": {
+        "valid": false,
+        "success": true,
+        "warningCount": 0,
+        "infoCount": 0,
+        "issues": [
+          {
+            "severity": "ERROR",
+            "message": "Поле должно присутствовать в секции 'СГРУППИРОВАТЬ ПО'",
+            "line": 1,
+            "column": 34,
+            "offset": 33
+          }
+        ],
+        "errorCount": 1,
+        "dcsMode": false
+      }
+    },
+    {
+      "id": "06_empty_grouping_set",
+      "description": "Набор по категории и пустой набор общего итога",
+      "query": "ВЫБРАТЬ Источник.Категория, СГРУППИРОВАНОПО(Источник.Категория) КАК ПоКатегории, СУММА(Источник.Число) КАК Сумма\nИЗ (ВЫБРАТЬ \"А\" КАК Категория, \"X\" КАК Регион, 1 КАК Число\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"А\", \"Y\", 2\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"Б\", \"X\", 4\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ NULL, \"X\", 8) КАК Источник\nСГРУППИРОВАТЬ ПО ГРУППИРУЮЩИМ НАБОРАМ ((Источник.Категория), ())",
+      "status": "success",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-10-29T11:24:27.754493Z",
+      "finishedUtc": "2026-10-29T11:24:36.6367856Z",
+      "columns": [
+        "Категория",
+        "ПоКатегории",
+        "Сумма"
+      ],
+      "rows": [
+        {
+          "Категория": "А",
+          "ПоКатегории": true,
+          "Сумма": 3
+        },
+        {
+          "Категория": "Б",
+          "ПоКатегории": true,
+          "Сумма": 4
+        },
+        {
+          "Категория": null,
+          "ПоКатегории": true,
+          "Сумма": 8
+        },
+        {
+          "Категория": null,
+          "ПоКатегории": false,
+          "Сумма": 15
+        }
+      ],
+      "rawCells": [
+        {
+          "Категория": {
+            "value": "А",
+            "null": false,
+            "transportType": "System.String"
+          },
+          "ПоКатегории": {
+            "value": true,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "Сумма": {
+            "value": 3,
+            "null": false,
+            "transportType": "System.Int32"
+          }
+        },
+        {
+          "Категория": {
+            "value": "Б",
+            "null": false,
+            "transportType": "System.String"
+          },
+          "ПоКатегории": {
+            "value": true,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "Сумма": {
+            "value": 4,
+            "null": false,
+            "transportType": "System.Int32"
+          }
+        },
+        {
+          "Категория": {
+            "value": null,
+            "null": true,
+            "transportType": "System.DBNull"
+          },
+          "ПоКатегории": {
+            "value": true,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "Сумма": {
+            "value": 8,
+            "null": false,
+            "transportType": "System.Int32"
+          }
+        },
+        {
+          "Категория": {
+            "value": null,
+            "null": true,
+            "transportType": "System.DBNull"
+          },
+          "ПоКатегории": {
+            "value": false,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "Сумма": {
+            "value": 15,
+            "null": false,
+            "transportType": "System.Int32"
+          }
+        }
+      ],
+      "nativeError": null,
+      "initialPowerShellInteropError": null,
+      "edtValidation": {
+        "valid": true,
+        "success": true,
+        "warningCount": 0,
+        "infoCount": 0,
+        "issues": [],
+        "errorCount": 0,
+        "dcsMode": false
+      }
+    },
+    {
+      "id": "07_expression_exact",
+      "description": "Аргумент совпадает с выражением группировки",
+      "query": "ВЫБРАТЬ Источник.Число + 1 КАК Ключ, СГРУППИРОВАНОПО(Источник.Число + 1) КАК Признак, СУММА(Источник.Число) КАК Сумма\nИЗ (ВЫБРАТЬ \"А\" КАК Категория, \"X\" КАК Регион, 1 КАК Число\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"А\", \"Y\", 2\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"Б\", \"X\", 4\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ NULL, \"X\", 8) КАК Источник\nСГРУППИРОВАТЬ ПО Источник.Число + 1",
+      "status": "success",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-10-29T11:24:38.8664891Z",
+      "finishedUtc": "2026-10-29T11:24:47.8043982Z",
+      "columns": [
+        "Ключ",
+        "Признак",
+        "Сумма"
+      ],
+      "rows": [
+        {
+          "Ключ": 2,
+          "Признак": true,
+          "Сумма": 1
+        },
+        {
+          "Ключ": 3,
+          "Признак": true,
+          "Сумма": 2
+        },
+        {
+          "Ключ": 5,
+          "Признак": true,
+          "Сумма": 4
+        },
+        {
+          "Ключ": 9,
+          "Признак": true,
+          "Сумма": 8
+        }
+      ],
+      "rawCells": [
+        {
+          "Ключ": {
+            "value": 2,
+            "null": false,
+            "transportType": "System.Int32"
+          },
+          "Признак": {
+            "value": true,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "Сумма": {
+            "value": 1,
+            "null": false,
+            "transportType": "System.Int32"
+          }
+        },
+        {
+          "Ключ": {
+            "value": 3,
+            "null": false,
+            "transportType": "System.Int32"
+          },
+          "Признак": {
+            "value": true,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "Сумма": {
+            "value": 2,
+            "null": false,
+            "transportType": "System.Int32"
+          }
+        },
+        {
+          "Ключ": {
+            "value": 5,
+            "null": false,
+            "transportType": "System.Int32"
+          },
+          "Признак": {
+            "value": true,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "Сумма": {
+            "value": 4,
+            "null": false,
+            "transportType": "System.Int32"
+          }
+        },
+        {
+          "Ключ": {
+            "value": 9,
+            "null": false,
+            "transportType": "System.Int32"
+          },
+          "Признак": {
+            "value": true,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "Сумма": {
+            "value": 8,
+            "null": false,
+            "transportType": "System.Int32"
+          }
+        }
+      ],
+      "nativeError": null,
+      "initialPowerShellInteropError": null,
+      "edtValidation": {
+        "valid": false,
+        "success": true,
+        "warningCount": 0,
+        "infoCount": 0,
+        "issues": [
+          {
+            "severity": "ERROR",
+            "message": "Поле должно присутствовать в секции 'СГРУППИРОВАТЬ ПО'",
+            "line": 1,
+            "column": 63,
+            "offset": 62
+          }
+        ],
+        "errorCount": 1,
+        "dcsMode": false
+      }
+    },
+    {
+      "id": "08_expression_of_group_key",
+      "description": "Выражение над ключом группировки",
+      "query": "ВЫБРАТЬ Источник.Число КАК Ключ, СГРУППИРОВАНОПО(Источник.Число + 1) КАК Признак\nИЗ (ВЫБРАТЬ \"А\" КАК Категория, \"X\" КАК Регион, 1 КАК Число\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"А\", \"Y\", 2\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"Б\", \"X\", 4\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ NULL, \"X\", 8) КАК Источник\nСГРУППИРОВАТЬ ПО Источник.Число",
+      "status": "error",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-10-29T11:24:50.2865169Z",
+      "finishedUtc": "2026-10-29T11:24:59.2995978Z",
+      "columns": [
+        "Ключ",
+        "Признак"
+      ],
+      "rows": [],
+      "rawCells": [],
+      "nativeError": "QUERY_ERROR 1001\r\n{(1, 34)}: Field is not in group \"СГРУППИРОВАНОПО(Источник.Число + 1)\"\r\nВЫБРАТЬ Источник.Число КАК Ключ, <<?>>СГРУППИРОВАНОПО(Источник.Число + 1) КАК Признак\r\n",
+      "initialPowerShellInteropError": "Object reference not set to an instance of an object.",
+      "edtValidation": {
+        "valid": true,
+        "success": true,
+        "warningCount": 0,
+        "infoCount": 0,
+        "issues": [],
+        "errorCount": 0,
+        "dcsMode": false
+      }
+    },
+    {
+      "id": "09_field_inside_group_expression",
+      "description": "Поле внутри составного выражения группировки",
+      "query": "ВЫБРАТЬ Источник.Число + 1 КАК Ключ, СГРУППИРОВАНОПО(Источник.Число) КАК Признак\nИЗ (ВЫБРАТЬ \"А\" КАК Категория, \"X\" КАК Регион, 1 КАК Число\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"А\", \"Y\", 2\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"Б\", \"X\", 4\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ NULL, \"X\", 8) КАК Источник\nСГРУППИРОВАТЬ ПО Источник.Число + 1",
+      "status": "error",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-10-29T11:25:01.5635579Z",
+      "finishedUtc": "2026-10-29T11:25:10.5929664Z",
+      "columns": [
+        "Ключ",
+        "Признак"
+      ],
+      "rows": [],
+      "rawCells": [],
+      "nativeError": "QUERY_ERROR 1001\r\n{(1, 38)}: Field is not in group \"СГРУППИРОВАНОПО(Источник.Число)\"\r\nВЫБРАТЬ Источник.Число + 1 КАК Ключ, <<?>>СГРУППИРОВАНОПО(Источник.Число) КАК Признак\r\n",
+      "initialPowerShellInteropError": "Object reference not set to an instance of an object.",
+      "edtValidation": {
+        "valid": false,
+        "success": true,
+        "warningCount": 0,
+        "infoCount": 0,
+        "issues": [
+          {
+            "severity": "ERROR",
+            "message": "Поле должно присутствовать в секции 'СГРУППИРОВАТЬ ПО'",
+            "line": 1,
+            "column": 63,
+            "offset": 62
+          }
+        ],
+        "errorCount": 1,
+        "dcsMode": false
+      }
+    },
+    {
+      "id": "10_constant_with_group",
+      "description": "Числовая константа при обычной группировке",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(1) КАК Признак, СУММА(Источник.Число) КАК Сумма\nИЗ (ВЫБРАТЬ \"А\" КАК Категория, \"X\" КАК Регион, 1 КАК Число\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"А\", \"Y\", 2\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"Б\", \"X\", 4\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ NULL, \"X\", 8) КАК Источник\nСГРУППИРОВАТЬ ПО Источник.Категория",
+      "status": "success",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-10-29T11:25:12.9121144Z",
+      "finishedUtc": "2026-10-29T11:25:21.9844698Z",
+      "columns": [
+        "Признак",
+        "Сумма"
+      ],
+      "rows": [
+        {
+          "Признак": false,
+          "Сумма": 3
+        },
+        {
+          "Признак": false,
+          "Сумма": 4
+        },
+        {
+          "Признак": false,
+          "Сумма": 8
+        }
+      ],
+      "rawCells": [
+        {
+          "Признак": {
+            "value": false,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "Сумма": {
+            "value": 3,
+            "null": false,
+            "transportType": "System.Int32"
+          }
+        },
+        {
+          "Признак": {
+            "value": false,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "Сумма": {
+            "value": 4,
+            "null": false,
+            "transportType": "System.Int32"
+          }
+        },
+        {
+          "Признак": {
+            "value": false,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "Сумма": {
+            "value": 8,
+            "null": false,
+            "transportType": "System.Int32"
+          }
+        }
+      ],
+      "nativeError": null,
+      "initialPowerShellInteropError": null,
+      "edtValidation": {
+        "valid": true,
+        "success": true,
+        "warningCount": 0,
+        "infoCount": 0,
+        "issues": [],
+        "errorCount": 0,
+        "dcsMode": false
+      }
+    },
+    {
+      "id": "11_null_with_group",
+      "description": "NULL как аргумент при группировке",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(NULL) КАК Признак, СУММА(Источник.Число) КАК Сумма\nИЗ (ВЫБРАТЬ \"А\" КАК Категория, \"X\" КАК Регион, 1 КАК Число\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"А\", \"Y\", 2\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"Б\", \"X\", 4\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ NULL, \"X\", 8) КАК Источник\nСГРУППИРОВАТЬ ПО Источник.Категория",
+      "status": "success",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-10-29T11:25:24.6615818Z",
+      "finishedUtc": "2026-10-29T11:25:33.601815Z",
+      "columns": [
+        "Признак",
+        "Сумма"
+      ],
+      "rows": [
+        {
+          "Признак": false,
+          "Сумма": 3
+        },
+        {
+          "Признак": false,
+          "Сумма": 4
+        },
+        {
+          "Признак": false,
+          "Сумма": 8
+        }
+      ],
+      "rawCells": [
+        {
+          "Признак": {
+            "value": false,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "Сумма": {
+            "value": 3,
+            "null": false,
+            "transportType": "System.Int32"
+          }
+        },
+        {
+          "Признак": {
+            "value": false,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "Сумма": {
+            "value": 4,
+            "null": false,
+            "transportType": "System.Int32"
+          }
+        },
+        {
+          "Признак": {
+            "value": false,
+            "null": false,
+            "transportType": "System.Boolean"
+          },
+          "Сумма": {
+            "value": 8,
+            "null": false,
+            "transportType": "System.Int32"
+          }
+        }
+      ],
+      "nativeError": null,
+      "initialPowerShellInteropError": null,
+      "edtValidation": {
+        "valid": true,
+        "success": true,
+        "warningCount": 0,
+        "infoCount": 0,
+        "issues": [],
+        "errorCount": 0,
+        "dcsMode": false
+      }
+    },
+    {
+      "id": "12_no_group_constant",
+      "description": "Константа без FROM и группировки",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(1) КАК Признак",
+      "status": "success",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-10-29T11:25:35.9129427Z",
+      "finishedUtc": "2026-10-29T11:25:44.3790705Z",
+      "columns": [
+        "Признак"
+      ],
+      "rows": [
+        {
+          "Признак": false
+        }
+      ],
+      "rawCells": [
+        {
+          "Признак": {
+            "value": false,
+            "null": false,
+            "transportType": "System.Boolean"
+          }
+        }
+      ],
+      "nativeError": null,
+      "initialPowerShellInteropError": null,
+      "edtValidation": {
+        "valid": true,
+        "success": true,
+        "warningCount": 0,
+        "infoCount": 0,
+        "issues": [],
+        "errorCount": 0,
+        "dcsMode": false
+      }
+    },
+    {
+      "id": "13_aggregate_argument",
+      "description": "Агрегат как аргумент функции",
+      "query": "ВЫБРАТЬ СГРУППИРОВАНОПО(СУММА(Источник.Число)) КАК Признак\nИЗ (ВЫБРАТЬ \"А\" КАК Категория, \"X\" КАК Регион, 1 КАК Число\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"А\", \"Y\", 2\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"Б\", \"X\", 4\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ NULL, \"X\", 8) КАК Источник\nСГРУППИРОВАТЬ ПО Источник.Категория",
+      "status": "error",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-10-29T11:25:46.5745183Z",
+      "finishedUtc": "2026-10-29T11:25:55.8058313Z",
+      "columns": [
+        "Признак"
+      ],
+      "rows": [],
+      "rawCells": [],
+      "nativeError": "QUERY_ERROR 1001\r\n{(1, 9)}: Field is not in group \"СГРУППИРОВАНОПО(СУММА(Источник.Число))\"\r\nВЫБРАТЬ <<?>>СГРУППИРОВАНОПО(СУММА(Источник.Число)) КАК Признак\r\n",
+      "initialPowerShellInteropError": "Object reference not set to an instance of an object.",
+      "edtValidation": {
+        "valid": true,
+        "success": true,
+        "warningCount": 0,
+        "infoCount": 0,
+        "issues": [],
+        "errorCount": 0,
+        "dcsMode": false
+      }
+    },
+    {
+      "id": "14_grouping_in_source_only",
+      "description": "Группировка только во вложенном источнике",
+      "query": "ВЫБРАТЬ Данные.Категория, СГРУППИРОВАНОПО(Данные.Категория) КАК Признак\nИЗ (ВЫБРАТЬ Источник.Категория КАК Категория ИЗ (ВЫБРАТЬ \"А\" КАК Категория, \"X\" КАК Регион, 1 КАК Число\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"А\", \"Y\", 2\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ \"Б\", \"X\", 4\nОБЪЕДИНИТЬ ВСЕ ВЫБРАТЬ NULL, \"X\", 8) КАК Источник\nСГРУППИРОВАТЬ ПО Источник.Категория) КАК Данные",
+      "status": "error",
+      "platform": "8.3.27.2170",
+      "startedUtc": "2026-10-29T11:25:58.3627559Z",
+      "finishedUtc": "2026-10-29T11:26:07.1608514Z",
+      "columns": [
+        "Категория",
+        "Признак"
+      ],
+      "rows": [],
+      "rawCells": [],
+      "nativeError": "QUERY_ERROR 1001\r\nDBMS error:\r\nSQL error: Invalid syntax\r\n",
+      "initialPowerShellInteropError": "Object reference not set to an instance of an object.",
+      "edtValidation": {
+        "valid": true,
+        "success": true,
+        "warningCount": 0,
+        "infoCount": 0,
+        "issues": [],
+        "errorCount": 0,
+        "dcsMode": false
+      }
+    }
+  ],
+  "limitations": [
+    "Results describe 8.3.27.2170 with a file infobase; no SQL backend comparison performed.",
+    "No query executed on 8.3.24.1368 because an installed extension requires 8.3.27 or later.",
+    "The old combined-query failure is not retroactively attributed to one cause; this experiment independently reproduces the same SQL error text for cases 02 and 14."
+  ]
+}
