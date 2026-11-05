@@ -286,6 +286,38 @@ private процедура генератора; дополнительные к
 - [docs/superpowers/specs/2026-10-29-query-function-semantic-review-design.md](../../../docs/superpowers/specs/2026-10-29-query-function-semantic-review-design.md)
 - [docs/superpowers/matrices/2026-10-27-query-function-coverage.md](../../../docs/superpowers/matrices/2026-10-27-query-function-coverage.md)
 
+## Интерфейс реестра, 05.11.2026
+
+Потребители и контрактные тесты обращаются к
+РеестрФункцийЯзыкаЗапросов.ОписаниеФункцииЗапроса.
+Этот метод нормализует имя и вызывает внутренний ПовтИсп-модуль,
+который перенаправляет вызов в ОписаниеФункцииЗапросаСлужебный обычного реестра.
+Служебная реализация находится в СлужебныеПроцедурыИФункции и сохраняет
+Экспорт для вызова из ПовтИсп. Формирование 48 описаний не изменено;
+настройки кеширования и метаданные сохранены. Прямых вызовов ПовтИсп
+из потребителей и тестов нет.
+
+Проверка 05.11 на 8.3.27.2170: **124/124 passed**, без ошибок и пропусков
+в трёх связанных модулях семантики, модели выражений и построения/генерации.
+Контрактные проверки каталога используют основной интерфейс реестра.
+Тело формирования описания проверено как неизменённое; имена, сигнатуры,
+результаты 48 функций сохранены. Диагностики EDT совпали с baseline:
+30 в шести рабочих объектах и 16 в тестовом модуле, ERRORS=0.
+`git diff --check` пройден. Метаданные, грамматика и
+ПоставщикИсполняемыхПредставлений не менялись.
+
+Изменённые файлы по замечанию 05.11:
+
+- [QueryConsoleZUP/src/CommonModules/МодельЗапросаУтилиты/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/МодельЗапросаУтилиты/Module.bsl)
+- [QueryConsoleZUP/src/CommonModules/РеестрФункцийЯзыкаЗапросов/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/РеестрФункцийЯзыкаЗапросов/Module.bsl)
+- [QueryConsoleZUP/src/CommonModules/РеестрФункцийЯзыкаЗапросовПовтИсп/Module.bsl](../../../QueryConsoleZUP/src/CommonModules/РеестрФункцийЯзыкаЗапросовПовтИсп/Module.bsl)
+- [QueryConsoleZUP/src/DataProcessors/ГенераторТекстовВыражений/ObjectModule.bsl](../../../QueryConsoleZUP/src/DataProcessors/ГенераторТекстовВыражений/ObjectModule.bsl)
+- [QueryConsoleZUP/src/DataProcessors/ПроверкаПрименимостиОтбораПосетитель/ObjectModule.bsl](../../../QueryConsoleZUP/src/DataProcessors/ПроверкаПрименимостиОтбораПосетитель/ObjectModule.bsl)
+- [QueryConsoleZUP/src/DataProcessors/СемантическийАнализВыраженийПосетитель/ObjectModule.bsl](../../../QueryConsoleZUP/src/DataProcessors/СемантическийАнализВыраженийПосетитель/ObjectModule.bsl)
+- [yaxunit/src/CommonModules/КОНС_ОМ_ОбработкаМоделиЗапроса/Module.bsl](../../../yaxunit/src/CommonModules/КОНС_ОМ_ОбработкаМоделиЗапроса/Module.bsl)
+- [docs/superpowers/specs/2026-10-27-generic-query-function-calls-design.md](../../../docs/superpowers/specs/2026-10-27-generic-query-function-calls-design.md)
+- [docs/superpowers/matrices/2026-10-27-query-function-coverage.md](../../../docs/superpowers/matrices/2026-10-27-query-function-coverage.md)
+
 ## Решения при исполнении
 
 | Решение | Основание и последствие |
